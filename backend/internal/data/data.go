@@ -11,8 +11,8 @@ import (
 	"github.com/google/wire"
 )
 
-// ProviderSet is data providers. The article repo joins in S2.
-var ProviderSet = wire.NewSet(NewData)
+// ProviderSet is data providers.
+var ProviderSet = wire.NewSet(NewData, NewArticleRepo)
 
 // Data holds the long-lived storage clients shared by repos.
 type Data struct {

@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
@@ -99,4 +100,105 @@ func ListLimit(limit int) ListOption {
 	return func(o *ListOptions) {
 		o.Limit = limit
 	}
+}
+
+// slugPattern constrains the public identifier: lowercase letters, digits and
+// single hyphens between segments, 1-64 bytes total. It is URL-safe and stable
+// under escaping.
+var slugPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+// ValidSlug reports whether s is an acceptable article slug.
+func ValidSlug(s string) bool {
+	return len(s) >= 1 && len(s) <= 64 && slugPattern.MatchString(s)
+}
+
+// ArticleUsecase is an Article usecase.
+type ArticleUsecase struct {
+	repo ArticleRepo
+}
+
+// NewArticleUsecase new an Article usecase.
+func NewArticleUsecase(repo ArticleRepo) *ArticleUsecase {
+	return &ArticleUsecase{repo: repo}
+}
+
+// CreateArticle creates an article. New articles always start as DRAFT:
+// the caller-requested status and published_at are ignored.
+func (uc *ArticleUsecase) CreateArticle(ctx context.Context, a *Article) (*Article, error) {
+	if err := validateArticle(a); err != nil {
+		return nil, err
+	}
+	a.Status = ArticleStatusDraft
+	a.PublishedAt = nil
+	return uc.repo.CreateArticle(ctx, a)
+}
+
+// GetArticle returns a non-deleted article by slug.
+func (uc *ArticleUsecase) GetArticle(ctx context.Context, slug string) (*Article, error) {
+	if !ValidSlug(slug) {
+		return nil, ErrArticleInvalidArgument
+	}
+	return uc.repo.FindBySlug(ctx, slug)
+}
+
+// ListArticles lists articles.
+func (uc *ArticleUsecase) ListArticles(ctx context.Context, opts ...ListOption) ([]*Article, error) {
+	return uc.repo.ListArticles(ctx, opts...)
+}
+
+// UpdateArticle updates an article identified by its immutable slug. Moving a
+// non-published article to PUBLISHED stamps published_at; the transition to
+// DELETED only happens through DeleteArticle.
+func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Article, error) {
+	if err := validateArticle(a); err != nil {
+		return nil, err
+	}
+	if a.Status == ArticleStatusUnspecified || a.Status == ArticleStatusDeleted {
+		return nil, ErrArticleInvalidArgument
+	}
+	current, err := uc.repo.FindBySlug(ctx, a.Slug)
+	if err != nil {
+		return nil, err
+	}
+	if a.Status == ArticleStatusPublished {
+		if a.PublishedAt == nil {
+			if current.Status == ArticleStatusPublished && current.PublishedAt != nil {
+				// The article is already published: keep the original stamp.
+				a.PublishedAt = current.PublishedAt
+			} else {
+				// First publish.
+				now := time.Now()
+				a.PublishedAt = &now
+			}
+		}
+	} else {
+		// A non-published state never carries a publication timestamp.
+		a.PublishedAt = nil
+	}
+	return uc.repo.UpdateArticle(ctx, a)
+}
+
+// DeleteArticle soft-deletes an article by slug.
+func (uc *ArticleUsecase) DeleteArticle(ctx context.Context, slug string) error {
+	if !ValidSlug(slug) {
+		return ErrArticleInvalidArgument
+	}
+	return uc.repo.DeleteArticle(ctx, slug)
+}
+
+// validateArticle checks the mutable fields of an article at the biz boundary.
+func validateArticle(a *Article) error {
+	if a == nil {
+		return ErrArticleInvalidArgument
+	}
+	if !ValidSlug(a.Slug) {
+		return ErrArticleInvalidArgument
+	}
+	if len([]rune(a.Title)) == 0 || len([]rune(a.Title)) > 128 {
+		return ErrArticleInvalidArgument
+	}
+	if len([]rune(a.ContentMD)) == 0 {
+		return ErrArticleInvalidArgument
+	}
+	return nil
 }
