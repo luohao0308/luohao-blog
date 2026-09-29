@@ -1,0 +1,7 @@
+# 根级忽略：环境变量与系统文件；各子项目另有细分 .gitignore
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+node_modules/
