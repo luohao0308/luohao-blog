@@ -1,0 +1,4 @@
+# pnpm 11 项目级设置；allowBuilds 放行带安装脚本的依赖（平台二进制回退下载）
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
