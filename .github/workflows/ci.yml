@@ -19,7 +19,7 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - name: Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7 # v7 起支持 golangci-lint v2
         with:
           working-directory: backend
           version: v2.14.0 # 与本地一致；v1.x 二进制无法处理 go 1.26 目标版本
