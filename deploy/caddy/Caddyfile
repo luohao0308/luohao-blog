@@ -1,0 +1,11 @@
+# 生产反代模板（M5 启用）：Caddy 自动签发 HTTPS
+# backend 与 frontend 服务由各自的 Dockerfile 提供（M5 补充），先按主机端口反代：
+
+# example.com {
+# 	handle /api/* {
+# 		reverse_proxy 127.0.0.1:8000
+# 	}
+# 	handle {
+# 		reverse_proxy 127.0.0.1:3000
+# 	}
+# }

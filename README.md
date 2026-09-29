@@ -23,4 +23,4 @@
 
 ## 状态
 
-🚧 仓库初始化阶段，脚手架尚未搭建。开发流程遵循 [dev-workflow](https://github.com/luohao0308/dev-workflow)。
+🚧 **M0 脚手架已完成**（2026-09-29）：`backend/` Go + Kratos、`frontend/` Nuxt 4、`deploy/` 本地依赖编排、CI lint 就绪，见 [.github/workflows/ci.yml](.github/workflows/ci.yml)。下一步 M1 内容核心。开发流程遵循 [dev-workflow](https://github.com/luohao0308/dev-workflow)。
