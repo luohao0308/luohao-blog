@@ -9,29 +9,29 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
-	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/todo"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
-// TodoDelete is the builder for deleting a Todo entity.
-type TodoDelete struct {
+// TagDelete is the builder for deleting a Tag entity.
+type TagDelete struct {
 	config
 	hooks    []Hook
-	mutation *TodoMutation
+	mutation *TagMutation
 }
 
-// Where appends a list predicates to the TodoDelete builder.
-func (_d *TodoDelete) Where(ps ...predicate.Todo) *TodoDelete {
+// Where appends a list predicates to the TagDelete builder.
+func (_d *TagDelete) Where(ps ...predicate.Tag) *TagDelete {
 	_d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (_d *TodoDelete) Exec(ctx context.Context) (int, error) {
+func (_d *TagDelete) Exec(ctx context.Context) (int, error) {
 	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *TodoDelete) ExecX(ctx context.Context) int {
+func (_d *TagDelete) ExecX(ctx context.Context) int {
 	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
@@ -39,8 +39,8 @@ func (_d *TodoDelete) ExecX(ctx context.Context) int {
 	return n
 }
 
-func (_d *TodoDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(todo.Table, sqlgraph.NewFieldSpec(todo.FieldID, field.TypeUUID))
+func (_d *TagDelete) sqlExec(ctx context.Context) (int, error) {
+	_spec := sqlgraph.NewDeleteSpec(tag.Table, sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -56,32 +56,32 @@ func (_d *TodoDelete) sqlExec(ctx context.Context) (int, error) {
 	return affected, err
 }
 
-// TodoDeleteOne is the builder for deleting a single Todo entity.
-type TodoDeleteOne struct {
-	_d *TodoDelete
+// TagDeleteOne is the builder for deleting a single Tag entity.
+type TagDeleteOne struct {
+	_d *TagDelete
 }
 
-// Where appends a list predicates to the TodoDelete builder.
-func (_d *TodoDeleteOne) Where(ps ...predicate.Todo) *TodoDeleteOne {
+// Where appends a list predicates to the TagDelete builder.
+func (_d *TagDeleteOne) Where(ps ...predicate.Tag) *TagDeleteOne {
 	_d._d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query.
-func (_d *TodoDeleteOne) Exec(ctx context.Context) error {
+func (_d *TagDeleteOne) Exec(ctx context.Context) error {
 	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{todo.Label}
+		return &NotFoundError{tag.Label}
 	default:
 		return nil
 	}
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *TodoDeleteOne) ExecX(ctx context.Context) {
+func (_d *TagDeleteOne) ExecX(ctx context.Context) {
 	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}

@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "ArticleProto";
+
+// ArticleService manages blog articles. The public identifier of an article is
+// its slug: it is unique, URL-safe, and immutable after creation.
+service ArticleService {
+  // CreateArticle creates a new article and returns the persisted record with
+  // the server-assigned id, timestamps, rendered HTML, and DRAFT status.
+  // Returns INVALID_ARGUMENT if the payload fails validation, or ALREADY_EXISTS
+  // if the slug is taken.
+  rpc CreateArticle (CreateArticleRequest) returns (Article) {
+    option (google.api.http) = {
+      post: "/v1/articles/create"
+      body: "article"
+    };
+  }
+
+  // ListArticles returns a page of articles, optionally filtered and ordered.
+  // Use the next_page_token from ArticleSet to retrieve subsequent pages.
+  // Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
+  rpc ListArticles (ListArticlesRequest) returns (ArticleSet) {
+    option (google.api.http) = {
+      get: "/v1/articles/list"
+    };
+  }
+
+  // GetArticle returns a single article by its slug.
+  // Returns NOT_FOUND if no article exists with the supplied slug.
+  rpc GetArticle (GetArticleRequest) returns (Article) {
+    option (google.api.http) = {
+      get: "/v1/articles/{slug}"
+    };
+  }
+
+  // UpdateArticle applies a partial update to an existing article using a
+  // FieldMask. Only the fields listed in update_mask are overwritten; all
+  // other fields are left unchanged. The slug is immutable and only identifies
+  // the target record here. Updating content_md re-renders content_html.
+  // Returns NOT_FOUND if the target article does not exist, or
+  // INVALID_ARGUMENT if update_mask references unknown fields.
+  rpc UpdateArticle (UpdateArticleRequest) returns (Article) {
+    option (google.api.http) = {
+      put: "/v1/articles/update"
+      body: "article"
+    };
+  }
+
+  // DeleteArticle soft-deletes an article by its slug. The record is retained
+  // by the server but no longer appears in GetArticle or ListArticles results.
+  // Returns NOT_FOUND if no article exists with the supplied slug.
+  rpc DeleteArticle (DeleteArticleRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/articles/{slug}"
+    };
+  }
+}
+
+// ArticleStatus is the lifecycle state of an article.
+enum ArticleStatus {
+  // Default value. Never returned by the server.
+  ARTICLE_STATUS_UNSPECIFIED = 0;
+  // The article is being written; it does not appear in public reads.
+  ARTICLE_STATUS_DRAFT = 1;
+  // The article is published and appears in public reads.
+  ARTICLE_STATUS_PUBLISHED = 2;
+  // The article is soft-deleted: the record is retained by the server but no
+  // longer appears in GetArticle or ListArticles results.
+  ARTICLE_STATUS_DELETED = 3;
+}
+
+// Article is the canonical representation of a blog article.
+message Article {
+  // Application-generated UUIDv7 identifier. Read-only on create.
+  string id = 1;
+  // Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
+  string slug = 2 [(google.api.field_behavior) = REQUIRED];
+  // Human-readable title.
+  string title = 3 [(google.api.field_behavior) = REQUIRED];
+  // Optional short excerpt used in list views; derived from content_md when
+  // empty.
+  string summary = 4;
+  // Markdown source of the article body.
+  string content_md = 5 [(google.api.field_behavior) = REQUIRED];
+  // Server-rendered HTML for content_md. Read-only: regenerated whenever
+  // content_md changes.
+  string content_html = 6;
+  // Tag names attached to the article. Tags are created on first use.
+  repeated string tags = 7;
+  // Lifecycle state. Server-assigned: new articles start as DRAFT; move them
+  // with UpdateArticle on status; DeleteArticle moves them to DELETED.
+  ArticleStatus status = 8;
+  // Time at which the article first moved to PUBLISHED. Server-assigned.
+  google.protobuf.Timestamp published_at = 9;
+  // Time at which the article was created. Server-assigned, read-only.
+  google.protobuf.Timestamp created_at = 10;
+  // Time at which the article was last modified. Server-assigned, read-only.
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+// ArticleSet is a paginated collection of articles returned by ListArticles.
+message ArticleSet {
+  // The page of articles in the order requested by ListArticlesRequest.order_by.
+  repeated Article articles = 1;
+  // Token used to retrieve the next page via ListArticlesRequest.page_token.
+  // Empty when there are no more results.
+  string next_page_token = 2;
+}
+
+// CreateArticleRequest is the input for ArticleService.CreateArticle.
+message CreateArticleRequest {
+  // The article to create. The id, content_html, status, published_at,
+  // created_at, and updated_at fields are ignored on input and populated by
+  // the server in the response. New articles are created as DRAFT.
+  Article article = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetArticleRequest is the input for ArticleService.GetArticle.
+message GetArticleRequest {
+  // Unique slug of the article to retrieve.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListArticlesRequest is the input for ArticleService.ListArticles.
+message ListArticlesRequest {
+  // Optional. Maximum number of articles to return in a single page.
+  // The server may apply a default and a maximum when unset or out of range.
+  int32 page_size = 1;
+  // Optional. Token from a previous response's next_page_token used to fetch
+  // the next page. Leave empty to request the first page.
+  string page_token = 2;
+  // Optional. The standard list filter.
+  // Supported fields:
+  //    * `slug` (i.e. `slug:"m0-scaffold"`)
+  //    * `title` (i.e. `title:"kratos"`)
+  //    * `status` (i.e. `status:"PUBLISHED"`)
+  //    * `tag` (i.e. `tag:"go"`)
+  //    * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
+  //    * `created_at` range, `updated_at` range
+  string filter = 3;
+  // Optional. A comma-separated list of fields to order by.
+  // Supported fields:
+  //    * `slug`
+  //    * `title`
+  //    * `published_at`
+  //    * `created_at`
+  //    * `updated_at`
+  // Append ` desc` to a field for descending order, e.g. `published_at desc`.
+  // Defaults to ascending order when no direction is supplied.
+  string order_by = 4;
+}
+
+// UpdateArticleRequest is the input for ArticleService.UpdateArticle.
+message UpdateArticleRequest {
+  // The article carrying the new field values. article.slug identifies the
+  // target record and must be set.
+  Article article = 1 [(google.api.field_behavior) = REQUIRED];
+  // Set of field paths in article to overwrite. Fields not listed are left
+  // unchanged. Use a single path of `*` to replace every mutable field.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// DeleteArticleRequest is the input for ArticleService.DeleteArticle.
+message DeleteArticleRequest {
+  // Unique slug of the article to delete.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
