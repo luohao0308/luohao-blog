@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package blog.v1;
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "blog.v1";
+option objc_class_prefix = "APIBlogV1";
+
+enum ErrorReason {
+  ARTICLE_UNSPECIFIED = 0;
+  ARTICLE_NOT_FOUND = 1;
+  ARTICLE_INVALID_ARGUMENT = 2;
+  ARTICLE_SLUG_CONFLICT = 3;
+}

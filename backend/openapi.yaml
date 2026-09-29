@@ -3,27 +3,27 @@
 
 openapi: 3.0.3
 info:
-    title: TodoService API
+    title: ArticleService API
     description: |-
-        TodoService provides a simple CRUD example for managing todo items.
-         It demonstrates unary, server-streaming, and bidirectional-streaming RPCs
-         together with AIP-style list filtering, ordering, and pagination.
+        ArticleService manages blog articles. The public identifier of an article is
+         its slug: it is unique, URL-safe, and immutable after creation.
     version: 0.0.1
 paths:
-    /v1/todos/create:
+    /v1/articles/create:
         post:
             tags:
-                - TodoService
+                - ArticleService
             description: |-
-                CreateTodo creates a new todo item and returns the persisted record
-                 with the server-assigned id, created_at, and updated_at populated.
-                 Returns INVALID_ARGUMENT if the request payload fails validation.
-            operationId: TodoService_CreateTodo
+                CreateArticle creates a new article and returns the persisted record with
+                 the server-assigned id, timestamps, rendered HTML, and DRAFT status.
+                 Returns INVALID_ARGUMENT if the payload fails validation, or ALREADY_EXISTS
+                 if the slug is taken.
+            operationId: ArticleService_CreateArticle
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/todo.v1.Todo'
+                            $ref: '#/components/schemas/blog.v1.Article'
                 required: true
             responses:
                 "200":
@@ -31,21 +31,21 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/todo.v1.Todo'
-    /v1/todos/list:
+                                $ref: '#/components/schemas/blog.v1.Article'
+    /v1/articles/list:
         get:
             tags:
-                - TodoService
+                - ArticleService
             description: |-
-                ListTodos returns a page of todo items, optionally filtered and ordered.
-                 Use the next_page_token from TodoSet to retrieve subsequent pages.
+                ListArticles returns a page of articles, optionally filtered and ordered.
+                 Use the next_page_token from ArticleSet to retrieve subsequent pages.
                  Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
-            operationId: TodoService_ListTodos
+            operationId: ArticleService_ListArticles
             parameters:
                 - name: pageSize
                   in: query
                   description: |-
-                    Optional. Maximum number of todo items to return in a single page.
+                    Optional. Maximum number of articles to return in a single page.
                      The server may apply a default and a maximum when unset or out of range.
                   schema:
                     type: integer
@@ -62,10 +62,12 @@ paths:
                   description: |-
                     Optional. The standard list filter.
                      Supported fields:
-                        * `title` (i.e. `title:"bug"`)
-                        * `content` (i.e. `content:"docs"`)
-                        * `completed` (i.e. `completed` or `NOT completed`)
-                        * `created_at` range (i.e. `created_at>="2026-01-01T00:00:00Z"`)
+                        * `slug` (i.e. `slug:"m0-scaffold"`)
+                        * `title` (i.e. `title:"kratos"`)
+                        * `status` (i.e. `status:"PUBLISHED"`)
+                        * `tag` (i.e. `tag:"go"`)
+                        * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
+                        * `created_at` range, `updated_at` range
                   schema:
                     type: string
                 - name: orderBy
@@ -73,11 +75,12 @@ paths:
                   description: |-
                     Optional. A comma-separated list of fields to order by.
                      Supported fields:
-                        * `id`
+                        * `slug`
                         * `title`
+                        * `published_at`
                         * `created_at`
                         * `updated_at`
-                     Append ` desc` to a field for descending order, e.g. `created_at desc`.
+                     Append ` desc` to a field for descending order, e.g. `published_at desc`.
                      Defaults to ascending order when no direction is supplied.
                   schema:
                     type: string
@@ -87,46 +90,24 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/todo.v1.TodoSet'
-    /v1/todos/sync:
-        post:
-            tags:
-                - TodoService
-            description: |-
-                SyncTodos opens a bidirectional stream for two-way synchronization.
-                 The client sends SyncTodoRequest messages describing local changes, and
-                 the server pushes back TodoEvent messages reflecting the resulting state.
-                 The stream stays open until either side closes it.
-            operationId: TodoService_SyncTodos
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/todo.v1.SyncTodoRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/todo.v1.TodoEvent'
-    /v1/todos/update:
+                                $ref: '#/components/schemas/blog.v1.ArticleSet'
+    /v1/articles/update:
         put:
             tags:
-                - TodoService
+                - ArticleService
             description: |-
-                UpdateTodo applies a partial update to an existing todo item using a
+                UpdateArticle applies a partial update to an existing article using a
                  FieldMask. Only the fields listed in update_mask are overwritten; all
-                 other fields are left unchanged.
-                 Returns NOT_FOUND if the target todo does not exist, or
+                 other fields are left unchanged. The slug is immutable and only identifies
+                 the target record here. Updating content_md re-renders content_html.
+                 Returns NOT_FOUND if the target article does not exist, or
                  INVALID_ARGUMENT if update_mask references unknown fields.
-            operationId: TodoService_UpdateTodo
+            operationId: ArticleService_UpdateArticle
             parameters:
                 - name: updateMask
                   in: query
                   description: |-
-                    Set of field paths in todo to overwrite. Fields not listed are left
+                    Set of field paths in article to overwrite. Fields not listed are left
                      unchanged. Use a single path of `*` to replace every mutable field.
                   schema:
                     type: string
@@ -135,7 +116,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/todo.v1.Todo'
+                            $ref: '#/components/schemas/blog.v1.Article'
                 required: true
             responses:
                 "200":
@@ -143,59 +124,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/todo.v1.Todo'
-    /v1/todos/watch:
+                                $ref: '#/components/schemas/blog.v1.Article'
+    /v1/articles/{slug}:
         get:
             tags:
-                - TodoService
+                - ArticleService
             description: |-
-                WatchTodos opens a server-side stream that emits a TodoEvent for every
-                 create, update, or delete that matches the supplied filter and ordering.
-                 The stream remains open until the client cancels or the server terminates it.
-            operationId: TodoService_WatchTodos
+                GetArticle returns a single article by its slug.
+                 Returns NOT_FOUND if no article exists with the supplied slug.
+            operationId: ArticleService_GetArticle
             parameters:
-                - name: pageSize
-                  in: query
-                  description: |-
-                    Optional. Maximum number of todo items returned in the initial snapshot
-                     before live events begin streaming.
-                  schema:
-                    type: integer
-                    format: int32
-                - name: pageToken
-                  in: query
-                  description: Optional. Page token used to resume from a prior snapshot.
-                  schema:
-                    type: string
-                - name: filter
-                  in: query
-                  description: Optional. List filter expression. Same syntax as ListTodosRequest.filter.
-                  schema:
-                    type: string
-                - name: orderBy
-                  in: query
-                  description: Optional. Order specification. Same syntax as ListTodosRequest.order_by.
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/todo.v1.TodoEvent'
-    /v1/todos/{id}:
-        get:
-            tags:
-                - TodoService
-            description: |-
-                GetTodo returns a single todo item by its id.
-                 Returns NOT_FOUND if no todo exists with the supplied id.
-            operationId: TodoService_GetTodo
-            parameters:
-                - name: id
+                - name: slug
                   in: path
-                  description: Unique identifier of the todo item to retrieve.
+                  description: Unique slug of the article to retrieve.
                   required: true
                   schema:
                     type: string
@@ -205,19 +146,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/todo.v1.Todo'
+                                $ref: '#/components/schemas/blog.v1.Article'
         delete:
             tags:
-                - TodoService
+                - ArticleService
             description: |-
-                DeleteTodo soft-deletes a todo item by its id. The record is retained by
-                 the server but no longer appears in GetTodo or ListTodos results.
-                 Returns NOT_FOUND if no todo exists with the supplied id.
-            operationId: TodoService_DeleteTodo
+                DeleteArticle soft-deletes an article by its slug. The record is retained
+                 by the server but no longer appears in GetArticle or ListArticles results.
+                 Returns NOT_FOUND if no article exists with the supplied slug.
+            operationId: ArticleService_DeleteArticle
             parameters:
-                - name: id
+                - name: slug
                   in: path
-                  description: Unique identifier of the todo item to delete.
+                  description: Unique slug of the article to delete.
                   required: true
                   schema:
                     type: string
@@ -227,90 +168,72 @@ paths:
                     content: {}
 components:
     schemas:
-        todo.v1.SyncTodoRequest:
-            type: object
-            properties:
-                action:
-                    type: string
-                    description: The operation to perform. One of `create`, `update`, or `delete`.
-                todo:
-                    allOf:
-                        - $ref: '#/components/schemas/todo.v1.Todo'
-                    description: Payload for `create` and `update` actions. Ignored for `delete`.
-                id:
-                    type: string
-                    description: Identifier of the target todo. Required for `delete` and `update`.
-                updateMask:
-                    type: string
-                    description: |-
-                        Field mask used by `update` actions to limit which fields are overwritten.
-                         Ignored for `create` and `delete`.
-                    format: field-mask
-            description: |-
-                SyncTodoRequest is a single client message in the SyncTodos bidirectional
-                 stream. The action field selects which operation to perform on the server.
-        todo.v1.Todo:
+        blog.v1.Article:
+            required:
+                - slug
+                - title
+                - contentMd
             type: object
             properties:
                 id:
                     type: string
                     description: Application-generated UUIDv7 identifier. Read-only on create.
+                slug:
+                    type: string
+                    description: Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
                 title:
                     type: string
-                    description: Short human-readable title.
-                content:
+                    description: Human-readable title.
+                summary:
                     type: string
-                    description: Detailed description or notes for the todo item.
-                completed:
-                    type: boolean
-                    description: Whether the todo item has been completed.
-                createdAt:
+                    description: |-
+                        Optional short excerpt used in list views; derived from content_md when
+                         empty.
+                contentMd:
                     type: string
-                    description: Time at which the todo item was created. Server-assigned, read-only.
-                    format: date-time
-                updatedAt:
+                    description: Markdown source of the article body.
+                contentHtml:
                     type: string
-                    description: Time at which the todo item was last modified. Server-assigned, read-only.
-                    format: date-time
+                    description: |-
+                        Server-rendered HTML for content_md. Read-only: regenerated whenever
+                         content_md changes.
+                tags:
+                    type: array
+                    items:
+                        type: string
+                    description: Tag names attached to the article. Tags are created on first use.
                 status:
                     type: integer
                     description: |-
-                        Lifecycle state. Server-assigned, read-only: call DeleteTodo to move an
-                         item to TODO_STATUS_DELETED.
+                        Lifecycle state. Server-assigned: new articles start as DRAFT; move them
+                         with UpdateArticle on status; DeleteArticle moves them to DELETED.
                     format: enum
-            description: Todo is the canonical representation of a todo item.
-        todo.v1.TodoEvent:
-            type: object
-            properties:
-                action:
+                publishedAt:
                     type: string
-                    description: The change that occurred. One of `created`, `updated`, or `deleted`.
-                todo:
-                    allOf:
-                        - $ref: '#/components/schemas/todo.v1.Todo'
-                    description: |-
-                        The todo item after the change. For `deleted` events only the id field
-                         is guaranteed to be populated.
-                eventTime:
-                    type: string
-                    description: Time at which the change was observed by the server.
+                    description: Time at which the article first moved to PUBLISHED. Server-assigned.
                     format: date-time
-            description: |-
-                TodoEvent is a server-sent message describing a change to a todo item.
-                 It is emitted by both WatchTodos and SyncTodos streams.
-        todo.v1.TodoSet:
+                createdAt:
+                    type: string
+                    description: Time at which the article was created. Server-assigned, read-only.
+                    format: date-time
+                updatedAt:
+                    type: string
+                    description: Time at which the article was last modified. Server-assigned, read-only.
+                    format: date-time
+            description: Article is the canonical representation of a blog article.
+        blog.v1.ArticleSet:
             type: object
             properties:
-                todos:
+                articles:
                     type: array
                     items:
-                        $ref: '#/components/schemas/todo.v1.Todo'
-                    description: The page of todo items in the order requested by ListTodosRequest.order_by.
+                        $ref: '#/components/schemas/blog.v1.Article'
+                    description: The page of articles in the order requested by ListArticlesRequest.order_by.
                 nextPageToken:
                     type: string
                     description: |-
-                        Token used to retrieve the next page via ListTodosRequest.page_token.
+                        Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
-            description: TodoSet is a paginated collection of todo items returned by ListTodos.
+            description: ArticleSet is a paginated collection of articles returned by ListArticles.
 tags:
-    - name: TodoService
+    - name: ArticleService

@@ -1,7 +1,7 @@
 package server
 
 import (
-	v1 "github.com/luohao0308/luohao-blog/backend/api/todo/v1"
+	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
 	"github.com/go-kratos/kratos/v3/middleware/recovery"
@@ -13,7 +13,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, todo *service.TodoService) *http.Server {
+func NewHTTPServer(c *conf.Server, article *service.ArticleService) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -37,6 +37,6 @@ func NewHTTPServer(c *conf.Server, todo *service.TodoService) *http.Server {
 		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
 	}
 	srv := http.NewServer(opts...)
-	v1.RegisterTodoServiceHTTPServer(srv, todo)
+	v1.RegisterArticleServiceHTTPServer(srv, article)
 	return srv
 }

@@ -9,13 +9,15 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/migrate"
 	"github.com/google/uuid"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/migrate"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/todo"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
 // Client is the client that holds all ent builders.
@@ -23,8 +25,10 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
-	// Todo is the client for interacting with the Todo builders.
-	Todo *TodoClient
+	// Article is the client for interacting with the Article builders.
+	Article *ArticleClient
+	// Tag is the client for interacting with the Tag builders.
+	Tag *TagClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -36,7 +40,8 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
-	c.Todo = NewTodoClient(c.config)
+	c.Article = NewArticleClient(c.config)
+	c.Tag = NewTagClient(c.config)
 }
 
 type (
@@ -127,9 +132,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Todo:   NewTodoClient(cfg),
+		ctx:     ctx,
+		config:  cfg,
+		Article: NewArticleClient(cfg),
+		Tag:     NewTagClient(cfg),
 	}, nil
 }
 
@@ -147,16 +153,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Todo:   NewTodoClient(cfg),
+		ctx:     ctx,
+		config:  cfg,
+		Article: NewArticleClient(cfg),
+		Tag:     NewTagClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Todo.
+//		Article.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -178,126 +185,279 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Todo.Use(hooks...)
+	c.Article.Use(hooks...)
+	c.Tag.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Todo.Intercept(interceptors...)
+	c.Article.Intercept(interceptors...)
+	c.Tag.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
-	case *TodoMutation:
-		return c.Todo.mutate(ctx, m)
+	case *ArticleMutation:
+		return c.Article.mutate(ctx, m)
+	case *TagMutation:
+		return c.Tag.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
 }
 
-// TodoClient is a client for the Todo schema.
-type TodoClient struct {
+// ArticleClient is a client for the Article schema.
+type ArticleClient struct {
 	config
 }
 
-// NewTodoClient returns a client for the Todo from the given config.
-func NewTodoClient(c config) *TodoClient {
-	return &TodoClient{config: c}
+// NewArticleClient returns a client for the Article from the given config.
+func NewArticleClient(c config) *ArticleClient {
+	return &ArticleClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `todo.Hooks(f(g(h())))`.
-func (c *TodoClient) Use(hooks ...Hook) {
-	c.hooks.Todo = append(c.hooks.Todo, hooks...)
+// A call to `Use(f, g, h)` equals to `article.Hooks(f(g(h())))`.
+func (c *ArticleClient) Use(hooks ...Hook) {
+	c.hooks.Article = append(c.hooks.Article, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `todo.Intercept(f(g(h())))`.
-func (c *TodoClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Todo = append(c.inters.Todo, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `article.Intercept(f(g(h())))`.
+func (c *ArticleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Article = append(c.inters.Article, interceptors...)
 }
 
-// Create returns a builder for creating a Todo entity.
-func (c *TodoClient) Create() *TodoCreate {
-	mutation := newTodoMutation(c.config, OpCreate)
-	return &TodoCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a Article entity.
+func (c *ArticleClient) Create() *ArticleCreate {
+	mutation := newArticleMutation(c.config, OpCreate)
+	return &ArticleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of Todo entities.
-func (c *TodoClient) CreateBulk(builders ...*TodoCreate) *TodoCreateBulk {
-	return &TodoCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of Article entities.
+func (c *ArticleClient) CreateBulk(builders ...*ArticleCreate) *ArticleCreateBulk {
+	return &ArticleCreateBulk{config: c.config, builders: builders}
 }
 
 // MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
 // a builder and applies setFunc on it.
-func (c *TodoClient) MapCreateBulk(slice any, setFunc func(*TodoCreate, int)) *TodoCreateBulk {
+func (c *ArticleClient) MapCreateBulk(slice any, setFunc func(*ArticleCreate, int)) *ArticleCreateBulk {
 	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
-		return &TodoCreateBulk{err: fmt.Errorf("calling to TodoClient.MapCreateBulk with wrong type %T, need slice", slice)}
+		return &ArticleCreateBulk{err: fmt.Errorf("calling to ArticleClient.MapCreateBulk with wrong type %T, need slice", slice)}
 	}
-	builders := make([]*TodoCreate, rv.Len())
+	builders := make([]*ArticleCreate, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
 		builders[i] = c.Create()
 		setFunc(builders[i], i)
 	}
-	return &TodoCreateBulk{config: c.config, builders: builders}
+	return &ArticleCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for Todo.
-func (c *TodoClient) Update() *TodoUpdate {
-	mutation := newTodoMutation(c.config, OpUpdate)
-	return &TodoUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for Article.
+func (c *ArticleClient) Update() *ArticleUpdate {
+	mutation := newArticleMutation(c.config, OpUpdate)
+	return &ArticleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *TodoClient) UpdateOne(_m *Todo) *TodoUpdateOne {
-	mutation := newTodoMutation(c.config, OpUpdateOne, withTodo(_m))
-	return &TodoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ArticleClient) UpdateOne(_m *Article) *ArticleUpdateOne {
+	mutation := newArticleMutation(c.config, OpUpdateOne, withArticle(_m))
+	return &ArticleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *TodoClient) UpdateOneID(id uuid.UUID) *TodoUpdateOne {
-	mutation := newTodoMutation(c.config, OpUpdateOne, withTodoID(id))
-	return &TodoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ArticleClient) UpdateOneID(id uuid.UUID) *ArticleUpdateOne {
+	mutation := newArticleMutation(c.config, OpUpdateOne, withArticleID(id))
+	return &ArticleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for Todo.
-func (c *TodoClient) Delete() *TodoDelete {
-	mutation := newTodoMutation(c.config, OpDelete)
-	return &TodoDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for Article.
+func (c *ArticleClient) Delete() *ArticleDelete {
+	mutation := newArticleMutation(c.config, OpDelete)
+	return &ArticleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *TodoClient) DeleteOne(_m *Todo) *TodoDeleteOne {
+func (c *ArticleClient) DeleteOne(_m *Article) *ArticleDeleteOne {
 	return c.DeleteOneID(_m.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *TodoClient) DeleteOneID(id uuid.UUID) *TodoDeleteOne {
-	builder := c.Delete().Where(todo.ID(id))
+func (c *ArticleClient) DeleteOneID(id uuid.UUID) *ArticleDeleteOne {
+	builder := c.Delete().Where(article.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &TodoDeleteOne{builder}
+	return &ArticleDeleteOne{builder}
 }
 
-// Query returns a query builder for Todo.
-func (c *TodoClient) Query() *TodoQuery {
-	return &TodoQuery{
+// Query returns a query builder for Article.
+func (c *ArticleClient) Query() *ArticleQuery {
+	return &ArticleQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeTodo},
+		ctx:    &QueryContext{Type: TypeArticle},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a Todo entity by its id.
-func (c *TodoClient) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
-	return c.Query().Where(todo.ID(id)).Only(ctx)
+// Get returns a Article entity by its id.
+func (c *ArticleClient) Get(ctx context.Context, id uuid.UUID) (*Article, error) {
+	return c.Query().Where(article.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *TodoClient) GetX(ctx context.Context, id uuid.UUID) *Todo {
+func (c *ArticleClient) GetX(ctx context.Context, id uuid.UUID) *Article {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTags queries the tags edge of a Article.
+func (c *ArticleClient) QueryTags(_m *Article) *TagQuery {
+	query := (&TagClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(article.Table, article.FieldID, id),
+			sqlgraph.To(tag.Table, tag.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, article.TagsTable, article.TagsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ArticleClient) Hooks() []Hook {
+	return c.hooks.Article
+}
+
+// Interceptors returns the client interceptors.
+func (c *ArticleClient) Interceptors() []Interceptor {
+	return c.inters.Article
+}
+
+func (c *ArticleClient) mutate(ctx context.Context, m *ArticleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ArticleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ArticleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ArticleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ArticleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Article mutation op: %q", m.Op())
+	}
+}
+
+// TagClient is a client for the Tag schema.
+type TagClient struct {
+	config
+}
+
+// NewTagClient returns a client for the Tag from the given config.
+func NewTagClient(c config) *TagClient {
+	return &TagClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tag.Hooks(f(g(h())))`.
+func (c *TagClient) Use(hooks ...Hook) {
+	c.hooks.Tag = append(c.hooks.Tag, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `tag.Intercept(f(g(h())))`.
+func (c *TagClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Tag = append(c.inters.Tag, interceptors...)
+}
+
+// Create returns a builder for creating a Tag entity.
+func (c *TagClient) Create() *TagCreate {
+	mutation := newTagMutation(c.config, OpCreate)
+	return &TagCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Tag entities.
+func (c *TagClient) CreateBulk(builders ...*TagCreate) *TagCreateBulk {
+	return &TagCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TagClient) MapCreateBulk(slice any, setFunc func(*TagCreate, int)) *TagCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TagCreateBulk{err: fmt.Errorf("calling to TagClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TagCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TagCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Tag.
+func (c *TagClient) Update() *TagUpdate {
+	mutation := newTagMutation(c.config, OpUpdate)
+	return &TagUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TagClient) UpdateOne(_m *Tag) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTag(_m))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TagClient) UpdateOneID(id uuid.UUID) *TagUpdateOne {
+	mutation := newTagMutation(c.config, OpUpdateOne, withTagID(id))
+	return &TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Tag.
+func (c *TagClient) Delete() *TagDelete {
+	mutation := newTagMutation(c.config, OpDelete)
+	return &TagDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TagClient) DeleteOne(_m *Tag) *TagDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TagClient) DeleteOneID(id uuid.UUID) *TagDeleteOne {
+	builder := c.Delete().Where(tag.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TagDeleteOne{builder}
+}
+
+// Query returns a query builder for Tag.
+func (c *TagClient) Query() *TagQuery {
+	return &TagQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTag},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Tag entity by its id.
+func (c *TagClient) Get(ctx context.Context, id uuid.UUID) (*Tag, error) {
+	return c.Query().Where(tag.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TagClient) GetX(ctx context.Context, id uuid.UUID) *Tag {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -306,36 +466,36 @@ func (c *TodoClient) GetX(ctx context.Context, id uuid.UUID) *Todo {
 }
 
 // Hooks returns the client hooks.
-func (c *TodoClient) Hooks() []Hook {
-	return c.hooks.Todo
+func (c *TagClient) Hooks() []Hook {
+	return c.hooks.Tag
 }
 
 // Interceptors returns the client interceptors.
-func (c *TodoClient) Interceptors() []Interceptor {
-	return c.inters.Todo
+func (c *TagClient) Interceptors() []Interceptor {
+	return c.inters.Tag
 }
 
-func (c *TodoClient) mutate(ctx context.Context, m *TodoMutation) (Value, error) {
+func (c *TagClient) mutate(ctx context.Context, m *TagMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&TodoCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TagCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&TodoUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TagUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&TodoUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&TagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&TodoDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&TagDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("ent: unknown Todo mutation op: %q", m.Op())
+		return nil, fmt.Errorf("ent: unknown Tag mutation op: %q", m.Op())
 	}
 }
 
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Todo []ent.Hook
+		Article, Tag []ent.Hook
 	}
 	inters struct {
-		Todo []ent.Interceptor
+		Article, Tag []ent.Interceptor
 	}
 )

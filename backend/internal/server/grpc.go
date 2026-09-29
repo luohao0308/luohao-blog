@@ -1,7 +1,7 @@
 package server
 
 import (
-	v1 "github.com/luohao0308/luohao-blog/backend/api/todo/v1"
+	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
 
@@ -9,8 +9,8 @@ import (
 	"github.com/go-kratos/kratos/v3/transport/grpc"
 )
 
-// NewGRPCServer new a gRPC server.
-func NewGRPCServer(c *conf.Server, todo *service.TodoService) *grpc.Server {
+// NewGRPCServer new an gRPC server.
+func NewGRPCServer(c *conf.Server, article *service.ArticleService) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
@@ -26,6 +26,6 @@ func NewGRPCServer(c *conf.Server, todo *service.TodoService) *grpc.Server {
 		opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
 	}
 	srv := grpc.NewServer(opts...)
-	v1.RegisterTodoServiceServer(srv, todo)
+	v1.RegisterArticleServiceServer(srv, article)
 	return srv
 }

@@ -9,16 +9,28 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
 )
 
-// The TodoFunc type is an adapter to allow the use of ordinary
-// function as Todo mutator.
-type TodoFunc func(context.Context, *ent.TodoMutation) (ent.Value, error)
+// The ArticleFunc type is an adapter to allow the use of ordinary
+// function as Article mutator.
+type ArticleFunc func(context.Context, *ent.ArticleMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f TodoFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.TodoMutation); ok {
+func (f ArticleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ArticleMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TodoMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ArticleMutation", m)
+}
+
+// The TagFunc type is an adapter to allow the use of ordinary
+// function as Tag mutator.
+type TagFunc func(context.Context, *ent.TagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TagMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TagMutation", m)
 }
 
 // Condition is a hook condition function.

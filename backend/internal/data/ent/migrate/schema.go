@@ -8,39 +8,78 @@ import (
 )
 
 var (
-	// TodosColumns holds the columns for the "todos" table.
-	TodosColumns = []*schema.Column{
+	// ArticlesColumns holds the columns for the "articles" table.
+	ArticlesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString, Unique: true},
 		{Name: "title", Type: field.TypeString, Default: ""},
-		{Name: "content", Type: field.TypeString, Default: ""},
-		{Name: "completed", Type: field.TypeBool, Default: false},
+		{Name: "summary", Type: field.TypeString, Default: ""},
+		{Name: "content_md", Type: field.TypeString, Default: ""},
+		{Name: "content_html", Type: field.TypeString, Default: ""},
 		{Name: "status", Type: field.TypeInt32, Default: 1},
+		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 	}
-	// TodosTable holds the schema information for the "todos" table.
-	TodosTable = &schema.Table{
-		Name:       "todos",
-		Columns:    TodosColumns,
-		PrimaryKey: []*schema.Column{TodosColumns[0]},
+	// ArticlesTable holds the schema information for the "articles" table.
+	ArticlesTable = &schema.Table{
+		Name:       "articles",
+		Columns:    ArticlesColumns,
+		PrimaryKey: []*schema.Column{ArticlesColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "todo_updated_at",
+				Name:    "article_updated_at",
 				Unique:  false,
-				Columns: []*schema.Column{TodosColumns[2]},
+				Columns: []*schema.Column{ArticlesColumns[2]},
 			},
 			{
-				Name:    "todo_status",
+				Name:    "article_status",
 				Unique:  false,
-				Columns: []*schema.Column{TodosColumns[6]},
+				Columns: []*schema.Column{ArticlesColumns[8]},
+			},
+			{
+				Name:    "article_published_at",
+				Unique:  false,
+				Columns: []*schema.Column{ArticlesColumns[9]},
+			},
+		},
+	}
+	// TagsColumns holds the columns for the "tags" table.
+	TagsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "article_tags", Type: field.TypeUUID, Nullable: true},
+	}
+	// TagsTable holds the schema information for the "tags" table.
+	TagsTable = &schema.Table{
+		Name:       "tags",
+		Columns:    TagsColumns,
+		PrimaryKey: []*schema.Column{TagsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tags_articles_tags",
+				Columns:    []*schema.Column{TagsColumns[4]},
+				RefColumns: []*schema.Column{ArticlesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "tag_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{TagsColumns[2]},
 			},
 		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		TodosTable,
+		ArticlesTable,
+		TagsTable,
 	}
 )
 
 func init() {
+	TagsTable.ForeignKeys[0].RefTable = ArticlesTable
 }

@@ -5,51 +5,85 @@ package ent
 import (
 	"time"
 
-	"github.com/luohao0308/luohao-blog/backend/internal/biz"
-	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
-	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/todo"
 	"github.com/google/uuid"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	todoMixin := schema.Todo{}.Mixin()
-	todoMixinFields0 := todoMixin[0].Fields()
-	_ = todoMixinFields0
-	todoMixinFields1 := todoMixin[1].Fields()
-	_ = todoMixinFields1
-	todoFields := schema.Todo{}.Fields()
-	_ = todoFields
-	// todoDescCreatedAt is the schema descriptor for created_at field.
-	todoDescCreatedAt := todoMixinFields1[0].Descriptor()
-	// todo.DefaultCreatedAt holds the default value on creation for the created_at field.
-	todo.DefaultCreatedAt = todoDescCreatedAt.Default.(func() time.Time)
-	// todoDescUpdatedAt is the schema descriptor for updated_at field.
-	todoDescUpdatedAt := todoMixinFields1[1].Descriptor()
-	// todo.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	todo.DefaultUpdatedAt = todoDescUpdatedAt.Default.(func() time.Time)
-	// todo.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	todo.UpdateDefaultUpdatedAt = todoDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// todoDescTitle is the schema descriptor for title field.
-	todoDescTitle := todoFields[0].Descriptor()
-	// todo.DefaultTitle holds the default value on creation for the title field.
-	todo.DefaultTitle = todoDescTitle.Default.(string)
-	// todoDescContent is the schema descriptor for content field.
-	todoDescContent := todoFields[1].Descriptor()
-	// todo.DefaultContent holds the default value on creation for the content field.
-	todo.DefaultContent = todoDescContent.Default.(string)
-	// todoDescCompleted is the schema descriptor for completed field.
-	todoDescCompleted := todoFields[2].Descriptor()
-	// todo.DefaultCompleted holds the default value on creation for the completed field.
-	todo.DefaultCompleted = todoDescCompleted.Default.(bool)
-	// todoDescStatus is the schema descriptor for status field.
-	todoDescStatus := todoFields[3].Descriptor()
-	// todo.DefaultStatus holds the default value on creation for the status field.
-	todo.DefaultStatus = biz.TodoStatus(todoDescStatus.Default.(int32))
-	// todoDescID is the schema descriptor for id field.
-	todoDescID := todoMixinFields0[0].Descriptor()
-	// todo.DefaultID holds the default value on creation for the id field.
-	todo.DefaultID = todoDescID.Default.(func() uuid.UUID)
+	articleMixin := schema.Article{}.Mixin()
+	articleMixinFields0 := articleMixin[0].Fields()
+	_ = articleMixinFields0
+	articleMixinFields1 := articleMixin[1].Fields()
+	_ = articleMixinFields1
+	articleFields := schema.Article{}.Fields()
+	_ = articleFields
+	// articleDescCreatedAt is the schema descriptor for created_at field.
+	articleDescCreatedAt := articleMixinFields1[0].Descriptor()
+	// article.DefaultCreatedAt holds the default value on creation for the created_at field.
+	article.DefaultCreatedAt = articleDescCreatedAt.Default.(func() time.Time)
+	// articleDescUpdatedAt is the schema descriptor for updated_at field.
+	articleDescUpdatedAt := articleMixinFields1[1].Descriptor()
+	// article.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	article.DefaultUpdatedAt = articleDescUpdatedAt.Default.(func() time.Time)
+	// article.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	article.UpdateDefaultUpdatedAt = articleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// articleDescSlug is the schema descriptor for slug field.
+	articleDescSlug := articleFields[0].Descriptor()
+	// article.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	article.SlugValidator = articleDescSlug.Validators[0].(func(string) error)
+	// articleDescTitle is the schema descriptor for title field.
+	articleDescTitle := articleFields[1].Descriptor()
+	// article.DefaultTitle holds the default value on creation for the title field.
+	article.DefaultTitle = articleDescTitle.Default.(string)
+	// articleDescSummary is the schema descriptor for summary field.
+	articleDescSummary := articleFields[2].Descriptor()
+	// article.DefaultSummary holds the default value on creation for the summary field.
+	article.DefaultSummary = articleDescSummary.Default.(string)
+	// articleDescContentMd is the schema descriptor for content_md field.
+	articleDescContentMd := articleFields[3].Descriptor()
+	// article.DefaultContentMd holds the default value on creation for the content_md field.
+	article.DefaultContentMd = articleDescContentMd.Default.(string)
+	// articleDescContentHTML is the schema descriptor for content_html field.
+	articleDescContentHTML := articleFields[4].Descriptor()
+	// article.DefaultContentHTML holds the default value on creation for the content_html field.
+	article.DefaultContentHTML = articleDescContentHTML.Default.(string)
+	// articleDescStatus is the schema descriptor for status field.
+	articleDescStatus := articleFields[5].Descriptor()
+	// article.DefaultStatus holds the default value on creation for the status field.
+	article.DefaultStatus = biz.ArticleStatus(articleDescStatus.Default.(int32))
+	// articleDescID is the schema descriptor for id field.
+	articleDescID := articleMixinFields0[0].Descriptor()
+	// article.DefaultID holds the default value on creation for the id field.
+	article.DefaultID = articleDescID.Default.(func() uuid.UUID)
+	tagMixin := schema.Tag{}.Mixin()
+	tagMixinFields0 := tagMixin[0].Fields()
+	_ = tagMixinFields0
+	tagMixinFields1 := tagMixin[1].Fields()
+	_ = tagMixinFields1
+	tagFields := schema.Tag{}.Fields()
+	_ = tagFields
+	// tagDescCreatedAt is the schema descriptor for created_at field.
+	tagDescCreatedAt := tagMixinFields1[0].Descriptor()
+	// tag.DefaultCreatedAt holds the default value on creation for the created_at field.
+	tag.DefaultCreatedAt = tagDescCreatedAt.Default.(func() time.Time)
+	// tagDescUpdatedAt is the schema descriptor for updated_at field.
+	tagDescUpdatedAt := tagMixinFields1[1].Descriptor()
+	// tag.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	tag.DefaultUpdatedAt = tagDescUpdatedAt.Default.(func() time.Time)
+	// tag.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	tag.UpdateDefaultUpdatedAt = tagDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// tagDescName is the schema descriptor for name field.
+	tagDescName := tagFields[0].Descriptor()
+	// tag.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	tag.NameValidator = tagDescName.Validators[0].(func(string) error)
+	// tagDescID is the schema descriptor for id field.
+	tagDescID := tagMixinFields0[0].Descriptor()
+	// tag.DefaultID holds the default value on creation for the id field.
+	tag.DefaultID = tagDescID.Default.(func() uuid.UUID)
 }
