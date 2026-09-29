@@ -8,7 +8,9 @@ package main
 
 import (
 	"github.com/go-kratos/kratos/v3"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
+	"github.com/luohao0308/luohao-blog/backend/internal/data"
 	"github.com/luohao0308/luohao-blog/backend/internal/server"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
 	"log/slog"
@@ -20,13 +22,19 @@ import (
 
 // Injectors from wire.go:
 
-// wireApp init kratos application. *conf.Data rejoins the graph in M1/S2
-// together with the article repo.
-func wireApp(confServer *conf.Server, logger *slog.Logger) (*kratos.App, func(), error) {
-	articleService := service.NewArticleService()
+// wireApp init kratos application.
+func wireApp(confServer *conf.Server, confData *conf.Data, logger *slog.Logger) (*kratos.App, func(), error) {
+	dataData, cleanup, err := data.NewData(confData)
+	if err != nil {
+		return nil, nil, err
+	}
+	articleRepo := data.NewArticleRepo(dataData)
+	articleUsecase := biz.NewArticleUsecase(articleRepo)
+	articleService := service.NewArticleService(articleUsecase)
 	grpcServer := server.NewGRPCServer(confServer, articleService)
 	httpServer := server.NewHTTPServer(confServer, articleService)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
+		cleanup()
 	}, nil
 }
