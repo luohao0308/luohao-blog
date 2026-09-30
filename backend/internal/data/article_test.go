@@ -33,7 +33,8 @@ func newTestArticleRepo(t *testing.T) (biz.ArticleRepo, *ent.Client) {
 	if err := client.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
-	return NewArticleRepo(&Data{db: client}), client
+	rdb, _ := newTestRedis(t)
+	return NewArticleRepo(&Data{db: client}, rdb), client
 }
 
 // orderByCreatedAt keeps list assertions deterministic.
@@ -273,5 +274,31 @@ func TestArticleRepoListOrderByDesc(t *testing.T) {
 	}
 	if articles[0].Slug != "gamma" || articles[2].Slug != "alpha" {
 		t.Fatalf("ListArticles(order desc) = %q..%q, want gamma..alpha", articles[0].Slug, articles[2].Slug)
+	}
+}
+
+func TestArticleRepoIncrementViewDedup(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestArticleRepo(t)
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c"}); err != nil {
+		t.Fatalf("CreateArticle() error = %v", err)
+	}
+	if _, err := repo.UpdateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c", Status: biz.ArticleStatusPublished}); err != nil {
+		t.Fatalf("UpdateArticle(publish) error = %v", err)
+	}
+
+	count, counted, err := repo.IncrementView(ctx, "viewed", "ip-1")
+	if err != nil || !counted || count != 1 {
+		t.Fatalf("IncrementView(first) = (%d, %v, %v), want (1, true, nil)", count, counted, err)
+	}
+	// Same client inside the window: read-only, no double counting.
+	count, counted, err = repo.IncrementView(ctx, "viewed", "ip-1")
+	if err != nil || counted || count != 1 {
+		t.Fatalf("IncrementView(dedup) = (%d, %v, %v), want (1, false, nil)", count, counted, err)
+	}
+	// A different client counts again.
+	count, counted, err = repo.IncrementView(ctx, "viewed", "ip-2")
+	if err != nil || !counted || count != 2 {
+		t.Fatalf("IncrementView(second client) = (%d, %v, %v), want (2, true, nil)", count, counted, err)
 	}
 }

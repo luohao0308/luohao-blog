@@ -20,6 +20,7 @@ var (
 		{Name: "content_html", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "status", Type: field.TypeInt32, Default: 1},
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
+		{Name: "view_count", Type: field.TypeUint64, Default: 0},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
 	ArticlesTable = &schema.Table{

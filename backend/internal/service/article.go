@@ -142,6 +142,16 @@ func (s *ArticleService) DeleteArticle(ctx context.Context, req *v1.DeleteArticl
 	return &emptypb.Empty{}, nil
 }
 
+// MarkArticleViewed records a public view. The client identity is the
+// transport client IP (same derivation the login throttler uses); the dedup
+// window lives in the data layer.
+func (s *ArticleService) MarkArticleViewed(ctx context.Context, req *v1.MarkArticleViewedRequest) (*emptypb.Empty, error) {
+	if _, _, err := s.uc.MarkViewed(ctx, req.GetSlug(), clientIP(ctx)); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
 // convertArticle parses an incoming proto into a DO. Server-assigned fields
 // (id, content_html, timestamps) are omitted: only the mutable fields cross
 // over. Status rides along because the update flow merges the patch into the
@@ -176,6 +186,7 @@ func convertArticleReply(in *biz.Article) *v1.Article {
 		Status:      convertArticleStatus(in.Status),
 		CreatedAt:   timestamppb.New(in.CreatedAt),
 		UpdatedAt:   timestamppb.New(in.UpdatedAt),
+		ViewCount:   in.ViewCount,
 	}
 	if in.PublishedAt != nil {
 		out.PublishedAt = timestamppb.New(*in.PublishedAt)

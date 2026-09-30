@@ -171,6 +171,36 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/articles/{slug}/view:
+        post:
+            tags:
+                - ArticleService
+            description: |-
+                MarkArticleViewed records one public view of an article. Intended to be
+                 called by the browser once per page open: the server deduplicates by
+                 client identity within a 24h window, so repeat calls from the same client
+                 do not increase the counter. Views are only counted for PUBLISHED
+                 articles. Authorization: public (rate limited).
+                 Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+                 article does not exist or is not published.
+            operationId: ArticleService_MarkArticleViewed
+            parameters:
+                - name: slug
+                  in: path
+                  description: Unique slug of the article being viewed.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.MarkArticleViewedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/auth/login:
         post:
             tags:
@@ -309,6 +339,11 @@ components:
                     type: string
                     description: Time at which the article was last modified. Server-assigned, read-only.
                     format: date-time
+                viewCount:
+                    type: string
+                    description: |-
+                        Public read counter. Incremented when a client reports a view through
+                         MarkArticleViewed and the 24h per-client dedup window admits it.
             description: Article is the canonical representation of a blog article.
         blog.v1.ArticleSet:
             type: object
@@ -364,6 +399,18 @@ components:
             description: |-
                 LogoutRequest is the input for AuthService.Logout. Like Refresh, the
                  refresh token arrives via cookie or header.
+        blog.v1.MarkArticleViewedRequest:
+            required:
+                - slug
+            type: object
+            properties:
+                slug:
+                    type: string
+                    description: Unique slug of the article being viewed.
+            description: |-
+                MarkArticleViewedRequest is the input for ArticleService.MarkArticleViewed.
+                 The client identity comes from the transport (client IP), not from the
+                 message body.
         blog.v1.RefreshRequest:
             type: object
             properties: {}

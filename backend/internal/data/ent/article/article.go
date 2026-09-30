@@ -34,6 +34,8 @@ const (
 	FieldStatus = "status"
 	// FieldPublishedAt holds the string denoting the published_at field in the database.
 	FieldPublishedAt = "published_at"
+	// FieldViewCount holds the string denoting the view_count field in the database.
+	FieldViewCount = "view_count"
 	// EdgeTags holds the string denoting the tags edge name in mutations.
 	EdgeTags = "tags"
 	// Table holds the table name of the article in the database.
@@ -57,6 +59,7 @@ var Columns = []string{
 	FieldContentHTML,
 	FieldStatus,
 	FieldPublishedAt,
+	FieldViewCount,
 }
 
 var (
@@ -86,6 +89,8 @@ var (
 	SlugValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus biz.ArticleStatus
+	// DefaultViewCount holds the default value on creation for the "view_count" field.
+	DefaultViewCount uint64
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -141,6 +146,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByPublishedAt orders the results by the published_at field.
 func ByPublishedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPublishedAt, opts...).ToFunc()
+}
+
+// ByViewCount orders the results by the view_count field.
+func ByViewCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldViewCount, opts...).ToFunc()
 }
 
 // ByTagsCount orders the results by tags count.

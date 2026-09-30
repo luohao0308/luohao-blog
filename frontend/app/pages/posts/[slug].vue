@@ -21,6 +21,16 @@ const adjacent = computed(() => {
   return index < 0 ? {} : { newer: list[index - 1], older: list[index + 1] }
 })
 
+// Report one view per page open. Fire-and-forget: the server deduplicates by
+// client identity within 24h, and the counter the page shows is the one read
+// during SSR (this visit shows up on the next look).
+onMounted(() => {
+  $fetch(`/api/v1/articles/${encodeURIComponent(slug.value)}/view`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  }).catch(() => {})
+})
+
 useHead({ title: article.value.title })
 </script>
 
@@ -31,6 +41,7 @@ useHead({ title: article.value.title })
       <h1 class="break-words text-3xl font-medium leading-relaxed">{{ article.title }}</h1>
       <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
         <time>{{ formatDate(article.published_at || article.created_at) }}</time>
+        <span aria-label="阅读量">{{ article.view_count }} 次阅读</span>
         <span
           v-if="article.status !== 2"
           class="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"

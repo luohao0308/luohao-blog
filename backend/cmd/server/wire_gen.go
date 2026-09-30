@@ -36,12 +36,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	if err != nil {
 		return nil, nil, err
 	}
-	articleRepo := data.NewArticleRepo(dataData)
+	universalClient := data.NewRedis(confData)
+	articleRepo := data.NewArticleRepo(dataData, universalClient)
 	articleUsecase := biz.NewArticleUsecase(articleRepo)
 	articleService := service.NewArticleService(articleUsecase)
 	userRepository := data.NewUserRepo(dataData)
 	userUsecase := biz.NewUserUsecase(userRepository)
-	universalClient := data.NewRedis(confData)
 	sessionRepo := data.NewSessionRepo(universalClient)
 	rateLimiter := data.NewRateLimiter(universalClient, auth)
 	duration := data.NewRefreshTokenTTL(auth)

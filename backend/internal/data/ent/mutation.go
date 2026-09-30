@@ -49,6 +49,8 @@ type ArticleMutation struct {
 	status        *biz.ArticleStatus
 	addstatus     *biz.ArticleStatus
 	published_at  *time.Time
+	view_count    *uint64
+	addview_count *int64
 	clearedFields map[string]struct{}
 	tags          map[uuid.UUID]struct{}
 	removedtags   map[uuid.UUID]struct{}
@@ -571,6 +573,62 @@ func (m *ArticleMutation) ResetPublishedAt() {
 	delete(m.clearedFields, article.FieldPublishedAt)
 }
 
+// SetViewCount sets the "view_count" field.
+func (m *ArticleMutation) SetViewCount(u uint64) {
+	m.view_count = &u
+	m.addview_count = nil
+}
+
+// ViewCount returns the value of the "view_count" field in the mutation.
+func (m *ArticleMutation) ViewCount() (r uint64, exists bool) {
+	v := m.view_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldViewCount returns the old "view_count" field's value of the Article entity.
+// If the Article object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleMutation) OldViewCount(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldViewCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldViewCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldViewCount: %w", err)
+	}
+	return oldValue.ViewCount, nil
+}
+
+// AddViewCount adds u to the "view_count" field.
+func (m *ArticleMutation) AddViewCount(u int64) {
+	if m.addview_count != nil {
+		*m.addview_count += u
+	} else {
+		m.addview_count = &u
+	}
+}
+
+// AddedViewCount returns the value that was added to the "view_count" field in this mutation.
+func (m *ArticleMutation) AddedViewCount() (r int64, exists bool) {
+	v := m.addview_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetViewCount resets all changes to the "view_count" field.
+func (m *ArticleMutation) ResetViewCount() {
+	m.view_count = nil
+	m.addview_count = nil
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by ids.
 func (m *ArticleMutation) AddTagIDs(ids ...uuid.UUID) {
 	if m.tags == nil {
@@ -659,7 +717,7 @@ func (m *ArticleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ArticleMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, article.FieldCreatedAt)
 	}
@@ -687,6 +745,9 @@ func (m *ArticleMutation) Fields() []string {
 	if m.published_at != nil {
 		fields = append(fields, article.FieldPublishedAt)
 	}
+	if m.view_count != nil {
+		fields = append(fields, article.FieldViewCount)
+	}
 	return fields
 }
 
@@ -713,6 +774,8 @@ func (m *ArticleMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case article.FieldPublishedAt:
 		return m.PublishedAt()
+	case article.FieldViewCount:
+		return m.ViewCount()
 	}
 	return nil, false
 }
@@ -740,6 +803,8 @@ func (m *ArticleMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldStatus(ctx)
 	case article.FieldPublishedAt:
 		return m.OldPublishedAt(ctx)
+	case article.FieldViewCount:
+		return m.OldViewCount(ctx)
 	}
 	return nil, fmt.Errorf("unknown Article field %s", name)
 }
@@ -812,6 +877,13 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetPublishedAt(v)
 		return nil
+	case article.FieldViewCount:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetViewCount(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)
 }
@@ -823,6 +895,9 @@ func (m *ArticleMutation) AddedFields() []string {
 	if m.addstatus != nil {
 		fields = append(fields, article.FieldStatus)
 	}
+	if m.addview_count != nil {
+		fields = append(fields, article.FieldViewCount)
+	}
 	return fields
 }
 
@@ -833,6 +908,8 @@ func (m *ArticleMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case article.FieldStatus:
 		return m.AddedStatus()
+	case article.FieldViewCount:
+		return m.AddedViewCount()
 	}
 	return nil, false
 }
@@ -848,6 +925,13 @@ func (m *ArticleMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddStatus(v)
+		return nil
+	case article.FieldViewCount:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddViewCount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Article numeric field %s", name)
@@ -935,6 +1019,9 @@ func (m *ArticleMutation) ResetField(name string) error {
 		return nil
 	case article.FieldPublishedAt:
 		m.ResetPublishedAt()
+		return nil
+	case article.FieldViewCount:
+		m.ResetViewCount()
 		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)

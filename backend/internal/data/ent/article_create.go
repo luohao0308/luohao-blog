@@ -141,6 +141,20 @@ func (_c *ArticleCreate) SetNillablePublishedAt(v *time.Time) *ArticleCreate {
 	return _c
 }
 
+// SetViewCount sets the "view_count" field.
+func (_c *ArticleCreate) SetViewCount(v uint64) *ArticleCreate {
+	_c.mutation.SetViewCount(v)
+	return _c
+}
+
+// SetNillableViewCount sets the "view_count" field if the given value is not nil.
+func (_c *ArticleCreate) SetNillableViewCount(v *uint64) *ArticleCreate {
+	if v != nil {
+		_c.SetViewCount(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ArticleCreate) SetID(v uuid.UUID) *ArticleCreate {
 	_c.mutation.SetID(v)
@@ -217,6 +231,10 @@ func (_c *ArticleCreate) defaults() {
 		v := article.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.ViewCount(); !ok {
+		v := article.DefaultViewCount
+		_c.mutation.SetViewCount(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := article.DefaultID()
 		_c.mutation.SetID(v)
@@ -241,6 +259,9 @@ func (_c *ArticleCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Article.status"`)}
+	}
+	if _, ok := _c.mutation.ViewCount(); !ok {
+		return &ValidationError{Name: "view_count", err: errors.New(`ent: missing required field "Article.view_count"`)}
 	}
 	return nil
 }
@@ -312,6 +333,10 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.PublishedAt(); ok {
 		_spec.SetField(article.FieldPublishedAt, field.TypeTime, value)
 		_node.PublishedAt = &value
+	}
+	if value, ok := _c.mutation.ViewCount(); ok {
+		_spec.SetField(article.FieldViewCount, field.TypeUint64, value)
+		_node.ViewCount = value
 	}
 	if nodes := _c.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

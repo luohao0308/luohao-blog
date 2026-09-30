@@ -37,6 +37,8 @@ type Article struct {
 	Status biz.ArticleStatus `json:"status,omitempty"`
 	// PublishedAt holds the value of the "published_at" field.
 	PublishedAt *time.Time `json:"published_at,omitempty"`
+	// ViewCount holds the value of the "view_count" field.
+	ViewCount uint64 `json:"view_count,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
 	Edges        ArticleEdges `json:"edges"`
@@ -66,7 +68,7 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case article.FieldStatus:
+		case article.FieldStatus, article.FieldViewCount:
 			values[i] = new(sql.NullInt64)
 		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML:
 			values[i] = new(sql.NullString)
@@ -150,6 +152,12 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 				_m.PublishedAt = new(time.Time)
 				*_m.PublishedAt = value.Time
 			}
+		case article.FieldViewCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field view_count", values[i])
+			} else if value.Valid {
+				_m.ViewCount = uint64(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -219,6 +227,9 @@ func (_m *Article) String() string {
 		builder.WriteString("published_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("view_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ViewCount))
 	builder.WriteByte(')')
 	return builder.String()
 }

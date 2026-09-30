@@ -32,6 +32,7 @@ export interface Article {
   published_at?: ArticleTimestamp
   created_at: ArticleTimestamp
   updated_at: ArticleTimestamp
+  view_count?: number
 }
 
 export interface ArticleSet {

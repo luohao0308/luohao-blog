@@ -53,6 +53,7 @@ type Article struct {
 	PublishedAt *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	ViewCount   uint64
 }
 
 // ArticleRepo is an article repo.
@@ -62,6 +63,10 @@ type ArticleRepo interface {
 	CreateArticle(context.Context, *Article) (*Article, error)
 	UpdateArticle(context.Context, *Article) (*Article, error)
 	DeleteArticle(context.Context, string) error
+	// IncrementView adds one public view for slug unless clientKey was
+	// already counted inside the repo's dedup window. It returns the
+	// article's current view count and whether this call counted.
+	IncrementView(context.Context, string, string) (uint64, bool, error)
 }
 
 // ListOption configures article list queries.
@@ -219,6 +224,23 @@ func (uc *ArticleUsecase) DeleteArticle(ctx context.Context, slug string) error 
 		return ErrArticleInvalidArgument
 	}
 	return uc.repo.DeleteArticle(ctx, slug)
+}
+
+// MarkViewed records one public view of a published article. The dedup
+// decision lives in the repo; the usecase enforces that only well-formed
+// slugs pointing at published articles can move the counter at all.
+func (uc *ArticleUsecase) MarkViewed(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
+	if !ValidSlug(slug) {
+		return 0, false, ErrArticleInvalidArgument
+	}
+	a, err := uc.repo.FindBySlug(ctx, slug)
+	if err != nil {
+		return 0, false, err
+	}
+	if a.Status != ArticleStatusPublished {
+		return 0, false, ErrArticleNotFound
+	}
+	return uc.repo.IncrementView(ctx, slug, clientKey)
 }
 
 // validateArticle checks the mutable fields of an article at the biz boundary.
