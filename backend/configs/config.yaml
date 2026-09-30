@@ -17,3 +17,16 @@ data:
     addr: ${REDIS_ADDR:127.0.0.1:6379}
     read_timeout: 0.2s
     write_timeout: 0.2s
+auth:
+  jwt:
+    # Required. Generate once per environment, e.g. `openssl rand -hex 32`,
+    # and export as KRATOS_JWT_SECRET (env sources are KRATOS_-prefixed).
+    # Never commit a real key.
+    secret: ${JWT_SECRET:}
+    # protojson durations only accept seconds (s).
+    access_token_ttl: 900s # 15m
+  # Sliding: recreated on every refresh. 604800s = 7d.
+  refresh_token_ttl: 604800s
+  rate_limit:
+    login_attempts: 10
+    login_window: 300s # 5m

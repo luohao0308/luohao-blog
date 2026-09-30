@@ -2,6 +2,7 @@ package server
 
 import (
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
 
@@ -10,10 +11,11 @@ import (
 )
 
 // NewGRPCServer new an gRPC server.
-func NewGRPCServer(c *conf.Server, article *service.ArticleService) *grpc.Server {
+func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, article *service.ArticleService, auth *service.AuthService) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
+			AuthJWT(issuer),
 		),
 	}
 	if c.Grpc.Network != "" {
@@ -27,5 +29,6 @@ func NewGRPCServer(c *conf.Server, article *service.ArticleService) *grpc.Server
 	}
 	srv := grpc.NewServer(opts...)
 	v1.RegisterArticleServiceServer(srv, article)
+	v1.RegisterAuthServiceServer(srv, auth)
 	return srv
 }

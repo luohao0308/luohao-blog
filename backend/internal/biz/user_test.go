@@ -26,6 +26,15 @@ func (f *fakeUserRepo) FindByEmail(_ context.Context, email string) (*User, erro
 	return u, nil
 }
 
+func (f *fakeUserRepo) FindByID(_ context.Context, id uuid.UUID) (*User, error) {
+	for _, u := range f.users {
+		if u.ID == id {
+			return u, nil
+		}
+	}
+	return nil, ErrUserNotFound
+}
+
 func (f *fakeUserRepo) Create(_ context.Context, u *User) (*User, error) {
 	if _, ok := f.users[u.Email]; ok {
 		return nil, ErrUserEmailConflict

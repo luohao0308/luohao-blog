@@ -5,10 +5,13 @@ go 1.26.0
 require (
 	entgo.io/ent v0.14.6
 	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/alicebob/miniredis/v2 v2.39.0
 	github.com/go-kratos/aip-go/ents v0.0.0-20260901003907-1ab5471e605b
 	github.com/go-sql-driver/mysql v1.10.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/google/wire v0.6.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/yuin/goldmark v1.8.6
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	go.einride.tech/aip v0.86.3
@@ -37,9 +40,11 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
