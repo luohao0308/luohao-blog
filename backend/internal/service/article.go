@@ -144,7 +144,9 @@ func (s *ArticleService) DeleteArticle(ctx context.Context, req *v1.DeleteArticl
 
 // convertArticle parses an incoming proto into a DO. Server-assigned fields
 // (id, content_html, timestamps) are omitted: only the mutable fields cross
-// over. The published_at transition is owned by the usecase.
+// over. Status rides along because the update flow merges the patch into the
+// current record before converting — the biz layer needs it to decide
+// published_at transitions (create ignores it and forces DRAFT).
 func convertArticle(in *v1.Article) *biz.Article {
 	if in == nil {
 		return nil
@@ -155,6 +157,7 @@ func convertArticle(in *v1.Article) *biz.Article {
 		Summary:   in.GetSummary(),
 		ContentMD: in.GetContentMd(),
 		Tags:      in.GetTags(),
+		Status:    biz.ArticleStatus(in.GetStatus()),
 	}
 }
 
