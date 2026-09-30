@@ -15,10 +15,11 @@ import (
 type fakeArticleRepo struct {
 	articles map[string]*Article
 	public   bool
+	views    map[string]uint64
 }
 
 func newFakeArticleRepo() *fakeArticleRepo {
-	return &fakeArticleRepo{articles: map[string]*Article{}}
+	return &fakeArticleRepo{articles: map[string]*Article{}, views: map[string]uint64{}}
 }
 
 func (f *fakeArticleRepo) FindBySlug(_ context.Context, slug string) (*Article, error) {
@@ -60,6 +61,18 @@ func (f *fakeArticleRepo) UpdateArticle(_ context.Context, a *Article) (*Article
 	}
 	f.articles[a.Slug] = a
 	return a, nil
+}
+
+// IncrementView counts every call as a fresh view: the dedup window is a
+// data-layer concern the fake does not model.
+func (f *fakeArticleRepo) IncrementView(_ context.Context, slug, _ string) (uint64, bool, error) {
+	a, ok := f.articles[slug]
+	if !ok {
+		return 0, false, ErrArticleNotFound
+	}
+	f.views[slug]++
+	a.ViewCount = f.views[slug]
+	return a.ViewCount, true, nil
 }
 
 func (f *fakeArticleRepo) DeleteArticle(_ context.Context, slug string) error {
@@ -189,5 +202,30 @@ func TestArticleUsecaseUpdateDeletedRejected(t *testing.T) {
 	}
 	if _, err := uc.GetArticle(ctx, "delete-via-update"); !kratoserrors.IsNotFound(err) {
 		t.Fatalf("GetArticle() after delete error = %v, want not found", err)
+	}
+}
+
+func TestArticleUsecaseMarkViewed(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeArticleRepo()
+	uc := NewArticleUsecase(repo)
+	if _, err := uc.CreateArticle(ctx, &Article{Slug: "viewed-article", Title: "t", ContentMD: "c"}); err != nil {
+		t.Fatalf("CreateArticle() error = %v", err)
+	}
+
+	// Drafts are not publicly readable, so views must not count either.
+	if _, counted, err := uc.MarkViewed(ctx, "viewed-article", "client-a"); !kratoserrors.IsNotFound(err) || counted {
+		t.Fatalf("MarkViewed(draft) = (%v, %v), want not found and not counted", err, counted)
+	}
+
+	repo.articles["viewed-article"].Status = ArticleStatusPublished
+	count, counted, err := uc.MarkViewed(ctx, "viewed-article", "client-a")
+	if err != nil || !counted || count != 1 {
+		t.Fatalf("MarkViewed(first) = (%d, %v, %v), want (1, true, nil)", count, counted, err)
+	}
+
+	// Malformed slugs are rejected before touching the repo.
+	if _, _, err := uc.MarkViewed(ctx, "INVALID SLUG", "client-a"); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("MarkViewed(bad slug) error = %v, want bad request", err)
 	}
 }

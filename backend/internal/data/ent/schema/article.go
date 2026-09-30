@@ -50,6 +50,10 @@ func (Article) Fields() []ent.Field {
 		// published_at is set the first time an article moves to published
 		// and never cleared afterwards.
 		field.Time("published_at").Optional().Nillable(),
+		// view_count is a denormalized public read counter. Only the
+		// view-report endpoint increments it (after the Redis per-client
+		// dedup); the article write path leaves it untouched.
+		field.Uint64("view_count").Default(0),
 	}
 }
 

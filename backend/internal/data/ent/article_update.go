@@ -172,6 +172,27 @@ func (_u *ArticleUpdate) ClearPublishedAt() *ArticleUpdate {
 	return _u
 }
 
+// SetViewCount sets the "view_count" field.
+func (_u *ArticleUpdate) SetViewCount(v uint64) *ArticleUpdate {
+	_u.mutation.ResetViewCount()
+	_u.mutation.SetViewCount(v)
+	return _u
+}
+
+// SetNillableViewCount sets the "view_count" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableViewCount(v *uint64) *ArticleUpdate {
+	if v != nil {
+		_u.SetViewCount(*v)
+	}
+	return _u
+}
+
+// AddViewCount adds value to the "view_count" field.
+func (_u *ArticleUpdate) AddViewCount(v int64) *ArticleUpdate {
+	_u.mutation.AddViewCount(v)
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdate) AddTagIDs(ids ...uuid.UUID) *ArticleUpdate {
 	_u.mutation.AddTagIDs(ids...)
@@ -312,6 +333,12 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.PublishedAtCleared() {
 		_spec.ClearField(article.FieldPublishedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ViewCount(); ok {
+		_spec.SetField(article.FieldViewCount, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedViewCount(); ok {
+		_spec.AddField(article.FieldViewCount, field.TypeUint64, value)
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -519,6 +546,27 @@ func (_u *ArticleUpdateOne) ClearPublishedAt() *ArticleUpdateOne {
 	return _u
 }
 
+// SetViewCount sets the "view_count" field.
+func (_u *ArticleUpdateOne) SetViewCount(v uint64) *ArticleUpdateOne {
+	_u.mutation.ResetViewCount()
+	_u.mutation.SetViewCount(v)
+	return _u
+}
+
+// SetNillableViewCount sets the "view_count" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableViewCount(v *uint64) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetViewCount(*v)
+	}
+	return _u
+}
+
+// AddViewCount adds value to the "view_count" field.
+func (_u *ArticleUpdateOne) AddViewCount(v int64) *ArticleUpdateOne {
+	_u.mutation.AddViewCount(v)
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdateOne) AddTagIDs(ids ...uuid.UUID) *ArticleUpdateOne {
 	_u.mutation.AddTagIDs(ids...)
@@ -689,6 +737,12 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if _u.mutation.PublishedAtCleared() {
 		_spec.ClearField(article.FieldPublishedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.ViewCount(); ok {
+		_spec.SetField(article.FieldViewCount, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedViewCount(); ok {
+		_spec.AddField(article.FieldViewCount, field.TypeUint64, value)
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
@@ -9,6 +10,14 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 
 	"github.com/go-kratos/aip-go/ents"
+	"github.com/redis/go-redis/v9"
+)
+
+// viewDedupPrefix namespaces the per-client view dedup keys; viewDedupWindow
+// is how long a (slug, client) pair stays counted after its first view.
+const (
+	viewDedupPrefix = "blog:view:"
+	viewDedupWindow = 24 * time.Hour
 )
 
 // toBiz converts a persisted article and its tag rows into the domain
@@ -30,16 +39,18 @@ func toBiz(po *ent.Article, tagNames []string) *biz.Article {
 		PublishedAt: po.PublishedAt,
 		CreatedAt:   po.CreatedAt,
 		UpdatedAt:   po.UpdatedAt,
+		ViewCount:   po.ViewCount,
 	}
 }
 
 type articleRepo struct {
 	data *Data
+	rdb  redis.UniversalClient
 }
 
 // NewArticleRepo creates a new ArticleRepo instance.
-func NewArticleRepo(data *Data) biz.ArticleRepo {
-	return &articleRepo{data: data}
+func NewArticleRepo(data *Data, rdb redis.UniversalClient) biz.ArticleRepo {
+	return &articleRepo{data: data, rdb: rdb}
 }
 
 // tagNamesOf collects the names of eagerly loaded tag rows.
@@ -208,4 +219,45 @@ func (r *articleRepo) DeleteArticle(ctx context.Context, slug string) error {
 		return biz.ErrArticleNotFound
 	}
 	return nil
+}
+
+// IncrementView adds one view unless clientKey already counted inside the
+// dedup window. Redis holds the window; when it is unavailable the call
+// degrades to counting every view (fail-open on dedup, the counter itself is
+// never lost), because under- or not-counting would corrupt the metric
+// permanently while over-counting self-heals as windows expire.
+func (r *articleRepo) IncrementView(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
+	counted := true
+	ok, err := r.rdb.SetNX(ctx, viewDedupPrefix+slug+":"+clientKey, 1, viewDedupWindow).Result()
+	if err != nil {
+		ok = true
+	} else {
+		counted = ok
+	}
+	if !counted {
+		po, err := r.data.db.Article.Query().
+			Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
+			Only(ctx)
+		if err != nil {
+			return 0, false, err
+		}
+		return po.ViewCount, false, nil
+	}
+	affected, err := r.data.db.Article.Update().
+		Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
+		AddViewCount(1).
+		Save(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	if affected == 0 {
+		return 0, false, biz.ErrArticleNotFound
+	}
+	po, err := r.data.db.Article.Query().
+		Where(article.SlugEQ(slug)).
+		Only(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	return po.ViewCount, true, nil
 }

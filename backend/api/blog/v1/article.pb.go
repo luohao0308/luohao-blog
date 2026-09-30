@@ -110,7 +110,10 @@ type Article struct {
 	// Time at which the article was created. Server-assigned, read-only.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Time at which the article was last modified. Server-assigned, read-only.
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Public read counter. Incremented when a client reports a view through
+	// MarkArticleViewed and the 24h per-client dedup window admits it.
+	ViewCount     uint64 `protobuf:"varint,12,opt,name=view_count,json=viewCount,proto3" json:"view_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,6 +223,13 @@ func (x *Article) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Article) GetViewCount() uint64 {
+	if x != nil {
+		return x.ViewCount
+	}
+	return 0
 }
 
 // ArticleSet is a paginated collection of articles returned by ListArticles.
@@ -565,11 +575,59 @@ func (x *DeleteArticleRequest) GetSlug() string {
 	return ""
 }
 
+// MarkArticleViewedRequest is the input for ArticleService.MarkArticleViewed.
+// The client identity comes from the transport (client IP), not from the
+// message body.
+type MarkArticleViewedRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique slug of the article being viewed.
+	Slug          string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkArticleViewedRequest) Reset() {
+	*x = MarkArticleViewedRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkArticleViewedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkArticleViewedRequest) ProtoMessage() {}
+
+func (x *MarkArticleViewedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkArticleViewedRequest.ProtoReflect.Descriptor instead.
+func (*MarkArticleViewedRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *MarkArticleViewedRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
 var File_blog_v1_article_proto protoreflect.FileDescriptor
 
 const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa7\x03\n" +
+	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc6\x03\n" +
 	"\aArticle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04slug\x18\x02 \x01(\tB\x03\xe0A\x02R\x04slug\x12\x19\n" +
@@ -585,7 +643,9 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"b\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"view_count\x18\f \x01(\x04R\tviewCount\"b\n" +
 	"\n" +
 	"ArticleSet\x12,\n" +
 	"\barticles\x18\x01 \x03(\v2\x10.blog.v1.ArticleR\barticles\x12&\n" +
@@ -605,19 +665,22 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x03\xe0A\x02R\n" +
 	"updateMask\"/\n" +
 	"\x14DeleteArticleRequest\x12\x17\n" +
+	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"3\n" +
+	"\x18MarkArticleViewedRequest\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug*\x83\x01\n" +
 	"\rArticleStatus\x12\x1e\n" +
 	"\x1aARTICLE_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ARTICLE_STATUS_DRAFT\x10\x01\x12\x1c\n" +
 	"\x18ARTICLE_STATUS_PUBLISHED\x10\x02\x12\x1a\n" +
-	"\x16ARTICLE_STATUS_DELETED\x10\x032\xfc\x03\n" +
+	"\x16ARTICLE_STATUS_DELETED\x10\x032\xf1\x04\n" +
 	"\x0eArticleService\x12f\n" +
 	"\rCreateArticle\x12\x1d.blog.v1.CreateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\"\x13/v1/articles/create\x12\\\n" +
 	"\fListArticles\x12\x1c.blog.v1.ListArticlesRequest\x1a\x13.blog.v1.ArticleSet\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/articles/list\x12W\n" +
 	"\n" +
 	"GetArticle\x12\x1a.blog.v1.GetArticleRequest\x1a\x10.blog.v1.Article\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/articles/{slug}\x12f\n" +
 	"\rUpdateArticle\x12\x1d.blog.v1.UpdateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\x1a\x13/v1/articles/update\x12c\n" +
-	"\rDeleteArticle\x12\x1d.blog.v1.DeleteArticleRequest\x1a\x16.google.protobuf.Empty\"\x1b\x82\xd3\xe4\x93\x02\x15*\x13/v1/articles/{slug}Bd\n" +
+	"\rDeleteArticle\x12\x1d.blog.v1.DeleteArticleRequest\x1a\x16.google.protobuf.Empty\"\x1b\x82\xd3\xe4\x93\x02\x15*\x13/v1/articles/{slug}\x12s\n" +
+	"\x11MarkArticleViewed\x12!.blog.v1.MarkArticleViewedRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/articles/{slug}/viewBd\n" +
 	"\x18io.grpc.examples.blog.v1B\fArticleProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -633,41 +696,44 @@ func file_blog_v1_article_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_blog_v1_article_proto_goTypes = []any{
-	(ArticleStatus)(0),            // 0: blog.v1.ArticleStatus
-	(*Article)(nil),               // 1: blog.v1.Article
-	(*ArticleSet)(nil),            // 2: blog.v1.ArticleSet
-	(*CreateArticleRequest)(nil),  // 3: blog.v1.CreateArticleRequest
-	(*GetArticleRequest)(nil),     // 4: blog.v1.GetArticleRequest
-	(*ListArticlesRequest)(nil),   // 5: blog.v1.ListArticlesRequest
-	(*UpdateArticleRequest)(nil),  // 6: blog.v1.UpdateArticleRequest
-	(*DeleteArticleRequest)(nil),  // 7: blog.v1.DeleteArticleRequest
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil), // 9: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),         // 10: google.protobuf.Empty
+	(ArticleStatus)(0),               // 0: blog.v1.ArticleStatus
+	(*Article)(nil),                  // 1: blog.v1.Article
+	(*ArticleSet)(nil),               // 2: blog.v1.ArticleSet
+	(*CreateArticleRequest)(nil),     // 3: blog.v1.CreateArticleRequest
+	(*GetArticleRequest)(nil),        // 4: blog.v1.GetArticleRequest
+	(*ListArticlesRequest)(nil),      // 5: blog.v1.ListArticlesRequest
+	(*UpdateArticleRequest)(nil),     // 6: blog.v1.UpdateArticleRequest
+	(*DeleteArticleRequest)(nil),     // 7: blog.v1.DeleteArticleRequest
+	(*MarkArticleViewedRequest)(nil), // 8: blog.v1.MarkArticleViewedRequest
+	(*timestamppb.Timestamp)(nil),    // 9: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),    // 10: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),            // 11: google.protobuf.Empty
 }
 var file_blog_v1_article_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.Article.status:type_name -> blog.v1.ArticleStatus
-	8,  // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
-	8,  // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
+	9,  // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
+	9,  // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 4: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
 	1,  // 5: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
 	1,  // 6: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
-	9,  // 7: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	10, // 7: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
 	3,  // 8: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
 	5,  // 9: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
 	4,  // 10: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
 	6,  // 11: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
 	7,  // 12: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
-	1,  // 13: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
-	2,  // 14: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
-	1,  // 15: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
-	1,  // 16: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
-	10, // 17: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
+	8,  // 13: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
+	1,  // 14: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
+	2,  // 15: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
+	1,  // 16: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
+	1,  // 17: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
+	11, // 18: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
+	11, // 19: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -684,7 +750,7 @@ func file_blog_v1_article_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_article_proto_rawDesc), len(file_blog_v1_article_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

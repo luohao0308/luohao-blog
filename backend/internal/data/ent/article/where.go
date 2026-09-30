@@ -103,6 +103,11 @@ func PublishedAt(v time.Time) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldPublishedAt, v))
 }
 
+// ViewCount applies equality check predicate on the "view_count" field. It's identical to ViewCountEQ.
+func ViewCount(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldViewCount, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldCreatedAt, v))
@@ -650,6 +655,46 @@ func PublishedAtIsNil() predicate.Article {
 // PublishedAtNotNil applies the NotNil predicate on the "published_at" field.
 func PublishedAtNotNil() predicate.Article {
 	return predicate.Article(sql.FieldNotNull(FieldPublishedAt))
+}
+
+// ViewCountEQ applies the EQ predicate on the "view_count" field.
+func ViewCountEQ(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldViewCount, v))
+}
+
+// ViewCountNEQ applies the NEQ predicate on the "view_count" field.
+func ViewCountNEQ(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldNEQ(FieldViewCount, v))
+}
+
+// ViewCountIn applies the In predicate on the "view_count" field.
+func ViewCountIn(vs ...uint64) predicate.Article {
+	return predicate.Article(sql.FieldIn(FieldViewCount, vs...))
+}
+
+// ViewCountNotIn applies the NotIn predicate on the "view_count" field.
+func ViewCountNotIn(vs ...uint64) predicate.Article {
+	return predicate.Article(sql.FieldNotIn(FieldViewCount, vs...))
+}
+
+// ViewCountGT applies the GT predicate on the "view_count" field.
+func ViewCountGT(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldGT(FieldViewCount, v))
+}
+
+// ViewCountGTE applies the GTE predicate on the "view_count" field.
+func ViewCountGTE(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldGTE(FieldViewCount, v))
+}
+
+// ViewCountLT applies the LT predicate on the "view_count" field.
+func ViewCountLT(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldLT(FieldViewCount, v))
+}
+
+// ViewCountLTE applies the LTE predicate on the "view_count" field.
+func ViewCountLTE(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldLTE(FieldViewCount, v))
 }
 
 // HasTags applies the HasEdge predicate on the "tags" edge.

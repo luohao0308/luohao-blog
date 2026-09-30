@@ -20,11 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ArticleService_CreateArticle_FullMethodName = "/blog.v1.ArticleService/CreateArticle"
-	ArticleService_ListArticles_FullMethodName  = "/blog.v1.ArticleService/ListArticles"
-	ArticleService_GetArticle_FullMethodName    = "/blog.v1.ArticleService/GetArticle"
-	ArticleService_UpdateArticle_FullMethodName = "/blog.v1.ArticleService/UpdateArticle"
-	ArticleService_DeleteArticle_FullMethodName = "/blog.v1.ArticleService/DeleteArticle"
+	ArticleService_CreateArticle_FullMethodName     = "/blog.v1.ArticleService/CreateArticle"
+	ArticleService_ListArticles_FullMethodName      = "/blog.v1.ArticleService/ListArticles"
+	ArticleService_GetArticle_FullMethodName        = "/blog.v1.ArticleService/GetArticle"
+	ArticleService_UpdateArticle_FullMethodName     = "/blog.v1.ArticleService/UpdateArticle"
+	ArticleService_DeleteArticle_FullMethodName     = "/blog.v1.ArticleService/DeleteArticle"
+	ArticleService_MarkArticleViewed_FullMethodName = "/blog.v1.ArticleService/MarkArticleViewed"
 )
 
 // ArticleServiceClient is the client API for ArticleService service.
@@ -65,6 +66,14 @@ type ArticleServiceClient interface {
 	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// MarkArticleViewed records one public view of an article. Intended to be
+	// called by the browser once per page open: the server deduplicates by
+	// client identity within a 24h window, so repeat calls from the same client
+	// do not increase the counter. Views are only counted for PUBLISHED
+	// articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleViewed(ctx context.Context, in *MarkArticleViewedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type articleServiceClient struct {
@@ -125,6 +134,16 @@ func (c *articleServiceClient) DeleteArticle(ctx context.Context, in *DeleteArti
 	return out, nil
 }
 
+func (c *articleServiceClient) MarkArticleViewed(ctx context.Context, in *MarkArticleViewedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ArticleService_MarkArticleViewed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ArticleServiceServer is the server API for ArticleService service.
 // All implementations must embed UnimplementedArticleServiceServer
 // for forward compatibility.
@@ -163,6 +182,14 @@ type ArticleServiceServer interface {
 	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	DeleteArticle(context.Context, *DeleteArticleRequest) (*emptypb.Empty, error)
+	// MarkArticleViewed records one public view of an article. Intended to be
+	// called by the browser once per page open: the server deduplicates by
+	// client identity within a 24h window, so repeat calls from the same client
+	// do not increase the counter. Views are only counted for PUBLISHED
+	// articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleViewed(context.Context, *MarkArticleViewedRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedArticleServiceServer()
 }
 
@@ -187,6 +214,9 @@ func (UnimplementedArticleServiceServer) UpdateArticle(context.Context, *UpdateA
 }
 func (UnimplementedArticleServiceServer) DeleteArticle(context.Context, *DeleteArticleRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteArticle not implemented")
+}
+func (UnimplementedArticleServiceServer) MarkArticleViewed(context.Context, *MarkArticleViewedRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkArticleViewed not implemented")
 }
 func (UnimplementedArticleServiceServer) mustEmbedUnimplementedArticleServiceServer() {}
 func (UnimplementedArticleServiceServer) testEmbeddedByValue()                        {}
@@ -299,6 +329,24 @@ func _ArticleService_DeleteArticle_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArticleService_MarkArticleViewed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkArticleViewedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).MarkArticleViewed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_MarkArticleViewed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).MarkArticleViewed(ctx, req.(*MarkArticleViewedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ArticleService_ServiceDesc is the grpc.ServiceDesc for ArticleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -325,6 +373,10 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteArticle",
 			Handler:    _ArticleService_DeleteArticle_Handler,
+		},
+		{
+			MethodName: "MarkArticleViewed",
+			Handler:    _ArticleService_MarkArticleViewed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

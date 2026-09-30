@@ -73,6 +73,20 @@ service ArticleService {
       delete: "/v1/articles/{slug}"
     };
   }
+
+  // MarkArticleViewed records one public view of an article. Intended to be
+  // called by the browser once per page open: the server deduplicates by
+  // client identity within a 24h window, so repeat calls from the same client
+  // do not increase the counter. Views are only counted for PUBLISHED
+  // articles. Authorization: public (rate limited).
+  // Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+  // article does not exist or is not published.
+  rpc MarkArticleViewed (MarkArticleViewedRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/articles/{slug}/view"
+      body: "*"
+    };
+  }
 }
 
 // ArticleStatus is the lifecycle state of an article.
@@ -115,6 +129,9 @@ message Article {
   google.protobuf.Timestamp created_at = 10;
   // Time at which the article was last modified. Server-assigned, read-only.
   google.protobuf.Timestamp updated_at = 11;
+  // Public read counter. Incremented when a client reports a view through
+  // MarkArticleViewed and the 24h per-client dedup window admits it.
+  uint64 view_count = 12;
 }
 
 // ArticleSet is a paginated collection of articles returned by ListArticles.
@@ -182,5 +199,13 @@ message UpdateArticleRequest {
 // DeleteArticleRequest is the input for ArticleService.DeleteArticle.
 message DeleteArticleRequest {
   // Unique slug of the article to delete.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// MarkArticleViewedRequest is the input for ArticleService.MarkArticleViewed.
+// The client identity comes from the transport (client IP), not from the
+// message body.
+message MarkArticleViewedRequest {
+  // Unique slug of the article being viewed.
   string slug = 1 [(google.api.field_behavior) = REQUIRED];
 }
