@@ -6,6 +6,8 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+
+	"github.com/google/uuid"
 )
 
 // userToBiz converts a persisted user into its domain representation. The
@@ -37,6 +39,19 @@ func NewUserRepo(data *Data) biz.UserRepository {
 func (r *userRepo) FindByEmail(ctx context.Context, email string) (*biz.User, error) {
 	po, err := r.data.db.User.Query().
 		Where(user.EmailEQ(email)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, biz.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return userToBiz(po), nil
+}
+
+func (r *userRepo) FindByID(ctx context.Context, id uuid.UUID) (*biz.User, error) {
+	po, err := r.data.db.User.Query().
+		Where(user.IDEQ(id)).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {

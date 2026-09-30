@@ -8,6 +8,7 @@ import "google/protobuf/duration.proto";
 message Bootstrap {
   Server server = 1;
   Data data = 2;
+  Auth auth = 3;
 }
 
 message Server {
@@ -45,4 +46,28 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
+}
+
+message Auth {
+  message JWT {
+    // HMAC-SHA256 signing key for access tokens. Required: the server refuses
+    // to start when empty. Provide it via environment, not source control.
+    string secret = 1;
+    // Access token lifetime. Defaults to 15m when unset.
+    google.protobuf.Duration access_token_ttl = 2;
+  }
+  message RateLimit {
+    // Login attempts allowed per client IP inside login_window, for both
+    // successful and failed logins. Defaults to 10 when unset.
+    int64 login_attempts = 1;
+    // Fixed window size for the login counter. Defaults to 5m when unset.
+    google.protobuf.Duration login_window = 2;
+  }
+  // Access token signing settings.
+  JWT jwt = 1;
+  // Refresh session lifetime in Redis. Sliding: recreated on every refresh.
+  // Defaults to 168h (7 days) when unset.
+  google.protobuf.Duration refresh_token_ttl = 2;
+  // Login brute-force protection.
+  RateLimit rate_limit = 3;
 }

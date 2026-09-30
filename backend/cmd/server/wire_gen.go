@@ -23,7 +23,11 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, logger *slog.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logger *slog.Logger) (*kratos.App, func(), error) {
+	tokenIssuer, err := data.NewTokenIssuer(auth)
+	if err != nil {
+		return nil, nil, err
+	}
 	dataData, cleanup, err := data.NewData(confData)
 	if err != nil {
 		return nil, nil, err
@@ -31,8 +35,16 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger *slog.Logger) 
 	articleRepo := data.NewArticleRepo(dataData)
 	articleUsecase := biz.NewArticleUsecase(articleRepo)
 	articleService := service.NewArticleService(articleUsecase)
-	grpcServer := server.NewGRPCServer(confServer, articleService)
-	httpServer := server.NewHTTPServer(confServer, articleService)
+	userRepository := data.NewUserRepo(dataData)
+	userUsecase := biz.NewUserUsecase(userRepository)
+	universalClient := data.NewRedis(confData)
+	sessionRepo := data.NewSessionRepo(universalClient)
+	rateLimiter := data.NewRateLimiter(universalClient, auth)
+	duration := data.NewRefreshTokenTTL(auth)
+	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, duration)
+	authService := service.NewAuthService(authUsecase)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, articleService, authService)
+	httpServer := server.NewHTTPServer(confServer, tokenIssuer, articleService, authService)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()

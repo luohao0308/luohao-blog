@@ -13,19 +13,21 @@ import (
 	"github.com/go-kratos/kratos/v3/errors"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
+
+	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 )
 
 var (
 	// ErrUserNotFound is returned when a user does not exist.
-	ErrUserNotFound = errors.NotFound("USER_NOT_FOUND", "user not found")
+	ErrUserNotFound = errors.NotFound(v1.ErrorReason_USER_NOT_FOUND.String(), "user not found")
 	// ErrUserInvalidArgument is returned when a user request is invalid.
-	ErrUserInvalidArgument = errors.BadRequest("USER_INVALID_ARGUMENT", "invalid user argument")
+	ErrUserInvalidArgument = errors.BadRequest(v1.ErrorReason_USER_INVALID_ARGUMENT.String(), "invalid user argument")
 	// ErrUserInvalidCredentials is returned when authentication fails. It is
 	// deliberately indistinguishable between unknown email and wrong
 	// password so the endpoint cannot be used to enumerate accounts.
-	ErrUserInvalidCredentials = errors.Unauthorized("USER_INVALID_CREDENTIALS", "invalid email or password")
+	ErrUserInvalidCredentials = errors.Unauthorized(v1.ErrorReason_USER_INVALID_CREDENTIALS.String(), "invalid email or password")
 	// ErrUserEmailConflict is returned when an email is already registered.
-	ErrUserEmailConflict = errors.Conflict("USER_EMAIL_CONFLICT", "email already registered")
+	ErrUserEmailConflict = errors.Conflict(v1.ErrorReason_USER_EMAIL_CONFLICT.String(), "email already registered")
 )
 
 // UserRole is the account role. Values match the api enum introduced with
@@ -71,6 +73,7 @@ type User struct {
 // UserRepository is a user repo.
 type UserRepository interface {
 	FindByEmail(context.Context, string) (*User, error)
+	FindByID(context.Context, uuid.UUID) (*User, error)
 	Create(context.Context, *User) (*User, error)
 }
 
@@ -165,6 +168,11 @@ func (uc *UserUsecase) CreateAuthor(ctx context.Context, email, password, displa
 		DisplayName:  strings.TrimSpace(displayName),
 		Role:         UserRoleAdmin,
 	})
+}
+
+// ByID returns the account with the given id.
+func (uc *UserUsecase) ByID(ctx context.Context, id uuid.UUID) (*User, error) {
+	return uc.repo.FindByID(ctx, id)
 }
 
 // Authenticate verifies credentials and returns the account on success.

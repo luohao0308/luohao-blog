@@ -2,8 +2,10 @@ package server
 
 import (
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
+
 	"github.com/go-kratos/kratos/v3/middleware/recovery"
 	"github.com/go-kratos/kratos/v3/middleware/validate"
 	"github.com/go-kratos/kratos/v3/transport/http"
@@ -13,10 +15,11 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, article *service.ArticleService) *http.Server {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, article *service.ArticleService, auth *service.AuthService) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
+			AuthJWT(issuer),
 			validate.Validator(func(req any) error {
 				if msg, ok := req.(proto.Message); ok {
 					if err := fieldbehavior.ValidateRequiredFields(msg); err != nil {
@@ -38,5 +41,6 @@ func NewHTTPServer(c *conf.Server, article *service.ArticleService) *http.Server
 	}
 	srv := http.NewServer(opts...)
 	v1.RegisterArticleServiceHTTPServer(srv, article)
+	v1.RegisterAuthServiceHTTPServer(srv, auth)
 	return srv
 }
