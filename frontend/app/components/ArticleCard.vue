@@ -1,41 +1,27 @@
 <script setup lang="ts">
-import { ARTICLE_STATUS, ARTICLE_STATUS_LABEL, formatDate, type Article } from '~/composables/useArticles'
+import { articleDate, formatDate, type Article } from '~/composables/useArticles'
 
 defineProps<{
   article: Article
 }>()
 
-function statusLabel(a: Article): string {
-  return ARTICLE_STATUS_LABEL[a.status] ?? '未知'
-}
-
-function isDraft(a: Article): boolean {
-  return a.status === ARTICLE_STATUS.DRAFT
-}
 </script>
 
 <template>
-  <NuxtLink
-    :to="`/posts/${article.slug}`"
-    class="block rounded-lg border border-slate-200 p-5 transition-shadow hover:shadow-md"
-  >
-    <div class="flex items-baseline justify-between gap-3">
-      <h3 class="text-lg font-semibold tracking-tight text-slate-900">
+  <article class="flex h-full min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-6 transition-colors hover:border-[#9aafc7] dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-600">
+    <time :datetime="articleDate(article.published_at || article.created_at)" class="text-xs text-slate-500 dark:text-slate-400">{{ formatDate(article.published_at || article.created_at) }}</time>
+    <h2 class="mt-4 text-xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
+      <NuxtLink :to="`/posts/${encodeURIComponent(article.slug)}`" class="break-words hover:text-[#3c5d85] dark:hover:text-blue-300">
         {{ article.title }}
-      </h3>
-      <span
-        v-if="isDraft(article)"
-        class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
-      >{{ statusLabel(article) }}</span>
-    </div>
-    <p v-if="article.summary" class="mt-1 line-clamp-2 text-sm text-slate-600">
+      </NuxtLink>
+    </h2>
+    <p v-if="article.summary" class="mt-3 line-clamp-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
       {{ article.summary }}
     </p>
-    <div class="mt-3 flex items-center gap-3 text-xs text-slate-500">
-      <time>{{ formatDate(article.published_at || article.created_at) }}</time>
-      <span v-for="tag in article.tags" :key="tag" class="rounded bg-slate-100 px-1.5 py-0.5">
+    <div class="mt-auto flex flex-wrap items-center gap-2 pt-6 text-xs">
+      <NuxtLink v-for="tag in article.tags" :key="tag" :to="`/tags/${encodeURIComponent(tag)}`" class="max-w-full break-words rounded bg-[#e7eee9] px-2 py-1 text-[#365f53] hover:underline dark:bg-emerald-950 dark:text-emerald-200">
         {{ tag }}
-      </span>
+      </NuxtLink>
     </div>
-  </NuxtLink>
+  </article>
 </template>

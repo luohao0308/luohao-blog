@@ -18,6 +18,8 @@ export const ARTICLE_STATUS_LABEL: Record<number, string> = {
   3: '已删除',
 }
 
+export type ArticleTimestamp = string | { seconds?: string | number, nanos?: number }
+
 export interface Article {
   id: string
   slug: string
@@ -27,9 +29,9 @@ export interface Article {
   content_html: string
   tags: string[]
   status: ArticleStatus
-  published_at?: string
-  created_at: string
-  updated_at: string
+  published_at?: ArticleTimestamp
+  created_at: ArticleTimestamp
+  updated_at: ArticleTimestamp
 }
 
 export interface ArticleSet {
@@ -47,13 +49,41 @@ export function useArticleList(opts?: { pageSize?: number }) {
 }
 
 export function useArticleBySlug(slug: string) {
-  return useFetch<Article>(`/api/v1/articles/${slug}`, { key: `article:${slug}` })
+  return useFetch<Article>(`/api/v1/articles/${encodeURIComponent(slug)}`, { key: `article:${slug}` })
+}
+
+// Tags and adjacent articles need the full collection, not just its first page.
+export function usePublishedArticles() {
+  const requestFetch = useRequestFetch()
+  return useAsyncData('published-articles', async () => {
+    const articles: Article[] = []
+    const seenTokens = new Set<string>()
+    let pageToken = ''
+    do {
+      const page = await requestFetch<ArticleSet>('/api/v1/articles/list', {
+        query: { page_size: 100, page_token: pageToken, order_by: 'published_at desc,slug' },
+      })
+      articles.push(...(page.articles ?? []))
+      pageToken = page.next_page_token ?? ''
+      if (pageToken && seenTokens.has(pageToken)) throw new Error('文章分页异常')
+      seenTokens.add(pageToken)
+    } while (pageToken)
+    return articles.filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
+  })
 }
 
 // formatDate renders an RFC3339 timestamp as a plain local date.
-export function formatDate(ts?: string): string {
+export function articleDate(ts?: ArticleTimestamp): string {
   if (!ts) return ''
-  return new Date(ts).toLocaleDateString('zh-CN', {
+  const date = new Date(typeof ts === 'string' ? ts : Number(ts.seconds ?? 0) * 1000)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
+export function formatDate(ts?: ArticleTimestamp): string {
+  const value = articleDate(ts)
+  if (!value) return ''
+  return new Date(value).toLocaleDateString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

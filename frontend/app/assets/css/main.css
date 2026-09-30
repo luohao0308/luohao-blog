@@ -3,3 +3,7 @@
 /* Dark mode via class strategy (html.dark), toggled by useTheme and applied
    pre-hydration by an inline head script. */
 @custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  a, button, input { @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600; }
+}
