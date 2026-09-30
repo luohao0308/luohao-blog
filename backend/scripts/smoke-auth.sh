@@ -4,7 +4,7 @@
 # Requires the dev compose stack (mysql :3307, redis :6379) up and jq.
 set -u
 cd "$(dirname "$0")/.."
-BASE=http://127.0.0.1:8000
+BASE=${BASE:-http://127.0.0.1:8000}
 PASS=0; FAIL=0
 say() { printf '\n== %s\n' "$*"; }
 ok()  { PASS=$((PASS+1)); echo "PASS: $*"; }
@@ -109,9 +109,33 @@ CODE=$(curl -s -o /tmp/s2_r.json -w '%{http_code}' -X POST "$BASE/v1/auth/refres
 expect_code "refresh after logout (replayed)" 401 "$CODE"
 jq -r '.reason // empty' /tmp/s2_r.json | grep -q AUTH_INVALID_REFRESH_TOKEN && ok "post-logout replay rejected" || bad "post-logout reason: $(cat /tmp/s2_r.json)"
 
-say "11. article reads stay public; write stays open until S3"
+say "11. article reads stay public; article writes require admin RBAC"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/v1/articles/list")
 expect_code "public list" 200 "$CODE"
+CODE=$(curl -s -o /tmp/s2_r.json -w '%{http_code}' -X POST "$BASE/v1/articles/create" -H 'Content-Type: application/json' -d '{"slug":"smoke-rbac-unauthorized","title":"RBAC smoke","content_md":"# smoke"}')
+expect_code "article create without token" 401 "$CODE"
+jq -r '.reason // empty' /tmp/s2_r.json | grep -q AUTH_UNAUTHORIZED && ok "reason AUTH_UNAUTHORIZED (article write)" || bad "reason: $(cat /tmp/s2_r.json)"
+
+READER_EMAIL=reader-smoke@example.com
+READER_PASSWORD=longenough2
+READER_SEED=$(go run ./cmd/seed -conf ./configs -email "$READER_EMAIL" -password "$READER_PASSWORD" -name 'Smoke Reader' -role reader 2>&1 || true)
+echo "$READER_SEED"
+case "$READER_SEED" in
+  *"created reader"*|*"already registered"*) ok "seed reader (created or existing)" ;;
+  *) bad "seed reader" ;;
+esac
+READER_LOGIN=$(curl -sS -X POST "$BASE/v1/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"$READER_EMAIL\",\"password\":\"$READER_PASSWORD\"}")
+READER_ACCESS=$(echo "$READER_LOGIN" | jq -r '.access_token // empty')
+[ -n "$READER_ACCESS" ] && ok "reader access token issued" || bad "reader login: $READER_LOGIN"
+CODE=$(curl -s -o /tmp/s2_r.json -w '%{http_code}' -X POST "$BASE/v1/articles/create" -H "Authorization: Bearer $READER_ACCESS" -H 'Content-Type: application/json' -d '{"slug":"smoke-rbac-forbidden","title":"RBAC smoke","content_md":"# smoke"}')
+expect_code "article create as reader" 403 "$CODE"
+jq -r '.reason // empty' /tmp/s2_r.json | grep -q AUTH_FORBIDDEN && ok "reason AUTH_FORBIDDEN (article write)" || bad "reason: $(cat /tmp/s2_r.json)"
+
+CODE=$(curl -s -o /tmp/s2_r.json -w '%{http_code}' -X POST "$BASE/v1/articles/create" -H "Authorization: Bearer $ACCESS" -H 'Content-Type: application/json' -d '{"slug":"smoke-rbac-admin","title":"RBAC smoke","content_md":"# smoke"}')
+expect_code "article create as admin" 200 "$CODE"
+jq -e '.slug == "smoke-rbac-admin"' /tmp/s2_r.json >/dev/null && ok "admin write persisted" || bad "admin write body: $(cat /tmp/s2_r.json)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE/v1/articles/smoke-rbac-admin" -H "Authorization: Bearer $ACCESS")
+expect_code "admin cleanup" 200 "$CODE"
 
 say "12. login rate limit -> 429 after window exhausted"
 RL_CODE=200

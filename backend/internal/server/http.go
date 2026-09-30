@@ -15,11 +15,12 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, article *service.ArticleService, auth *service.AuthService) *http.Server {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, auth *service.AuthService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
 			AuthJWT(issuer),
+			Authorize(authz),
 			validate.Validator(func(req any) error {
 				if msg, ok := req.(proto.Message); ok {
 					if err := fieldbehavior.ValidateRequiredFields(msg); err != nil {
@@ -42,5 +43,8 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, article *service.Arti
 	srv := http.NewServer(opts...)
 	v1.RegisterArticleServiceHTTPServer(srv, article)
 	v1.RegisterAuthServiceHTTPServer(srv, auth)
-	return srv
+	if err := validatePolicyCoverage(srv, authz); err != nil {
+		return nil, err
+	}
+	return srv, nil
 }

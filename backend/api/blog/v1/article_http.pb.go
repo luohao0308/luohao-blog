@@ -27,24 +27,32 @@ const OperationArticleServiceUpdateArticle = "/blog.v1.ArticleService/UpdateArti
 type ArticleServiceHTTPServer interface {
 	// CreateArticle CreateArticle creates a new article and returns the persisted record with
 	// the server-assigned id, timestamps, rendered HTML, and DRAFT status.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns INVALID_ARGUMENT if the payload fails validation, or ALREADY_EXISTS
 	// if the slug is taken.
 	CreateArticle(context.Context, *CreateArticleRequest) (*Article, error)
 	// DeleteArticle DeleteArticle soft-deletes an article by its slug. The record is retained
 	// by the server but no longer appears in GetArticle or ListArticles results.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	DeleteArticle(context.Context, *DeleteArticleRequest) (*emptypb.Empty, error)
 	// GetArticle GetArticle returns a single article by its slug.
+	// Authorization: public.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	GetArticle(context.Context, *GetArticleRequest) (*Article, error)
 	// ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 	// Use the next_page_token from ArticleSet to retrieve subsequent pages.
+	// Authorization: public.
 	// Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
 	ListArticles(context.Context, *ListArticlesRequest) (*ArticleSet, error)
 	// UpdateArticle UpdateArticle applies a partial update to an existing article using a
 	// FieldMask. Only the fields listed in update_mask are overwritten; all
 	// other fields are left unchanged. The slug is immutable and only identifies
 	// the target record here. Updating content_md re-renders content_html.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if the target article does not exist, or
 	// INVALID_ARGUMENT if update_mask references unknown fields.
 	UpdateArticle(context.Context, *UpdateArticleRequest) (*Article, error)
@@ -169,24 +177,32 @@ func _ArticleService_DeleteArticle0_HTTP_Handler(srv ArticleServiceHTTPServer) f
 type ArticleServiceHTTPClient interface {
 	// CreateArticle CreateArticle creates a new article and returns the persisted record with
 	// the server-assigned id, timestamps, rendered HTML, and DRAFT status.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns INVALID_ARGUMENT if the payload fails validation, or ALREADY_EXISTS
 	// if the slug is taken.
 	CreateArticle(ctx context.Context, req *CreateArticleRequest, opts ...http.CallOption) (rsp *Article, err error)
 	// DeleteArticle DeleteArticle soft-deletes an article by its slug. The record is retained
 	// by the server but no longer appears in GetArticle or ListArticles results.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	DeleteArticle(ctx context.Context, req *DeleteArticleRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 	// GetArticle GetArticle returns a single article by its slug.
+	// Authorization: public.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	GetArticle(ctx context.Context, req *GetArticleRequest, opts ...http.CallOption) (rsp *Article, err error)
 	// ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 	// Use the next_page_token from ArticleSet to retrieve subsequent pages.
+	// Authorization: public.
 	// Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
 	ListArticles(ctx context.Context, req *ListArticlesRequest, opts ...http.CallOption) (rsp *ArticleSet, err error)
 	// UpdateArticle UpdateArticle applies a partial update to an existing article using a
 	// FieldMask. Only the fields listed in update_mask are overwritten; all
 	// other fields are left unchanged. The slug is immutable and only identifies
 	// the target record here. Updating content_md re-renders content_html.
+	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+	// valid token, 403 for accounts whose role is not admin.
 	// Returns NOT_FOUND if the target article does not exist, or
 	// INVALID_ARGUMENT if update_mask references unknown fields.
 	UpdateArticle(ctx context.Context, req *UpdateArticleRequest, opts ...http.CallOption) (rsp *Article, err error)
@@ -202,6 +218,8 @@ func NewArticleServiceHTTPClient(client *http.Client) ArticleServiceHTTPClient {
 
 // CreateArticle CreateArticle creates a new article and returns the persisted record with
 // the server-assigned id, timestamps, rendered HTML, and DRAFT status.
+// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+// valid token, 403 for accounts whose role is not admin.
 // Returns INVALID_ARGUMENT if the payload fails validation, or ALREADY_EXISTS
 // if the slug is taken.
 func (c *ArticleServiceHTTPClientImpl) CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...http.CallOption) (*Article, error) {
@@ -223,6 +241,8 @@ func (c *ArticleServiceHTTPClientImpl) CreateArticle(ctx context.Context, in *Cr
 
 // DeleteArticle DeleteArticle soft-deletes an article by its slug. The record is retained
 // by the server but no longer appears in GetArticle or ListArticles results.
+// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+// valid token, 403 for accounts whose role is not admin.
 // Returns NOT_FOUND if no article exists with the supplied slug.
 func (c *ArticleServiceHTTPClientImpl) DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
 	var out emptypb.Empty
@@ -241,6 +261,7 @@ func (c *ArticleServiceHTTPClientImpl) DeleteArticle(ctx context.Context, in *De
 }
 
 // GetArticle GetArticle returns a single article by its slug.
+// Authorization: public.
 // Returns NOT_FOUND if no article exists with the supplied slug.
 func (c *ArticleServiceHTTPClientImpl) GetArticle(ctx context.Context, in *GetArticleRequest, opts ...http.CallOption) (*Article, error) {
 	var out Article
@@ -260,6 +281,7 @@ func (c *ArticleServiceHTTPClientImpl) GetArticle(ctx context.Context, in *GetAr
 
 // ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 // Use the next_page_token from ArticleSet to retrieve subsequent pages.
+// Authorization: public.
 // Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
 func (c *ArticleServiceHTTPClientImpl) ListArticles(ctx context.Context, in *ListArticlesRequest, opts ...http.CallOption) (*ArticleSet, error) {
 	var out ArticleSet
@@ -281,6 +303,8 @@ func (c *ArticleServiceHTTPClientImpl) ListArticles(ctx context.Context, in *Lis
 // FieldMask. Only the fields listed in update_mask are overwritten; all
 // other fields are left unchanged. The slug is immutable and only identifies
 // the target record here. Updating content_md re-renders content_html.
+// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+// valid token, 403 for accounts whose role is not admin.
 // Returns NOT_FOUND if the target article does not exist, or
 // INVALID_ARGUMENT if update_mask references unknown fields.
 func (c *ArticleServiceHTTPClientImpl) UpdateArticle(ctx context.Context, in *UpdateArticleRequest, opts ...http.CallOption) (*Article, error) {

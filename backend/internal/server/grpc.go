@@ -11,11 +11,12 @@ import (
 )
 
 // NewGRPCServer new an gRPC server.
-func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, article *service.ArticleService, auth *service.AuthService) *grpc.Server {
+func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, auth *service.AuthService) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			recovery.Recovery(),
 			AuthJWT(issuer),
+			Authorize(authz),
 		),
 	}
 	if c.Grpc.Network != "" {

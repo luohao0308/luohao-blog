@@ -28,6 +28,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	if err != nil {
 		return nil, nil, err
 	}
+	authorizer, err := data.NewAuthorizer()
+	if err != nil {
+		return nil, nil, err
+	}
 	dataData, cleanup, err := data.NewData(confData)
 	if err != nil {
 		return nil, nil, err
@@ -43,8 +47,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	duration := data.NewRefreshTokenTTL(auth)
 	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, duration)
 	authService := service.NewAuthService(authUsecase)
-	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, articleService, authService)
-	httpServer := server.NewHTTPServer(confServer, tokenIssuer, articleService, authService)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, authService)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, authService)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()

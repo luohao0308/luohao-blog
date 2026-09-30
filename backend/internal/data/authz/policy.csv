@@ -1,0 +1,35 @@
+# Authorization policy: default deny. Every operation served by the API must
+# appear here exactly as registered (HTTP route template or gRPC full method),
+# otherwise it is unreachable. act "*" rows are gRPC operations.
+#
+# Changing this file changes who can call what; it is reviewed like code.
+
+# --- public: article reads and the auth flow itself ---
+p, public, /v1/articles/list, GET
+p, public, /v1/articles/{slug}, GET
+p, public, /v1/auth/login, POST
+p, public, /v1/auth/refresh, POST
+p, public, /v1/auth/logout, POST
+p, public, /blog.v1.ArticleService/ListArticles, *
+p, public, /blog.v1.ArticleService/GetArticle, *
+p, public, /blog.v1.AuthService/Login, *
+p, public, /blog.v1.AuthService/Refresh, *
+p, public, /blog.v1.AuthService/Logout, *
+
+# --- any authenticated account ---
+p, authenticated, /v1/auth/me, GET
+p, authenticated, /blog.v1.AuthService/GetMe, *
+
+# --- admin: article writes ---
+p, admin, /v1/articles/create, POST
+p, admin, /v1/articles/update, PUT
+p, admin, /v1/articles/{slug}, DELETE
+p, admin, /blog.v1.ArticleService/CreateArticle, *
+p, admin, /blog.v1.ArticleService/UpdateArticle, *
+p, admin, /blog.v1.ArticleService/DeleteArticle, *
+
+# --- role hierarchy: named roles inherit the authenticated subject, which in
+# turn inherits public, so a signed-in reader is never denied a public read ---
+g, authenticated, public
+g, admin, authenticated
+g, reader, authenticated

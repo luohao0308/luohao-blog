@@ -31,13 +31,15 @@ var (
 	flagEmail    string
 	flagPassword string
 	flagName     string
+	flagRole     string
 )
 
 func init() {
 	flag.StringVar(&flagConf, "conf", "../../configs", "config path, eg: -conf config.yaml")
-	flag.StringVar(&flagEmail, "email", "", "login email of the author account (required)")
+	flag.StringVar(&flagEmail, "email", "", "login email of the account (required)")
 	flag.StringVar(&flagPassword, "password", "", "plaintext password, at least 8 characters (required)")
 	flag.StringVar(&flagName, "name", "", "display name shown on the site")
+	flag.StringVar(&flagRole, "role", "admin", "account role: admin (default) or reader")
 }
 
 func main() {
@@ -45,6 +47,16 @@ func main() {
 	if flagEmail == "" || flagPassword == "" {
 		fmt.Fprintln(os.Stderr, "seed: -email and -password are required")
 		flag.Usage()
+		os.Exit(2)
+	}
+	var role biz.UserRole
+	switch flagRole {
+	case "admin":
+		role = biz.UserRoleAdmin
+	case "reader":
+		role = biz.UserRoleReader
+	default:
+		fmt.Fprintf(os.Stderr, "seed: unknown -role %q (want admin or reader)\n", flagRole)
 		os.Exit(2)
 	}
 
@@ -74,11 +86,12 @@ func main() {
 	defer cleanup()
 
 	users := biz.NewUserUsecase(data.NewUserRepo(store))
-	u, err := users.CreateAuthor(
+	u, err := users.CreateAccount(
 		context.Background(),
 		flagEmail,
 		flagPassword,
 		flagName,
+		role,
 	)
 	if err != nil {
 		switch {
@@ -87,9 +100,9 @@ func main() {
 		case biz.ErrUserInvalidArgument.Is(err):
 			fmt.Fprintf(os.Stderr, "seed: invalid email or password shorter than 8 characters\n")
 		default:
-			fmt.Fprintf(os.Stderr, "seed: create author: %v\n", err)
+			fmt.Fprintf(os.Stderr, "seed: create account: %v\n", err)
 		}
 		os.Exit(1)
 	}
-	fmt.Printf("seed: created author %s <%s> (role admin)\n", u.DisplayName, u.Email)
+	fmt.Printf("seed: created %s %s <%s>\n", flagRole, u.DisplayName, u.Email)
 }
