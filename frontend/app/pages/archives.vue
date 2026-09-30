@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ARTICLE_STATUS, formatDate, useArticleList } from '~/composables/useArticles'
+import { ARTICLE_STATUS, articleDate, formatDate, useArticleList } from '~/composables/useArticles'
 
 const { data, error } = useArticleList({ pageSize: 50 })
 
@@ -8,13 +8,13 @@ useHead({ title: '归档' })
 // groupByYear archives articles under their publish (or create) year.
 const grouped = computed(() => {
   const list = [...(data.value?.articles ?? [])].sort((a, b) => {
-    const ta = a.published_at || a.created_at
-    const tb = b.published_at || b.created_at
+    const ta = articleDate(a.published_at || a.created_at)
+    const tb = articleDate(b.published_at || b.created_at)
     return tb.localeCompare(ta)
   })
   const byYear = new Map<string, typeof list>()
   for (const a of list) {
-    const year = (a.published_at || a.created_at || '').slice(0, 4)
+    const year = articleDate(a.published_at || a.created_at).slice(0, 4)
     const bucket = byYear.get(year) ?? []
     bucket.push(a)
     byYear.set(year, bucket)

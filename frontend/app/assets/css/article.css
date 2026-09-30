@@ -61,3 +61,22 @@
 .chroma .nt { color: #22863a; }
 .chroma .na { color: #005cc5; }
 .chroma .w { color: #6a737d; }
+
+.markdown-body { overflow-wrap: anywhere; }
+.markdown-body img { max-width: 100%; height: auto; }
+.markdown-body table { display: block; overflow-x: auto; }
+.dark .markdown-body blockquote { border-color: #475569; color: #94a3b8; }
+.dark .markdown-body a { color: #93c5fd; }
+.dark .markdown-body hr { border-color: #334155; }
+.dark .markdown-body code { background: #1e293b; }
+.dark .markdown-body pre { background: #0f172a; border-color: #334155; }
+.dark .markdown-body pre code { background: transparent; }
+.dark .markdown-body th, .dark .markdown-body td { border-color: #334155; }
+.dark .markdown-body th { background: #1e293b; }
+.dark .chroma .k, .dark .chroma .kn, .dark .chroma .kd, .dark .chroma .kr,
+.dark .chroma .o, .dark .chroma .ow { color: #fda4af; }
+.dark .chroma .nf, .dark .chroma .nc { color: #d8b4fe; }
+.dark .chroma .s, .dark .chroma .s1, .dark .chroma .s2, .dark .chroma .sa, .dark .chroma .si { color: #bfdbfe; }
+.dark .chroma .m, .dark .chroma .mi, .dark .chroma .mf, .dark .chroma .nb, .dark .chroma .na { color: #93c5fd; }
+.dark .chroma .c, .dark .chroma .c1, .dark .chroma .cm, .dark .chroma .cs, .dark .chroma .w { color: #94a3b8; }
+.dark .chroma .nt { color: #86efac; }
