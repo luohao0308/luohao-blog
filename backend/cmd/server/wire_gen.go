@@ -47,8 +47,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	duration := data.NewRefreshTokenTTL(auth)
 	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, duration)
 	authService := service.NewAuthService(authUsecase)
-	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, authService)
-	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, authService)
+	commentRepo := data.NewCommentRepo(dataData)
+	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
+	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, commentRateLimiter)
+	commentService := service.NewCommentService(commentUsecase)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

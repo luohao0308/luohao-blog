@@ -15,7 +15,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, auth *service.AuthService) (*http.Server, error) {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, auth *service.AuthService, comment *service.CommentService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -43,6 +43,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	srv := http.NewServer(opts...)
 	v1.RegisterArticleServiceHTTPServer(srv, article)
 	v1.RegisterAuthServiceHTTPServer(srv, auth)
+	v1.RegisterCommentServiceHTTPServer(srv, comment)
 	if err := validatePolicyCoverage(srv, authz); err != nil {
 		return nil, err
 	}

@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "CommentProto";
+
+// CommentService handles visitor comments on articles. Commenters are
+// anonymous (registration is closed): every new comment starts PENDING and
+// becomes publicly visible only after an admin approves it. Admin operations
+// require the Authorization header; public ones are rate limited per client
+// IP.
+service CommentService {
+  // CreateComment submits a visitor comment. The comment enters PENDING and
+  // is not publicly visible until approved. The target article must exist
+  // and be PUBLISHED. Authorization: public (rate limited per client IP;
+  // excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
+  // fields fail validation and NOT_FOUND when the article is missing or not
+  // published.
+  rpc CreateComment (CreateCommentRequest) returns (Comment) {
+    option (google.api.http) = {
+      post: "/v1/comments"
+      body: "*"
+    };
+  }
+
+  // ListArticleComments returns a page of APPROVED comments for an article,
+  // newest first. Authorization: public.
+  rpc ListArticleComments (ListArticleCommentsRequest) returns (CommentSet) {
+    option (google.api.http) = {
+      get: "/v1/articles/{slug}/comments"
+    };
+  }
+
+  // ListComments returns a page of comments in any moderation state, for the
+  // admin panel. Use the standard list filter; supported field: `status` as
+  // an int literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
+  // Authorization: ADMIN only.
+  rpc ListComments (ListCommentsRequest) returns (CommentSet) {
+    option (google.api.http) = {
+      get: "/v1/comments"
+    };
+  }
+
+  // ApproveComment moves a comment to APPROVED, making it publicly visible.
+  // Idempotent for already-approved comments. Authorization: ADMIN only.
+  // Returns NOT_FOUND when the comment does not exist.
+  rpc ApproveComment (ApproveCommentRequest) returns (Comment) {
+    option (google.api.http) = {
+      post: "/v1/comments/{id}/approve"
+      body: "*"
+    };
+  }
+
+  // DeleteComment removes a comment permanently. Pending and approved
+  // comments can both be deleted. Authorization: ADMIN only. Returns
+  // NOT_FOUND when the comment does not exist.
+  rpc DeleteComment (DeleteCommentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/comments/{id}"
+    };
+  }
+}
+
+// CommentStatus is the moderation state of a comment.
+enum CommentStatus {
+  // Default value. Never returned by the server.
+  COMMENT_STATUS_UNSPECIFIED = 0;
+  // The comment awaits moderation and is not publicly visible.
+  COMMENT_STATUS_PENDING = 1;
+  // The comment was approved by an admin and is publicly visible.
+  COMMENT_STATUS_APPROVED = 2;
+}
+
+// Comment is the canonical representation of a visitor comment.
+message Comment {
+  // Application-generated UUIDv7 identifier. Read-only.
+  string id = 1;
+  // Slug of the commented article.
+  string article_slug = 2;
+  // Visitor-provided display name.
+  string display_name = 3;
+  // Visitor-provided comment body.
+  string content = 4;
+  // Moderation state. Server-assigned: new comments start PENDING.
+  CommentStatus status = 5;
+  // Time at which the comment was created. Server-assigned, read-only.
+  google.protobuf.Timestamp created_at = 6;
+  // Time at which the comment was last modified. Server-assigned, read-only.
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// CommentSet is a paginated collection of comments.
+message CommentSet {
+  repeated Comment comments = 1;
+  // Token used to retrieve the next page. Empty when there are no more
+  // results.
+  string next_page_token = 2;
+}
+
+// CreateCommentRequest is the input for CommentService.CreateComment.
+message CreateCommentRequest {
+  // Slug of the article being commented on. Must reference a PUBLISHED
+  // article.
+  string article_slug = 1 [(google.api.field_behavior) = REQUIRED];
+  // Visitor display name, 1-32 characters.
+  string display_name = 2 [(google.api.field_behavior) = REQUIRED];
+  // Comment body, 1-1000 characters.
+  string content = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListArticleCommentsRequest is the input for
+// CommentService.ListArticleComments.
+message ListArticleCommentsRequest {
+  // Slug of the article whose approved comments are listed.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+  // Optional. Maximum number of comments to return in a single page.
+  int32 page_size = 2;
+  // Optional. Token from a previous response's next_page_token.
+  string page_token = 3;
+}
+
+// ListCommentsRequest is the input for CommentService.ListComments.
+message ListCommentsRequest {
+  // Optional. Maximum number of comments to return in a single page.
+  int32 page_size = 1;
+  // Optional. Token from a previous response's next_page_token.
+  string page_token = 2;
+  // Optional. The standard list filter. Supported field: `status` as an int
+  // literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
+  string filter = 3;
+}
+
+// ApproveCommentRequest is the input for CommentService.ApproveComment.
+message ApproveCommentRequest {
+  // Identifier of the comment to approve.
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// DeleteCommentRequest is the input for CommentService.DeleteComment.
+message DeleteCommentRequest {
+  // Identifier of the comment to delete.
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
