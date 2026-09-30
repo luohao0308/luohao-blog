@@ -23,4 +23,6 @@
 
 ## 状态
 
-🚧 **M0 脚手架已完成**（2026-09-29）：`backend/` Go + Kratos、`frontend/` Nuxt 4、`deploy/` 本地依赖编排、CI lint 就绪，见 [.github/workflows/ci.yml](.github/workflows/ci.yml)。下一步 M1 内容核心。开发流程遵循 [dev-workflow](https://github.com/luohao0308/dev-workflow)。
+✅ **M0–M3 已完成**（2026-10-01）：脚手架、内容核心（文章 CRUD/Markdown 渲染/SSR）、账号后台（JWT + RBAC + 管理后台 + Milkdown 编辑器）、互动统计（阅读量 24h 去重 + 匿名评论先审后显）。开发流程遵循 [dev-workflow](https://github.com/luohao0308/dev-workflow)。
+
+🚧 M4 Agent 管道进行中：S1 已接入 ES + BM25 关键词搜索；embedding 与 RAG 聊天窗将在后续切片推进。

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "blog/v1/article.proto";
+import "google/api/field_behavior.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "SearchProto";
+
+// ArticleSearchService serves full-text search over published articles. The
+// index is maintained by the article write path; when the search backend is
+// unavailable the endpoint returns an empty page rather than an error, so the
+// public site keeps working.
+service ArticleSearchService {
+  // SearchArticles full-text searches published articles (BM25, Chinese
+  // analyzed) and returns them best-match first. Only PUBLISHED articles are
+  // indexed and returned. Authorization: public.
+  // Returns INVALID_ARGUMENT when the query is empty.
+  rpc SearchArticles (SearchArticlesRequest) returns (ArticleSet) {
+    option (google.api.http) = {
+      get: "/v1/search/articles"
+    };
+  }
+}
+
+// SearchArticlesRequest is the input for ArticleSearchService.SearchArticles.
+message SearchArticlesRequest {
+  // Free-text query. Matched against title (boosted), summary, content, and
+  // tags of published articles.
+  string query = 1 [(google.api.field_behavior) = REQUIRED];
+  // Optional. Maximum number of articles to return in a single page.
+  int32 page_size = 2;
+  // Optional. Token from a previous response's next_page_token.
+  string page_token = 3;
+}

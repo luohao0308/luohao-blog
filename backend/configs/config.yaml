@@ -33,3 +33,9 @@ auth:
     # Anonymous comment submissions. Defaults when unset: 20 per 5m per IP.
     comment_attempts: 20
     comment_window: 300s # 5m
+
+es:
+  addresses:
+    - http://127.0.0.1:9200
+  # Index name for articles; created on boot when missing.
+  index: articles
