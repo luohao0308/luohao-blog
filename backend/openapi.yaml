@@ -171,6 +171,39 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/articles/{slug}/comments:
+        get:
+            tags:
+                - CommentService
+            description: |-
+                ListArticleComments returns a page of APPROVED comments for an article,
+                 newest first. Authorization: public.
+            operationId: CommentService_ListArticleComments
+            parameters:
+                - name: slug
+                  in: path
+                  description: Slug of the article whose approved comments are listed.
+                  required: true
+                  schema:
+                    type: string
+                - name: pageSize
+                  in: query
+                  description: Optional. Maximum number of comments to return in a single page.
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageToken
+                  in: query
+                  description: Optional. Token from a previous response's next_page_token.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CommentSet'
     /v1/articles/{slug}/view:
         post:
             tags:
@@ -285,8 +318,126 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/comments:
+        get:
+            tags:
+                - CommentService
+            description: |-
+                ListComments returns a page of comments in any moderation state, for the
+                 admin panel. Use the standard list filter; supported field: `status` as
+                 an int literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
+                 Authorization: ADMIN only.
+            operationId: CommentService_ListComments
+            parameters:
+                - name: pageSize
+                  in: query
+                  description: Optional. Maximum number of comments to return in a single page.
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageToken
+                  in: query
+                  description: Optional. Token from a previous response's next_page_token.
+                  schema:
+                    type: string
+                - name: filter
+                  in: query
+                  description: |-
+                    Optional. The standard list filter. Supported field: `status` as an int
+                     literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CommentSet'
+        post:
+            tags:
+                - CommentService
+            description: |-
+                CreateComment submits a visitor comment. The comment enters PENDING and
+                 is not publicly visible until approved. The target article must exist
+                 and be PUBLISHED. Authorization: public (rate limited per client IP;
+                 excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
+                 fields fail validation and NOT_FOUND when the article is missing or not
+                 published.
+            operationId: CommentService_CreateComment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.CreateCommentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/comments/{id}:
+        delete:
+            tags:
+                - CommentService
+            description: |-
+                DeleteComment removes a comment permanently. Pending and approved
+                 comments can both be deleted. Authorization: ADMIN only. Returns
+                 NOT_FOUND when the comment does not exist.
+            operationId: CommentService_DeleteComment
+            parameters:
+                - name: id
+                  in: path
+                  description: Identifier of the comment to delete.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/comments/{id}/approve:
+        post:
+            tags:
+                - CommentService
+            description: |-
+                ApproveComment moves a comment to APPROVED, making it publicly visible.
+                 Idempotent for already-approved comments. Authorization: ADMIN only.
+                 Returns NOT_FOUND when the comment does not exist.
+            operationId: CommentService_ApproveComment
+            parameters:
+                - name: id
+                  in: path
+                  description: Identifier of the comment to approve.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ApproveCommentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Comment'
 components:
     schemas:
+        blog.v1.ApproveCommentRequest:
+            required:
+                - id
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Identifier of the comment to approve.
+            description: ApproveCommentRequest is the input for CommentService.ApproveComment.
         blog.v1.Article:
             required:
                 - slug
@@ -359,6 +510,66 @@ components:
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
+        blog.v1.Comment:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Application-generated UUIDv7 identifier. Read-only.
+                articleSlug:
+                    type: string
+                    description: Slug of the commented article.
+                displayName:
+                    type: string
+                    description: Visitor-provided display name.
+                content:
+                    type: string
+                    description: Visitor-provided comment body.
+                status:
+                    type: integer
+                    description: 'Moderation state. Server-assigned: new comments start PENDING.'
+                    format: enum
+                createdAt:
+                    type: string
+                    description: Time at which the comment was created. Server-assigned, read-only.
+                    format: date-time
+                updatedAt:
+                    type: string
+                    description: Time at which the comment was last modified. Server-assigned, read-only.
+                    format: date-time
+            description: Comment is the canonical representation of a visitor comment.
+        blog.v1.CommentSet:
+            type: object
+            properties:
+                comments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Comment'
+                nextPageToken:
+                    type: string
+                    description: |-
+                        Token used to retrieve the next page. Empty when there are no more
+                         results.
+            description: CommentSet is a paginated collection of comments.
+        blog.v1.CreateCommentRequest:
+            required:
+                - articleSlug
+                - displayName
+                - content
+            type: object
+            properties:
+                articleSlug:
+                    type: string
+                    description: |-
+                        Slug of the article being commented on. Must reference a PUBLISHED
+                         article.
+                displayName:
+                    type: string
+                    description: Visitor display name, 1-32 characters.
+                content:
+                    type: string
+                    description: Comment body, 1-1000 characters.
+            description: CreateCommentRequest is the input for CommentService.CreateComment.
         blog.v1.LoginReply:
             type: object
             properties:
@@ -456,3 +667,10 @@ tags:
          server-side session kept in Redis. Refresh and Logout read the token from
          the cookie, falling back to the X-Refresh-Token header for non-cookie
          clients.
+    - name: CommentService
+      description: |-
+        CommentService handles visitor comments on articles. Commenters are
+         anonymous (registration is closed): every new comment starts PENDING and
+         becomes publicly visible only after an admin approves it. Admin operations
+         require the Authorization header; public ones are rate limited per client
+         IP.

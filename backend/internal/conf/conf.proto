@@ -62,6 +62,11 @@ message Auth {
     int64 login_attempts = 1;
     // Fixed window size for the login counter. Defaults to 5m when unset.
     google.protobuf.Duration login_window = 2;
+    // Comment submissions allowed per client IP inside comment_window.
+    // Defaults to 20 when unset.
+    int64 comment_attempts = 3;
+    // Fixed window size for the comment counter. Defaults to 5m when unset.
+    google.protobuf.Duration comment_window = 4;
   }
   // Access token signing settings.
   JWT jwt = 1;

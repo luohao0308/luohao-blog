@@ -572,7 +572,12 @@ type Auth_RateLimit struct {
 	// successful and failed logins. Defaults to 10 when unset.
 	LoginAttempts int64 `protobuf:"varint,1,opt,name=login_attempts,json=loginAttempts,proto3" json:"login_attempts,omitempty"`
 	// Fixed window size for the login counter. Defaults to 5m when unset.
-	LoginWindow   *durationpb.Duration `protobuf:"bytes,2,opt,name=login_window,json=loginWindow,proto3" json:"login_window,omitempty"`
+	LoginWindow *durationpb.Duration `protobuf:"bytes,2,opt,name=login_window,json=loginWindow,proto3" json:"login_window,omitempty"`
+	// Comment submissions allowed per client IP inside comment_window.
+	// Defaults to 20 when unset.
+	CommentAttempts int64 `protobuf:"varint,3,opt,name=comment_attempts,json=commentAttempts,proto3" json:"comment_attempts,omitempty"`
+	// Fixed window size for the comment counter. Defaults to 5m when unset.
+	CommentWindow *durationpb.Duration `protobuf:"bytes,4,opt,name=comment_window,json=commentWindow,proto3" json:"comment_window,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -621,6 +626,20 @@ func (x *Auth_RateLimit) GetLoginWindow() *durationpb.Duration {
 	return nil
 }
 
+func (x *Auth_RateLimit) GetCommentAttempts() int64 {
+	if x != nil {
+		return x.CommentAttempts
+	}
+	return 0
+}
+
+func (x *Auth_RateLimit) GetCommentWindow() *durationpb.Duration {
+	if x != nil {
+		return x.CommentWindow
+	}
+	return nil
+}
+
 var File_conf_conf_proto protoreflect.FileDescriptor
 
 const file_conf_conf_proto_rawDesc = "" +
@@ -654,7 +673,7 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
-	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\"\x86\x03\n" +
+	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\"\xf4\x03\n" +
 	"\x04Auth\x12&\n" +
 	"\x03jwt\x18\x01 \x01(\v2\x14.kratos.api.Auth.JWTR\x03jwt\x12E\n" +
 	"\x11refresh_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0frefreshTokenTtl\x129\n" +
@@ -662,10 +681,12 @@ const file_conf_conf_proto_rawDesc = "" +
 	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x1ab\n" +
 	"\x03JWT\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12C\n" +
-	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1ap\n" +
+	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\xdd\x01\n" +
 	"\tRateLimit\x12%\n" +
 	"\x0elogin_attempts\x18\x01 \x01(\x03R\rloginAttempts\x12<\n" +
-	"\flogin_window\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\vloginWindowB7Z5github.com/go-kratos/kratos-layout/internal/conf;confb\x06proto3"
+	"\flogin_window\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\vloginWindow\x12)\n" +
+	"\x10comment_attempts\x18\x03 \x01(\x03R\x0fcommentAttempts\x12@\n" +
+	"\x0ecomment_window\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\rcommentWindowB7Z5github.com/go-kratos/kratos-layout/internal/conf;confb\x06proto3"
 
 var (
 	file_conf_conf_proto_rawDescOnce sync.Once
@@ -710,11 +731,12 @@ var file_conf_conf_proto_depIdxs = []int32{
 	10, // 13: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
 	10, // 14: kratos.api.Auth.JWT.access_token_ttl:type_name -> google.protobuf.Duration
 	10, // 15: kratos.api.Auth.RateLimit.login_window:type_name -> google.protobuf.Duration
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	10, // 16: kratos.api.Auth.RateLimit.comment_window:type_name -> google.protobuf.Duration
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }

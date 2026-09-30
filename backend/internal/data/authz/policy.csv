@@ -35,3 +35,17 @@ p, admin, /blog.v1.ArticleService/DeleteArticle, *
 g, authenticated, public
 g, admin, authenticated
 g, reader, authenticated
+
+# --- public: visitor comments (pre-moderated) ---
+p, public, /v1/comments, POST
+p, public, /v1/articles/{slug}/comments, GET
+p, public, /blog.v1.CommentService/CreateComment, *
+p, public, /blog.v1.CommentService/ListArticleComments, *
+
+# --- admin: comment moderation ---
+p, admin, /v1/comments, GET
+p, admin, /v1/comments/{id}/approve, POST
+p, admin, /v1/comments/{id}, DELETE
+p, admin, /blog.v1.CommentService/ListComments, *
+p, admin, /blog.v1.CommentService/ApproveComment, *
+p, admin, /blog.v1.CommentService/DeleteComment, *
