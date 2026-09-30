@@ -18,8 +18,7 @@ const bearerPrefix = "Bearer "
 // jwtOutcome carries the token-parse outcome between the middlewares: claims
 // on success, the typed error otherwise, neither when no token was presented.
 type jwtOutcome struct {
-	claims *biz.Claims
-	err    error
+	err error
 }
 
 type jwtOutcomeKey struct{}
