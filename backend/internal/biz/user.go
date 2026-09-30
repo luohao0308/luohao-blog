@@ -148,14 +148,22 @@ func NewUserUsecase(repo UserRepository) *UserUsecase {
 	return &UserUsecase{repo: repo}
 }
 
-// CreateAuthor creates an author account (seed path only). The password is
-// hashed before it reaches the repo.
+// CreateAuthor creates an ADMIN account; the common seed path.
 func (uc *UserUsecase) CreateAuthor(ctx context.Context, email, password, displayName string) (*User, error) {
+	return uc.CreateAccount(ctx, email, password, displayName, UserRoleAdmin)
+}
+
+// CreateAccount creates an account with the given role (seed path only).
+// The password is hashed before it reaches the repo.
+func (uc *UserUsecase) CreateAccount(ctx context.Context, email, password, displayName string, role UserRole) (*User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if !emailPattern.MatchString(email) {
 		return nil, ErrUserInvalidArgument
 	}
 	if len(password) < 8 {
+		return nil, ErrUserInvalidArgument
+	}
+	if role != UserRoleAdmin && role != UserRoleReader {
 		return nil, ErrUserInvalidArgument
 	}
 	hash, err := HashPassword(password)
@@ -166,7 +174,7 @@ func (uc *UserUsecase) CreateAuthor(ctx context.Context, email, password, displa
 		Email:        email,
 		PasswordHash: hash,
 		DisplayName:  strings.TrimSpace(displayName),
-		Role:         UserRoleAdmin,
+		Role:         role,
 	})
 }
 
