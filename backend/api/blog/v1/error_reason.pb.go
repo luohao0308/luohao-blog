@@ -24,25 +24,49 @@ const (
 type ErrorReason int32
 
 const (
-	ErrorReason_ARTICLE_UNSPECIFIED      ErrorReason = 0
-	ErrorReason_ARTICLE_NOT_FOUND        ErrorReason = 1
-	ErrorReason_ARTICLE_INVALID_ARGUMENT ErrorReason = 2
-	ErrorReason_ARTICLE_SLUG_CONFLICT    ErrorReason = 3
+	ErrorReason_ARTICLE_UNSPECIFIED        ErrorReason = 0
+	ErrorReason_ARTICLE_NOT_FOUND          ErrorReason = 1
+	ErrorReason_ARTICLE_INVALID_ARGUMENT   ErrorReason = 2
+	ErrorReason_ARTICLE_SLUG_CONFLICT      ErrorReason = 3
+	ErrorReason_USER_NOT_FOUND             ErrorReason = 4
+	ErrorReason_USER_INVALID_ARGUMENT      ErrorReason = 5
+	ErrorReason_USER_INVALID_CREDENTIALS   ErrorReason = 6
+	ErrorReason_USER_EMAIL_CONFLICT        ErrorReason = 7
+	ErrorReason_AUTH_UNAUTHORIZED          ErrorReason = 8
+	ErrorReason_AUTH_TOKEN_EXPIRED         ErrorReason = 9
+	ErrorReason_AUTH_INVALID_REFRESH_TOKEN ErrorReason = 10
+	ErrorReason_AUTH_TOO_MANY_ATTEMPTS     ErrorReason = 11
 )
 
 // Enum value maps for ErrorReason.
 var (
 	ErrorReason_name = map[int32]string{
-		0: "ARTICLE_UNSPECIFIED",
-		1: "ARTICLE_NOT_FOUND",
-		2: "ARTICLE_INVALID_ARGUMENT",
-		3: "ARTICLE_SLUG_CONFLICT",
+		0:  "ARTICLE_UNSPECIFIED",
+		1:  "ARTICLE_NOT_FOUND",
+		2:  "ARTICLE_INVALID_ARGUMENT",
+		3:  "ARTICLE_SLUG_CONFLICT",
+		4:  "USER_NOT_FOUND",
+		5:  "USER_INVALID_ARGUMENT",
+		6:  "USER_INVALID_CREDENTIALS",
+		7:  "USER_EMAIL_CONFLICT",
+		8:  "AUTH_UNAUTHORIZED",
+		9:  "AUTH_TOKEN_EXPIRED",
+		10: "AUTH_INVALID_REFRESH_TOKEN",
+		11: "AUTH_TOO_MANY_ATTEMPTS",
 	}
 	ErrorReason_value = map[string]int32{
-		"ARTICLE_UNSPECIFIED":      0,
-		"ARTICLE_NOT_FOUND":        1,
-		"ARTICLE_INVALID_ARGUMENT": 2,
-		"ARTICLE_SLUG_CONFLICT":    3,
+		"ARTICLE_UNSPECIFIED":        0,
+		"ARTICLE_NOT_FOUND":          1,
+		"ARTICLE_INVALID_ARGUMENT":   2,
+		"ARTICLE_SLUG_CONFLICT":      3,
+		"USER_NOT_FOUND":             4,
+		"USER_INVALID_ARGUMENT":      5,
+		"USER_INVALID_CREDENTIALS":   6,
+		"USER_EMAIL_CONFLICT":        7,
+		"AUTH_UNAUTHORIZED":          8,
+		"AUTH_TOKEN_EXPIRED":         9,
+		"AUTH_INVALID_REFRESH_TOKEN": 10,
+		"AUTH_TOO_MANY_ATTEMPTS":     11,
 	}
 )
 
@@ -77,12 +101,21 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*v\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xc7\x02\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
 	"\x18ARTICLE_INVALID_ARGUMENT\x10\x02\x12\x19\n" +
-	"\x15ARTICLE_SLUG_CONFLICT\x10\x03BQ\n" +
+	"\x15ARTICLE_SLUG_CONFLICT\x10\x03\x12\x12\n" +
+	"\x0eUSER_NOT_FOUND\x10\x04\x12\x19\n" +
+	"\x15USER_INVALID_ARGUMENT\x10\x05\x12\x1c\n" +
+	"\x18USER_INVALID_CREDENTIALS\x10\x06\x12\x17\n" +
+	"\x13USER_EMAIL_CONFLICT\x10\a\x12\x15\n" +
+	"\x11AUTH_UNAUTHORIZED\x10\b\x12\x16\n" +
+	"\x12AUTH_TOKEN_EXPIRED\x10\t\x12\x1e\n" +
+	"\x1aAUTH_INVALID_REFRESH_TOKEN\x10\n" +
+	"\x12\x1a\n" +
+	"\x16AUTH_TOO_MANY_ATTEMPTS\x10\vBQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

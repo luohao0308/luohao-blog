@@ -3,10 +3,7 @@
 
 openapi: 3.0.3
 info:
-    title: ArticleService API
-    description: |-
-        ArticleService manages blog articles. The public identifier of an article is
-         its slug: it is unique, URL-safe, and immutable after creation.
+    title: ""
     version: 0.0.1
 paths:
     /v1/articles/create:
@@ -166,6 +163,90 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/auth/login:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                Login verifies credentials and returns an access token, a refresh token
+                 cookie, and the account. Returns INVALID_ARGUMENT when fields are empty
+                 and UNAUTHORIZED when the credentials are wrong (indistinguishable
+                 between unknown email and wrong password). Rate limited per client IP;
+                 excess attempts return TOO_MANY_REQUESTS.
+            operationId: AuthService_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/auth/logout:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                Logout revokes the refresh session and clears the refresh cookie. The
+                 operation is idempotent: logout without a valid session still clears the
+                 cookie and succeeds. The just-issued access token remains valid until it
+                 expires (at most access_token_ttl).
+            operationId: AuthService_Logout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.LogoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/auth/me:
+        get:
+            tags:
+                - AuthService
+            description: |-
+                GetMe returns the account identified by the access token in the
+                 Authorization header. Returns UNAUTHORIZED when the token is missing,
+                 malformed, forged, or expired.
+            operationId: AuthService_GetMe
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.User'
+    /v1/auth/refresh:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                Refresh rotates the refresh session and returns a new access token and a
+                 replacement refresh cookie. Each refresh token is single-use: replaying a
+                 rotated one is rejected with UNAUTHORIZED. Returns UNAUTHORIZED when the
+                 cookie (or header) is missing, expired, revoked, or belongs to a deleted
+                 account.
+            operationId: AuthService_Refresh
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RefreshRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.LoginReply'
 components:
     schemas:
         blog.v1.Article:
@@ -235,5 +316,88 @@ components:
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
+        blog.v1.LoginReply:
+            type: object
+            properties:
+                accessToken:
+                    type: string
+                    description: 'Signed access token for the Authorization: Bearer header.'
+                tokenType:
+                    type: string
+                    description: Fixed to "Bearer".
+                expiresIn:
+                    type: string
+                    description: |-
+                        Seconds until access_token expires. Clients should refresh proactively
+                         before this elapses.
+                user:
+                    allOf:
+                        - $ref: '#/components/schemas/blog.v1.User'
+                    description: The authenticated account.
+            description: |-
+                LoginReply is the output of Login and Refresh. The refresh token itself is
+                 delivered as an httpOnly cookie and is deliberately not part of the body.
+        blog.v1.LoginRequest:
+            required:
+                - email
+                - password
+            type: object
+            properties:
+                email:
+                    type: string
+                    description: Login email, matched case-insensitively.
+                password:
+                    type: string
+                    description: Plaintext password. Sent once over TLS; never stored in clear text.
+            description: LoginRequest is the input for AuthService.Login.
+        blog.v1.LogoutRequest:
+            type: object
+            properties: {}
+            description: |-
+                LogoutRequest is the input for AuthService.Logout. Like Refresh, the
+                 refresh token arrives via cookie or header.
+        blog.v1.RefreshRequest:
+            type: object
+            properties: {}
+            description: |-
+                RefreshRequest is the input for AuthService.Refresh. The refresh token is
+                 transported out of band (cookie or X-Refresh-Token header), so the message
+                 body is empty.
+        blog.v1.User:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Application-generated UUID identifier.
+                email:
+                    type: string
+                    description: Lowercased login email.
+                displayName:
+                    type: string
+                    description: Human-readable name shown on the site.
+                role:
+                    type: integer
+                    description: Account role.
+                    format: enum
+                createdAt:
+                    type: string
+                    description: Time at which the account was created. Server-assigned.
+                    format: date-time
+            description: |-
+                User is the public representation of an account. Credentials never appear
+                 in responses.
 tags:
     - name: ArticleService
+      description: |-
+        ArticleService manages blog articles. The public identifier of an article is
+         its slug: it is unique, URL-safe, and immutable after creation.
+    - name: AuthService
+      description: |-
+        AuthService issues and revokes the credentials used to call privileged
+         endpoints. Registration is closed: accounts exist only through the seed
+         command. The access token is a short-lived JWT carried in the
+         Authorization header; the refresh token is an opaque secret delivered as an
+         httpOnly cookie (Path=/v1/auth) and rotated on every refresh, with the
+         server-side session kept in Redis. Refresh and Logout read the token from
+         the cookie, falling back to the X-Refresh-Token header for non-cookie
+         clients.
