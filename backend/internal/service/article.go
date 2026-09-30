@@ -43,7 +43,16 @@ func (s *ArticleService) CreateArticle(ctx context.Context, req *v1.CreateArticl
 
 // GetArticle returns an article by slug.
 func (s *ArticleService) GetArticle(ctx context.Context, req *v1.GetArticleRequest) (*v1.Article, error) {
-	article, err := s.uc.GetArticle(ctx, req.GetSlug())
+	var (
+		article *biz.Article
+		err     error
+	)
+	claims, authenticated := biz.AuthFromContext(ctx)
+	if authenticated && claims.Role == biz.UserRoleAdmin {
+		article, err = s.uc.GetArticle(ctx, req.GetSlug())
+	} else {
+		article, err = s.uc.GetPublicArticle(ctx, req.GetSlug())
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +90,17 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
-	articles, err := s.uc.ListArticles(ctx,
+	listOptions := []biz.ListOption{
 		biz.ListFilter(filter),
 		biz.ListOrderBy(orderBy),
 		biz.ListLimit(int(req.PageSize)),
 		biz.ListOffset(int(pageToken.Offset)),
-	)
+	}
+	claims, authenticated := biz.AuthFromContext(ctx)
+	if !authenticated || claims.Role != biz.UserRoleAdmin {
+		listOptions = append(listOptions, biz.ListPublic())
+	}
+	articles, err := s.uc.ListArticles(ctx, listOptions...)
 	if err != nil {
 		return nil, err
 	}

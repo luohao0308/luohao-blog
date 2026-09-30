@@ -109,9 +109,13 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 	// Offset pagination needs a total order, so id is always appended as the
 	// last sort key; UUIDv7 ids are time-ordered, which keeps unpaged queries
 	// stable.
-	pos, err := r.data.db.Article.Query().
+	query := r.data.db.Article.Query().
 		Where(article.StatusNEQ(biz.ArticleStatusDeleted)).
-		Where(ents.ApplyFilter(options.Filter)).
+		Where(ents.ApplyFilter(options.Filter))
+	if options.Public {
+		query = query.Where(article.StatusEQ(biz.ArticleStatusPublished))
+	}
+	pos, err := query.
 		Order(ents.ApplyOrderBy(options.OrderBy), article.ByID()).
 		Offset(options.Offset).
 		Limit(options.Limit).

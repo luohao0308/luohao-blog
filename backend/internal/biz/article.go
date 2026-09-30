@@ -73,6 +73,7 @@ type ListOptions struct {
 	OrderBy ordering.OrderBy
 	Offset  int
 	Limit   int
+	Public  bool
 }
 
 // ListFilter sets a standard AIP filter.
@@ -100,6 +101,13 @@ func ListOffset(offset int) ListOption {
 func ListLimit(limit int) ListOption {
 	return func(o *ListOptions) {
 		o.Limit = limit
+	}
+}
+
+// ListPublic restricts the query to published articles for anonymous reads.
+func ListPublic() ListOption {
+	return func(o *ListOptions) {
+		o.Public = true
 	}
 }
 
@@ -146,6 +154,20 @@ func (uc *ArticleUsecase) GetArticle(ctx context.Context, slug string) (*Article
 		return nil, ErrArticleInvalidArgument
 	}
 	return uc.repo.FindBySlug(ctx, slug)
+}
+
+// GetPublicArticle returns only published content. Public transport handlers
+// must use this boundary so drafts never reach an anonymous response, even if
+// the repository also serves authenticated management reads.
+func (uc *ArticleUsecase) GetPublicArticle(ctx context.Context, slug string) (*Article, error) {
+	a, err := uc.GetArticle(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+	if a.Status != ArticleStatusPublished {
+		return nil, ErrArticleNotFound
+	}
+	return a, nil
 }
 
 // ListArticles lists articles.
