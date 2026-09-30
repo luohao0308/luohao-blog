@@ -14,6 +14,7 @@ import (
 // exercise validation and status transitions without a storage driver.
 type fakeArticleRepo struct {
 	articles map[string]*Article
+	public   bool
 }
 
 func newFakeArticleRepo() *fakeArticleRepo {
@@ -28,8 +29,20 @@ func (f *fakeArticleRepo) FindBySlug(_ context.Context, slug string) (*Article, 
 	return a, nil
 }
 
-func (f *fakeArticleRepo) ListArticles(context.Context, ...ListOption) ([]*Article, error) {
-	return nil, nil
+func (f *fakeArticleRepo) ListArticles(_ context.Context, opts ...ListOption) ([]*Article, error) {
+	var options ListOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+	f.public = options.Public
+	articles := make([]*Article, 0, len(f.articles))
+	for _, article := range f.articles {
+		if options.Public && article.Status != ArticleStatusPublished {
+			continue
+		}
+		articles = append(articles, article)
+	}
+	return articles, nil
 }
 
 func (f *fakeArticleRepo) CreateArticle(_ context.Context, a *Article) (*Article, error) {
@@ -93,6 +106,30 @@ func TestArticleUsecaseSlugValidation(t *testing.T) {
 	}
 }
 
+func TestArticleUsecasePublicReadsHideDrafts(t *testing.T) {
+	repo := newFakeArticleRepo()
+	uc := NewArticleUsecase(repo)
+	repo.articles["draft"] = &Article{Slug: "draft", Status: ArticleStatusDraft}
+	repo.articles["published"] = &Article{Slug: "published", Status: ArticleStatusPublished}
+
+	if _, err := uc.GetPublicArticle(context.Background(), "draft"); !kratoserrors.IsNotFound(err) {
+		t.Fatalf("GetPublicArticle(draft) error = %v, want not found", err)
+	}
+	if got, err := uc.GetPublicArticle(context.Background(), "published"); err != nil || got.Slug != "published" {
+		t.Fatalf("GetPublicArticle(published) = %+v, %v", got, err)
+	}
+	articles, err := uc.ListArticles(context.Background(), ListPublic())
+	if err != nil {
+		t.Fatalf("ListArticles(public) error = %v", err)
+	}
+	if !repo.public {
+		t.Fatal("ListArticles(public) did not pass the public query boundary")
+	}
+	if len(articles) != 1 || articles[0].Slug != "published" {
+		t.Fatalf("ListArticles(public) = %+v, want only published article", articles)
+	}
+}
+
 func TestArticleUsecasePublishStampsPublishedAt(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeArticleRepo()
@@ -103,11 +140,11 @@ func TestArticleUsecasePublishStampsPublishedAt(t *testing.T) {
 	}
 
 	published, err := uc.UpdateArticle(ctx, &Article{
-		Slug:   "publish-me",
-		Title:  "t",
+		Slug:      "publish-me",
+		Title:     "t",
 		ContentMD: "c",
-		Status: ArticleStatusPublished,
-		Tags:   []string{"go"},
+		Status:    ArticleStatusPublished,
+		Tags:      []string{"go"},
 	})
 	if err != nil {
 		t.Fatalf("UpdateArticle(to published) error = %v", err)

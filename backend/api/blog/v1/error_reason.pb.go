@@ -36,6 +36,7 @@ const (
 	ErrorReason_AUTH_TOKEN_EXPIRED         ErrorReason = 9
 	ErrorReason_AUTH_INVALID_REFRESH_TOKEN ErrorReason = 10
 	ErrorReason_AUTH_TOO_MANY_ATTEMPTS     ErrorReason = 11
+	ErrorReason_AUTH_FORBIDDEN             ErrorReason = 12
 )
 
 // Enum value maps for ErrorReason.
@@ -53,6 +54,7 @@ var (
 		9:  "AUTH_TOKEN_EXPIRED",
 		10: "AUTH_INVALID_REFRESH_TOKEN",
 		11: "AUTH_TOO_MANY_ATTEMPTS",
+		12: "AUTH_FORBIDDEN",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":        0,
@@ -67,6 +69,7 @@ var (
 		"AUTH_TOKEN_EXPIRED":         9,
 		"AUTH_INVALID_REFRESH_TOKEN": 10,
 		"AUTH_TOO_MANY_ATTEMPTS":     11,
+		"AUTH_FORBIDDEN":             12,
 	}
 )
 
@@ -101,7 +104,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xc7\x02\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xdb\x02\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -115,7 +118,8 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x12AUTH_TOKEN_EXPIRED\x10\t\x12\x1e\n" +
 	"\x1aAUTH_INVALID_REFRESH_TOKEN\x10\n" +
 	"\x12\x1a\n" +
-	"\x16AUTH_TOO_MANY_ATTEMPTS\x10\vBQ\n" +
+	"\x16AUTH_TOO_MANY_ATTEMPTS\x10\v\x12\x12\n" +
+	"\x0eAUTH_FORBIDDEN\x10\fBQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

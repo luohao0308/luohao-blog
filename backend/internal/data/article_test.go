@@ -186,6 +186,31 @@ func TestArticleRepoListPagination(t *testing.T) {
 	}
 }
 
+func TestArticleRepoPublicListFiltersDrafts(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestArticleRepo(t)
+	for _, slug := range []string{"draft-post", "published-post"} {
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"})
+		if err != nil {
+			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
+		}
+		if slug == "published-post" {
+			created.Status = biz.ArticleStatusPublished
+			if _, err := repo.UpdateArticle(ctx, created); err != nil {
+				t.Fatalf("UpdateArticle(publish) error = %v", err)
+			}
+		}
+	}
+
+	articles, err := repo.ListArticles(ctx, biz.ListPublic(), biz.ListLimit(10))
+	if err != nil {
+		t.Fatalf("ListArticles(public) error = %v", err)
+	}
+	if len(articles) != 1 || articles[0].Slug != "published-post" {
+		t.Fatalf("ListArticles(public) = %+v, want only published-post", articles)
+	}
+}
+
 // Offset pagination is only correct under a total order. With no order_by the
 // repo falls back to id, which is UUIDv7 and therefore time-ordered, so paging
 // covers every row exactly once.
