@@ -213,22 +213,6 @@ func (_c *ArticleCreate) defaults() {
 		v := article.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
-	if _, ok := _c.mutation.Title(); !ok {
-		v := article.DefaultTitle
-		_c.mutation.SetTitle(v)
-	}
-	if _, ok := _c.mutation.Summary(); !ok {
-		v := article.DefaultSummary
-		_c.mutation.SetSummary(v)
-	}
-	if _, ok := _c.mutation.ContentMd(); !ok {
-		v := article.DefaultContentMd
-		_c.mutation.SetContentMd(v)
-	}
-	if _, ok := _c.mutation.ContentHTML(); !ok {
-		v := article.DefaultContentHTML
-		_c.mutation.SetContentHTML(v)
-	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := article.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -254,18 +238,6 @@ func (_c *ArticleCreate) check() error {
 		if err := article.SlugValidator(v); err != nil {
 			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "Article.slug": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.Title(); !ok {
-		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Article.title"`)}
-	}
-	if _, ok := _c.mutation.Summary(); !ok {
-		return &ValidationError{Name: "summary", err: errors.New(`ent: missing required field "Article.summary"`)}
-	}
-	if _, ok := _c.mutation.ContentMd(); !ok {
-		return &ValidationError{Name: "content_md", err: errors.New(`ent: missing required field "Article.content_md"`)}
-	}
-	if _, ok := _c.mutation.ContentHTML(); !ok {
-		return &ValidationError{Name: "content_html", err: errors.New(`ent: missing required field "Article.content_html"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Article.status"`)}
@@ -343,10 +315,10 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 	}
 	if nodes := _c.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),

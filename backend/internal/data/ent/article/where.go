@@ -303,6 +303,16 @@ func TitleHasSuffix(v string) predicate.Article {
 	return predicate.Article(sql.FieldHasSuffix(FieldTitle, v))
 }
 
+// TitleIsNil applies the IsNil predicate on the "title" field.
+func TitleIsNil() predicate.Article {
+	return predicate.Article(sql.FieldIsNull(FieldTitle))
+}
+
+// TitleNotNil applies the NotNil predicate on the "title" field.
+func TitleNotNil() predicate.Article {
+	return predicate.Article(sql.FieldNotNull(FieldTitle))
+}
+
 // TitleEqualFold applies the EqualFold predicate on the "title" field.
 func TitleEqualFold(v string) predicate.Article {
 	return predicate.Article(sql.FieldEqualFold(FieldTitle, v))
@@ -366,6 +376,16 @@ func SummaryHasPrefix(v string) predicate.Article {
 // SummaryHasSuffix applies the HasSuffix predicate on the "summary" field.
 func SummaryHasSuffix(v string) predicate.Article {
 	return predicate.Article(sql.FieldHasSuffix(FieldSummary, v))
+}
+
+// SummaryIsNil applies the IsNil predicate on the "summary" field.
+func SummaryIsNil() predicate.Article {
+	return predicate.Article(sql.FieldIsNull(FieldSummary))
+}
+
+// SummaryNotNil applies the NotNil predicate on the "summary" field.
+func SummaryNotNil() predicate.Article {
+	return predicate.Article(sql.FieldNotNull(FieldSummary))
 }
 
 // SummaryEqualFold applies the EqualFold predicate on the "summary" field.
@@ -433,6 +453,16 @@ func ContentMdHasSuffix(v string) predicate.Article {
 	return predicate.Article(sql.FieldHasSuffix(FieldContentMd, v))
 }
 
+// ContentMdIsNil applies the IsNil predicate on the "content_md" field.
+func ContentMdIsNil() predicate.Article {
+	return predicate.Article(sql.FieldIsNull(FieldContentMd))
+}
+
+// ContentMdNotNil applies the NotNil predicate on the "content_md" field.
+func ContentMdNotNil() predicate.Article {
+	return predicate.Article(sql.FieldNotNull(FieldContentMd))
+}
+
 // ContentMdEqualFold applies the EqualFold predicate on the "content_md" field.
 func ContentMdEqualFold(v string) predicate.Article {
 	return predicate.Article(sql.FieldEqualFold(FieldContentMd, v))
@@ -496,6 +526,16 @@ func ContentHTMLHasPrefix(v string) predicate.Article {
 // ContentHTMLHasSuffix applies the HasSuffix predicate on the "content_html" field.
 func ContentHTMLHasSuffix(v string) predicate.Article {
 	return predicate.Article(sql.FieldHasSuffix(FieldContentHTML, v))
+}
+
+// ContentHTMLIsNil applies the IsNil predicate on the "content_html" field.
+func ContentHTMLIsNil() predicate.Article {
+	return predicate.Article(sql.FieldIsNull(FieldContentHTML))
+}
+
+// ContentHTMLNotNil applies the NotNil predicate on the "content_html" field.
+func ContentHTMLNotNil() predicate.Article {
+	return predicate.Article(sql.FieldNotNull(FieldContentHTML))
 }
 
 // ContentHTMLEqualFold applies the EqualFold predicate on the "content_html" field.
@@ -617,7 +657,7 @@ func HasTags() predicate.Article {
 	return predicate.Article(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, TagsTable, TagsColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, TagsTable, TagsPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

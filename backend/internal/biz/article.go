@@ -6,6 +6,7 @@ import (
 	"time"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz/article/render"
 
 	"github.com/go-kratos/kratos/v3/errors"
 	"github.com/google/uuid"
@@ -123,11 +124,17 @@ func NewArticleUsecase(repo ArticleRepo) *ArticleUsecase {
 }
 
 // CreateArticle creates an article. New articles always start as DRAFT:
-// the caller-requested status and published_at are ignored.
+// the caller-requested status and published_at are ignored. content_html is
+// rendered from content_md here so readers never parse Markdown.
 func (uc *ArticleUsecase) CreateArticle(ctx context.Context, a *Article) (*Article, error) {
 	if err := validateArticle(a); err != nil {
 		return nil, err
 	}
+	html, err := render.HTML(a.ContentMD)
+	if err != nil {
+		return nil, ErrArticleInvalidArgument
+	}
+	a.ContentHTML = html
 	a.Status = ArticleStatusDraft
 	a.PublishedAt = nil
 	return uc.repo.CreateArticle(ctx, a)
@@ -175,6 +182,12 @@ func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Artic
 		// A non-published state never carries a publication timestamp.
 		a.PublishedAt = nil
 	}
+	// content_html is a write-time cache: re-render on every content change.
+	html, err := render.HTML(a.ContentMD)
+	if err != nil {
+		return nil, ErrArticleInvalidArgument
+	}
+	a.ContentHTML = html
 	return uc.repo.UpdateArticle(ctx, a)
 }
 

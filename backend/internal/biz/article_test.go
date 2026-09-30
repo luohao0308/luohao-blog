@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,7 +63,7 @@ func TestArticleUsecaseCreateForcesDraft(t *testing.T) {
 	created, err := uc.CreateArticle(context.Background(), &Article{
 		Slug:      "create-force-draft",
 		Title:     "t",
-		ContentMD: "c",
+		ContentMD: "# 渲染测试",
 		Status:    ArticleStatusPublished, // must be ignored
 	})
 	if err != nil {
@@ -73,6 +74,9 @@ func TestArticleUsecaseCreateForcesDraft(t *testing.T) {
 	}
 	if created.PublishedAt != nil {
 		t.Fatal("published_at set on create, want nil")
+	}
+	if !strings.Contains(created.ContentHTML, "<h1") || !strings.Contains(created.ContentHTML, "渲染测试") {
+		t.Fatalf("content_html = %q, want rendered heading", created.ContentHTML)
 	}
 }
 

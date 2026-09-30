@@ -38,13 +38,11 @@ const (
 	EdgeTags = "tags"
 	// Table holds the table name of the article in the database.
 	Table = "articles"
-	// TagsTable is the table that holds the tags relation/edge.
-	TagsTable = "tags"
+	// TagsTable is the table that holds the tags relation/edge. The primary key declared below.
+	TagsTable = "article_tags"
 	// TagsInverseTable is the table name for the Tag entity.
 	// It exists in this package in order to avoid circular dependency with the "tag" package.
 	TagsInverseTable = "tags"
-	// TagsColumn is the table column denoting the tags relation/edge.
-	TagsColumn = "article_tags"
 )
 
 // Columns holds all SQL columns for article fields.
@@ -60,6 +58,12 @@ var Columns = []string{
 	FieldStatus,
 	FieldPublishedAt,
 }
+
+var (
+	// TagsPrimaryKey and TagsColumn2 are the table columns denoting the
+	// primary key for the tags relation (M2M).
+	TagsPrimaryKey = []string{"article_id", "tag_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -80,14 +84,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// SlugValidator is a validator for the "slug" field. It is called by the builders before save.
 	SlugValidator func(string) error
-	// DefaultTitle holds the default value on creation for the "title" field.
-	DefaultTitle string
-	// DefaultSummary holds the default value on creation for the "summary" field.
-	DefaultSummary string
-	// DefaultContentMd holds the default value on creation for the "content_md" field.
-	DefaultContentMd string
-	// DefaultContentHTML holds the default value on creation for the "content_html" field.
-	DefaultContentHTML string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus biz.ArticleStatus
 	// DefaultID holds the default value on creation for the "id" field.
@@ -164,6 +160,6 @@ func newTagsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TagsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, TagsTable, TagsColumn),
+		sqlgraph.Edge(sqlgraph.M2M, false, TagsTable, TagsPrimaryKey...),
 	)
 }

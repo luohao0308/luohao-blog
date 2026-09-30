@@ -14,10 +14,10 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "slug", Type: field.TypeString, Unique: true},
-		{Name: "title", Type: field.TypeString, Default: ""},
-		{Name: "summary", Type: field.TypeString, Default: ""},
-		{Name: "content_md", Type: field.TypeString, Default: ""},
-		{Name: "content_html", Type: field.TypeString, Default: ""},
+		{Name: "title", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "summary", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "content_md", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "content_html", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "status", Type: field.TypeInt32, Default: 1},
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 	}
@@ -50,21 +50,12 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString, Unique: true},
-		{Name: "article_tags", Type: field.TypeUUID, Nullable: true},
 	}
 	// TagsTable holds the schema information for the "tags" table.
 	TagsTable = &schema.Table{
 		Name:       "tags",
 		Columns:    TagsColumns,
 		PrimaryKey: []*schema.Column{TagsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "tags_articles_tags",
-				Columns:    []*schema.Column{TagsColumns[4]},
-				RefColumns: []*schema.Column{ArticlesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "tag_updated_at",
@@ -73,13 +64,40 @@ var (
 			},
 		},
 	}
+	// ArticleTagsColumns holds the columns for the "article_tags" table.
+	ArticleTagsColumns = []*schema.Column{
+		{Name: "article_id", Type: field.TypeUUID},
+		{Name: "tag_id", Type: field.TypeUUID},
+	}
+	// ArticleTagsTable holds the schema information for the "article_tags" table.
+	ArticleTagsTable = &schema.Table{
+		Name:       "article_tags",
+		Columns:    ArticleTagsColumns,
+		PrimaryKey: []*schema.Column{ArticleTagsColumns[0], ArticleTagsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "article_tags_article_id",
+				Columns:    []*schema.Column{ArticleTagsColumns[0]},
+				RefColumns: []*schema.Column{ArticlesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "article_tags_tag_id",
+				Columns:    []*schema.Column{ArticleTagsColumns[1]},
+				RefColumns: []*schema.Column{TagsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ArticlesTable,
 		TagsTable,
+		ArticleTagsTable,
 	}
 )
 
 func init() {
-	TagsTable.ForeignKeys[0].RefTable = ArticlesTable
+	ArticleTagsTable.ForeignKeys[0].RefTable = ArticlesTable
+	ArticleTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
@@ -48,9 +50,45 @@ func (_u *TagUpdate) SetNillableName(v *string) *TagUpdate {
 	return _u
 }
 
+// AddArticleIDs adds the "articles" edge to the Article entity by IDs.
+func (_u *TagUpdate) AddArticleIDs(ids ...uuid.UUID) *TagUpdate {
+	_u.mutation.AddArticleIDs(ids...)
+	return _u
+}
+
+// AddArticles adds the "articles" edges to the Article entity.
+func (_u *TagUpdate) AddArticles(v ...*Article) *TagUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddArticleIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (_u *TagUpdate) Mutation() *TagMutation {
 	return _u.mutation
+}
+
+// ClearArticles clears all "articles" edges to the Article entity.
+func (_u *TagUpdate) ClearArticles() *TagUpdate {
+	_u.mutation.ClearArticles()
+	return _u
+}
+
+// RemoveArticleIDs removes the "articles" edge to Article entities by IDs.
+func (_u *TagUpdate) RemoveArticleIDs(ids ...uuid.UUID) *TagUpdate {
+	_u.mutation.RemoveArticleIDs(ids...)
+	return _u
+}
+
+// RemoveArticles removes "articles" edges to Article entities.
+func (_u *TagUpdate) RemoveArticles(v ...*Article) *TagUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveArticleIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -117,6 +155,51 @@ func (_u *TagUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
 	}
+	if _u.mutation.ArticlesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedArticlesIDs(); len(nodes) > 0 && !_u.mutation.ArticlesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ArticlesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{tag.Label}
@@ -157,9 +240,45 @@ func (_u *TagUpdateOne) SetNillableName(v *string) *TagUpdateOne {
 	return _u
 }
 
+// AddArticleIDs adds the "articles" edge to the Article entity by IDs.
+func (_u *TagUpdateOne) AddArticleIDs(ids ...uuid.UUID) *TagUpdateOne {
+	_u.mutation.AddArticleIDs(ids...)
+	return _u
+}
+
+// AddArticles adds the "articles" edges to the Article entity.
+func (_u *TagUpdateOne) AddArticles(v ...*Article) *TagUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddArticleIDs(ids...)
+}
+
 // Mutation returns the TagMutation object of the builder.
 func (_u *TagUpdateOne) Mutation() *TagMutation {
 	return _u.mutation
+}
+
+// ClearArticles clears all "articles" edges to the Article entity.
+func (_u *TagUpdateOne) ClearArticles() *TagUpdateOne {
+	_u.mutation.ClearArticles()
+	return _u
+}
+
+// RemoveArticleIDs removes the "articles" edge to Article entities by IDs.
+func (_u *TagUpdateOne) RemoveArticleIDs(ids ...uuid.UUID) *TagUpdateOne {
+	_u.mutation.RemoveArticleIDs(ids...)
+	return _u
+}
+
+// RemoveArticles removes "articles" edges to Article entities.
+func (_u *TagUpdateOne) RemoveArticles(v ...*Article) *TagUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveArticleIDs(ids...)
 }
 
 // Where appends a list predicates to the TagUpdate builder.
@@ -255,6 +374,51 @@ func (_u *TagUpdateOne) sqlSave(ctx context.Context) (_node *Tag, err error) {
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.ArticlesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedArticlesIDs(); len(nodes) > 0 && !_u.mutation.ArticlesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ArticlesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Tag{config: _u.config}
 	_spec.Assign = _node.assignValues
