@@ -37,22 +37,6 @@ func init() {
 	articleDescSlug := articleFields[0].Descriptor()
 	// article.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
 	article.SlugValidator = articleDescSlug.Validators[0].(func(string) error)
-	// articleDescTitle is the schema descriptor for title field.
-	articleDescTitle := articleFields[1].Descriptor()
-	// article.DefaultTitle holds the default value on creation for the title field.
-	article.DefaultTitle = articleDescTitle.Default.(string)
-	// articleDescSummary is the schema descriptor for summary field.
-	articleDescSummary := articleFields[2].Descriptor()
-	// article.DefaultSummary holds the default value on creation for the summary field.
-	article.DefaultSummary = articleDescSummary.Default.(string)
-	// articleDescContentMd is the schema descriptor for content_md field.
-	articleDescContentMd := articleFields[3].Descriptor()
-	// article.DefaultContentMd holds the default value on creation for the content_md field.
-	article.DefaultContentMd = articleDescContentMd.Default.(string)
-	// articleDescContentHTML is the schema descriptor for content_html field.
-	articleDescContentHTML := articleFields[4].Descriptor()
-	// article.DefaultContentHTML holds the default value on creation for the content_html field.
-	article.DefaultContentHTML = articleDescContentHTML.Default.(string)
 	// articleDescStatus is the schema descriptor for status field.
 	articleDescStatus := articleFields[5].Descriptor()
 	// article.DefaultStatus holds the default value on creation for the status field.

@@ -137,6 +137,7 @@ func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		SetTitle(a.Title).
 		SetSummary(a.Summary).
 		SetContentMd(a.ContentMD).
+		SetContentHTML(a.ContentHTML).
 		SetStatus(biz.ArticleStatusDraft)
 	if len(tags) > 0 {
 		creator = creator.AddTags(tags...)
@@ -171,6 +172,7 @@ func (r *articleRepo) UpdateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		SetTitle(a.Title).
 		SetSummary(a.Summary).
 		SetContentMd(a.ContentMD).
+		SetContentHTML(a.ContentHTML).
 		SetStatus(a.Status).
 		ClearTags()
 	if a.PublishedAt != nil {

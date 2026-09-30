@@ -28,13 +28,18 @@ func (Article) Fields() []ent.Field {
 		// slug is the public identifier: unique, URL-safe ([a-z0-9-]),
 		// and immutable after creation. Validation of the format happens at
 		// the biz layer; the schema only guarantees non-empty uniqueness.
+		// It stays a bounded String: max 64 bytes, well within the default
+		// VARCHAR(191) that unique indexes require on MySQL utf8mb4.
 		field.String("slug").NotEmpty().Unique(),
-		field.String("title").Default(""),
-		field.String("summary").Default(""),
+		// Long-form fields are Text (nullable, zero-value "" on read): the
+		// rendered HTML in particular has no meaningful upper bound, and
+		// MySQL TEXT-typed columns cannot carry defaults.
+		field.Text("title").Optional(),
+		field.Text("summary").Optional(),
 		// content_md is the Markdown source; content_html is the rendered
 		// cache produced on write. Readers must never parse content_md.
-		field.String("content_md").Default(""),
-		field.String("content_html").Default(""),
+		field.Text("content_md").Optional(),
+		field.Text("content_html").Optional(),
 		// status marks the row lifecycle: deletes flip it to deleted instead
 		// of removing the row, so every read filters on non-deleted. Stored
 		// as an integer bound to the domain type, whose values match the api

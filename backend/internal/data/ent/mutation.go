@@ -299,9 +299,22 @@ func (m *ArticleMutation) OldTitle(ctx context.Context) (v string, err error) {
 	return oldValue.Title, nil
 }
 
+// ClearTitle clears the value of the "title" field.
+func (m *ArticleMutation) ClearTitle() {
+	m.title = nil
+	m.clearedFields[article.FieldTitle] = struct{}{}
+}
+
+// TitleCleared returns if the "title" field was cleared in this mutation.
+func (m *ArticleMutation) TitleCleared() bool {
+	_, ok := m.clearedFields[article.FieldTitle]
+	return ok
+}
+
 // ResetTitle resets all changes to the "title" field.
 func (m *ArticleMutation) ResetTitle() {
 	m.title = nil
+	delete(m.clearedFields, article.FieldTitle)
 }
 
 // SetSummary sets the "summary" field.
@@ -335,9 +348,22 @@ func (m *ArticleMutation) OldSummary(ctx context.Context) (v string, err error) 
 	return oldValue.Summary, nil
 }
 
+// ClearSummary clears the value of the "summary" field.
+func (m *ArticleMutation) ClearSummary() {
+	m.summary = nil
+	m.clearedFields[article.FieldSummary] = struct{}{}
+}
+
+// SummaryCleared returns if the "summary" field was cleared in this mutation.
+func (m *ArticleMutation) SummaryCleared() bool {
+	_, ok := m.clearedFields[article.FieldSummary]
+	return ok
+}
+
 // ResetSummary resets all changes to the "summary" field.
 func (m *ArticleMutation) ResetSummary() {
 	m.summary = nil
+	delete(m.clearedFields, article.FieldSummary)
 }
 
 // SetContentMd sets the "content_md" field.
@@ -371,9 +397,22 @@ func (m *ArticleMutation) OldContentMd(ctx context.Context) (v string, err error
 	return oldValue.ContentMd, nil
 }
 
+// ClearContentMd clears the value of the "content_md" field.
+func (m *ArticleMutation) ClearContentMd() {
+	m.content_md = nil
+	m.clearedFields[article.FieldContentMd] = struct{}{}
+}
+
+// ContentMdCleared returns if the "content_md" field was cleared in this mutation.
+func (m *ArticleMutation) ContentMdCleared() bool {
+	_, ok := m.clearedFields[article.FieldContentMd]
+	return ok
+}
+
 // ResetContentMd resets all changes to the "content_md" field.
 func (m *ArticleMutation) ResetContentMd() {
 	m.content_md = nil
+	delete(m.clearedFields, article.FieldContentMd)
 }
 
 // SetContentHTML sets the "content_html" field.
@@ -407,9 +446,22 @@ func (m *ArticleMutation) OldContentHTML(ctx context.Context) (v string, err err
 	return oldValue.ContentHTML, nil
 }
 
+// ClearContentHTML clears the value of the "content_html" field.
+func (m *ArticleMutation) ClearContentHTML() {
+	m.content_html = nil
+	m.clearedFields[article.FieldContentHTML] = struct{}{}
+}
+
+// ContentHTMLCleared returns if the "content_html" field was cleared in this mutation.
+func (m *ArticleMutation) ContentHTMLCleared() bool {
+	_, ok := m.clearedFields[article.FieldContentHTML]
+	return ok
+}
+
 // ResetContentHTML resets all changes to the "content_html" field.
 func (m *ArticleMutation) ResetContentHTML() {
 	m.content_html = nil
+	delete(m.clearedFields, article.FieldContentHTML)
 }
 
 // SetStatus sets the "status" field.
@@ -803,6 +855,18 @@ func (m *ArticleMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ArticleMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(article.FieldTitle) {
+		fields = append(fields, article.FieldTitle)
+	}
+	if m.FieldCleared(article.FieldSummary) {
+		fields = append(fields, article.FieldSummary)
+	}
+	if m.FieldCleared(article.FieldContentMd) {
+		fields = append(fields, article.FieldContentMd)
+	}
+	if m.FieldCleared(article.FieldContentHTML) {
+		fields = append(fields, article.FieldContentHTML)
+	}
 	if m.FieldCleared(article.FieldPublishedAt) {
 		fields = append(fields, article.FieldPublishedAt)
 	}
@@ -820,6 +884,18 @@ func (m *ArticleMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ArticleMutation) ClearField(name string) error {
 	switch name {
+	case article.FieldTitle:
+		m.ClearTitle()
+		return nil
+	case article.FieldSummary:
+		m.ClearSummary()
+		return nil
+	case article.FieldContentMd:
+		m.ClearContentMd()
+		return nil
+	case article.FieldContentHTML:
+		m.ClearContentHTML()
+		return nil
 	case article.FieldPublishedAt:
 		m.ClearPublishedAt()
 		return nil
@@ -949,16 +1025,19 @@ func (m *ArticleMutation) ResetEdge(name string) error {
 // TagMutation represents an operation that mutates the Tag nodes in the graph.
 type TagMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	created_at    *time.Time
-	updated_at    *time.Time
-	name          *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Tag, error)
-	predicates    []predicate.Tag
+	op              Op
+	typ             string
+	id              *uuid.UUID
+	created_at      *time.Time
+	updated_at      *time.Time
+	name            *string
+	clearedFields   map[string]struct{}
+	articles        map[uuid.UUID]struct{}
+	removedarticles map[uuid.UUID]struct{}
+	clearedarticles bool
+	done            bool
+	oldValue        func(context.Context) (*Tag, error)
+	predicates      []predicate.Tag
 }
 
 var _ ent.Mutation = (*TagMutation)(nil)
@@ -1173,6 +1252,60 @@ func (m *TagMutation) ResetName() {
 	m.name = nil
 }
 
+// AddArticleIDs adds the "articles" edge to the Article entity by ids.
+func (m *TagMutation) AddArticleIDs(ids ...uuid.UUID) {
+	if m.articles == nil {
+		m.articles = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.articles[ids[i]] = struct{}{}
+	}
+}
+
+// ClearArticles clears the "articles" edge to the Article entity.
+func (m *TagMutation) ClearArticles() {
+	m.clearedarticles = true
+}
+
+// ArticlesCleared reports if the "articles" edge to the Article entity was cleared.
+func (m *TagMutation) ArticlesCleared() bool {
+	return m.clearedarticles
+}
+
+// RemoveArticleIDs removes the "articles" edge to the Article entity by IDs.
+func (m *TagMutation) RemoveArticleIDs(ids ...uuid.UUID) {
+	if m.removedarticles == nil {
+		m.removedarticles = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.articles, ids[i])
+		m.removedarticles[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedArticles returns the removed IDs of the "articles" edge to the Article entity.
+func (m *TagMutation) RemovedArticlesIDs() (ids []uuid.UUID) {
+	for id := range m.removedarticles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ArticlesIDs returns the "articles" edge IDs in the mutation.
+func (m *TagMutation) ArticlesIDs() (ids []uuid.UUID) {
+	for id := range m.articles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetArticles resets all changes to the "articles" edge.
+func (m *TagMutation) ResetArticles() {
+	m.articles = nil
+	m.clearedarticles = false
+	m.removedarticles = nil
+}
+
 // Where appends a list predicates to the TagMutation builder.
 func (m *TagMutation) Where(ps ...predicate.Tag) {
 	m.predicates = append(m.predicates, ps...)
@@ -1340,48 +1473,84 @@ func (m *TagMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TagMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.articles != nil {
+		edges = append(edges, tag.EdgeArticles)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *TagMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case tag.EdgeArticles:
+		ids := make([]ent.Value, 0, len(m.articles))
+		for id := range m.articles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TagMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedarticles != nil {
+		edges = append(edges, tag.EdgeArticles)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *TagMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case tag.EdgeArticles:
+		ids := make([]ent.Value, 0, len(m.removedarticles))
+		for id := range m.removedarticles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TagMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedarticles {
+		edges = append(edges, tag.EdgeArticles)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *TagMutation) EdgeCleared(name string) bool {
+	switch name {
+	case tag.EdgeArticles:
+		return m.clearedarticles
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *TagMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Tag unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *TagMutation) ResetEdge(name string) error {
+	switch name {
+	case tag.EdgeArticles:
+		m.ResetArticles()
+		return nil
+	}
 	return fmt.Errorf("unknown Tag edge %s", name)
 }

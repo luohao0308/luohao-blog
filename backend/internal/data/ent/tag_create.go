@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
@@ -67,6 +68,21 @@ func (_c *TagCreate) SetNillableID(v *uuid.UUID) *TagCreate {
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddArticleIDs adds the "articles" edge to the Article entity by IDs.
+func (_c *TagCreate) AddArticleIDs(ids ...uuid.UUID) *TagCreate {
+	_c.mutation.AddArticleIDs(ids...)
+	return _c
+}
+
+// AddArticles adds the "articles" edges to the Article entity.
+func (_c *TagCreate) AddArticles(v ...*Article) *TagCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddArticleIDs(ids...)
 }
 
 // Mutation returns the TagMutation object of the builder.
@@ -180,6 +196,22 @@ func (_c *TagCreate) createSpec() (*Tag, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(tag.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if nodes := _c.mutation.ArticlesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tag.ArticlesTable,
+			Columns: tag.ArticlesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(article.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

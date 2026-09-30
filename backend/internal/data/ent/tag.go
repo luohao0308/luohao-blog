@@ -23,9 +23,29 @@ type Tag struct {
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Name holds the value of the "name" field.
-	Name         string `json:"name,omitempty"`
-	article_tags *uuid.UUID
+	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TagQuery when eager-loading is set.
+	Edges        TagEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// TagEdges holds the relations/edges for other nodes in the graph.
+type TagEdges struct {
+	// Articles holds the value of the articles edge.
+	Articles []*Article `json:"articles,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ArticlesOrErr returns the Articles value or an error if the edge
+// was not loaded in eager-loading.
+func (e TagEdges) ArticlesOrErr() ([]*Article, error) {
+	if e.loadedTypes[0] {
+		return e.Articles, nil
+	}
+	return nil, &NotLoadedError{edge: "articles"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -39,8 +59,6 @@ func (*Tag) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case tag.FieldID:
 			values[i] = new(uuid.UUID)
-		case tag.ForeignKeys[0]: // article_tags
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -80,13 +98,6 @@ func (_m *Tag) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case tag.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field article_tags", values[i])
-			} else if value.Valid {
-				_m.article_tags = new(uuid.UUID)
-				*_m.article_tags = *value.S.(*uuid.UUID)
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -98,6 +109,11 @@ func (_m *Tag) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Tag) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryArticles queries the "articles" edge of the Tag entity.
+func (_m *Tag) QueryArticles() *ArticleQuery {
+	return NewTagClient(_m.config).QueryArticles(_m)
 }
 
 // Update returns a builder for updating this Tag.

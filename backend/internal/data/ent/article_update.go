@@ -65,6 +65,12 @@ func (_u *ArticleUpdate) SetNillableTitle(v *string) *ArticleUpdate {
 	return _u
 }
 
+// ClearTitle clears the value of the "title" field.
+func (_u *ArticleUpdate) ClearTitle() *ArticleUpdate {
+	_u.mutation.ClearTitle()
+	return _u
+}
+
 // SetSummary sets the "summary" field.
 func (_u *ArticleUpdate) SetSummary(v string) *ArticleUpdate {
 	_u.mutation.SetSummary(v)
@@ -76,6 +82,12 @@ func (_u *ArticleUpdate) SetNillableSummary(v *string) *ArticleUpdate {
 	if v != nil {
 		_u.SetSummary(*v)
 	}
+	return _u
+}
+
+// ClearSummary clears the value of the "summary" field.
+func (_u *ArticleUpdate) ClearSummary() *ArticleUpdate {
+	_u.mutation.ClearSummary()
 	return _u
 }
 
@@ -93,6 +105,12 @@ func (_u *ArticleUpdate) SetNillableContentMd(v *string) *ArticleUpdate {
 	return _u
 }
 
+// ClearContentMd clears the value of the "content_md" field.
+func (_u *ArticleUpdate) ClearContentMd() *ArticleUpdate {
+	_u.mutation.ClearContentMd()
+	return _u
+}
+
 // SetContentHTML sets the "content_html" field.
 func (_u *ArticleUpdate) SetContentHTML(v string) *ArticleUpdate {
 	_u.mutation.SetContentHTML(v)
@@ -104,6 +122,12 @@ func (_u *ArticleUpdate) SetNillableContentHTML(v *string) *ArticleUpdate {
 	if v != nil {
 		_u.SetContentHTML(*v)
 	}
+	return _u
+}
+
+// ClearContentHTML clears the value of the "content_html" field.
+func (_u *ArticleUpdate) ClearContentHTML() *ArticleUpdate {
+	_u.mutation.ClearContentHTML()
 	return _u
 }
 
@@ -256,14 +280,26 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Title(); ok {
 		_spec.SetField(article.FieldTitle, field.TypeString, value)
 	}
+	if _u.mutation.TitleCleared() {
+		_spec.ClearField(article.FieldTitle, field.TypeString)
+	}
 	if value, ok := _u.mutation.Summary(); ok {
 		_spec.SetField(article.FieldSummary, field.TypeString, value)
+	}
+	if _u.mutation.SummaryCleared() {
+		_spec.ClearField(article.FieldSummary, field.TypeString)
 	}
 	if value, ok := _u.mutation.ContentMd(); ok {
 		_spec.SetField(article.FieldContentMd, field.TypeString, value)
 	}
+	if _u.mutation.ContentMdCleared() {
+		_spec.ClearField(article.FieldContentMd, field.TypeString)
+	}
 	if value, ok := _u.mutation.ContentHTML(); ok {
 		_spec.SetField(article.FieldContentHTML, field.TypeString, value)
+	}
+	if _u.mutation.ContentHTMLCleared() {
+		_spec.ClearField(article.FieldContentHTML, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(article.FieldStatus, field.TypeInt32, value)
@@ -279,10 +315,10 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
@@ -292,10 +328,10 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if nodes := _u.mutation.RemovedTagsIDs(); len(nodes) > 0 && !_u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
@@ -308,10 +344,10 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if nodes := _u.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
@@ -376,6 +412,12 @@ func (_u *ArticleUpdateOne) SetNillableTitle(v *string) *ArticleUpdateOne {
 	return _u
 }
 
+// ClearTitle clears the value of the "title" field.
+func (_u *ArticleUpdateOne) ClearTitle() *ArticleUpdateOne {
+	_u.mutation.ClearTitle()
+	return _u
+}
+
 // SetSummary sets the "summary" field.
 func (_u *ArticleUpdateOne) SetSummary(v string) *ArticleUpdateOne {
 	_u.mutation.SetSummary(v)
@@ -387,6 +429,12 @@ func (_u *ArticleUpdateOne) SetNillableSummary(v *string) *ArticleUpdateOne {
 	if v != nil {
 		_u.SetSummary(*v)
 	}
+	return _u
+}
+
+// ClearSummary clears the value of the "summary" field.
+func (_u *ArticleUpdateOne) ClearSummary() *ArticleUpdateOne {
+	_u.mutation.ClearSummary()
 	return _u
 }
 
@@ -404,6 +452,12 @@ func (_u *ArticleUpdateOne) SetNillableContentMd(v *string) *ArticleUpdateOne {
 	return _u
 }
 
+// ClearContentMd clears the value of the "content_md" field.
+func (_u *ArticleUpdateOne) ClearContentMd() *ArticleUpdateOne {
+	_u.mutation.ClearContentMd()
+	return _u
+}
+
 // SetContentHTML sets the "content_html" field.
 func (_u *ArticleUpdateOne) SetContentHTML(v string) *ArticleUpdateOne {
 	_u.mutation.SetContentHTML(v)
@@ -415,6 +469,12 @@ func (_u *ArticleUpdateOne) SetNillableContentHTML(v *string) *ArticleUpdateOne 
 	if v != nil {
 		_u.SetContentHTML(*v)
 	}
+	return _u
+}
+
+// ClearContentHTML clears the value of the "content_html" field.
+func (_u *ArticleUpdateOne) ClearContentHTML() *ArticleUpdateOne {
+	_u.mutation.ClearContentHTML()
 	return _u
 }
 
@@ -597,14 +657,26 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	if value, ok := _u.mutation.Title(); ok {
 		_spec.SetField(article.FieldTitle, field.TypeString, value)
 	}
+	if _u.mutation.TitleCleared() {
+		_spec.ClearField(article.FieldTitle, field.TypeString)
+	}
 	if value, ok := _u.mutation.Summary(); ok {
 		_spec.SetField(article.FieldSummary, field.TypeString, value)
+	}
+	if _u.mutation.SummaryCleared() {
+		_spec.ClearField(article.FieldSummary, field.TypeString)
 	}
 	if value, ok := _u.mutation.ContentMd(); ok {
 		_spec.SetField(article.FieldContentMd, field.TypeString, value)
 	}
+	if _u.mutation.ContentMdCleared() {
+		_spec.ClearField(article.FieldContentMd, field.TypeString)
+	}
 	if value, ok := _u.mutation.ContentHTML(); ok {
 		_spec.SetField(article.FieldContentHTML, field.TypeString, value)
+	}
+	if _u.mutation.ContentHTMLCleared() {
+		_spec.ClearField(article.FieldContentHTML, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(article.FieldStatus, field.TypeInt32, value)
@@ -620,10 +692,10 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
@@ -633,10 +705,10 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if nodes := _u.mutation.RemovedTagsIDs(); len(nodes) > 0 && !_u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
@@ -649,10 +721,10 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if nodes := _u.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   article.TagsTable,
-			Columns: []string{article.TagsColumn},
+			Columns: article.TagsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
