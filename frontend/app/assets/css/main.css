@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+/* Dark mode via class strategy (html.dark), toggled by useTheme and applied
+   pre-hydration by an inline head script. */
+@custom-variant dark (&:where(.dark, .dark *));
