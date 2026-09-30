@@ -229,11 +229,12 @@ func (r *articleRepo) DeleteArticle(ctx context.Context, slug string) error {
 func (r *articleRepo) IncrementView(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
 	counted := true
 	ok, err := r.rdb.SetNX(ctx, viewDedupPrefix+slug+":"+clientKey, 1, viewDedupWindow).Result()
-	if err != nil {
-		ok = true
-	} else {
+	if err == nil {
+		// A present key means this client already counted inside the window.
 		counted = ok
 	}
+	// On a Redis error keep counted=true: fail-open on dedup so the counter
+	// itself is never lost. Over-counting self-heals as windows expire.
 	if !counted {
 		po, err := r.data.db.Article.Query().
 			Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
