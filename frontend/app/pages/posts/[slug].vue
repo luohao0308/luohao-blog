@@ -54,6 +54,7 @@ useHead({ title: article.value.title })
 
     <!-- eslint-disable-next-line vue/no-v-html -- trusted backend-rendered HTML -->
     <div class="markdown-body space-y-4 leading-7" v-html="article.content_html" />
+    <CommentSection :slug="slug" />
     <nav v-if="adjacent.newer || adjacent.older" aria-label="相邻文章" class="grid gap-6 border-t border-slate-200 pt-8 sm:grid-cols-2 dark:border-slate-800">
       <div>
         <NuxtLink v-if="adjacent.newer" :to="`/posts/${encodeURIComponent(adjacent.newer.slug)}`" class="block space-y-2 hover:text-[#3c5d85] dark:hover:text-blue-300">
