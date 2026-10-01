@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	stdsql "database/sql"
+	"sort"
 	"testing"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -12,6 +13,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
+	"go.einride.tech/aip/filtering"
 	"go.einride.tech/aip/ordering"
 	_ "modernc.org/sqlite"
 )
@@ -41,6 +43,105 @@ func newTestArticleRepo(t *testing.T) (biz.ArticleRepo, *ent.Client) {
 func orderByCreatedAt() biz.ListOption {
 	return biz.ListOrderBy(ordering.OrderBy{
 		Fields: []ordering.Field{{Path: "created_at"}},
+	})
+}
+
+// listFilter parses a filter expression against the status declaration the
+// service layer exposes, so repo tests exercise the exact CEL form clients
+// send instead of hand-built ASTs.
+func listFilter(t *testing.T, expr string) biz.ListOption {
+	t.Helper()
+	declarations, err := filtering.NewDeclarations(
+		filtering.DeclareStandardFunctions(),
+		filtering.DeclareIdent("status", filtering.TypeString),
+	)
+	if err != nil {
+		t.Fatalf("NewDeclarations() error = %v", err)
+	}
+	filter, err := filtering.ParseFilterString(expr, declarations)
+	if err != nil {
+		t.Fatalf("ParseFilterString(%q) error = %v", expr, err)
+	}
+	return biz.ListFilter(filter)
+}
+
+// listSlugs runs a list query and returns the result slugs in stable order.
+func listSlugs(t *testing.T, repo biz.ArticleRepo, opts ...biz.ListOption) []string {
+	t.Helper()
+	articles, err := repo.ListArticles(context.Background(), append(opts, biz.ListLimit(10))...)
+	if err != nil {
+		t.Fatalf("ListArticles() error = %v", err)
+	}
+	slugs := make([]string, 0, len(articles))
+	for _, a := range articles {
+		slugs = append(slugs, a.Slug)
+	}
+	sort.Strings(slugs)
+	return slugs
+}
+
+// The admin panel filters articles by enum name (status:"PUBLISHED"); the
+// column stores the int enum, so the resolver must bridge the two. Before the
+// resolver existed this query failed the declaration check in the service
+// (500) or, unchecked, would have compared a string against the int column.
+func TestArticleRepoListStatusFilter(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestArticleRepo(t)
+	for _, slug := range []string{"draft-a", "published-a", "published-b"} {
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"})
+		if err != nil {
+			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
+		}
+		if slug != "draft-a" {
+			created.Status = biz.ArticleStatusPublished
+			if _, err := repo.UpdateArticle(ctx, created); err != nil {
+				t.Fatalf("UpdateArticle(publish %q) error = %v", slug, err)
+			}
+		}
+	}
+
+	t.Run("has operator matches the documented form", func(t *testing.T) {
+		got := listSlugs(t, repo, listFilter(t, `status:"PUBLISHED"`))
+		want := []string{"published-a", "published-b"}
+		if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+			t.Fatalf("status:\"PUBLISHED\" = %v, want %v", got, want)
+		}
+	})
+	t.Run("equals operator", func(t *testing.T) {
+		got := listSlugs(t, repo, listFilter(t, `status="DRAFT"`))
+		if len(got) != 1 || got[0] != "draft-a" {
+			t.Fatalf("status=\"DRAFT\" = %v, want [draft-a]", got)
+		}
+	})
+	t.Run("not equals operator", func(t *testing.T) {
+		got := listSlugs(t, repo, listFilter(t, `status!="PUBLISHED"`))
+		if len(got) != 1 || got[0] != "draft-a" {
+			t.Fatalf("status!=\"PUBLISHED\" = %v, want [draft-a]", got)
+		}
+	})
+	t.Run("combined with public boundary", func(t *testing.T) {
+		got := listSlugs(t, repo, biz.ListPublic(), listFilter(t, `status:"DRAFT"`))
+		// The public boundary forces published; the agreeing filter must not
+		// widen it back.
+		if len(got) != 0 {
+			t.Fatalf("public + status:\"DRAFT\" = %v, want empty", got)
+		}
+	})
+	t.Run("deleted stays hidden even when requested", func(t *testing.T) {
+		got := listSlugs(t, repo, listFilter(t, `status="DELETED"`))
+		if len(got) != 0 {
+			t.Fatalf("status=\"DELETED\" = %v, want empty", got)
+		}
+	})
+	t.Run("unknown status name is a bad request", func(t *testing.T) {
+		if _, err := repo.ListArticles(ctx, listFilter(t, `status:"ARCHIVED"`), biz.ListLimit(10)); !kratoserrors.IsBadRequest(err) {
+			t.Fatalf("unknown name error = %v, want bad request", err)
+		}
+	})
+	t.Run("ordering operator is rejected", func(t *testing.T) {
+		if _, err := repo.ListArticles(ctx, listFilter(t, `status>"DRAFT"`), biz.ListLimit(10)); !kratoserrors.IsBadRequest(err) {
+			t.Fatalf("ordering error = %v, want bad request", err)
+		}
 	})
 }
 
