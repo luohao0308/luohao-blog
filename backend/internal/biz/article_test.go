@@ -36,6 +36,9 @@ func (f *fakeArticleSearchIndex) RemoveArticle(_ context.Context, slug string) e
 func (f *fakeArticleSearchIndex) Search(_ context.Context, _ string, _, _ int) ([]string, error) {
 	return f.results, f.err
 }
+func (f *fakeArticleSearchIndex) RecreateIndex(_ context.Context) error {
+	return f.err
+}
 
 func newFakeArticleRepo() *fakeArticleRepo {
 	return &fakeArticleRepo{articles: map[string]*Article{}, views: map[string]uint64{}}

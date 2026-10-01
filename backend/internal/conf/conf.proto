@@ -12,6 +12,10 @@ message Bootstrap {
   // Elasticsearch cluster for article full-text search. Absent disables
   // indexing and search endpoints return empty results.
   Es es = 4;
+  // OpenAI-compatible embedding service for semantic search vectors. Absent
+  // or incomplete disables vector generation: the search index stays
+  // BM25-only and everything else keeps working.
+  Embedding embedding = 5;
 }
 
 message Es {
@@ -19,6 +23,22 @@ message Es {
   repeated string addresses = 1;
   // Index name for articles. Defaults to "articles".
   string index = 2;
+}
+
+message Embedding {
+  // Base URL of an OpenAI-compatible API, e.g. https://api.openai.com/v1.
+  // The client appends /embeddings. Empty disables vector generation.
+  string base_url = 1;
+  // API key sent as a bearer token. Provide it via environment, never in
+  // source control.
+  string api_key = 2;
+  // Embedding model name, e.g. text-embedding-3-small.
+  string model = 3;
+  // Vector dimension of the model output; sizes the ES dense_vector field.
+  // Must match the model exactly. Required when base_url is set.
+  int32 dimensions = 4;
+  // Per-request timeout. Defaults to 10s when unset.
+  google.protobuf.Duration timeout = 5;
 }
 
 message Server {
