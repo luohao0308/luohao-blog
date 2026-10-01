@@ -75,13 +75,16 @@ func (s *CommentService) ListComments(ctx context.Context, req *v1.ListCommentsR
 	if err != nil {
 		return nil, err
 	}
+	// The AIP parsers return plain errors, which Kratos would map to 500;
+	// wrap them so a malformed list argument surfaces as the documented
+	// INVALID_ARGUMENT (same treatment as the article list).
 	filter, err := filtering.ParseFilter(req, declarations)
 	if err != nil {
-		return nil, err
+		return nil, biz.ErrCommentInvalidArgument.WithCause(err)
 	}
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
-		return nil, err
+		return nil, biz.ErrCommentInvalidArgument.WithCause(err)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
