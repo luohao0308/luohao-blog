@@ -94,7 +94,7 @@ func (e *esIndexer) ensureIndex(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode == 200 {
 		return nil
 	}
@@ -107,7 +107,7 @@ func (e *esIndexer) ensureIndex(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.IsError() {
 		return fmt.Errorf("es create index: %s", res.String())
 	}
@@ -147,7 +147,7 @@ func (e *esIndexer) IndexArticle(ctx context.Context, a *biz.Article) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.IsError() {
 		return fmt.Errorf("es index: %s", res.String())
 	}
@@ -164,7 +164,7 @@ func (e *esIndexer) RemoveArticle(ctx context.Context, slug string) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.IsError() && res.StatusCode != 404 {
 		return fmt.Errorf("es delete: %s", res.String())
 	}
@@ -195,7 +195,7 @@ func (e *esIndexer) Search(ctx context.Context, query string, limit, offset int)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.IsError() {
 		return nil, fmt.Errorf("es search: %s", res.String())
 	}
