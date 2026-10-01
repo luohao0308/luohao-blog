@@ -14,9 +14,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
-// esIndexPrefix namespaces the article index mapping. The smartcn analyzer is
-// bundled with stock Elasticsearch and handles Chinese segmentation far
-// better than the default per-character standard analyzer.
+// esIndexSettings defines the article index mapping using analyzers available
+// in the stock Elasticsearch image. The standard analyzer keeps the index
+// self-contained; Chinese text is still searchable without an optional plugin.
 const esIndexSettings = `{
   "settings": {
     "number_of_shards": 1,
@@ -25,9 +25,9 @@ const esIndexSettings = `{
   "mappings": {
     "properties": {
       "slug":         { "type": "keyword" },
-      "title":        { "type": "text", "analyzer": "smartcn", "fields": { "keyword": { "type": "keyword" } } },
-      "summary":      { "type": "text", "analyzer": "smartcn" },
-      "content":      { "type": "text", "analyzer": "smartcn" },
+      "title":        { "type": "text", "analyzer": "standard", "fields": { "keyword": { "type": "keyword" } } },
+      "summary":      { "type": "text", "analyzer": "standard" },
+      "content":      { "type": "text", "analyzer": "standard" },
       "tags":         { "type": "keyword" },
       "published_at": { "type": "date" }
     }
