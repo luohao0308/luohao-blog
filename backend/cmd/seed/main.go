@@ -1,14 +1,16 @@
-// Command seed creates the author account. Registration is closed, so this
-// is the only supported way to bring accounts into existence.
+// Command seed brings reference data into an environment: the author account
+// (registration is closed, so this is the only supported way to create
+// accounts) and the demo articles that give a fresh deployment content.
 //
 // Usage (from backend/):
 //
 //	go run ./cmd/seed -conf ./configs -email author@example.com -password 'longenough1' -name '罗豪'
+//	go run ./cmd/seed -conf ./configs -demo-articles
 //
-// The same config file as the server is loaded, so the database DSN comes
-// from config.yaml (DATABASE_SOURCE env override applies). Pending schema
-// migrations are applied before the account is created, which keeps the seed
-// safe to run on a fresh database.
+// Both modes can run in one invocation. The same config file as the server is
+// loaded, so the database DSN comes from config.yaml (DATABASE_SOURCE env
+// override applies). Pending schema migrations are applied before seeding,
+// which keeps the command safe to run on a fresh database.
 package main
 
 import (
@@ -27,25 +29,30 @@ import (
 )
 
 var (
-	flagConf     string
-	flagEmail    string
-	flagPassword string
-	flagName     string
-	flagRole     string
+	flagConf        string
+	flagEmail       string
+	flagPassword    string
+	flagName        string
+	flagRole        string
+	flagDemoArticle bool
+	flagReset       bool
 )
 
 func init() {
 	flag.StringVar(&flagConf, "conf", "../../configs", "config path, eg: -conf config.yaml")
-	flag.StringVar(&flagEmail, "email", "", "login email of the account (required)")
-	flag.StringVar(&flagPassword, "password", "", "plaintext password, at least 8 characters (required)")
+	flag.StringVar(&flagEmail, "email", "", "login email of the account (required unless -demo-articles)")
+	flag.StringVar(&flagPassword, "password", "", "plaintext password, at least 8 characters")
 	flag.StringVar(&flagName, "name", "", "display name shown on the site")
 	flag.StringVar(&flagRole, "role", "admin", "account role: admin (default) or reader")
+	flag.BoolVar(&flagDemoArticle, "demo-articles", false, "seed the demo articles bundled with the command")
+	flag.BoolVar(&flagReset, "reset", false, "with -demo-articles: overwrite existing demo articles with the bundled content")
 }
 
 func main() {
 	flag.Parse()
-	if flagEmail == "" || flagPassword == "" {
-		fmt.Fprintln(os.Stderr, "seed: -email and -password are required")
+	wantAccount := flagEmail != "" || flagPassword != "" || flagName != ""
+	if !wantAccount && !flagDemoArticle {
+		fmt.Fprintln(os.Stderr, "seed: pass -demo-articles and/or -email/-password")
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -85,9 +92,21 @@ func main() {
 	}
 	defer cleanup()
 
+	ctx := context.Background()
+	if flagDemoArticle {
+		articles := biz.NewArticleUsecase(data.NewArticleRepo(store, nil), nil)
+		if err := seedDemoArticles(ctx, articles, flagReset); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	if !wantAccount {
+		return
+	}
 	users := biz.NewUserUsecase(data.NewUserRepo(store))
 	u, err := users.CreateAccount(
-		context.Background(),
+		ctx,
 		flagEmail,
 		flagPassword,
 		flagName,
