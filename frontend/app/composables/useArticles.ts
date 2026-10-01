@@ -73,6 +73,14 @@ export function usePublishedArticles() {
   })
 }
 
+export async function searchPublishedArticles(query: string, pageSize = 100): Promise<Article[]> {
+  const requestFetch = useRequestFetch()
+  const page = await requestFetch<ArticleSet>('/api/v1/search/articles', {
+    query: { query, page_size: pageSize },
+  })
+  return (page.articles ?? []).filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
+}
+
 // formatDate renders an RFC3339 timestamp as a plain local date.
 export function articleDate(ts?: ArticleTimestamp): string {
   if (!ts) return ''

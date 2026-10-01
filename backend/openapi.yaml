@@ -427,6 +427,42 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/search/articles:
+        get:
+            tags:
+                - ArticleSearchService
+            description: |-
+                SearchArticles full-text searches published articles (BM25, Chinese
+                 analyzed) and returns them best-match first. Only PUBLISHED articles are
+                 indexed and returned. Authorization: public.
+                 Returns INVALID_ARGUMENT when the query is empty.
+            operationId: ArticleSearchService_SearchArticles
+            parameters:
+                - name: query
+                  in: query
+                  description: |-
+                    Free-text query. Matched against title (boosted), summary, content, and
+                     tags of published articles.
+                  schema:
+                    type: string
+                - name: pageSize
+                  in: query
+                  description: Optional. Maximum number of articles to return in a single page.
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageToken
+                  in: query
+                  description: Optional. Token from a previous response's next_page_token.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ArticleSet'
 components:
     schemas:
         blog.v1.ApproveCommentRequest:
@@ -653,6 +689,12 @@ components:
                 User is the public representation of an account. Credentials never appear
                  in responses.
 tags:
+    - name: ArticleSearchService
+      description: |-
+        ArticleSearchService serves full-text search over published articles. The
+         index is maintained by the article write path; when the search backend is
+         unavailable the endpoint returns an empty page rather than an error, so the
+         public site keeps working.
     - name: ArticleService
       description: |-
         ArticleService manages blog articles. The public identifier of an article is

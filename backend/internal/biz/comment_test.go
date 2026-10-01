@@ -79,7 +79,7 @@ func (a *denyAllLimiter) Allow(context.Context, string) (bool, error) { a.calls+
 
 func TestCommentUsecaseSubmitValidation(t *testing.T) {
 	ctx := context.Background()
-	articles := NewArticleUsecase(newFakeArticleRepo())
+	articles := NewArticleUsecase(newFakeArticleRepo(), nil)
 	if _, err := articles.CreateArticle(ctx, &Article{Slug: "commentable", Title: "t", ContentMD: "c"}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}
@@ -131,7 +131,7 @@ func TestCommentUsecaseSubmitValidation(t *testing.T) {
 func TestCommentUsecaseSubmitRateLimited(t *testing.T) {
 	ctx := context.Background()
 	limiter := &denyAllLimiter{}
-	uc := NewCommentUsecase(newFakeCommentRepo(), NewArticleUsecase(newFakeArticleRepo()), limiter)
+	uc := NewCommentUsecase(newFakeCommentRepo(), NewArticleUsecase(newFakeArticleRepo(), nil), limiter)
 
 	// The budget is checked before anything else, matching the login flow.
 	_, err := uc.Submit(ctx, &Comment{ArticleSlug: "any", DisplayName: "n", Content: "c"}, "1.2.3.4")
@@ -145,7 +145,7 @@ func TestCommentUsecaseSubmitRateLimited(t *testing.T) {
 
 func TestCommentUsecaseModerationFlow(t *testing.T) {
 	ctx := context.Background()
-	articles := NewArticleUsecase(newFakeArticleRepo())
+	articles := NewArticleUsecase(newFakeArticleRepo(), nil)
 	if _, err := articles.CreateArticle(ctx, &Article{Slug: "published", Title: "t", ContentMD: "c"}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}

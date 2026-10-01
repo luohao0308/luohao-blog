@@ -18,6 +18,25 @@ type fakeArticleRepo struct {
 	views    map[string]uint64
 }
 
+type fakeArticleSearchIndex struct {
+	indexed []*Article
+	removed []string
+	results []string
+	err     error
+}
+
+func (f *fakeArticleSearchIndex) IndexArticle(_ context.Context, a *Article) error {
+	f.indexed = append(f.indexed, a)
+	return f.err
+}
+func (f *fakeArticleSearchIndex) RemoveArticle(_ context.Context, slug string) error {
+	f.removed = append(f.removed, slug)
+	return f.err
+}
+func (f *fakeArticleSearchIndex) Search(_ context.Context, _ string, _, _ int) ([]string, error) {
+	return f.results, f.err
+}
+
 func newFakeArticleRepo() *fakeArticleRepo {
 	return &fakeArticleRepo{articles: map[string]*Article{}, views: map[string]uint64{}}
 }
@@ -84,7 +103,7 @@ func (f *fakeArticleRepo) DeleteArticle(_ context.Context, slug string) error {
 }
 
 func TestArticleUsecaseCreateForcesDraft(t *testing.T) {
-	uc := NewArticleUsecase(newFakeArticleRepo())
+	uc := NewArticleUsecase(newFakeArticleRepo(), nil)
 
 	created, err := uc.CreateArticle(context.Background(), &Article{
 		Slug:      "create-force-draft",
@@ -107,7 +126,7 @@ func TestArticleUsecaseCreateForcesDraft(t *testing.T) {
 }
 
 func TestArticleUsecaseSlugValidation(t *testing.T) {
-	uc := NewArticleUsecase(newFakeArticleRepo())
+	uc := NewArticleUsecase(newFakeArticleRepo(), nil)
 
 	for _, slug := range []string{"", "Bad Slug", "UPPER", "-lead", "trail-", "dou--ble", string(make([]byte, 65))} {
 		if _, err := uc.CreateArticle(context.Background(), &Article{Slug: slug, Title: "t", ContentMD: "c"}); !kratoserrors.IsBadRequest(err) {
@@ -121,7 +140,7 @@ func TestArticleUsecaseSlugValidation(t *testing.T) {
 
 func TestArticleUsecasePublicReadsHideDrafts(t *testing.T) {
 	repo := newFakeArticleRepo()
-	uc := NewArticleUsecase(repo)
+	uc := NewArticleUsecase(repo, nil)
 	repo.articles["draft"] = &Article{Slug: "draft", Status: ArticleStatusDraft}
 	repo.articles["published"] = &Article{Slug: "published", Status: ArticleStatusPublished}
 
@@ -146,7 +165,7 @@ func TestArticleUsecasePublicReadsHideDrafts(t *testing.T) {
 func TestArticleUsecasePublishStampsPublishedAt(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeArticleRepo()
-	uc := NewArticleUsecase(repo)
+	uc := NewArticleUsecase(repo, nil)
 
 	if _, err := uc.CreateArticle(ctx, &Article{Slug: "publish-me", Title: "t", ContentMD: "c"}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
@@ -182,10 +201,42 @@ func TestArticleUsecasePublishStampsPublishedAt(t *testing.T) {
 	}
 }
 
+func TestArticleUsecaseSearchIndexIsBestEffort(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeArticleRepo()
+	index := &fakeArticleSearchIndex{err: context.DeadlineExceeded}
+	uc := NewArticleUsecase(repo, index)
+	repo.articles["indexed"] = &Article{Slug: "indexed", Title: "old", ContentMD: "old", Status: ArticleStatusDraft}
+	updated, err := uc.UpdateArticle(ctx, &Article{Slug: "indexed", Title: "new", ContentMD: "body", Status: ArticleStatusPublished})
+	if err != nil || updated.Status != ArticleStatusPublished {
+		t.Fatalf("UpdateArticle() = %+v, %v; index failure must not block write", updated, err)
+	}
+	if len(index.indexed) != 1 {
+		t.Fatalf("index calls = %d, want 1", len(index.indexed))
+	}
+	if err := uc.DeleteArticle(ctx, "indexed"); err != nil {
+		t.Fatalf("DeleteArticle() error = %v", err)
+	}
+	if len(index.removed) != 1 || index.removed[0] != "indexed" {
+		t.Fatalf("remove calls = %v, want indexed", index.removed)
+	}
+}
+
+func TestArticleUsecaseSearchHydratesPublishedOnly(t *testing.T) {
+	repo := newFakeArticleRepo()
+	repo.articles["published"] = &Article{Slug: "published", Status: ArticleStatusPublished}
+	repo.articles["draft"] = &Article{Slug: "draft", Status: ArticleStatusDraft}
+	index := &fakeArticleSearchIndex{results: []string{"draft", "published"}}
+	articles, err := NewArticleUsecase(repo, index).SearchArticles(context.Background(), "query", 10, 0)
+	if err != nil || len(articles) != 1 || articles[0].Slug != "published" {
+		t.Fatalf("SearchArticles() = %+v, %v; want published hit only", articles, err)
+	}
+}
+
 func TestArticleUsecaseUpdateDeletedRejected(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeArticleRepo()
-	uc := NewArticleUsecase(repo)
+	uc := NewArticleUsecase(repo, nil)
 
 	if _, err := uc.CreateArticle(ctx, &Article{Slug: "delete-via-update", Title: "t", ContentMD: "c"}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
@@ -208,7 +259,7 @@ func TestArticleUsecaseUpdateDeletedRejected(t *testing.T) {
 func TestArticleUsecaseMarkViewed(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeArticleRepo()
-	uc := NewArticleUsecase(repo)
+	uc := NewArticleUsecase(repo, nil)
 	if _, err := uc.CreateArticle(ctx, &Article{Slug: "viewed-article", Title: "t", ContentMD: "c"}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}

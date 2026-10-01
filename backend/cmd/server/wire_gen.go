@@ -23,7 +23,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logger *slog.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, bootstrap *conf.Bootstrap, logger *slog.Logger) (*kratos.App, func(), error) {
 	tokenIssuer, err := data.NewTokenIssuer(auth)
 	if err != nil {
 		return nil, nil, err
@@ -38,7 +38,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	}
 	universalClient := data.NewRedis(confData)
 	articleRepo := data.NewArticleRepo(dataData, universalClient)
-	articleUsecase := biz.NewArticleUsecase(articleRepo)
+	articleSearchIndex, err := data.NewEsIndexer(bootstrap)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	articleUsecase := biz.NewArticleUsecase(articleRepo, articleSearchIndex)
 	articleService := service.NewArticleService(articleUsecase)
 	userRepository := data.NewUserRepo(dataData)
 	userUsecase := biz.NewUserUsecase(userRepository)
@@ -51,8 +56,9 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, logg
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
 	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, commentRateLimiter)
 	commentService := service.NewCommentService(commentUsecase)
-	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService)
-	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService)
+	articleSearchService := service.NewArticleSearchService(articleUsecase)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService, articleSearchService)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, authService, commentService, articleSearchService)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

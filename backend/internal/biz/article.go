@@ -9,6 +9,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz/article/render"
 
 	"github.com/go-kratos/kratos/v3/errors"
+	"github.com/go-kratos/kratos/v3/log"
 	"github.com/google/uuid"
 	"go.einride.tech/aip/filtering"
 	"go.einride.tech/aip/ordering"
@@ -54,6 +55,21 @@ type Article struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	ViewCount   uint64
+}
+
+// ArticleSearchIndex is the full-text index the write path keeps in sync and
+// the search path queries. Implementations must tolerate absence of the
+// backend (search degrades to empty results) but the write path treats a
+// sync failure as a warning, never as a failure of the article write itself.
+type ArticleSearchIndex interface {
+	// IndexArticle upserts the document of a published article; non-published
+	// articles are removed from the index.
+	IndexArticle(context.Context, *Article) error
+	// RemoveArticle drops the article document (tolerates a missing one).
+	RemoveArticle(context.Context, string) error
+	// Search returns slugs of published articles matching the query,
+	// best-match first.
+	Search(context.Context, string, int, int) ([]string, error)
 }
 
 // ArticleRepo is an article repo.
@@ -128,12 +144,62 @@ func ValidSlug(s string) bool {
 
 // ArticleUsecase is an Article usecase.
 type ArticleUsecase struct {
-	repo ArticleRepo
+	repo    ArticleRepo
+	indexer ArticleSearchIndex
 }
 
-// NewArticleUsecase new an Article usecase.
-func NewArticleUsecase(repo ArticleRepo) *ArticleUsecase {
-	return &ArticleUsecase{repo: repo}
+// NewArticleUsecase new an Article usecase. The indexer is optional: nil
+// disables search indexing (tests, ES-less deployments).
+func NewArticleUsecase(repo ArticleRepo, indexer ArticleSearchIndex) *ArticleUsecase {
+	return &ArticleUsecase{repo: repo, indexer: indexer}
+}
+
+// syncIndex mirrors one article into the search index. Failures are logged
+// and swallowed: the article write already succeeded and the index can be
+// rebuilt at any time.
+func (uc *ArticleUsecase) syncIndex(ctx context.Context, a *Article) {
+	if uc.indexer == nil || a == nil {
+		return
+	}
+	if err := uc.indexer.IndexArticle(ctx, a); err != nil {
+		log.Warn("article: search index sync failed for " + a.Slug, err)
+	}
+}
+
+// dropIndex removes an article from the search index with the same
+// best-effort semantics as syncIndex.
+func (uc *ArticleUsecase) dropIndex(ctx context.Context, slug string) {
+	if uc.indexer == nil || slug == "" {
+		return
+	}
+	if err := uc.indexer.RemoveArticle(ctx, slug); err != nil {
+		log.Warn("article: search index removal failed for " + slug, err)
+	}
+}
+
+// SearchArticles full-text searches published articles via the search index,
+// hydrating the hits through the repo. Unavailable or empty indexes yield an
+// empty page: the public site keeps working without search.
+func (uc *ArticleUsecase) SearchArticles(ctx context.Context, query string, limit, offset int) ([]*Article, error) {
+	if uc.indexer == nil {
+		return []*Article{}, nil
+	}
+	slugs, err := uc.indexer.Search(ctx, query, limit, offset)
+	if err != nil {
+		log.Warn("article: search query failed", err)
+		return []*Article{}, nil
+	}
+	out := make([]*Article, 0, len(slugs))
+	for _, slug := range slugs {
+		a, err := uc.repo.FindBySlug(ctx, slug)
+		if err != nil {
+			continue
+		}
+		if a.Status == ArticleStatusPublished {
+			out = append(out, a)
+		}
+	}
+	return out, nil
 }
 
 // CreateArticle creates an article. New articles always start as DRAFT:
@@ -215,7 +281,12 @@ func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Artic
 		return nil, ErrArticleInvalidArgument
 	}
 	a.ContentHTML = html
-	return uc.repo.UpdateArticle(ctx, a)
+	updated, err := uc.repo.UpdateArticle(ctx, a)
+	if err != nil {
+		return nil, err
+	}
+	uc.syncIndex(ctx, updated)
+	return updated, nil
 }
 
 // DeleteArticle soft-deletes an article by slug.
@@ -223,7 +294,11 @@ func (uc *ArticleUsecase) DeleteArticle(ctx context.Context, slug string) error 
 	if !ValidSlug(slug) {
 		return ErrArticleInvalidArgument
 	}
-	return uc.repo.DeleteArticle(ctx, slug)
+	if err := uc.repo.DeleteArticle(ctx, slug); err != nil {
+		return err
+	}
+	uc.dropIndex(ctx, slug)
+	return nil
 }
 
 // MarkViewed records one public view of a published article. The dedup

@@ -9,6 +9,16 @@ message Bootstrap {
   Server server = 1;
   Data data = 2;
   Auth auth = 3;
+  // Elasticsearch cluster for article full-text search. Absent disables
+  // indexing and search endpoints return empty results.
+  Es es = 4;
+}
+
+message Es {
+  // Node addresses, e.g. http://127.0.0.1:9200.
+  repeated string addresses = 1;
+  // Index name for articles. Defaults to "articles".
+  string index = 2;
 }
 
 message Server {

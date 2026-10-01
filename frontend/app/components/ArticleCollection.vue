@@ -1,11 +1,39 @@
 <script setup lang="ts">
-import { usePublishedArticles } from '~/composables/useArticles'
+import { searchPublishedArticles, usePublishedArticles, type Article } from '~/composables/useArticles'
 
 const props = defineProps<{ tag?: string }>()
 const query = ref('')
 const { data, status, error, refresh } = await usePublishedArticles()
+const searchResults = ref<Article[] | null>(null)
+const searchPending = ref(false)
+const searchError = ref(false)
+let searchRequest = 0
+
+watch(query, async (value) => {
+  const normalized = value.trim()
+  if (!normalized) {
+    searchResults.value = null
+    searchError.value = false
+    return
+  }
+  const request = ++searchRequest
+  searchPending.value = true
+  searchError.value = false
+  try {
+    const results = await searchPublishedArticles(normalized)
+    if (request === searchRequest) searchResults.value = results
+  } catch {
+    // Keep the collection usable when ES is unavailable or the API is down.
+    if (request === searchRequest) {
+      searchError.value = true
+      searchResults.value = null
+    }
+  } finally {
+    if (request === searchRequest) searchPending.value = false
+  }
+})
 const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags))].sort())
-const articles = computed(() => (data.value ?? []).filter(article => {
+const articles = computed(() => (searchResults.value ?? data.value ?? []).filter(article => {
   const text = `${article.title} ${article.summary} ${article.tags.join(' ')}`.toLocaleLowerCase()
   return (!props.tag || article.tags.includes(props.tag)) && text.includes(query.value.trim().toLocaleLowerCase())
 }))
@@ -27,8 +55,9 @@ const articles = computed(() => (data.value ?? []).filter(article => {
       <p class="text-sm text-slate-600 dark:text-slate-400">文章加载失败，请稍后重试。</p>
       <button type="button" class="text-sm text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>
     </div>
-    <p v-else-if="status === 'pending'" role="status" class="py-12 text-center text-sm text-slate-500">正在加载文章…</p>
+    <p v-else-if="status === 'pending' || searchPending" role="status" class="py-12 text-center text-sm text-slate-500">正在加载文章…</p>
     <template v-else>
+      <p v-if="searchError" class="text-xs text-slate-500 dark:text-slate-400">搜索服务暂不可用，已显示本地匹配结果。</p>
       <p role="status" class="text-xs text-slate-500 dark:text-slate-400">{{ articles.length }} 篇文章</p>
       <div v-if="articles.length" class="grid auto-rows-fr gap-5 sm:grid-cols-2">
         <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
