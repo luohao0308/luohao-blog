@@ -16,6 +16,22 @@ message Bootstrap {
   // or incomplete disables vector generation: the search index stays
   // BM25-only and everything else keeps working.
   Embedding embedding = 5;
+  // OpenAI-compatible chat LLM for retrieval-augmented answers (M4/S3).
+  // Absent or incomplete disables the Chat RPC's generation side.
+  Llm llm = 6;
+}
+
+message Llm {
+  // Base URL of an OpenAI-compatible API, e.g. https://api.deepseek.com.
+  // The client appends /chat/completions. Empty disables chat generation.
+  string base_url = 1;
+  // API key sent as a bearer token. Provide it via environment or the
+  // git-ignored secrets file, never in source control.
+  string api_key = 2;
+  // Chat model name, e.g. deepseek-chat.
+  string model = 3;
+  // Per-request timeout. Defaults to 60s when unset.
+  google.protobuf.Duration timeout = 4;
 }
 
 message Es {

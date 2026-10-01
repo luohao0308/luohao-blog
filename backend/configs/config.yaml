@@ -43,6 +43,8 @@ es:
 # OpenAI-compatible embedding for semantic search vectors. Leave base_url
 # empty (or unset the env vars) to run the search index BM25-only; vectors
 # appear after setting the env vars and re-running `go run ./cmd/reindex`.
+# Real keys live in secrets.local.yaml (git-ignored; template:
+# secrets.local.example.yaml) — never in this committed file.
 embedding:
   # e.g. https://api.openai.com/v1 — the client appends /embeddings.
   base_url: ${EMBEDDING_BASE_URL:}
