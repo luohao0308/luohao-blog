@@ -318,6 +318,28 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/chat:
+        post:
+            tags:
+                - ChatService
+            description: |-
+                Chat answers one question with citations. Rate limited per client IP.
+                 Returns INVALID_ARGUMENT when the query is empty or too long.
+                 Returns UNAVAILABLE when the LLM side is not configured.
+            operationId: ChatService_Chat
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ChatRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ChatReply'
     /v1/comments:
         get:
             tags:
@@ -546,6 +568,41 @@ components:
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
+        blog.v1.ChatReply:
+            type: object
+            properties:
+                answer:
+                    type: string
+                    description: The generated answer. Plain text, not Markdown.
+                citations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.CitedArticle'
+                    description: The published articles the answer drew from, best-match first.
+            description: ChatReply is the retrieval-augmented answer.
+        blog.v1.ChatRequest:
+            required:
+                - query
+            type: object
+            properties:
+                query:
+                    type: string
+                    description: The visitor's question, answered from published article content.
+                topK:
+                    type: integer
+                    description: Optional. How many articles to retrieve as context (1-8). Defaults to 4.
+                    format: int32
+            description: ChatRequest is the input for ChatService.Chat.
+        blog.v1.CitedArticle:
+            type: object
+            properties:
+                slug:
+                    type: string
+                title:
+                    type: string
+                summary:
+                    type: string
+            description: CitedArticle identifies one source article of the answer.
         blog.v1.Comment:
             type: object
             properties:
@@ -709,6 +766,12 @@ tags:
          server-side session kept in Redis. Refresh and Logout read the token from
          the cookie, falling back to the X-Refresh-Token header for non-cookie
          clients.
+    - name: ChatService
+      description: |-
+        ChatService answers visitor questions with retrieval-augmented generation:
+         the question is answered from the blog's published articles, and the reply
+         cites the articles the answer drew from. Generation requires the LLM config;
+         retrieval reuses the hybrid article search. Authorization: public.
     - name: CommentService
       description: |-
         CommentService handles visitor comments on articles. Commenters are

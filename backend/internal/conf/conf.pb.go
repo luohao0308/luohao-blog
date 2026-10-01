@@ -123,10 +123,16 @@ type Llm struct {
 	ApiKey string `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
 	// Chat model name, e.g. deepseek-chat.
 	Model string `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
-	// Per-request timeout. Defaults to 60s when unset.
-	Timeout       *durationpb.Duration `protobuf:"bytes,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Per-request timeout. Defaults to 120s when unset: reasoning models can
+	// legitimately think for a long time before the first token.
+	Timeout *durationpb.Duration `protobuf:"bytes,4,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// Optional reasoning effort sent as reasoning_effort (provider-specific
+	// meaning; DeepSeek: none/low/high/max, default high). Set only when the
+	// target provider supports it — DeepSeek defaults to minutes-long thinking,
+	// so interactive chat wants "none" there.
+	ReasoningEffort string `protobuf:"bytes,5,opt,name=reasoning_effort,json=reasoningEffort,proto3" json:"reasoning_effort,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Llm) Reset() {
@@ -185,6 +191,13 @@ func (x *Llm) GetTimeout() *durationpb.Duration {
 		return x.Timeout
 	}
 	return nil
+}
+
+func (x *Llm) GetReasoningEffort() string {
+	if x != nil {
+		return x.ReasoningEffort
+	}
+	return ""
 }
 
 type Es struct {
@@ -821,6 +834,11 @@ type Auth_RateLimit struct {
 	CommentAttempts int64 `protobuf:"varint,3,opt,name=comment_attempts,json=commentAttempts,proto3" json:"comment_attempts,omitempty"`
 	// Fixed window size for the comment counter. Defaults to 5m when unset.
 	CommentWindow *durationpb.Duration `protobuf:"bytes,4,opt,name=comment_window,json=commentWindow,proto3" json:"comment_window,omitempty"`
+	// Chat questions allowed per client IP inside chat_window. Defaults to
+	// 10 when unset.
+	ChatAttempts int64 `protobuf:"varint,5,opt,name=chat_attempts,json=chatAttempts,proto3" json:"chat_attempts,omitempty"`
+	// Fixed window size for the chat counter. Defaults to 5m when unset.
+	ChatWindow    *durationpb.Duration `protobuf:"bytes,6,opt,name=chat_window,json=chatWindow,proto3" json:"chat_window,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -883,6 +901,20 @@ func (x *Auth_RateLimit) GetCommentWindow() *durationpb.Duration {
 	return nil
 }
 
+func (x *Auth_RateLimit) GetChatAttempts() int64 {
+	if x != nil {
+		return x.ChatAttempts
+	}
+	return 0
+}
+
+func (x *Auth_RateLimit) GetChatWindow() *durationpb.Duration {
+	if x != nil {
+		return x.ChatWindow
+	}
+	return nil
+}
+
 var File_conf_conf_proto protoreflect.FileDescriptor
 
 const file_conf_conf_proto_rawDesc = "" +
@@ -895,12 +927,13 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04auth\x18\x03 \x01(\v2\x10.kratos.api.AuthR\x04auth\x12\x1e\n" +
 	"\x02es\x18\x04 \x01(\v2\x0e.kratos.api.EsR\x02es\x123\n" +
 	"\tembedding\x18\x05 \x01(\v2\x15.kratos.api.EmbeddingR\tembedding\x12!\n" +
-	"\x03llm\x18\x06 \x01(\v2\x0f.kratos.api.LlmR\x03llm\"\x84\x01\n" +
+	"\x03llm\x18\x06 \x01(\v2\x0f.kratos.api.LlmR\x03llm\"\xaf\x01\n" +
 	"\x03Llm\x12\x19\n" +
 	"\bbase_url\x18\x01 \x01(\tR\abaseUrl\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x14\n" +
 	"\x05model\x18\x03 \x01(\tR\x05model\x123\n" +
-	"\atimeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"8\n" +
+	"\atimeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\atimeout\x12)\n" +
+	"\x10reasoning_effort\x18\x05 \x01(\tR\x0freasoningEffort\"8\n" +
 	"\x02Es\x12\x1c\n" +
 	"\taddresses\x18\x01 \x03(\tR\taddresses\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\tR\x05index\"\xaa\x01\n" +
@@ -935,7 +968,7 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
-	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\"\xf4\x03\n" +
+	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\"\xd5\x04\n" +
 	"\x04Auth\x12&\n" +
 	"\x03jwt\x18\x01 \x01(\v2\x14.kratos.api.Auth.JWTR\x03jwt\x12E\n" +
 	"\x11refresh_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0frefreshTokenTtl\x129\n" +
@@ -943,12 +976,15 @@ const file_conf_conf_proto_rawDesc = "" +
 	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x1ab\n" +
 	"\x03JWT\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12C\n" +
-	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\xdd\x01\n" +
+	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\xbe\x02\n" +
 	"\tRateLimit\x12%\n" +
 	"\x0elogin_attempts\x18\x01 \x01(\x03R\rloginAttempts\x12<\n" +
 	"\flogin_window\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\vloginWindow\x12)\n" +
 	"\x10comment_attempts\x18\x03 \x01(\x03R\x0fcommentAttempts\x12@\n" +
-	"\x0ecomment_window\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\rcommentWindowB7Z5github.com/go-kratos/kratos-layout/internal/conf;confb\x06proto3"
+	"\x0ecomment_window\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\rcommentWindow\x12#\n" +
+	"\rchat_attempts\x18\x05 \x01(\x03R\fchatAttempts\x12:\n" +
+	"\vchat_window\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\n" +
+	"chatWindowB7Z5github.com/go-kratos/kratos-layout/internal/conf;confb\x06proto3"
 
 var (
 	file_conf_conf_proto_rawDescOnce sync.Once
@@ -1002,11 +1038,12 @@ var file_conf_conf_proto_depIdxs = []int32{
 	13, // 19: kratos.api.Auth.JWT.access_token_ttl:type_name -> google.protobuf.Duration
 	13, // 20: kratos.api.Auth.RateLimit.login_window:type_name -> google.protobuf.Duration
 	13, // 21: kratos.api.Auth.RateLimit.comment_window:type_name -> google.protobuf.Duration
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	13, // 22: kratos.api.Auth.RateLimit.chat_window:type_name -> google.protobuf.Duration
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }

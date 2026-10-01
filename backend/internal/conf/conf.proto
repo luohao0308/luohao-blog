@@ -30,8 +30,14 @@ message Llm {
   string api_key = 2;
   // Chat model name, e.g. deepseek-chat.
   string model = 3;
-  // Per-request timeout. Defaults to 60s when unset.
+  // Per-request timeout. Defaults to 120s when unset: reasoning models can
+  // legitimately think for a long time before the first token.
   google.protobuf.Duration timeout = 4;
+  // Optional reasoning effort sent as reasoning_effort (provider-specific
+  // meaning; DeepSeek: none/low/high/max, default high). Set only when the
+  // target provider supports it — DeepSeek defaults to minutes-long thinking,
+  // so interactive chat wants "none" there.
+  string reasoning_effort = 5;
 }
 
 message Es {
@@ -113,6 +119,11 @@ message Auth {
     int64 comment_attempts = 3;
     // Fixed window size for the comment counter. Defaults to 5m when unset.
     google.protobuf.Duration comment_window = 4;
+    // Chat questions allowed per client IP inside chat_window. Defaults to
+    // 10 when unset.
+    int64 chat_attempts = 5;
+    // Fixed window size for the chat counter. Defaults to 5m when unset.
+    google.protobuf.Duration chat_window = 6;
   }
   // Access token signing settings.
   JWT jwt = 1;
