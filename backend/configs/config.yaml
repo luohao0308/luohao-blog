@@ -39,3 +39,17 @@ es:
     - http://127.0.0.1:9200
   # Index name for articles; created on boot when missing.
   index: articles
+
+# OpenAI-compatible embedding for semantic search vectors. Leave base_url
+# empty (or unset the env vars) to run the search index BM25-only; vectors
+# appear after setting the env vars and re-running `go run ./cmd/reindex`.
+embedding:
+  # e.g. https://api.openai.com/v1 — the client appends /embeddings.
+  base_url: ${EMBEDDING_BASE_URL:}
+  # Bearer token; inject via environment, never commit a real key.
+  api_key: ${EMBEDDING_API_KEY:}
+  # e.g. text-embedding-3-small; must match the provider model name.
+  model: ${EMBEDDING_MODEL:}
+  # Must equal the model's vector dimension; sizes the ES dense_vector field.
+  dimensions: ${EMBEDDING_DIMENSIONS:0}
+  timeout: 10s

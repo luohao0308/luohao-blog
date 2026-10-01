@@ -70,6 +70,10 @@ type ArticleSearchIndex interface {
 	// Search returns slugs of published articles matching the query,
 	// best-match first.
 	Search(context.Context, string, int, int) ([]string, error)
+	// RecreateIndex drops and re-creates the index with the current mapping.
+	// The index is derived state rebuilt from MySQL, so this is the documented
+	// mapping-evolution path (no in-place migration).
+	RecreateIndex(context.Context) error
 }
 
 // ArticleRepo is an article repo.
