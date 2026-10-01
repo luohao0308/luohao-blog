@@ -19,6 +19,14 @@ const (
 	defaultPageSize = 20
 )
 
+// invalidListArgument carries a list-query parsing failure (filter,
+// order_by, page_token) as the documented INVALID_ARGUMENT. The AIP parsers
+// return plain errors, which Kratos would otherwise map to 500 instead of
+// 400; the original parser message rides along as the cause.
+func invalidListArgument(err error) error {
+	return biz.ErrArticleInvalidArgument.WithCause(err)
+}
+
 // ArticleService is an article service.
 type ArticleService struct {
 	v1.UnimplementedArticleServiceServer
@@ -65,6 +73,9 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 		filtering.DeclareStandardFunctions(),
 		filtering.DeclareIdent("slug", filtering.TypeString),
 		filtering.DeclareIdent("title", filtering.TypeString),
+		// status is filtered by enum name as documented ("status:\"PUBLISHED\"");
+		// the name-to-column translation happens in the data layer.
+		filtering.DeclareIdent("status", filtering.TypeString),
 		filtering.DeclareIdent("published_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("created_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("updated_at", filtering.TypeTimestamp),
@@ -74,18 +85,18 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 	}
 	filter, err := filtering.ParseFilter(req, declarations)
 	if err != nil {
-		return nil, err
+		return nil, invalidListArgument(err)
 	}
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
-		return nil, err
+		return nil, invalidListArgument(err)
 	}
 	orderBy, err := ordering.ParseOrderBy(req)
 	if err != nil {
-		return nil, err
+		return nil, invalidListArgument(err)
 	}
 	if err := orderBy.ValidateForPaths("slug", "title", "published_at", "created_at", "updated_at"); err != nil {
-		return nil, err
+		return nil, invalidListArgument(err)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize

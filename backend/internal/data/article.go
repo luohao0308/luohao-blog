@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -9,8 +10,11 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/aip-go/ents"
 	"github.com/redis/go-redis/v9"
+	"go.einride.tech/aip/filtering"
+	expr "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
 // viewDedupPrefix namespaces the per-client view dedup keys; viewDedupWindow
@@ -109,6 +113,97 @@ func (r *articleRepo) FindBySlug(ctx context.Context, slug string) (*biz.Article
 	return toBiz(po, tagNamesOf(po)), nil
 }
 
+// articleStatusByName maps the filter-facing enum names onto the stored enum
+// values. The column is the int enum (biz.ArticleStatus), while the documented
+// filter contract expresses status as a quoted name: status:"PUBLISHED".
+var articleStatusByName = map[string]biz.ArticleStatus{
+	"DRAFT":     biz.ArticleStatusDraft,
+	"PUBLISHED": biz.ArticleStatusPublished,
+	"DELETED":   biz.ArticleStatusDeleted,
+}
+
+// validateStatusFilter rejects status comparisons the repo cannot translate
+// before any query is built. ent flattens builder errors into message-only
+// errors, which would turn a client mistake into 500; raised here, the
+// INVALID_ARGUMENT survives to the transport.
+func validateStatusFilter(filter filtering.Filter) error {
+	if filter.CheckedExpr == nil || filter.CheckedExpr.Expr == nil {
+		return nil
+	}
+	var invalid error
+	filtering.Walk(func(curr, _ *expr.Expr) bool {
+		if invalid != nil {
+			return false
+		}
+		call, ok := curr.GetExprKind().(*expr.Expr_CallExpr)
+		if !ok {
+			return true
+		}
+		function := call.CallExpr.GetFunction()
+		args := call.CallExpr.GetArgs()
+		for i, arg := range args {
+			ident, ok := arg.GetExprKind().(*expr.Expr_IdentExpr)
+			if !ok || ident.IdentExpr.GetName() != "status" {
+				continue
+			}
+			invalid = statusComparisonError(function, args[len(args)-1-i])
+			return false
+		}
+		return true
+	}, filter.CheckedExpr.Expr)
+	return invalid
+}
+
+// statusComparisonError validates one status comparison against the filter
+// contract: the ':' and '=' operators assert an enum name (documented form),
+// '!=' negates it, and anything else — including orderings, which have no
+// meaning on enum names — is a client error.
+func statusComparisonError(function string, value *expr.Expr) error {
+	switch function {
+	case filtering.FunctionHas, filtering.FunctionEquals, filtering.FunctionNotEquals:
+		constExpr, ok := value.GetExprKind().(*expr.Expr_ConstExpr)
+		if !ok {
+			return fmt.Errorf("%w: status filter expects an enum name literal", biz.ErrArticleInvalidArgument)
+		}
+		name := constExpr.ConstExpr.GetStringValue()
+		if _, ok := articleStatusByName[name]; !ok {
+			return fmt.Errorf("%w: unknown status name %q", biz.ErrArticleInvalidArgument, name)
+		}
+		return nil
+	default:
+		return fmt.Errorf("%w: operator %q is not supported for status", biz.ErrArticleInvalidArgument, function)
+	}
+}
+
+// articleFilterResolver translates the validated status comparisons: the
+// generic column mapping would compare the enum-name string against the int
+// column, so the name resolves to its stored value first. Unknown fields
+// report handled=false so the generic translation applies. Reaching an error
+// here despite validateStatusFilter would be an internal bug, surfaced as 500.
+func articleFilterResolver(sel *sql.Selector, c ents.Comparison) (*sql.Predicate, bool, error) {
+	if c.Field != "status" {
+		return nil, false, nil
+	}
+	switch c.Function {
+	case filtering.FunctionHas, filtering.FunctionEquals, filtering.FunctionNotEquals:
+	default:
+		return nil, true, fmt.Errorf("operator %q is not supported for status", c.Function)
+	}
+	name, ok := c.Value.(string)
+	if !ok {
+		return nil, true, fmt.Errorf("status filter expects an enum name string, got %T", c.Value)
+	}
+	status, ok := articleStatusByName[name]
+	if !ok {
+		return nil, true, fmt.Errorf("unknown status name %q", name)
+	}
+	column := sel.C(article.FieldStatus)
+	if c.Function == filtering.FunctionNotEquals {
+		return sql.NEQ(column, status), true, nil
+	}
+	return sql.EQ(column, status), true, nil
+}
+
 func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) ([]*biz.Article, error) {
 	options := biz.ListOptions{Limit: 20}
 	for _, opt := range opts {
@@ -117,12 +212,15 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 	if options.Offset < 0 || options.Limit <= 0 {
 		return nil, biz.ErrArticleInvalidArgument
 	}
+	if err := validateStatusFilter(options.Filter); err != nil {
+		return nil, err
+	}
 	// Offset pagination needs a total order, so id is always appended as the
 	// last sort key; UUIDv7 ids are time-ordered, which keeps unpaged queries
 	// stable.
 	query := r.data.db.Article.Query().
 		Where(article.StatusNEQ(biz.ArticleStatusDeleted)).
-		Where(ents.ApplyFilter(options.Filter))
+		Where(ents.ApplyFilter(options.Filter, ents.WithFilterResolver(articleFilterResolver)))
 	if options.Public {
 		query = query.Where(article.StatusEQ(biz.ArticleStatusPublished))
 	}
