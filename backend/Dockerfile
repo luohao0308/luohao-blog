@@ -7,6 +7,9 @@ RUN GOPROXY=https://goproxy.cn make build
 
 FROM debian:stable-slim
 
+# 腾讯云内网镜像源：国内直连 deb.debian.org 极慢/易超时
+RUN sed -i "s|deb.debian.org|mirrors.cloud.tencent.com|g" /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list 2>/dev/null || true
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
         netbase \
