@@ -1,0 +1,54 @@
+# 生产后端配置（容器内读 /data/conf）。与本地 config.yaml 的差别只有寻址：
+# 依赖走 compose 服务名（mysql/redis/es），密钥在 secrets.local.yaml（Git 忽略，
+# 模板见同目录 example）。
+server:
+  http:
+    addr: 0.0.0.0:8000
+    # 覆盖 chat 生成（LLM 调用在请求预算内）。
+    timeout: 60s
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 60s
+data:
+  database:
+    driver: mysql
+    # KRATOS_DATABASE_SOURCE 由 compose 注入（.env.prod 提供，密码与 mysql
+    # 服务的 MYSQL_ROOT_PASSWORD 同源）。生产务必强密码。
+    source: ${DATABASE_SOURCE:}
+    debug: false
+    # 生产关闭自动建表：Schema 变更走评审过的迁移步骤。
+    auto_migrate: false
+  redis:
+    addr: ${REDIS_ADDR:redis:6379}
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+auth:
+  jwt:
+    secret: ${JWT_SECRET:}
+    access_token_ttl: 900s
+  refresh_token_ttl: 604800s
+  rate_limit:
+    login_attempts: 10
+    login_window: 300s
+    comment_attempts: 20
+    comment_window: 300s
+    chat_attempts: 10
+    chat_window: 300s
+es:
+  addresses:
+    - http://es:9200
+  index: articles
+
+embedding:
+  base_url: ${EMBEDDING_BASE_URL:}
+  api_key: ${EMBEDDING_API_KEY:}
+  model: ${EMBEDDING_MODEL:}
+  dimensions: ${EMBEDDING_DIMENSIONS:0}
+  timeout: 10s
+
+llm:
+  base_url: ${LLM_BASE_URL:}
+  api_key: ${LLM_API_KEY:}
+  model: ${LLM_MODEL:}
+  timeout: 120s
+  reasoning_effort: ${LLM_REASONING_EFFORT:}

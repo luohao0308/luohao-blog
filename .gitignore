@@ -8,3 +8,7 @@ node_modules/
 
 # 本机密钥：真实 API key 只进这个文件，禁止提交
 backend/configs/secrets.local.yaml
+
+# 生产环境：真实域名/密码/密钥只进这两个文件
+deploy/.env.prod
+deploy/prod-conf/secrets.local.yaml
