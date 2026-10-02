@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "ChatProto";
+
+// ChatService answers visitor questions with retrieval-augmented generation:
+// the question is answered from the blog's published articles, and the reply
+// cites the articles the answer drew from. Generation requires the LLM config;
+// retrieval reuses the hybrid article search. Authorization: public.
+service ChatService {
+  // Chat answers one question with citations. Rate limited per client IP.
+  // Returns INVALID_ARGUMENT when the query is empty or too long.
+  // Returns UNAVAILABLE when the LLM side is not configured.
+  rpc Chat (ChatRequest) returns (ChatReply) {
+    option (google.api.http) = {
+      post: "/v1/chat"
+      body: "*"
+    };
+  }
+}
+
+// ChatRequest is the input for ChatService.Chat.
+message ChatRequest {
+  // The visitor's question, answered from published article content.
+  string query = 1 [(google.api.field_behavior) = REQUIRED];
+  // Optional. How many articles to retrieve as context (1-8). Defaults to 4.
+  int32 top_k = 2;
+}
+
+// ChatReply is the retrieval-augmented answer.
+message ChatReply {
+  // The generated answer. Plain text, not Markdown.
+  string answer = 1;
+  // The published articles the answer drew from, best-match first.
+  repeated CitedArticle citations = 2;
+}
+
+// CitedArticle identifies one source article of the answer.
+message CitedArticle {
+  string slug = 1;
+  string title = 2;
+  string summary = 3;
+}

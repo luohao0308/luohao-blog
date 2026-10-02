@@ -40,6 +40,9 @@ const (
 	ErrorReason_COMMENT_NOT_FOUND          ErrorReason = 13
 	ErrorReason_COMMENT_INVALID_ARGUMENT   ErrorReason = 14
 	ErrorReason_COMMENT_TOO_MANY_ATTEMPTS  ErrorReason = 15
+	ErrorReason_CHAT_UNAVAILABLE           ErrorReason = 16
+	ErrorReason_CHAT_INVALID_ARGUMENT      ErrorReason = 17
+	ErrorReason_CHAT_TOO_MANY_ATTEMPTS     ErrorReason = 18
 )
 
 // Enum value maps for ErrorReason.
@@ -61,6 +64,9 @@ var (
 		13: "COMMENT_NOT_FOUND",
 		14: "COMMENT_INVALID_ARGUMENT",
 		15: "COMMENT_TOO_MANY_ATTEMPTS",
+		16: "CHAT_UNAVAILABLE",
+		17: "CHAT_INVALID_ARGUMENT",
+		18: "CHAT_TOO_MANY_ATTEMPTS",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":        0,
@@ -79,6 +85,9 @@ var (
 		"COMMENT_NOT_FOUND":          13,
 		"COMMENT_INVALID_ARGUMENT":   14,
 		"COMMENT_TOO_MANY_ATTEMPTS":  15,
+		"CHAT_UNAVAILABLE":           16,
+		"CHAT_INVALID_ARGUMENT":      17,
+		"CHAT_TOO_MANY_ATTEMPTS":     18,
 	}
 )
 
@@ -113,7 +122,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xaf\x03\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xfc\x03\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -131,7 +140,10 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x0eAUTH_FORBIDDEN\x10\f\x12\x15\n" +
 	"\x11COMMENT_NOT_FOUND\x10\r\x12\x1c\n" +
 	"\x18COMMENT_INVALID_ARGUMENT\x10\x0e\x12\x1d\n" +
-	"\x19COMMENT_TOO_MANY_ATTEMPTS\x10\x0fBQ\n" +
+	"\x19COMMENT_TOO_MANY_ATTEMPTS\x10\x0f\x12\x14\n" +
+	"\x10CHAT_UNAVAILABLE\x10\x10\x12\x19\n" +
+	"\x15CHAT_INVALID_ARGUMENT\x10\x11\x12\x1a\n" +
+	"\x16CHAT_TOO_MANY_ATTEMPTS\x10\x12BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

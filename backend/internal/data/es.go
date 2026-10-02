@@ -89,6 +89,11 @@ type esIndexer struct {
 	client   *elasticsearch.Client
 	index    string
 	embedder Embedder
+	// vectorReady reports whether the live index mapping holds the
+	// dense_vector field. Only then do searches include the kNN section; a
+	// mapping without it (created before embedding was enabled) would reject
+	// the whole request, silently degrading search to empty results.
+	vectorReady bool
 }
 
 // NewEsIndexer builds the Elasticsearch-backed article search index. A nil or
@@ -121,8 +126,14 @@ func NewEsIndexer(c *conf.Bootstrap) (biz.ArticleSearchIndex, error) {
 		return nil, nil
 	}
 	if embedder != nil {
-		if err := idx.checkVectorMapping(context.Background()); err != nil {
+		ready, err := idx.probeVectorMapping(context.Background())
+		switch {
+		case err != nil:
 			log.Printf("es: vector mapping check skipped: %v", err)
+		case ready:
+			idx.vectorReady = true
+		default:
+			log.Printf("es: index %s has no dense_vector mapping; search runs BM25-only until reindex", index)
 		}
 	}
 	return idx, nil
@@ -137,39 +148,36 @@ func esIndexDimensions(e Embedder) int {
 	return 0
 }
 
-// checkVectorMapping warns when the live index cannot hold vectors (e.g. it
-// was created before embedding was enabled). The index keeps working BM25-only;
-// re-running the reindex tool recreates it with the dense_vector mapping.
-func (e *esIndexer) checkVectorMapping(ctx context.Context) error {
+// probeVectorMapping reports whether the live index mapping holds a
+// dense_vector "embedding" field.
+func (e *esIndexer) probeVectorMapping(ctx context.Context) (bool, error) {
 	res, err := e.client.Indices.GetMapping(e.client.Indices.GetMapping.WithContext(ctx),
 		e.client.Indices.GetMapping.WithIndex(e.index))
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer func() { _ = res.Body.Close() }()
 	if res.IsError() {
-		return fmt.Errorf("es mapping: %s", res.String())
-	}
-	var out struct {
-		Properties map[string]struct {
-			Type string `json:"type"`
-		} `json:"properties"`
+		return false, fmt.Errorf("es mapping: %s", res.String())
 	}
 	// The response nests the mapping under the index name.
 	wrapper := map[string]json.RawMessage{}
 	if err := json.NewDecoder(res.Body).Decode(&wrapper); err != nil {
-		return err
+		return false, err
 	}
 	for _, raw := range wrapper {
-		if err := json.Unmarshal(raw, &out); err != nil {
-			return err
+		var mapping struct {
+			Properties map[string]struct {
+				Type string `json:"type"`
+			} `json:"properties"`
 		}
-		break
+		if err := json.Unmarshal(raw, &mapping); err != nil {
+			return false, err
+		}
+		field, ok := mapping.Properties["embedding"]
+		return ok && field.Type == "dense_vector", nil
 	}
-	if field, ok := out.Properties["embedding"]; !ok || field.Type != "dense_vector" {
-		log.Printf("es: index %s has no dense_vector mapping; semantic vectors are dropped until reindex", e.index)
-	}
-	return nil
+	return false, nil
 }
 
 // ensureIndex creates the index with the article mapping when missing.
@@ -270,7 +278,11 @@ func (e *esIndexer) RecreateIndex(ctx context.Context) error {
 	if res.IsError() && res.StatusCode != 404 {
 		return fmt.Errorf("es delete index: %s", res.String())
 	}
-	return e.ensureIndex(ctx, esIndexDimensions(e.embedder))
+	if err := e.ensureIndex(ctx, esIndexDimensions(e.embedder)); err != nil {
+		return err
+	}
+	e.vectorReady = esIndexDimensions(e.embedder) > 0
+	return nil
 }
 
 // Refresh flushes pending index writes so re-indexed documents are searchable
@@ -305,10 +317,15 @@ func (e *esIndexer) RemoveArticle(ctx context.Context, slug string) error {
 	return nil
 }
 
-// Search runs a multi_match BM25 query over title (boosted), summary,
-// content, and tags, returning slugs best-match first.
+// Search runs a hybrid query over published articles: BM25 multi_match on
+// title (boosted), summary, content, and tags, combined with kNN over the
+// embedding vectors when the embedder is configured and the index can hold
+// them. Elasticsearch sums the two scores; the knn boost keeps a strong
+// semantic match competitive with high-BM25 keyword hits. Docs without
+// vectors (degraded indexing) only compete on the BM25 side, and a query
+// embedding failure falls back to BM25-only rather than failing the search.
 func (e *esIndexer) Search(ctx context.Context, query string, limit, offset int) ([]string, error) {
-	body, err := json.Marshal(map[string]any{
+	envelope := map[string]any{
 		"query": map[string]any{
 			"multi_match": map[string]any{
 				"query":  query,
@@ -317,7 +334,25 @@ func (e *esIndexer) Search(ctx context.Context, query string, limit, offset int)
 		},
 		"from": offset,
 		"size": limit,
-	})
+	}
+	if e.embedder != nil && e.vectorReady {
+		embedCtx, cancel := context.WithTimeout(ctx, embedCallTimeout)
+		vectors, err := e.embedder.Embed(embedCtx, []string{query})
+		cancel()
+		if err != nil {
+			log.Printf("es: query embedding failed, searching BM25-only: %v", err)
+		} else if len(vectors) == 1 {
+			k := limit + offset
+			envelope["knn"] = map[string]any{
+				"field":          "embedding",
+				"query_vector":   vectors[0],
+				"k":              k,
+				"num_candidates": max(100, k*4),
+				"boost":          2.0,
+			}
+		}
+	}
+	body, err := json.Marshal(envelope)
 	if err != nil {
 		return nil, err
 	}
