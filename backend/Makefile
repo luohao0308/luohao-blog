@@ -20,8 +20,11 @@ api:
 
 .PHONY: build
 # build
+# GOPROXY 可覆盖：国内构建用 goproxy.cn（默认），GitHub Actions 传官方源。
+GOPROXY ?= https://goproxy.cn
+
 build:
-	mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
+	mkdir -p bin/ && GOPROXY=$(GOPROXY) go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
 
 .PHONY: generate
 # generate

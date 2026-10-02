@@ -36,6 +36,8 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
+          build-args: |
+            GOPROXY=https://proxy.golang.org,direct
           tags: |
             ghcr.io/${{ github.repository_owner }}/luohao-blog-${{ matrix.name }}:latest
             ghcr.io/${{ github.repository_owner }}/luohao-blog-${{ matrix.name }}:${{ github.sha }}
