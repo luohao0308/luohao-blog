@@ -3,7 +3,9 @@ FROM golang:1.26 AS builder
 COPY . /src
 WORKDIR /src
 
-RUN GOPROXY=https://goproxy.cn make build
+# 国内服务器构建默认 goproxy.cn；Actions 构建经 build-arg 传官方源。
+ARG GOPROXY=https://goproxy.cn
+RUN make build GOPROXY=${GOPROXY}
 
 FROM debian:stable-slim
 
