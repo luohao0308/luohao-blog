@@ -1,11 +1,12 @@
-# 生产反代模板（M5 启用）：Caddy 自动签发 HTTPS
-# backend 与 frontend 服务由各自的 Dockerfile 提供（M5 补充），先按主机端口反代：
+# 生产反代（M5/S1）：Caddy 自动签发 HTTPS。
+# SITE_ADDRESS 由 deploy/.env.prod 注入：生产设为域名（如 blog.example.com），
+# 本地冒烟默认 :80 纯 HTTP。
+#
+# 全部流量都反代到 Nuxt（BFF）：它同时服务页面和 /api/** 代理，并负责把
+# refresh cookie 的 Path 从 /v1/auth 重写为 /api/v1/auth——若把 /api/* 直接
+# 反代到 Kratos 会绕过该重写，刷新闭环会静默失效（M2/S4 坑五）。
 
-# example.com {
-# 	handle /api/* {
-# 		reverse_proxy 127.0.0.1:8000
-# 	}
-# 	handle {
-# 		reverse_proxy 127.0.0.1:3000
-# 	}
-# }
+{$SITE_ADDRESS::80} {
+	encode gzip
+	reverse_proxy frontend:3000
+}

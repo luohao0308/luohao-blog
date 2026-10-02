@@ -1,0 +1,119 @@
+# 生产 compose：caddy + frontend + backend + mysql + redis + es 单机全栈。
+# 密钥与域名经 deploy/.env.prod 提供（模板 .env.prod.example，Git 忽略真实值）；
+# 后端密钥放 deploy/prod-conf/secrets.local.yaml（Git 忽略）。
+#
+# 用法（服务器上）：
+#   docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d
+#   docker compose -f deploy/compose.prod.yml ps   # 等 caddy/frontend/backend/mysql healthy
+
+name: luohao-blog-prod
+
+services:
+  caddy:
+    image: caddy:2
+    container_name: blog-caddy
+    restart: unless-stopped
+    ports:
+      # 本机 80 被占用时用 HTTP_PORT/HTTPS_PORT 覆盖（如本地冒烟 8080）。
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+    image: luohao-blog-frontend:latest
+    container_name: blog-frontend
+    restart: unless-stopped
+    environment:
+      NUXT_BACKEND_BASE: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend
+    image: luohao-blog-backend:latest
+    container_name: blog-backend
+    restart: unless-stopped
+    environment:
+      KRATOS_DATABASE_SOURCE: ${DATABASE_SOURCE}
+      KRATOS_JWT_SECRET: ${JWT_SECRET:-}
+    volumes:
+      - ./prod-conf:/data/conf:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      es:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/v1/articles/list?page_size=1"]
+      interval: 15s
+      timeout: 5s
+      retries: 15
+
+  mysql:
+    image: mysql:8.4
+    container_name: blog-mysql-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: blog
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # 仅内网：不发布端口，宿主机外不可达。
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: blog-redis-prod
+    restart: unless-stopped
+    # 仅内网；S4 运维基线再评估密码/持久化策略。
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    container_name: blog-es-prod
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  caddy-data:
+  caddy-config:
+  mysql-data:
+  es-data:
