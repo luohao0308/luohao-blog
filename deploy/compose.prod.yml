@@ -30,7 +30,9 @@ services:
   frontend:
     build:
       context: ../frontend
-    image: luohao-blog-frontend:latest
+    # 发布流水线（.github/workflows/release.yml）推 ghcr 镜像；服务器
+    # docker compose pull 即更新。build 段保留作为无镜像环境的本机构建回退。
+    image: ghcr.io/luohao0308/luohao-blog-frontend:latest
     container_name: blog-frontend
     restart: unless-stopped
     environment:
@@ -47,7 +49,7 @@ services:
   backend:
     build:
       context: ../backend
-    image: luohao-blog-backend:latest
+    image: ghcr.io/luohao0308/luohao-blog-backend:latest
     container_name: blog-backend
     restart: unless-stopped
     environment:
