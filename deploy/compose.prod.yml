@@ -49,6 +49,8 @@ services:
   backend:
     build:
       context: ../backend
+      args:
+        APT_MIRROR: mirrors.cloud.tencent.com
     image: ghcr.io/luohao0308/luohao-blog-backend:latest
     container_name: blog-backend
     restart: unless-stopped
