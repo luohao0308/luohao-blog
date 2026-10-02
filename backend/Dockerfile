@@ -9,8 +9,10 @@ RUN make build GOPROXY=${GOPROXY}
 
 FROM debian:stable-slim
 
-# 腾讯云内网镜像源：国内直连 deb.debian.org 极慢/易超时
-RUN sed -i "s|deb.debian.org|mirrors.cloud.tencent.com|g" /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list 2>/dev/null || true
+# apt 镜像源可注入：国内服务器构建传 mirrors.cloud.tencent.com（内网快），
+# GitHub Actions 构建用默认官方源。默认 = 不改写。
+ARG APT_MIRROR=deb.debian.org
+RUN sed -i "s|deb.debian.org|${APT_MIRROR}|g" /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list 2>/dev/null || true
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ca-certificates  \
