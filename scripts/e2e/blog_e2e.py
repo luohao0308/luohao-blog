@@ -13,10 +13,8 @@
     BLOG_ADMIN_PASSWORD 默认 longenough1
 
 说明：
-- 已知 P0 缺陷（文章 tags 字段未判空）会让部分页面 500，相关用例标注
-  known_issue，失败时按「已知缺陷复现」计入，不影响退出码判定。
-- 文章删除与评论删除因后台列表渲染崩溃无法走 UI，改用带 token 的 API 调用完成。
 - 截图输出到 gui-test-screenshots/e2e-py/。
+- 文章删除与评论删除走带 token 的 API 调用（与 UI 路径等价的清理通道）。
 """
 
 from __future__ import annotations
@@ -146,7 +144,7 @@ def api_cleanup_comments(ctx, marker: str) -> int:
 
 # ---------------------------------------------------------------- 公开页面
 
-@run("t01_home_page", "首页 SSR 渲染（已知 P0：无 tag 文章导致 500）", known_issue=True)
+@run("t01_home_page", "首页 SSR 渲染（含无标签文章，tags 判空回归锚点）")
 def t01(page, ctx):
     resp = page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
     assert resp.status == 200, f"首页 HTTP {resp.status}（预期 200，实际为 SSR 500 即 P0 缺陷复现）"
@@ -155,14 +153,14 @@ def t01(page, ctx):
     assert page.locator('a[href^="/posts/"]').count() >= 1, "首页未渲染任何文章卡片"
 
 
-@run("t02_posts_list", "文章列表页 /posts（已知 P0：ArticleCollection tags 未判空）", known_issue=True)
+@run("t02_posts_list", "文章列表页 /posts（ArticleCollection tags 判空回归锚点）")
 def t02(page, ctx):
     resp = page.goto(f"{BASE_URL}/posts", wait_until="domcontentloaded")
     assert resp.status == 200, f"/posts HTTP {resp.status}（500 = P0 缺陷复现）"
     assert page.locator('[aria-label="文章列表"]').is_visible(), "文章列表区块未渲染"
 
 
-@run("t03_tag_page", "标签聚合页 /tags/go（已知 P0：同 ArticleCollection）", known_issue=True)
+@run("t03_tag_page", "标签聚合页 /tags/go")
 def t03(page, ctx):
     resp = page.goto(f"{BASE_URL}/tags/go", wait_until="domcontentloaded")
     assert resp.status == 200, f"/tags/go HTTP {resp.status}（500 = P0 缺陷复现）"
@@ -209,7 +207,7 @@ def t08(page, ctx):
     assert resp.status == 200, f"关于页 HTTP {resp.status}"
 
 
-@run("t09_search_flow", "站内搜索：输入关键词后出结果（已知 P0：列表页崩溃连带）", known_issue=True)
+@run("t09_search_flow", "站内搜索：输入关键词后出结果")
 def t09(page, ctx):
     page.goto(f"{BASE_URL}/posts", wait_until="domcontentloaded")
     page.fill("#article-search", "守卫")
