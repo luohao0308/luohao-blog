@@ -32,10 +32,12 @@ watch(query, async (value) => {
     if (request === searchRequest) searchPending.value = false
   }
 })
-const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags))].sort())
+const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags ?? []))].sort())
 const articles = computed(() => (searchResults.value ?? data.value ?? []).filter(article => {
-  const text = `${article.title} ${article.summary} ${article.tags.join(' ')}`.toLocaleLowerCase()
-  return (!props.tag || article.tags.includes(props.tag)) && text.includes(query.value.trim().toLocaleLowerCase())
+  // tags 在 proto3 JSON 下可能整体缺省，所有取值点都要兜住空数组
+  const tagList = article.tags ?? []
+  const text = `${article.title} ${article.summary ?? ''} ${tagList.join(' ')}`.toLocaleLowerCase()
+  return (!props.tag || tagList.includes(props.tag)) && text.includes(query.value.trim().toLocaleLowerCase())
 }))
 </script>
 

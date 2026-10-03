@@ -17,7 +17,19 @@ import (
 
 const (
 	defaultPageSize = 20
+	// maxPageSize caps every client-controlled list/search page. The proto
+	// promises "the server may apply a default and a maximum"; without the
+	// cap one request could pull the whole table through MySQL LIMIT and ES
+	// size alike.
+	maxPageSize = 100
 )
+
+// clampPageSize enforces maxPageSize on a request's page size in place.
+func clampPageSize(size *int32) {
+	if *size > maxPageSize {
+		*size = maxPageSize
+	}
+}
 
 // invalidListArgument carries a list-query parsing failure (filter,
 // order_by, page_token) as the documented INVALID_ARGUMENT. The AIP parsers
@@ -101,6 +113,7 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
+	clampPageSize(&req.PageSize)
 	listOptions := []biz.ListOption{
 		biz.ListFilter(filter),
 		biz.ListOrderBy(orderBy),

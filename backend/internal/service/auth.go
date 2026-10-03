@@ -179,14 +179,17 @@ func clearRefreshCookie(ctx context.Context) {
 	})
 }
 
-// clientIP returns the best-effort caller address for rate limiting: the
-// first X-Forwarded-For hop when a proxy provided one, otherwise the TCP
-// peer. Never used as an identity — only as a throttle key.
+// clientIP returns the best-effort caller address for rate limiting. Behind
+// the proxy chain (Caddy → BFF → backend) every trusted hop APPENDS to
+// X-Forwarded-For, so the rightmost entry is the client address as seen by
+// the proxy we control — the leftmost entry is fully client-controlled and
+// taking it would hand out a fresh throttle bucket per request. Without the
+// header the TCP peer is used. Never used as an identity — only as a
+// throttle key.
 func clientIP(ctx context.Context) string {
 	if tr, ok := transport.FromServerContext(ctx); ok {
-		if xff := tr.RequestHeader().Get("X-Forwarded-For"); xff != "" {
-			hop, _, _ := strings.Cut(xff, ",")
-			return strings.TrimSpace(hop)
+		if ip := rightmostForwardedIP(tr.RequestHeader().Get("X-Forwarded-For")); ip != "" {
+			return ip
 		}
 	}
 	if req, ok := kratoshttp.RequestFromServerContext(ctx); ok {
@@ -196,4 +199,16 @@ func clientIP(ctx context.Context) string {
 		return req.RemoteAddr
 	}
 	return "unknown"
+}
+
+// rightmostForwardedIP returns the last non-empty entry of a comma-separated
+// X-Forwarded-For list; empty input yields "".
+func rightmostForwardedIP(xff string) string {
+	parts := strings.Split(xff, ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if ip := strings.TrimSpace(parts[i]); ip != "" {
+			return ip
+		}
+	}
+	return ""
 }

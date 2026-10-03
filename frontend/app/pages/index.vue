@@ -63,7 +63,7 @@ const featuredProjects = projects.filter((p) => p.featured)
         >
           <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
             <time>{{ formatDate(a.published_at || a.created_at) }}</time>
-            <span>{{ a.tags[0] ?? '随笔' }}</span>
+            <span>{{ a.tags?.[0] ?? '随笔' }}</span>
           </div>
           <h3 class="mt-2 font-semibold">{{ a.title }}</h3>
           <p class="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
