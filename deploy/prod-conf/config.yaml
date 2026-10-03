@@ -4,8 +4,9 @@
 server:
   http:
     addr: 0.0.0.0:8000
-    # 覆盖 chat 生成（LLM 调用在请求预算内）。
-    timeout: 60s
+    # 必须大于 chat 全链路预算：ES 检索 + embedding(10s) + LLM(120s) + 渲染
+    # 余量。服务端 deadline ≤ llm.timeout 会把慢生成中途整体取消。
+    timeout: 150s
   grpc:
     addr: 0.0.0.0:9000
     timeout: 60s

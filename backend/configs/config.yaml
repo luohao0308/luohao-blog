@@ -1,8 +1,10 @@
 server:
   http:
     addr: 0.0.0.0:8000
-    # Must cover the slowest endpoint: chat generation waits on the LLM.
-    timeout: 60s
+    # Must exceed the slowest endpoint's budget: chat = ES retrieval +
+    # embedding (10s) + LLM generation (120s) + rendering slack. A server
+    # deadline at or below llm.timeout cancels slow generations mid-flight.
+    timeout: 150s
   grpc:
     addr: 0.0.0.0:9000
     timeout: 60s
