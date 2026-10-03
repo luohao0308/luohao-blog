@@ -110,7 +110,7 @@ const columns: DataTableColumns<Article> = [
     render: row => h(
       'span',
       { class: 'text-xs text-slate-500 dark:text-slate-400' },
-      { default: () => row.tags.join(' / ') },
+      { default: () => (row.tags ?? []).join(' / ') },
     ),
   },
   {
