@@ -1,0 +1,217 @@
+<!-- AI-WORKFLOW:CORE:START -->
+# AI 协作协议（通用核心）
+
+本文件是项目级 AI 协作规则的通用核心。它定义信息如何读取、任务如何推进、变更如何验证和知识如何沉淀，不绑定具体模型、编辑器、编程语言、框架或业务领域。
+
+## 共享信息源
+
+| 文件或目录 | 职责 |
+|---|---|
+| `AGENTS.md` | 项目级 AI 行为规则、协作约束和安全边界 |
+| `docs/README.md` | 文档导航、读取顺序和权威边界 |
+| `docs/TASKS.md` | 当前任务状态、待办、阻塞和技术债 |
+| `docs/WORKING-CONTEXT.md` | 本机当前主任务的短期上下文和交接摘要，不作为团队记录源 |
+| `docs/WORKFLOW-ADOPTION.md` | dev-workflow 首次接入状态、既有文档映射和审计记录 |
+| `docs/PROJECT-SUMMARY.md` | 稳定项目事实、模块摘要、技术决策、命令和路径速查 |
+| `.dev-workflow/manifest.json` | 已安装版本、流程包、文件归属和机器可读接入状态 |
+| `docs/development/ai/feature-catalog.json`（如启用） | 全量功能层级、实现状态、生产成熟度、证据和已知缺口 |
+| `docs/project-memory/` | 本机/Agent 长期记忆，不作为团队项目事实源 |
+| `docs/architecture/`（如启用） | 系统、仓库、模块和运行时架构 |
+| `docs/design/` 或根 `DESIGN.md`（如启用） | 当前有效的产品/技术设计与验收口径 |
+| `docs/plans/`（如启用） | 多步骤变更的范围、阶段、风险和完成标准 |
+| `docs/development/`（如启用） | 开发命令、Git 隔离、验证矩阵和变更影响规则 |
+| `docs/contracts/`（如启用） | API、事件、Schema、CLI 等机器契约 |
+| `docs/operations/`（如启用） | 发布、Preflight、健康检查、观测和回滚 |
+| `docs/工作日志/`（如启用） | 本机临时过程记录；正式验证证据留在 CI/部署平台 |
+
+## 读取顺序
+
+1. 读取本文件，了解项目级规则、安全边界和局部规则层级。
+2. 读取 `docs/README.md`，确认文档导航和权威范围。
+3. 读取 `docs/TASKS.md`，确认当前任务状态、阻塞和技术债。
+4. 如果 `docs/WORKING-CONTEXT.md` 的 `status` 为 `active` 且未超过 `expires`，读取它。
+5. 如果启用了并行任务上下文，按 `docs/working-context/README.md` 选择当前任务对应的上下文文件，不要把多个任务混进一个文件。
+6. 如果 `docs/WORKFLOW-ADOPTION.md` 仍为 `pending`，先完成首次项目画像和既有文档映射，再开始需要项目事实的代码修改。
+7. 如果安装了 `feature-catalog` 流程包，并且任务涉及功能状态、规划、缺陷定位或发布就绪度，先使用 `python3 scripts/feature_catalog.py --query "<task>"` 定位相关能力和证据；不要加载整个目录。
+8. 根据当前任务按需读取 `PROJECT-SUMMARY.md`、架构/设计/计划/契约/测试/运维文档；不要无差别加载整个文档目录。
+
+## 首次接入与项目画像
+
+如果 `PROJECT-SUMMARY.md`、项目扩展区或开发命令仍是占位内容，先做一次只读项目画像扫描，再开始代码修改。至少确认：
+
+- 仓库拓扑（单仓库、Monorepo、多仓库工作区）及每个目录的所有权；
+- 主要入口、模块边界、运行时依赖和本地启动方式；
+- 测试、lint、类型检查、构建、迁移和 CI 入口；
+- API/事件/Schema 等对外契约及其生成来源；
+- 生产、部署、数据和凭据边界；
+- 当前未知项、无法验证的假设和需要人类确认的事项。
+
+把已经验证的稳定事实填入 `PROJECT-SUMMARY.md`，把项目专属约束填入本文件底部的扩展区。未确认的内容写成 Unknown，不要猜测。
+
+如果安装了 `feature-catalog` 流程包，接入期间运行 `python3 scripts/feature_catalog.py --init`，用项目事实替换脚手架条目，生成 `docs/FEATURE-MATRIX.md`，并把 `--check` 接入适用的项目 CI。活动清单和矩阵属于项目数据，不属于安装器模板。
+
+首次接入完成后，更新 `docs/WORKFLOW-ADOPTION.md` 的状态和审计证据；安装清单中的 `onboarding.status` 应与其保持一致，并在最终审计后记录 UTC `lastAuditAt`。审计脚本本身是只读的，不会替接入者修改状态。既有项目的现有文档不因模板路径不同而被覆盖或复制成第二套权威源。
+
+## 文档职责边界
+
+- `TASKS.md` 只记录任务状态、明确待办、阻塞和技术债，不堆放完整过程证据。
+- `feature-catalog.json`（如启用）记录全量产品/系统能力、实现状态、成熟度和证据，不替代只记录当前工作的 `TASKS.md`；`FEATURE-MATRIX.md` 是生成视图，不手工维护。
+- `WORKING-CONTEXT.md` 只记录本机当前主任务的临时目标、决策、阻塞、下一步和验证摘要；任务完成或过期后清理，不提交。
+- `PROJECT-SUMMARY.md` 只保存稳定事实、命令、边界和路径速查，不作为实时任务或历史证据来源。
+- `architecture/` 记录从代码和运行事实中确认的稳定结构，不记录一次性方案争论。
+- `design/` 和 `plans/` 记录当前有效的目标、取舍、实施阶段和验收口径；被替代内容移入归档。
+- `contracts/` 记录机器可验证的接口/事件/Schema 契约；人工指南不能悄悄替代机器契约。
+- `project-memory/` 只保存本机/Agent 的长期记忆，不作为团队 Runbook、架构、契约或部署规范的权威源。
+- 团队共享的可重复操作流程放在 `docs/operations/runbooks/` 并纳入 Git 评审；一次性部署流水、环境快照和命令输出留在受控平台或 artifacts。
+- 工作日志只用于本机临时追溯，不提交；不能覆盖当前代码、接口或任务状态。
+- 代码、测试结果和运行中接口是行为事实的最终证据；文档与代码冲突时必须显式报告并重新验证。
+
+## 规则分层
+
+- 根 `AGENTS.md` 负责全项目通用规则和项目级边界。
+- 子项目可以放置同名 `AGENTS.md`，只补充该目录的技术命令、所有权和局部禁区，不复制通用核心。
+- 更深目录的规则只能收窄局部范围，不能解除根规则的安全约束。
+- 不为 Claude、Gemini、Cursor、Copilot 等工具复制整套规则；需要适配时由工具自身读取入口解决。
+
+## 任务推进与移交
+
+开始任务前：
+
+- 明确目标、范围、成功标准和不在范围内的事项；
+- 检查当前工作树、仓库拓扑和已有用户改动，不能覆盖或顺带提交无关变更；
+- 识别是否需要设计、计划、契约、迁移、运维或独立审查；
+- 如果安装了 `feature-catalog`，先查询相关功能的实现状态、成熟度、代码/测试入口和已知缺口；
+- 只读取当前任务需要的文档和代码。
+
+执行任务时：
+
+- 优先复用现有模式和工具，保持变更小而可回退；
+- 先验证假设，再修改；不要把未验证的推断写成稳定事实；
+- 代码、配置、契约、数据或运行时行为变化时，执行与变更直接相关的检查；
+- 如果变更影响已登记功能，更新活动功能清单、验证证据和已知缺口，再重新生成矩阵；
+- 如果启用了 `docs/plans/`，多文件或高风险变更先建立计划并链接到任务；
+- 如果启用了 `docs/contracts/` 或 `docs/operations/`，按变更影响矩阵同步契约、迁移、发布和回滚材料。
+
+## 默认开发闭环（轻量核心 + 风险插件）
+
+每个实现任务默认只走以下五步；不要把所有测试方法都升级为固定清单：
+
+1. **目标与完成标准**：写清目标、范围、非目标，以及能证明完成的行为。
+2. **风险分类**：判断任务是低风险、跨边界、高风险、不可逆还是探索性工作。
+3. **测试或 Eval 先行**：为关键行为先准备最小失败测试、Eval fixture 或可执行检查。
+4. **小型垂直切片**：一次实现一个可观察、可回退的端到端切片。
+5. **验证与证据**：读取检查输出，记录通过、未验证项、剩余风险和回退点。
+
+这里的术语是角色映射，而不是额外的流程阶段：SDD/ATDD 主要落在第 1 步，TDD/EDD
+主要落在第 3 步，Contract、Property、E2E 和对抗性验证按风险在第 5 步启用。
+
+风险插件只在满足条件时启用：
+
+| 触发条件 | 最小追加验证 |
+|---|---|
+| API、事件、Schema、插件或服务边界变化 | Contract test 与关键消费者回归 |
+| 并发、权限、安全、状态机或恢复路径变化 | Invariant/Property test 与负向场景 |
+| Prompt、RAG、Agent routing 或模型行为变化 | 固定 fixture 的 Eval 与 regression gate |
+| 跨页面、桌面、真实运行时或视觉行为变化 | E2E、浏览器或视觉冒烟 |
+| 迁移、发布、删除、生产或其他不可逆操作 | 备份/回滚验证；必要时人工确认 |
+| 目标或方案仍不确定 | 先做有明确停止条件的 spike，再回到规格与测试 |
+
+无论任务大小，每条验收标准都必须映射到 test、Eval 或其他可执行检查；若测试先行
+不适用，必须记录原因和替代证据。没有新鲜验证证据时，不得宣称任务完成。
+
+需要移交时：
+
+1. 在 `TASKS.md` 更新任务状态，并保留简短的交接指针；
+2. 在 `WORKING-CONTEXT.md` 或任务专属上下文中记录已完成步骤、当前决策、阻塞、下一步和验证摘要；
+3. 通知接手者按 `TASKS.md` → 上下文 → 领域文档 → 验证证据的顺序继续。
+
+## 交付治理与权限策略
+
+交付治理分为三层，任何一层都不能由另一层推导或覆盖：
+
+1. **流程要求**：决定何时需要 Issue、PR、CI 和独立 Review。feature、bug、安全、跨模块或其他需要追踪的工作应关联 Issue；小型、局部、低风险改动不强制创建 Issue。
+2. **执行权限**：决定谁可以 push、创建/更新 PR、合并远端 PR，以及执行前是否需要人工确认。
+3. **质量门禁**：决定当前提交是否具备进入目标分支的证据。PR 和 CI 必须通过；独立 Review 由 `.dev-workflow/manifest.json` 的 `independentReviewRequired` 决定。
+
+开始改变远端 Git 状态前，读取 `.dev-workflow/manifest.json` 中的 `gitPolicy`：
+
+- `pushMode` / `pullRequestMode` / `mergeMode` 为 `manual` 时，执行前必须获得本次操作的人工确认；为 `auto` 时只表示该操作可以无需再次确认。
+- `pushActor` / `pullRequestActor` / `mergeActor` 为 `user` 时，默认由用户执行，AI 只准备命令和验证证据；为 `ai` 时，AI 可以在对应 mode 和质量门允许后执行。
+- 这里的 `merge` 仅指在远端代码托管平台合并 PR；本地 `git merge` 属于可逆的本地分支整理，不获得远端 push 或 PR merge 权限。
+- `auto` 只允许与 `ai` 组合；`manual + ai` 表示 AI 在获得本次确认后执行。缺少策略或字段无法验证时，一律按 `manual + user` 处理。
+- 修改持久权限策略本身固定需要人工确认，并记录 `policyChangedAt` / `policyChangedBy`。不得根据现有 `auto`、现有 actor、历史对话、仓库写权限或已有凭据推导出修改策略的授权。
+- 一次性授权必须绑定 `repo + remote + remote URL + operation + source ref + target ref + exact SHA + expiry + maxUses`。任一项改变、授权过期、次数耗尽或执行失败后需要重试时，重新获得授权；一次性授权不改变 manifest，也不延伸到其他操作。授权文件和消耗记录只放在 `.dev-workflow/`。
+- `deleteAllowed` 固定为 `false`。删除远端分支、标签、Release、仓库内容、数据或其他难恢复对象，必须针对明确目标另行授权并执行删除前安全检查。
+- `pullRequestRequired`、`ciRequired` 默认并保持为 `true`；独立 Review 按 `independentReviewRequired` 执行；`forcePushAllowed`、`directProtectedBranchPushAllowed` 固定为 `false`，`privilegedOperationsDefault` 固定为 `deny`。
+- Issue 的创建、编辑、评论、关闭或重新打开不在普通初始化权限中，默认按 `manual + user` 处理；流程要求存在 Issue 不等于授权 AI 修改远端 Issue。
+
+远端 PR merge 必须 fail-closed：执行前重新验证 PR 存在且仍开放、head/base 与授权目标一致、准确 head SHA 未变化、required CI 全部通过且分支保护允许合并。仅当 manifest 启用独立 Review 时才要求独立批准；任何适用信息缺失、无法读取、过期或不一致都停止合并。
+
+AI 执行 push、PR 创建/更新和远端 PR merge 必须先通过 Core 自带的 `python3 scripts/delivery_guard.py check`。`actor=user` 时 guard 不得为 AI 放行；`actor=ai` 即使为 `auto + ai` 也必须提供有效的一次性授权，`auto` 只免除授权范围内的再次交互。紧邻真实操作的最终检查使用 `--consume` 记录次数；每类操作同时提供五分钟内、绑定当前仓库/remote/ref/SHA 的托管平台证据，merge 再绑定 PR number、CI、独立人工 Review 和分支保护。guard 不通过时不得继续。
+
+创建或推送 tag、创建 Release、发布包或镜像、部署、迁移/回填、回滚、流量切换、修改仓库设置、操作凭据以及触发/取消发布工作流不进入普通初始化，默认拒绝。它们必须按具体目标、环境、不可变版本、有效期和操作逐次授权；push、PR 或 merge 权限均不蕴含这些权限。
+
+本地 manifest 只约束当前机器上的 AI 行为，不能替代远端强制控制。项目必须在代码托管和部署平台按风险配置 branch protection、required checks、CODEOWNERS/独立审批和 environment approval；本地规则与远端状态冲突或远端状态无法验证时按更严格边界执行。
+
+安装器在 Git 仓库中只维护 Git 解析出的 `info/exclude` 的 `dev-workflow managed` 区块，不修改项目 `.gitignore`。`.dev-workflow/` 和安装器实际创建的本地流程文件会按字面路径排除，并验证 Git 的最终 ignore 结果；已经被 Git 跟踪或被更高优先级规则重新放行的文件不受该 exclude 保护，遇到这种情况应告警并由用户决定是否调整 Git 索引或项目规则。受管区块标记不完整、重复或倒序时，安装和卸载必须在修改项目文件前停止。非 Git 目录跳过本地排除配置。
+
+## 安全与变更边界
+
+- 不读取、提交或传播密码、Token、Cookie、私钥、完整签名 URL 或其他凭据；
+- 未明确授权时，不执行生产环境破坏性操作、不可逆数据操作或强制 Git 操作；
+- 不使用宽泛路径、批量删除或覆盖命令处理不明确的目标；
+- 不修改与当前任务无关的代码、文档、生成物或私有运行时状态；
+- 任何外部动态值、线上地址、镜像、服务状态和权限配置都必须重新验证，不能把历史快照当成当前状态；
+- 数据库 Schema、数据回填和删除操作必须先明确备份、兼容窗口、验证和恢复路径。
+
+## 大型计划拆分与确认门
+
+将任务判定为大型计划的条件包括：用户明确提出大规划、roadmap 或多阶段交付；任务改变高风险契约、迁移、安全、发布或恢复边界；或者以下信号中至少同时满足两项：
+
+- 跨越两个或以上模块、仓库或所有权边界；
+- 包含三个或以上有序实施阶段；
+- 产生多个可以独立验证的结果；
+- 无法合理放入一次专注的实施与验证会话。
+
+大型计划在实施前只收集必要的只读证据，并自动拆成 `2-6` 个有序、可独立验收的切片。必须先向用户列出每个切片的目标结果、修改范围、依赖、验收方式和回退点，计划状态设为 `awaiting_user_confirmation`。
+
+用户可以批准原拆分，也可以要求合并、继续拆分、重排或调整范围。确认前不得修改产品代码、配置、契约，不得创建交付 PR，也不得改变外部状态。小型、局部、低风险且可以一次验证的改动不增加这道确认门。
+
+确认后将切片写入项目的计划文档，状态改为 `approved`，同时最多只有一个切片为 `in_progress`。当前切片完成验收并记录证据后再推进下一个。只有范围、顺序、接口、迁移或风险发生实质变化时才重新确认；切片内部的普通实现调整不触发新的确认轮次。
+
+## 验证与完成标准
+
+完成前必须：
+
+1. 针对变更运行能证明目标的最小有效验证；
+2. 按项目适用性运行 lint、类型检查、测试、构建、迁移、契约或静态检查；
+3. 运行时代码、配置、依赖或启动逻辑变化时，只重启当前任务拥有的服务并执行最小冒烟；
+4. 检查差异、编码、Markdown 链接、生成文件和敏感信息；
+5. 检查变更影响范围，更新需要同步的任务、功能清单、摘要、架构、设计、契约、Runbook 或长期经验文档；若启用 feature-catalog，运行 `--check`；
+6. 汇报变更文件、验证命令、结果、证据路径和仍存在的风险；无法运行的检查必须写明原因和替代证据。
+
+<!-- AI-WORKFLOW:CORE:END -->
+
+<!-- AI-WORKFLOW:PROJECT:START -->
+## 项目专属扩展
+
+### 项目定位
+
+个人技术博客（全栈开发 & AI Agent 方向）。仓库 `github.com/luohao0308/luohao-blog`，Public，默认分支 `main`。当前为空仓库阶段，仅 README + dev-workflow 流程文件；技术选型已定（Go + Kratos 后端、Vue 3 + Nuxt 4 前端、MySQL/Redis/ES/MinIO、Eino RAG），详见 `docs/PROJECT-SUMMARY.md`。规划目录：`backend/`、`frontend/`、`deploy/`。
+
+### 里程碑边界
+
+M0 脚手架 → M1 内容核心 → M2 账号后台 → M3 互动统计 → M4 Agent 管道 → M5 上线。第一版范围 = M0–M2；不要在未确认的情况下跨越里程碑引入范围内功能（例如提前实现 Agent 聊天）。
+
+### 协作与语言
+
+- 与用户沟通使用中文；commit message 使用英文 Conventional Commits（`feat/fix/docs/chore/...`）。
+- 交付分支命名遵循 `feat/*`、`fix/*`、`docs/*`、`chore/*`；本机临时分支用 `codex/*` 且禁止 push。
+
+### 权限与交付边界
+
+- `gitPolicy` 为 `manual + user`：push、PR 创建/更新、远端 PR merge 均需用户逐次确认后执行，执行前运行 `python3 scripts/delivery_guard.py check`。
+- `main` 分支质量门：PR + required CI；是否要求独立 Review 以 manifest 和远端 branch protection 为准。
+- 空仓库阶段禁止虚构或运行不存在的构建/测试命令；M0 脚手架落地后本区回填真实命令矩阵。
+
+<!-- AI-WORKFLOW:PROJECT:END -->
