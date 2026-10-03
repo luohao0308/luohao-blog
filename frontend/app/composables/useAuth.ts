@@ -27,6 +27,7 @@ export interface LoginReply {
 // Never written on the server, so cross-request leakage is not a concern.
 let accessToken = ''
 let restorePromise: Promise<void> | null = null
+let refreshPromise: Promise<void> | null = null
 
 export function useAuth() {
   const user = useState<AuthUser | null>('auth:user', () => null)
@@ -70,16 +71,40 @@ export function useAuth() {
     applyReply(reply)
   }
 
+  // Single-flight refresh: the backend consumes the refresh token atomically
+  // (GETDEL rotation), so two concurrent 401 retries each firing their own
+  // refresh would race — the loser gets a guaranteed 401 and would wipe the
+  // session the winner just restored (the "fake logout" from the 2026-10
+  // review). All refresh callers share one in-flight promise instead.
+  function refreshOnce(): Promise<void> {
+    if (!refreshPromise) {
+      refreshPromise = refresh().finally(() => {
+        refreshPromise = null
+      })
+    }
+    return refreshPromise
+  }
+
   // Recover a session after a page reload. Singleton so concurrent callers
   // (middleware + page) share one refresh attempt and do not race the
   // single-use rotation; failure settles into the logged-out state.
   function ensureSession(): Promise<void> {
     if (import.meta.server)
       return Promise.resolve()
+    // Already holding an access token: nothing to restore. This also keeps
+    // layout-level ensureSession() calls from burning a rotation after login.
+    if (accessToken)
+      return Promise.resolve()
     if (!restorePromise) {
-      restorePromise = refresh().catch(() => {
-        clearSession()
-      })
+      restorePromise = refreshOnce()
+        .catch(() => {
+          clearSession()
+        })
+        .finally(() => {
+          // Settled restores must not be cached for the SPA lifetime: a
+          // transient backend blip otherwise blocks every later navigation.
+          restorePromise = null
+        })
     }
     return restorePromise
   }
@@ -99,7 +124,7 @@ export function useAuth() {
       if (!isUnauthorized(err))
         throw err
       try {
-        await refresh()
+        await refreshOnce()
       }
       catch {
         clearSession()
