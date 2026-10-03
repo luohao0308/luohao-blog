@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
@@ -22,13 +23,28 @@ const (
 	// cap one request could pull the whole table through MySQL LIMIT and ES
 	// size alike.
 	maxPageSize = 100
+	// maxPageOffset bounds the client-controlled pagination offset. ES
+	// rejects from+size beyond its max_result_window (10000) with an error
+	// that would surface as a 500, and a huge MySQL OFFSET is a slow scan;
+	// offsets deeper than one window are not a real use case for a blog.
+	// 9900 + the 100-page-size cap keeps from+size within ES's window.
+	maxPageOffset = 9900
 )
+
+// errPageOffsetOutOfRange marks a syntactically valid page token whose
+// offset escapes the pagination window (negative, or beyond maxPageOffset).
+var errPageOffsetOutOfRange = errors.New("page offset beyond the pagination window")
 
 // clampPageSize enforces maxPageSize on a request's page size in place.
 func clampPageSize(size *int32) {
 	if *size > maxPageSize {
 		*size = maxPageSize
 	}
+}
+
+// pageOffsetWithinWindow reports whether a parsed offset is usable as-is.
+func pageOffsetWithinWindow(offset int64) bool {
+	return offset >= 0 && offset <= maxPageOffset
 }
 
 // invalidListArgument carries a list-query parsing failure (filter,
@@ -102,6 +118,9 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
 		return nil, invalidListArgument(err)
+	}
+	if !pageOffsetWithinWindow(pageToken.Offset) {
+		return nil, invalidListArgument(errPageOffsetOutOfRange)
 	}
 	orderBy, err := ordering.ParseOrderBy(req)
 	if err != nil {
