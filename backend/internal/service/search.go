@@ -34,6 +34,11 @@ func (s *ArticleSearchService) SearchArticles(ctx context.Context, req *v1.Searc
 		// errors that Kratos would map to 500; the contract promises 400.
 		return nil, invalidListArgument(err)
 	}
+	if !pageOffsetWithinWindow(pageToken.Offset) {
+		// ES rejects from+size beyond its max_result_window with an error
+		// that would surface as a 500 — reject the offset up front.
+		return nil, invalidListArgument(errPageOffsetOutOfRange)
+	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}

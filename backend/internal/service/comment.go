@@ -47,6 +47,9 @@ func (s *CommentService) ListArticleComments(ctx context.Context, req *v1.ListAr
 		// errors that Kratos would map to 500; the contract promises 400.
 		return nil, biz.ErrCommentInvalidArgument.WithCause(err)
 	}
+	if !pageOffsetWithinWindow(pageToken.Offset) {
+		return nil, biz.ErrCommentInvalidArgument.WithCause(errPageOffsetOutOfRange)
+	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
@@ -88,6 +91,9 @@ func (s *CommentService) ListComments(ctx context.Context, req *v1.ListCommentsR
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
 		return nil, biz.ErrCommentInvalidArgument.WithCause(err)
+	}
+	if !pageOffsetWithinWindow(pageToken.Offset) {
+		return nil, biz.ErrCommentInvalidArgument.WithCause(errPageOffsetOutOfRange)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
