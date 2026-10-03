@@ -136,6 +136,15 @@ export function useAuth() {
 
   async function logout(): Promise<void> {
     try {
+      // An in-flight refresh is rotating the session server-side: revoking
+      // the stale cookie now would be a no-op, and the rotation's reply
+      // would re-apply the token plus its fresh Set-Cookie right after the
+      // logout's clearing cookie — resurrecting the session on the next
+      // page load (the "fake login" mirror of the fake-logout race). Let
+      // the rotation land first, then revoke the live session.
+      if (refreshPromise) {
+        await refreshPromise.catch(() => {})
+      }
       await $fetch('/api/v1/auth/logout', { method: 'POST', headers: jsonHeaders })
     }
     finally {
