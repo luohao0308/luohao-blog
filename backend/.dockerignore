@@ -1,0 +1,14 @@
+# 构建上下文最小化：本机 secrets 绝不能进镜像层（compose 本机构建回退路径
+# 会执行 COPY . /src）。
+.git
+.gitignore
+Dockerfile
+docker-compose*.yml
+
+# 本机密钥：真实 API key 只进这个文件，禁止进构建上下文
+configs/secrets*.yaml
+
+# 本机产物与文档
+bin/
+*.log
+.DS_Store

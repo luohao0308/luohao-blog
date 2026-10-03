@@ -4,6 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# 备份含全库数据：文件权限一律 600，防止同机其他用户读取
+umask 077
+
 KEEP=${KEEP:-14}
 COMPOSE="docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod"
 
