@@ -43,11 +43,14 @@ func (s *CommentService) CreateComment(ctx context.Context, req *v1.CreateCommen
 func (s *CommentService) ListArticleComments(ctx context.Context, req *v1.ListArticleCommentsRequest) (*v1.CommentSet, error) {
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
-		return nil, err
+		// Same treatment as the admin list below: AIP parse errors are plain
+		// errors that Kratos would map to 500; the contract promises 400.
+		return nil, biz.ErrCommentInvalidArgument.WithCause(err)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
+	clampPageSize(&req.PageSize)
 	comments, err := s.uc.ListPublic(ctx, req.GetSlug(), int(req.PageSize), int(pageToken.Offset))
 	if err != nil {
 		return nil, err
@@ -89,6 +92,7 @@ func (s *CommentService) ListComments(ctx context.Context, req *v1.ListCommentsR
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
+	clampPageSize(&req.PageSize)
 	comments, err := s.uc.ListAdmin(ctx,
 		biz.CommentListFilter(biz.CommentFilter{Filter: filter}),
 		biz.CommentLimit(int(req.PageSize)),

@@ -30,11 +30,14 @@ func (s *ArticleSearchService) SearchArticles(ctx context.Context, req *v1.Searc
 	}
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {
-		return nil, err
+		// Same treatment as the article list: AIP parse errors are plain
+		// errors that Kratos would map to 500; the contract promises 400.
+		return nil, invalidListArgument(err)
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = defaultPageSize
 	}
+	clampPageSize(&req.PageSize)
 	articles, err := s.uc.SearchArticles(ctx, req.GetQuery(), int(req.PageSize), int(pageToken.Offset))
 	if err != nil {
 		return nil, err
