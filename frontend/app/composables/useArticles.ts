@@ -28,6 +28,8 @@ export interface Article {
   content_md: string
   content_html: string
   tags: string[]
+  // Single curated category; absent when the article is uncategorized.
+  category?: { slug: string, name: string } | null
   status: ArticleStatus
   published_at?: ArticleTimestamp
   created_at: ArticleTimestamp
