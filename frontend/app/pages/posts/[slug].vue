@@ -22,6 +22,25 @@ const adjacent = computed(() => {
   return index < 0 ? {} : { newer: list[index - 1], older: list[index + 1] }
 })
 
+// Related articles rank shared category (weighted) and tags above the rest;
+// when nothing overlaps, the latest articles fill in so the section doubles
+// as "keep reading" rather than disappearing.
+const related = computed(() => {
+  const list = published.value ?? []
+  const currentTags = article.value.tags ?? []
+  const currentCategory = article.value.category?.slug
+  const scored = list
+    .filter(item => item.slug !== slug.value)
+    .map((item) => {
+      const shared = (item.tags ?? []).filter(tag => currentTags.includes(tag)).length
+        + (item.category?.slug && item.category.slug === currentCategory ? 2 : 0)
+      return { item, shared }
+    })
+  scored.sort((a, b) => b.shared - a.shared)
+  const hits = scored.filter(entry => entry.shared > 0).slice(0, 3)
+  return (hits.length ? hits : scored.slice(0, 3)).map(entry => entry.item)
+})
+
 // Like state mirrors the server's per-client dedup: localStorage remembers
 // the like so the button reflects this browser, while the server enforces
 // the real 24h window. Optimistic on click; the displayed count reads SSR
@@ -103,6 +122,23 @@ useHead({ title: article.value.title })
     <div class="markdown-body space-y-4 leading-7" v-html="article.content_html" />
     <ChatWindow />
     <CommentSection :slug="slug" />
+    <section v-if="related.length" class="space-y-4 border-t border-slate-200 pt-8 dark:border-slate-800">
+      <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">相关文章</h2>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <NuxtLink
+          v-for="item in related"
+          :key="item.id"
+          :to="`/posts/${encodeURIComponent(item.slug)}`"
+          class="rounded-lg border border-slate-200 p-4 transition-shadow hover:shadow-md dark:border-slate-800"
+        >
+          <h3 class="line-clamp-2 text-sm font-medium">{{ item.title }}</h3>
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            {{ (item.tags ?? [])[0] ?? '随笔' }} · {{ formatDate(item.published_at || item.created_at) }}
+          </p>
+        </NuxtLink>
+      </div>
+    </section>
+
     <nav v-if="adjacent.newer || adjacent.older" aria-label="相邻文章" class="grid gap-6 border-t border-slate-200 pt-8 sm:grid-cols-2 dark:border-slate-800">
       <div>
         <NuxtLink v-if="adjacent.newer" :to="`/posts/${encodeURIComponent(adjacent.newer.slug)}`" class="block space-y-2 hover:text-[#3c5d85] dark:hover:text-blue-300">
