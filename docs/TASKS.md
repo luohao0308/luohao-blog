@@ -48,8 +48,8 @@ _last-updated: 2026-10-04_
 - [x] M2+ 内容组织（分类部分）：独立分类体系三切片交付——S1 后端 Category 模型/契约/category 过滤（PR #31 squash 合并 merge `96b65f3`）；S2 管理后台分类管理+文章表单分类选择（PR #32 squash 合并 merge `d95875d`）；S3 前台分类导航+/categories 总览+聚合页（PR #33 squash 合并 merge `d3f8398`）；设计与执行记录 `docs/plans/M2PLUS-CATEGORY-2026-10.md`（2026-10-04）
 - [x] M2+ 项目展示增强：作品集技术栈筛选（T-005 已有，本轮核验）+ 项目详情关联项目推荐（按技术栈重叠度排序，零重叠兜底展示其余项目）；前端 lint/typecheck/build + 预览冒烟通过（2026-10-04）
 - [ ] M3 互动与增长能力：RSS 订阅、邮件订阅、阅读排行榜
-- [ ] M3 内容推荐体系：相关文章推荐、热门内容推荐位
-- [ ] M3 用户互动能力：点赞、收藏、评论体验增强（评论已上线，补齐前台体验与数据展示）
+- [x] M3 内容推荐体系：相关文章推荐（分类加权+标签重叠，回退最新）+ 文章列表热门阅读位（PR #38 squash 合并 merge `fc7be0d`）（2026-10-05）
+- [x] M3 用户互动能力：点赞（后端 like_count+去重 PR #36 merge `f70ff20`；前端按钮 PR #37 merge `524badc`，content-type 修复 #40 merge `301de3f`）、收藏（localStorage 本地方案 + /collections 页）、评论体验（待审块/昵称记忆/字数统计/重试，PR #39 merge `07d582c`）；生产已部署验收（2026-10-05）
 
 ## 未授权或未立项 (Do Not Start)
 

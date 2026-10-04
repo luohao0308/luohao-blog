@@ -1,6 +1,15 @@
 # M3 内容推荐体系 + 用户互动能力实施计划
 
-_status: approved（2026-10-04，用户批准四切片）_
+_status: delivered（2026-10-05，四切片 + 一项实弹修复全部合并并部署）_
+
+## 交付记录
+
+- S1 点赞后端：PR #36 squash 合并（merge `f70ff20`）
+- S2 点赞/收藏前端：PR #37（merge `524badc`）
+- S3 内容推荐体系：PR #38（merge `fc7be0d`）
+- S4 评论体验增强：PR #39（merge `07d582c`）
+- 实弹修复：点赞上报缺 Content-Type 被 body 绑定拒绝（400）——PR #40（merge `301de3f`）；服务器实测 like 200、去重生效
+- 生产部署：#30–#40 全量上线（迁移 000005/000006 生效，六容器 healthy，页面/API 全 200）
 _task: M3 待办两项（内容推荐体系、用户互动能力）_
 _scope: backend / frontend-public_
 
