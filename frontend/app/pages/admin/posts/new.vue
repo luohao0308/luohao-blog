@@ -21,7 +21,14 @@ interface FormPayload {
   summary: string
   content_md: string
   tags: string[]
+  category_slug: string | null
   status: number
+}
+
+// A chosen category rides as a CategoryBrief; an empty brief means
+// uncategorized, which the backend stores as a NULL foreign key.
+function categoryOf(payload: FormPayload) {
+  return payload.category_slug ? { slug: payload.category_slug } : {}
 }
 
 async function onSubmit(payload: FormPayload) {
@@ -29,7 +36,7 @@ async function onSubmit(payload: FormPayload) {
   try {
     const article = await authFetch<Article>('/api/v1/articles/create', {
       method: 'POST',
-      body: payload,
+      body: { ...payload, category: categoryOf(payload) },
     })
     message.success('已创建')
     navigateTo(`/admin/posts/${encodeURIComponent(article.slug)}/edit`)

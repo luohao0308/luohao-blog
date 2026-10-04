@@ -42,6 +42,9 @@ async function onLogout() {
                 <NuxtLink to="/admin/posts" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
                   文章管理
                 </NuxtLink>
+                <NuxtLink to="/admin/categories" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
+                  分类管理
+                </NuxtLink>
                 <NuxtLink to="/admin/comments" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
                   评论管理
                 </NuxtLink>

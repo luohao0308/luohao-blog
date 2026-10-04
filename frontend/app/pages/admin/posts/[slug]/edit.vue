@@ -34,6 +34,7 @@ interface FormPayload {
   summary: string
   content_md: string
   tags: string[]
+  category_slug: string | null
   status: number
 }
 
@@ -41,11 +42,16 @@ async function onSubmit(payload: FormPayload) {
   submitting.value = true
   try {
     // slug stays read-only in the form and out of the mask: it only
-    // identifies the record here.
+    // identifies the record here. A cleared select sends an empty category
+    // brief, which the server stores as uncategorized.
     await authFetch<Article>('/api/v1/articles/update', {
       method: 'PUT',
-      query: { update_mask: 'title,summary,content_md,tags,status' },
-      body: { ...payload, slug: slug.value },
+      query: { update_mask: 'title,summary,content_md,tags,category,status' },
+      body: {
+        ...payload,
+        slug: slug.value,
+        category: payload.category_slug ? { slug: payload.category_slug } : {},
+      },
     })
     message.success('已保存')
   }
