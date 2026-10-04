@@ -13,6 +13,15 @@ export default defineNuxtConfig({
     // deployment (docker compose service name or Caddy upstream).
     backendBase: 'http://127.0.0.1:8000',
   },
+  app: {
+    head: {
+      link: [
+        // Feed discovery: readers and aggregators pick the feed up from the
+        // document head without a visible link.
+        { rel: 'alternate', type: 'application/rss+xml', title: 'luohao.blog', href: '/rss.xml' },
+      ],
+    },
+  },
   typescript: {
     strict: true,
     typeCheck: false,

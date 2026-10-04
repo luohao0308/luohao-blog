@@ -22,7 +22,10 @@ const hot = computed(() =>
     </header>
 
     <section v-if="hot.length" aria-label="热门文章" class="space-y-4">
-      <h2 class="text-sm font-medium text-slate-500 dark:text-slate-400">热门阅读</h2>
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-medium text-slate-500 dark:text-slate-400">热门阅读</h2>
+        <NuxtLink to="/ranking" class="text-xs text-blue-600 hover:underline dark:text-blue-400">完整排行 →</NuxtLink>
+      </div>
       <div class="grid gap-3 sm:grid-cols-3">
         <NuxtLink
           v-for="(item, index) in hot"
