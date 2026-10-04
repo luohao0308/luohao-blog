@@ -13,6 +13,7 @@ const links = [
   { to: '/posts', label: '文章' },
   { to: '/categories', label: '分类' },
   { to: '/tags', label: '标签' },
+  { to: '/collections', label: '收藏' },
   { to: '/projects', label: '作品集' },
   { to: '/archives', label: '归档' },
   { to: '/about', label: '关于' },
@@ -41,7 +42,7 @@ const links = [
         </div>
       </div>
       <!-- mobile nav -->
-      <nav class="flex items-center gap-5 border-t border-slate-100 px-6 py-2 text-sm sm:hidden dark:border-slate-800/70">
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-slate-100 px-6 py-2 text-sm sm:hidden dark:border-slate-800/70">
         <NuxtLink
           v-for="link in links"
           :key="link.to"
