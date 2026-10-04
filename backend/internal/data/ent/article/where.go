@@ -720,6 +720,29 @@ func HasTagsWith(preds ...predicate.Tag) predicate.Article {
 	})
 }
 
+// HasCategory applies the HasEdge predicate on the "category" edge.
+func HasCategory() predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CategoryTable, CategoryColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCategoryWith applies the HasEdge predicate on the "category" edge with a given conditions (other predicates).
+func HasCategoryWith(preds ...predicate.Category) predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := newCategoryStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Article) predicate.Article {
 	return predicate.Article(sql.AndPredicates(predicates...))

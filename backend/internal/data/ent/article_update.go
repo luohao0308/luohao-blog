@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
@@ -208,6 +209,25 @@ func (_u *ArticleUpdate) AddTags(v ...*Tag) *ArticleUpdate {
 	return _u.AddTagIDs(ids...)
 }
 
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (_u *ArticleUpdate) SetCategoryID(id uuid.UUID) *ArticleUpdate {
+	_u.mutation.SetCategoryID(id)
+	return _u
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableCategoryID(id *uuid.UUID) *ArticleUpdate {
+	if id != nil {
+		_u = _u.SetCategoryID(*id)
+	}
+	return _u
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_u *ArticleUpdate) SetCategory(v *Category) *ArticleUpdate {
+	return _u.SetCategoryID(v.ID)
+}
+
 // Mutation returns the ArticleMutation object of the builder.
 func (_u *ArticleUpdate) Mutation() *ArticleMutation {
 	return _u.mutation
@@ -232,6 +252,12 @@ func (_u *ArticleUpdate) RemoveTags(v ...*Tag) *ArticleUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (_u *ArticleUpdate) ClearCategory() *ArticleUpdate {
+	_u.mutation.ClearCategory()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -378,6 +404,35 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   article.CategoryTable,
+			Columns: []string{article.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   article.CategoryTable,
+			Columns: []string{article.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -582,6 +637,25 @@ func (_u *ArticleUpdateOne) AddTags(v ...*Tag) *ArticleUpdateOne {
 	return _u.AddTagIDs(ids...)
 }
 
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (_u *ArticleUpdateOne) SetCategoryID(id uuid.UUID) *ArticleUpdateOne {
+	_u.mutation.SetCategoryID(id)
+	return _u
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableCategoryID(id *uuid.UUID) *ArticleUpdateOne {
+	if id != nil {
+		_u = _u.SetCategoryID(*id)
+	}
+	return _u
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_u *ArticleUpdateOne) SetCategory(v *Category) *ArticleUpdateOne {
+	return _u.SetCategoryID(v.ID)
+}
+
 // Mutation returns the ArticleMutation object of the builder.
 func (_u *ArticleUpdateOne) Mutation() *ArticleMutation {
 	return _u.mutation
@@ -606,6 +680,12 @@ func (_u *ArticleUpdateOne) RemoveTags(v ...*Tag) *ArticleUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (_u *ArticleUpdateOne) ClearCategory() *ArticleUpdateOne {
+	_u.mutation.ClearCategory()
+	return _u
 }
 
 // Where appends a list predicates to the ArticleUpdate builder.
@@ -782,6 +862,35 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   article.CategoryTable,
+			Columns: []string{article.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   article.CategoryTable,
+			Columns: []string{article.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

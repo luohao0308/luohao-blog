@@ -43,6 +43,9 @@ const (
 	ErrorReason_CHAT_UNAVAILABLE           ErrorReason = 16
 	ErrorReason_CHAT_INVALID_ARGUMENT      ErrorReason = 17
 	ErrorReason_CHAT_TOO_MANY_ATTEMPTS     ErrorReason = 18
+	ErrorReason_CATEGORY_NOT_FOUND         ErrorReason = 19
+	ErrorReason_CATEGORY_INVALID_ARGUMENT  ErrorReason = 20
+	ErrorReason_CATEGORY_SLUG_CONFLICT     ErrorReason = 21
 )
 
 // Enum value maps for ErrorReason.
@@ -67,6 +70,9 @@ var (
 		16: "CHAT_UNAVAILABLE",
 		17: "CHAT_INVALID_ARGUMENT",
 		18: "CHAT_TOO_MANY_ATTEMPTS",
+		19: "CATEGORY_NOT_FOUND",
+		20: "CATEGORY_INVALID_ARGUMENT",
+		21: "CATEGORY_SLUG_CONFLICT",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":        0,
@@ -88,6 +94,9 @@ var (
 		"CHAT_UNAVAILABLE":           16,
 		"CHAT_INVALID_ARGUMENT":      17,
 		"CHAT_TOO_MANY_ATTEMPTS":     18,
+		"CATEGORY_NOT_FOUND":         19,
+		"CATEGORY_INVALID_ARGUMENT":  20,
+		"CATEGORY_SLUG_CONFLICT":     21,
 	}
 )
 
@@ -122,7 +131,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xfc\x03\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xcf\x04\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -143,7 +152,10 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x19COMMENT_TOO_MANY_ATTEMPTS\x10\x0f\x12\x14\n" +
 	"\x10CHAT_UNAVAILABLE\x10\x10\x12\x19\n" +
 	"\x15CHAT_INVALID_ARGUMENT\x10\x11\x12\x1a\n" +
-	"\x16CHAT_TOO_MANY_ATTEMPTS\x10\x12BQ\n" +
+	"\x16CHAT_TOO_MANY_ATTEMPTS\x10\x12\x12\x16\n" +
+	"\x12CATEGORY_NOT_FOUND\x10\x13\x12\x1d\n" +
+	"\x19CATEGORY_INVALID_ARGUMENT\x10\x14\x12\x1a\n" +
+	"\x16CATEGORY_SLUG_CONFLICT\x10\x15BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

@@ -36,11 +36,12 @@ const (
 var errPageOffsetOutOfRange = errors.New("page offset beyond the pagination window")
 
 var allowedArticleUpdateMaskPaths = map[string]struct{}{
-	"title": {},
-	"summary": {},
+	"title":      {},
+	"summary":    {},
 	"content_md": {},
-	"tags": {},
-	"status": {},
+	"tags":       {},
+	"status":     {},
+	"category":   {},
 }
 
 // clampPageSize enforces maxPageSize on a request's page size in place.
@@ -112,6 +113,9 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 		// status is filtered by enum name as documented ("status:\"PUBLISHED\"");
 		// the name-to-column translation happens in the data layer.
 		filtering.DeclareIdent("status", filtering.TypeString),
+		// category is filtered by slug ("category:\"engineering\""); the
+		// slug-to-id translation happens in the data layer.
+		filtering.DeclareIdent("category", filtering.TypeString),
 		filtering.DeclareIdent("published_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("created_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("updated_at", filtering.TypeTimestamp),
@@ -218,12 +222,13 @@ func convertArticle(in *v1.Article) *biz.Article {
 		return nil
 	}
 	return &biz.Article{
-		Slug:      strings.Clone(in.GetSlug()),
-		Title:     in.GetTitle(),
-		Summary:   in.GetSummary(),
-		ContentMD: in.GetContentMd(),
-		Tags:      in.GetTags(),
-		Status:    biz.ArticleStatus(in.GetStatus()),
+		Slug:         strings.Clone(in.GetSlug()),
+		Title:        in.GetTitle(),
+		Summary:      in.GetSummary(),
+		ContentMD:    in.GetContentMd(),
+		Tags:         in.GetTags(),
+		CategorySlug: in.GetCategory().GetSlug(),
+		Status:       biz.ArticleStatus(in.GetStatus()),
 	}
 }
 
@@ -243,6 +248,9 @@ func convertArticleReply(in *biz.Article) *v1.Article {
 		CreatedAt:   timestamppb.New(in.CreatedAt),
 		UpdatedAt:   timestamppb.New(in.UpdatedAt),
 		ViewCount:   in.ViewCount,
+	}
+	if in.CategorySlug != "" {
+		out.Category = &v1.CategoryBrief{Slug: in.CategorySlug, Name: in.CategoryName}
 	}
 	if in.PublishedAt != nil {
 		out.PublishedAt = timestamppb.New(*in.PublishedAt)

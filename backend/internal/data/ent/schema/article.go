@@ -66,9 +66,12 @@ func (Article) Indexes() []ent.Index {
 }
 
 // Edges of the Article. A non-unique To edge is a many-to-many: articles
-// reference tag rows through the generated join table.
+// reference tag rows through the generated join table. The unique optional
+// category From edge is the one-to-many foreign key: an article belongs to
+// at most one category, and NULL means uncategorized.
 func (Article) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("tags", Tag.Type),
+		edge.From("category", Category.Type).Ref("articles").Unique(),
 	}
 }

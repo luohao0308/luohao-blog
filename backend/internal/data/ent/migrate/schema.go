@@ -21,12 +21,21 @@ var (
 		{Name: "status", Type: field.TypeInt32, Default: 1},
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 		{Name: "view_count", Type: field.TypeUint64, Default: 0},
+		{Name: "category_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
 	ArticlesTable = &schema.Table{
 		Name:       "articles",
 		Columns:    ArticlesColumns,
 		PrimaryKey: []*schema.Column{ArticlesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "articles_categories_articles",
+				Columns:    []*schema.Column{ArticlesColumns[11]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "article_updated_at",
@@ -42,6 +51,28 @@ var (
 				Name:    "article_published_at",
 				Unique:  false,
 				Columns: []*schema.Column{ArticlesColumns[9]},
+			},
+		},
+	}
+	// CategoriesColumns holds the columns for the "categories" table.
+	CategoriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString, Unique: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "sort", Type: field.TypeInt32, Default: 0},
+	}
+	// CategoriesTable holds the schema information for the "categories" table.
+	CategoriesTable = &schema.Table{
+		Name:       "categories",
+		Columns:    CategoriesColumns,
+		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "category_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{CategoriesColumns[2]},
 			},
 		},
 	}
@@ -149,6 +180,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ArticlesTable,
+		CategoriesTable,
 		CommentsTable,
 		TagsTable,
 		UsersTable,
@@ -157,6 +189,7 @@ var (
 )
 
 func init() {
+	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
 	ArticleTagsTable.ForeignKeys[0].RefTable = ArticlesTable
 	ArticleTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

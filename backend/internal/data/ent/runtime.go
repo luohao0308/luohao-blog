@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
@@ -51,6 +52,39 @@ func init() {
 	articleDescID := articleMixinFields0[0].Descriptor()
 	// article.DefaultID holds the default value on creation for the id field.
 	article.DefaultID = articleDescID.Default.(func() uuid.UUID)
+	categoryMixin := schema.Category{}.Mixin()
+	categoryMixinFields0 := categoryMixin[0].Fields()
+	_ = categoryMixinFields0
+	categoryMixinFields1 := categoryMixin[1].Fields()
+	_ = categoryMixinFields1
+	categoryFields := schema.Category{}.Fields()
+	_ = categoryFields
+	// categoryDescCreatedAt is the schema descriptor for created_at field.
+	categoryDescCreatedAt := categoryMixinFields1[0].Descriptor()
+	// category.DefaultCreatedAt holds the default value on creation for the created_at field.
+	category.DefaultCreatedAt = categoryDescCreatedAt.Default.(func() time.Time)
+	// categoryDescUpdatedAt is the schema descriptor for updated_at field.
+	categoryDescUpdatedAt := categoryMixinFields1[1].Descriptor()
+	// category.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	category.DefaultUpdatedAt = categoryDescUpdatedAt.Default.(func() time.Time)
+	// category.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	category.UpdateDefaultUpdatedAt = categoryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// categoryDescSlug is the schema descriptor for slug field.
+	categoryDescSlug := categoryFields[0].Descriptor()
+	// category.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	category.SlugValidator = categoryDescSlug.Validators[0].(func(string) error)
+	// categoryDescName is the schema descriptor for name field.
+	categoryDescName := categoryFields[1].Descriptor()
+	// category.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	category.NameValidator = categoryDescName.Validators[0].(func(string) error)
+	// categoryDescSort is the schema descriptor for sort field.
+	categoryDescSort := categoryFields[2].Descriptor()
+	// category.DefaultSort holds the default value on creation for the sort field.
+	category.DefaultSort = categoryDescSort.Default.(int32)
+	// categoryDescID is the schema descriptor for id field.
+	categoryDescID := categoryMixinFields0[0].Descriptor()
+	// category.DefaultID holds the default value on creation for the id field.
+	category.DefaultID = categoryDescID.Default.(func() uuid.UUID)
 	commentMixin := schema.Comment{}.Mixin()
 	commentMixinFields0 := commentMixin[0].Fields()
 	_ = commentMixinFields0

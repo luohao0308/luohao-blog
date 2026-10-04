@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "CategoryProto";
+
+// CategoryService manages the article category taxonomy. A category is a
+// single-level, admin-curated grouping: an article belongs to at most one
+// category and may be uncategorized. The public identifier is the slug:
+// unique, URL-safe, and immutable after creation.
+service CategoryService {
+  // CreateCategory creates a category and returns the persisted record with
+  // the server-assigned id and timestamps.
+  // Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+  // valid token, 403 for accounts whose role is not admin.
+  // Returns INVALID_ARGUMENT if the payload fails validation, or
+  // ALREADY_EXISTS if the slug is taken.
+  rpc CreateCategory (CreateCategoryRequest) returns (Category) {
+    option (google.api.http) = {
+      post: "/v1/categories/create"
+      body: "category"
+    };
+  }
+
+  // UpdateCategory applies a partial update to an existing category using a
+  // FieldMask. Only the fields listed in update_mask are overwritten; the
+  // slug is immutable and only identifies the target record.
+  // Authorization: ADMIN only (Authorization: Bearer).
+  // Returns NOT_FOUND if the target category does not exist, or
+  // INVALID_ARGUMENT if update_mask references unknown fields.
+  rpc UpdateCategory (UpdateCategoryRequest) returns (Category) {
+    option (google.api.http) = {
+      put: "/v1/categories/update"
+      body: "category"
+    };
+  }
+
+  // DeleteCategory deletes a category. Articles that reference it become
+  // uncategorized; the articles themselves are untouched.
+  // Authorization: ADMIN only (Authorization: Bearer).
+  // Returns NOT_FOUND if no category exists with the supplied slug.
+  rpc DeleteCategory (DeleteCategoryRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/categories/{slug}"
+    };
+  }
+
+  // GetCategory returns a single category by its slug.
+  // Authorization: ADMIN only (Authorization: Bearer).
+  // Returns NOT_FOUND if no category exists with the supplied slug.
+  rpc GetCategory (GetCategoryRequest) returns (Category) {
+    option (google.api.http) = {
+      get: "/v1/categories/{slug}"
+    };
+  }
+
+  // ListCategories returns a page of categories ordered by sort, then slug.
+  // Each category carries article_count, the number of published articles in
+  // it. Use next_page_token to retrieve subsequent pages.
+  // Authorization: public.
+  rpc ListCategories (ListCategoriesRequest) returns (CategorySet) {
+    option (google.api.http) = {
+      get: "/v1/categories/list"
+    };
+  }
+}
+
+// Category is the canonical representation of an article category.
+message Category {
+  // Application-generated UUIDv7 identifier. Read-only on create.
+  string id = 1;
+  // Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
+  string slug = 2 [(google.api.field_behavior) = REQUIRED];
+  // Human-readable display label, e.g. "工程实践".
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  // Navigation order; lower comes first. Defaults to 0.
+  int32 sort = 4;
+  // Number of published articles in the category. Read-only; populated by
+  // ListCategories only.
+  uint64 article_count = 5;
+  // Time at which the category was created. Server-assigned, read-only.
+  google.protobuf.Timestamp created_at = 6;
+  // Time at which the category was last modified. Server-assigned, read-only.
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// CategorySet is a paginated collection of categories.
+message CategorySet {
+  // The page of categories ordered by sort, then slug.
+  repeated Category categories = 1;
+  // Token used to retrieve the next page via ListCategoriesRequest.page_token.
+  // Empty when there are no more results.
+  string next_page_token = 2;
+}
+
+// CreateCategoryRequest is the input for CategoryService.CreateCategory.
+message CreateCategoryRequest {
+  // The category to create. The id, article_count, created_at, and
+  // updated_at fields are ignored on input and populated by the server in
+  // the response.
+  Category category = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// UpdateCategoryRequest is the input for CategoryService.UpdateCategory.
+message UpdateCategoryRequest {
+  // The category carrying the new field values. category.slug identifies
+  // the target record and must be set.
+  Category category = 1 [(google.api.field_behavior) = REQUIRED];
+  // Set of field paths in category to overwrite. Supported paths:
+  // `name`, `sort`. Fields not listed are left unchanged.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// DeleteCategoryRequest is the input for CategoryService.DeleteCategory.
+message DeleteCategoryRequest {
+  // Unique slug of the category to delete.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetCategoryRequest is the input for CategoryService.GetCategory.
+message GetCategoryRequest {
+  // Unique slug of the category to retrieve.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListCategoriesRequest is the input for CategoryService.ListCategories.
+message ListCategoriesRequest {
+  // Optional. Maximum number of categories to return in a single page.
+  // The server may apply a default and a maximum when unset or out of range.
+  int32 page_size = 1;
+  // Optional. Token from a previous response's next_page_token used to fetch
+  // the next page. Leave empty to request the first page.
+  string page_token = 2;
+}
