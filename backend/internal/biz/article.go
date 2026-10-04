@@ -50,11 +50,15 @@ type Article struct {
 	ContentMD   string
 	ContentHTML string
 	Tags        []string
-	Status      ArticleStatus
-	PublishedAt *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	ViewCount   uint64
+	// CategorySlug and CategoryName describe the single optional curated
+	// category. An empty slug means the article is uncategorized.
+	CategorySlug string
+	CategoryName string
+	Status       ArticleStatus
+	PublishedAt  *time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	ViewCount    uint64
 }
 
 // ArticleSearchIndex is the full-text index the write path keeps in sync and
@@ -166,7 +170,7 @@ func (uc *ArticleUsecase) syncIndex(ctx context.Context, a *Article) {
 		return
 	}
 	if err := uc.indexer.IndexArticle(ctx, a); err != nil {
-		log.Warn("article: search index sync failed for " + a.Slug, err)
+		log.Warn("article: search index sync failed for "+a.Slug, err)
 	}
 }
 
@@ -177,7 +181,7 @@ func (uc *ArticleUsecase) dropIndex(ctx context.Context, slug string) {
 		return
 	}
 	if err := uc.indexer.RemoveArticle(ctx, slug); err != nil {
-		log.Warn("article: search index removal failed for " + slug, err)
+		log.Warn("article: search index removal failed for "+slug, err)
 	}
 }
 

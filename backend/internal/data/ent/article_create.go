@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
@@ -184,6 +185,25 @@ func (_c *ArticleCreate) AddTags(v ...*Tag) *ArticleCreate {
 	return _c.AddTagIDs(ids...)
 }
 
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (_c *ArticleCreate) SetCategoryID(id uuid.UUID) *ArticleCreate {
+	_c.mutation.SetCategoryID(id)
+	return _c
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (_c *ArticleCreate) SetNillableCategoryID(id *uuid.UUID) *ArticleCreate {
+	if id != nil {
+		_c = _c.SetCategoryID(*id)
+	}
+	return _c
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_c *ArticleCreate) SetCategory(v *Category) *ArticleCreate {
+	return _c.SetCategoryID(v.ID)
+}
+
 // Mutation returns the ArticleMutation object of the builder.
 func (_c *ArticleCreate) Mutation() *ArticleMutation {
 	return _c.mutation
@@ -352,6 +372,23 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   article.CategoryTable,
+			Columns: []string{article.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.category_id = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

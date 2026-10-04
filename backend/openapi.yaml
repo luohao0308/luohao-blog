@@ -66,6 +66,7 @@ paths:
                         * `title` (i.e. `title:"kratos"`)
                         * `status` (i.e. `status:"PUBLISHED"`)
                         * `tag` (i.e. `tag:"go"`)
+                        * `category` (i.e. `category:"engineering"`)
                         * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
                         * `created_at` range, `updated_at` range
                   schema:
@@ -111,6 +112,9 @@ paths:
                   description: |-
                     Set of field paths in article to overwrite. Fields not listed are left
                      unchanged. Use a single path of `*` to replace every mutable field.
+                     The `category` path takes a CategoryBrief whose slug must reference an
+                     existing category, or an empty CategoryBrief to make the article
+                     uncategorized.
                   schema:
                     type: string
                     format: field-mask
@@ -318,6 +322,141 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/categories/create:
+        post:
+            tags:
+                - CategoryService
+            description: |-
+                CreateCategory creates a category and returns the persisted record with
+                 the server-assigned id and timestamps.
+                 Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
+                 valid token, 403 for accounts whose role is not admin.
+                 Returns INVALID_ARGUMENT if the payload fails validation, or
+                 ALREADY_EXISTS if the slug is taken.
+            operationId: CategoryService_CreateCategory
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Category'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Category'
+    /v1/categories/list:
+        get:
+            tags:
+                - CategoryService
+            description: |-
+                ListCategories returns a page of categories ordered by sort, then slug.
+                 Each category carries article_count, the number of published articles in
+                 it. Use next_page_token to retrieve subsequent pages.
+                 Authorization: public.
+            operationId: CategoryService_ListCategories
+            parameters:
+                - name: page_size
+                  in: query
+                  description: |-
+                    Optional. Maximum number of categories to return in a single page.
+                     The server may apply a default and a maximum when unset or out of range.
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  description: |-
+                    Optional. Token from a previous response's next_page_token used to fetch
+                     the next page. Leave empty to request the first page.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CategorySet'
+    /v1/categories/update:
+        put:
+            tags:
+                - CategoryService
+            description: |-
+                UpdateCategory applies a partial update to an existing category using a
+                 FieldMask. Only the fields listed in update_mask are overwritten; the
+                 slug is immutable and only identifies the target record.
+                 Authorization: ADMIN only (Authorization: Bearer).
+                 Returns NOT_FOUND if the target category does not exist, or
+                 INVALID_ARGUMENT if update_mask references unknown fields.
+            operationId: CategoryService_UpdateCategory
+            parameters:
+                - name: update_mask
+                  in: query
+                  description: |-
+                    Set of field paths in category to overwrite. Supported paths:
+                     `name`, `sort`. Fields not listed are left unchanged.
+                  schema:
+                    type: string
+                    format: field-mask
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Category'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Category'
+    /v1/categories/{slug}:
+        get:
+            tags:
+                - CategoryService
+            description: |-
+                GetCategory returns a single category by its slug.
+                 Authorization: ADMIN only (Authorization: Bearer).
+                 Returns NOT_FOUND if no category exists with the supplied slug.
+            operationId: CategoryService_GetCategory
+            parameters:
+                - name: slug
+                  in: path
+                  description: Unique slug of the category to retrieve.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Category'
+        delete:
+            tags:
+                - CategoryService
+            description: |-
+                DeleteCategory deletes a category. Articles that reference it become
+                 uncategorized; the articles themselves are untouched.
+                 Authorization: ADMIN only (Authorization: Bearer).
+                 Returns NOT_FOUND if no category exists with the supplied slug.
+            operationId: CategoryService_DeleteCategory
+            parameters:
+                - name: slug
+                  in: path
+                  description: Unique slug of the category to delete.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/chat:
         post:
             tags:
@@ -553,6 +692,12 @@ components:
                     description: |-
                         Public read counter. Incremented when a client reports a view through
                          MarkArticleViewed and the 24h per-client dedup window admits it.
+                category:
+                    allOf:
+                        - $ref: '#/components/schemas/blog.v1.CategoryBrief'
+                    description: |-
+                        Single curated category of the article. Server-managed through
+                         Create/UpdateArticle on the category field; absent when uncategorized.
             description: Article is the canonical representation of a blog article.
         blog.v1.ArticleSet:
             type: object
@@ -568,6 +713,65 @@ components:
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
+        blog.v1.Category:
+            required:
+                - slug
+                - name
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Application-generated UUIDv7 identifier. Read-only on create.
+                slug:
+                    type: string
+                    description: Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
+                name:
+                    type: string
+                    description: Human-readable display label, e.g. "工程实践".
+                sort:
+                    type: integer
+                    description: Navigation order; lower comes first. Defaults to 0.
+                    format: int32
+                articleCount:
+                    type: string
+                    description: |-
+                        Number of published articles in the category. Read-only; populated by
+                         ListCategories only.
+                created_at:
+                    type: string
+                    description: Time at which the category was created. Server-assigned, read-only.
+                    format: date-time
+                updated_at:
+                    type: string
+                    description: Time at which the category was last modified. Server-assigned, read-only.
+                    format: date-time
+            description: Category is the canonical representation of an article category.
+        blog.v1.CategoryBrief:
+            type: object
+            properties:
+                slug:
+                    type: string
+                    description: |-
+                        Unique slug of the category; the public identifier used in filters and
+                         category routes.
+                name:
+                    type: string
+                    description: Display name of the category.
+            description: CategoryBrief is the category summary attached to an article response.
+        blog.v1.CategorySet:
+            type: object
+            properties:
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Category'
+                    description: The page of categories ordered by sort, then slug.
+                next_page_token:
+                    type: string
+                    description: |-
+                        Token used to retrieve the next page via ListCategoriesRequest.page_token.
+                         Empty when there are no more results.
+            description: CategorySet is a paginated collection of categories.
         blog.v1.ChatReply:
             type: object
             properties:
@@ -766,6 +970,12 @@ tags:
          server-side session kept in Redis. Refresh and Logout read the token from
          the cookie, falling back to the X-Refresh-Token header for non-cookie
          clients.
+    - name: CategoryService
+      description: |-
+        CategoryService manages the article category taxonomy. A category is a
+         single-level, admin-curated grouping: an article belongs to at most one
+         category and may be uncategorized. The public identifier is the slug:
+         unique, URL-safe, and immutable after creation.
     - name: ChatService
       description: |-
         ChatService answers visitor questions with retrieval-augmented generation:

@@ -113,7 +113,10 @@ type Article struct {
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Public read counter. Incremented when a client reports a view through
 	// MarkArticleViewed and the 24h per-client dedup window admits it.
-	ViewCount     uint64 `protobuf:"varint,12,opt,name=view_count,json=viewCount,proto3" json:"view_count,omitempty"`
+	ViewCount uint64 `protobuf:"varint,12,opt,name=view_count,json=viewCount,proto3" json:"view_count,omitempty"`
+	// Single curated category of the article. Server-managed through
+	// Create/UpdateArticle on the category field; absent when uncategorized.
+	Category      *CategoryBrief `protobuf:"bytes,13,opt,name=category,proto3" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,6 +235,69 @@ func (x *Article) GetViewCount() uint64 {
 	return 0
 }
 
+func (x *Article) GetCategory() *CategoryBrief {
+	if x != nil {
+		return x.Category
+	}
+	return nil
+}
+
+// CategoryBrief is the category summary attached to an article response.
+type CategoryBrief struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique slug of the category; the public identifier used in filters and
+	// category routes.
+	Slug string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Display name of the category.
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CategoryBrief) Reset() {
+	*x = CategoryBrief{}
+	mi := &file_blog_v1_article_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CategoryBrief) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CategoryBrief) ProtoMessage() {}
+
+func (x *CategoryBrief) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CategoryBrief.ProtoReflect.Descriptor instead.
+func (*CategoryBrief) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CategoryBrief) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *CategoryBrief) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 // ArticleSet is a paginated collection of articles returned by ListArticles.
 type ArticleSet struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -246,7 +312,7 @@ type ArticleSet struct {
 
 func (x *ArticleSet) Reset() {
 	*x = ArticleSet{}
-	mi := &file_blog_v1_article_proto_msgTypes[1]
+	mi := &file_blog_v1_article_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +324,7 @@ func (x *ArticleSet) String() string {
 func (*ArticleSet) ProtoMessage() {}
 
 func (x *ArticleSet) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[1]
+	mi := &file_blog_v1_article_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +337,7 @@ func (x *ArticleSet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArticleSet.ProtoReflect.Descriptor instead.
 func (*ArticleSet) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{1}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ArticleSet) GetArticles() []*Article {
@@ -301,7 +367,7 @@ type CreateArticleRequest struct {
 
 func (x *CreateArticleRequest) Reset() {
 	*x = CreateArticleRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[2]
+	mi := &file_blog_v1_article_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -313,7 +379,7 @@ func (x *CreateArticleRequest) String() string {
 func (*CreateArticleRequest) ProtoMessage() {}
 
 func (x *CreateArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[2]
+	mi := &file_blog_v1_article_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +392,7 @@ func (x *CreateArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateArticleRequest.ProtoReflect.Descriptor instead.
 func (*CreateArticleRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{2}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateArticleRequest) GetArticle() *Article {
@@ -347,7 +413,7 @@ type GetArticleRequest struct {
 
 func (x *GetArticleRequest) Reset() {
 	*x = GetArticleRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[3]
+	mi := &file_blog_v1_article_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -359,7 +425,7 @@ func (x *GetArticleRequest) String() string {
 func (*GetArticleRequest) ProtoMessage() {}
 
 func (x *GetArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[3]
+	mi := &file_blog_v1_article_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -372,7 +438,7 @@ func (x *GetArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArticleRequest.ProtoReflect.Descriptor instead.
 func (*GetArticleRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{3}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetArticleRequest) GetSlug() string {
@@ -397,6 +463,7 @@ type ListArticlesRequest struct {
 	//    * `title` (i.e. `title:"kratos"`)
 	//    * `status` (i.e. `status:"PUBLISHED"`)
 	//    * `tag` (i.e. `tag:"go"`)
+	//    * `category` (i.e. `category:"engineering"`)
 	//    * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
 	//    * `created_at` range, `updated_at` range
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -416,7 +483,7 @@ type ListArticlesRequest struct {
 
 func (x *ListArticlesRequest) Reset() {
 	*x = ListArticlesRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[4]
+	mi := &file_blog_v1_article_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +495,7 @@ func (x *ListArticlesRequest) String() string {
 func (*ListArticlesRequest) ProtoMessage() {}
 
 func (x *ListArticlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[4]
+	mi := &file_blog_v1_article_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +508,7 @@ func (x *ListArticlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListArticlesRequest.ProtoReflect.Descriptor instead.
 func (*ListArticlesRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{4}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListArticlesRequest) GetPageSize() int32 {
@@ -480,6 +547,9 @@ type UpdateArticleRequest struct {
 	Article *Article `protobuf:"bytes,1,opt,name=article,proto3" json:"article,omitempty"`
 	// Set of field paths in article to overwrite. Fields not listed are left
 	// unchanged. Use a single path of `*` to replace every mutable field.
+	// The `category` path takes a CategoryBrief whose slug must reference an
+	// existing category, or an empty CategoryBrief to make the article
+	// uncategorized.
 	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -487,7 +557,7 @@ type UpdateArticleRequest struct {
 
 func (x *UpdateArticleRequest) Reset() {
 	*x = UpdateArticleRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[5]
+	mi := &file_blog_v1_article_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -499,7 +569,7 @@ func (x *UpdateArticleRequest) String() string {
 func (*UpdateArticleRequest) ProtoMessage() {}
 
 func (x *UpdateArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[5]
+	mi := &file_blog_v1_article_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +582,7 @@ func (x *UpdateArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateArticleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateArticleRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{5}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateArticleRequest) GetArticle() *Article {
@@ -540,7 +610,7 @@ type DeleteArticleRequest struct {
 
 func (x *DeleteArticleRequest) Reset() {
 	*x = DeleteArticleRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[6]
+	mi := &file_blog_v1_article_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -552,7 +622,7 @@ func (x *DeleteArticleRequest) String() string {
 func (*DeleteArticleRequest) ProtoMessage() {}
 
 func (x *DeleteArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[6]
+	mi := &file_blog_v1_article_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -565,7 +635,7 @@ func (x *DeleteArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteArticleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteArticleRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{6}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteArticleRequest) GetSlug() string {
@@ -588,7 +658,7 @@ type MarkArticleViewedRequest struct {
 
 func (x *MarkArticleViewedRequest) Reset() {
 	*x = MarkArticleViewedRequest{}
-	mi := &file_blog_v1_article_proto_msgTypes[7]
+	mi := &file_blog_v1_article_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +670,7 @@ func (x *MarkArticleViewedRequest) String() string {
 func (*MarkArticleViewedRequest) ProtoMessage() {}
 
 func (x *MarkArticleViewedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_article_proto_msgTypes[7]
+	mi := &file_blog_v1_article_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +683,7 @@ func (x *MarkArticleViewedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkArticleViewedRequest.ProtoReflect.Descriptor instead.
 func (*MarkArticleViewedRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_article_proto_rawDescGZIP(), []int{7}
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *MarkArticleViewedRequest) GetSlug() string {
@@ -627,7 +697,7 @@ var File_blog_v1_article_proto protoreflect.FileDescriptor
 
 const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc6\x03\n" +
+	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfa\x03\n" +
 	"\aArticle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04slug\x18\x02 \x01(\tB\x03\xe0A\x02R\x04slug\x12\x19\n" +
@@ -645,7 +715,11 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"view_count\x18\f \x01(\x04R\tviewCount\"b\n" +
+	"view_count\x18\f \x01(\x04R\tviewCount\x122\n" +
+	"\bcategory\x18\r \x01(\v2\x16.blog.v1.CategoryBriefR\bcategory\"7\n" +
+	"\rCategoryBrief\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"b\n" +
 	"\n" +
 	"ArticleSet\x12,\n" +
 	"\barticles\x18\x01 \x03(\v2\x10.blog.v1.ArticleR\barticles\x12&\n" +
@@ -696,47 +770,49 @@ func file_blog_v1_article_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_blog_v1_article_proto_goTypes = []any{
 	(ArticleStatus)(0),               // 0: blog.v1.ArticleStatus
 	(*Article)(nil),                  // 1: blog.v1.Article
-	(*ArticleSet)(nil),               // 2: blog.v1.ArticleSet
-	(*CreateArticleRequest)(nil),     // 3: blog.v1.CreateArticleRequest
-	(*GetArticleRequest)(nil),        // 4: blog.v1.GetArticleRequest
-	(*ListArticlesRequest)(nil),      // 5: blog.v1.ListArticlesRequest
-	(*UpdateArticleRequest)(nil),     // 6: blog.v1.UpdateArticleRequest
-	(*DeleteArticleRequest)(nil),     // 7: blog.v1.DeleteArticleRequest
-	(*MarkArticleViewedRequest)(nil), // 8: blog.v1.MarkArticleViewedRequest
-	(*timestamppb.Timestamp)(nil),    // 9: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),    // 10: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),            // 11: google.protobuf.Empty
+	(*CategoryBrief)(nil),            // 2: blog.v1.CategoryBrief
+	(*ArticleSet)(nil),               // 3: blog.v1.ArticleSet
+	(*CreateArticleRequest)(nil),     // 4: blog.v1.CreateArticleRequest
+	(*GetArticleRequest)(nil),        // 5: blog.v1.GetArticleRequest
+	(*ListArticlesRequest)(nil),      // 6: blog.v1.ListArticlesRequest
+	(*UpdateArticleRequest)(nil),     // 7: blog.v1.UpdateArticleRequest
+	(*DeleteArticleRequest)(nil),     // 8: blog.v1.DeleteArticleRequest
+	(*MarkArticleViewedRequest)(nil), // 9: blog.v1.MarkArticleViewedRequest
+	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),    // 11: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),            // 12: google.protobuf.Empty
 }
 var file_blog_v1_article_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.Article.status:type_name -> blog.v1.ArticleStatus
-	9,  // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
-	9,  // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 4: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
-	1,  // 5: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
-	1,  // 6: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
-	10, // 7: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
-	3,  // 8: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
-	5,  // 9: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
-	4,  // 10: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
-	6,  // 11: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
-	7,  // 12: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
-	8,  // 13: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
-	1,  // 14: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
-	2,  // 15: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
-	1,  // 16: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
-	1,  // 17: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
-	11, // 18: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
-	11, // 19: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
+	10, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
+	10, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
+	2,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
+	1,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
+	1,  // 6: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
+	1,  // 7: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
+	11, // 8: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	4,  // 9: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
+	6,  // 10: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
+	5,  // 11: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
+	7,  // 12: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
+	8,  // 13: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
+	9,  // 14: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
+	1,  // 15: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
+	3,  // 16: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
+	1,  // 17: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
+	1,  // 18: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
+	12, // 19: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
+	12, // 20: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_article_proto_init() }
@@ -750,7 +826,7 @@ func file_blog_v1_article_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_article_proto_rawDesc), len(file_blog_v1_article_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

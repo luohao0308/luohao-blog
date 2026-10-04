@@ -34,6 +34,20 @@ p, admin, /blog.v1.ArticleService/CreateArticle, *
 p, admin, /blog.v1.ArticleService/UpdateArticle, *
 p, admin, /blog.v1.ArticleService/DeleteArticle, *
 
+# --- public: category reads (single-level taxonomy for navigation) ---
+p, public, /v1/categories/list, GET
+p, public, /blog.v1.CategoryService/ListCategories, *
+
+# --- admin: category writes ---
+p, admin, /v1/categories/create, POST
+p, admin, /v1/categories/update, PUT
+p, admin, /v1/categories/{slug}, GET
+p, admin, /v1/categories/{slug}, DELETE
+p, admin, /blog.v1.CategoryService/CreateCategory, *
+p, admin, /blog.v1.CategoryService/UpdateCategory, *
+p, admin, /blog.v1.CategoryService/DeleteCategory, *
+p, admin, /blog.v1.CategoryService/GetCategory, *
+
 # --- role hierarchy: named roles inherit the authenticated subject, which in
 # turn inherits public, so a signed-in reader is never denied a public read ---
 g, authenticated, public

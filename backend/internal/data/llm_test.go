@@ -16,10 +16,10 @@ func chatTestBootstrap(url string) *conf.Bootstrap {
 
 func TestNewChatLLMDisabled(t *testing.T) {
 	for name, b := range map[string]*conf.Bootstrap{
-		"absent":       {},
-		"nil llm":      {Llm: nil},
-		"no base url":  {Llm: &conf.Llm{Model: "m"}},
-		"no model":     {Llm: &conf.Llm{BaseUrl: "http://x"}},
+		"absent":      {},
+		"nil llm":     {Llm: nil},
+		"no base url": {Llm: &conf.Llm{Model: "m"}},
+		"no model":    {Llm: &conf.Llm{BaseUrl: "http://x"}},
 	} {
 		if got := NewChatLLM(b); got != nil {
 			t.Fatalf("%s: client = %v, want nil (chat disabled)", name, got)

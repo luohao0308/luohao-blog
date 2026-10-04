@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 )
 
 // Article is the model entity for the Article schema.
@@ -42,6 +43,7 @@ type Article struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
 	Edges        ArticleEdges `json:"edges"`
+	category_id  *uuid.UUID
 	selectValues sql.SelectValues
 }
 
@@ -49,9 +51,11 @@ type Article struct {
 type ArticleEdges struct {
 	// Tags holds the value of the tags edge.
 	Tags []*Tag `json:"tags,omitempty"`
+	// Category holds the value of the category edge.
+	Category *Category `json:"category,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // TagsOrErr returns the Tags value or an error if the edge
@@ -61,6 +65,17 @@ func (e ArticleEdges) TagsOrErr() ([]*Tag, error) {
 		return e.Tags, nil
 	}
 	return nil, &NotLoadedError{edge: "tags"}
+}
+
+// CategoryOrErr returns the Category value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ArticleEdges) CategoryOrErr() (*Category, error) {
+	if e.Category != nil {
+		return e.Category, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: category.Label}
+	}
+	return nil, &NotLoadedError{edge: "category"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -76,6 +91,8 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case article.FieldID:
 			values[i] = new(uuid.UUID)
+		case article.ForeignKeys[0]: // category_id
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -158,6 +175,13 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ViewCount = uint64(value.Int64)
 			}
+		case article.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field category_id", values[i])
+			} else if value.Valid {
+				_m.category_id = new(uuid.UUID)
+				*_m.category_id = *value.S.(*uuid.UUID)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -174,6 +198,11 @@ func (_m *Article) Value(name string) (ent.Value, error) {
 // QueryTags queries the "tags" edge of the Article entity.
 func (_m *Article) QueryTags() *TagQuery {
 	return NewArticleClient(_m.config).QueryTags(_m)
+}
+
+// QueryCategory queries the "category" edge of the Article entity.
+func (_m *Article) QueryCategory() *CategoryQuery {
+	return NewArticleClient(_m.config).QueryCategory(_m)
 }
 
 // Update returns a builder for updating this Article.

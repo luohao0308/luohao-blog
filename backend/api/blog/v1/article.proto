@@ -132,6 +132,18 @@ message Article {
   // Public read counter. Incremented when a client reports a view through
   // MarkArticleViewed and the 24h per-client dedup window admits it.
   uint64 view_count = 12;
+  // Single curated category of the article. Server-managed through
+  // Create/UpdateArticle on the category field; absent when uncategorized.
+  CategoryBrief category = 13;
+}
+
+// CategoryBrief is the category summary attached to an article response.
+message CategoryBrief {
+  // Unique slug of the category; the public identifier used in filters and
+  // category routes.
+  string slug = 1;
+  // Display name of the category.
+  string name = 2;
 }
 
 // ArticleSet is a paginated collection of articles returned by ListArticles.
@@ -171,6 +183,7 @@ message ListArticlesRequest {
   //    * `title` (i.e. `title:"kratos"`)
   //    * `status` (i.e. `status:"PUBLISHED"`)
   //    * `tag` (i.e. `tag:"go"`)
+  //    * `category` (i.e. `category:"engineering"`)
   //    * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
   //    * `created_at` range, `updated_at` range
   string filter = 3;
@@ -193,6 +206,9 @@ message UpdateArticleRequest {
   Article article = 1 [(google.api.field_behavior) = REQUIRED];
   // Set of field paths in article to overwrite. Fields not listed are left
   // unchanged. Use a single path of `*` to replace every mutable field.
+  // The `category` path takes a CategoryBrief whose slug must reference an
+  // existing category, or an empty CategoryBrief to make the article
+  // uncategorized.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

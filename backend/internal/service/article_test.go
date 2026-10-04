@@ -113,3 +113,20 @@ func TestUpdateArticleRejectsUnknownUpdateMaskPath(t *testing.T) {
 		t.Fatalf("error = %v, want bad request", err)
 	}
 }
+
+// The category mask path is accepted by the allowlist and its nested slug is
+// carried to the usecase; unknown slugs are rejected in the data layer.
+func TestConvertArticleCarriesCategorySlug(t *testing.T) {
+	got := convertArticle(&v1.Article{
+		Slug:      "s",
+		Title:     "t",
+		ContentMd: "md",
+		Category:  &v1.CategoryBrief{Slug: "engineering", Name: "工程实践"},
+	})
+	if got.CategorySlug != "engineering" {
+		t.Fatalf("category slug = %q, want engineering", got.CategorySlug)
+	}
+	if convertArticle(&v1.Article{Slug: "s"}).CategorySlug != "" {
+		t.Fatal("uncategorized article must convert to an empty category slug")
+	}
+}
