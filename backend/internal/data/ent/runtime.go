@@ -11,6 +11,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 )
@@ -122,6 +123,31 @@ func init() {
 	commentDescID := commentMixinFields0[0].Descriptor()
 	// comment.DefaultID holds the default value on creation for the id field.
 	comment.DefaultID = commentDescID.Default.(func() uuid.UUID)
+	subscriberMixin := schema.Subscriber{}.Mixin()
+	subscriberMixinFields0 := subscriberMixin[0].Fields()
+	_ = subscriberMixinFields0
+	subscriberMixinFields1 := subscriberMixin[1].Fields()
+	_ = subscriberMixinFields1
+	subscriberFields := schema.Subscriber{}.Fields()
+	_ = subscriberFields
+	// subscriberDescCreatedAt is the schema descriptor for created_at field.
+	subscriberDescCreatedAt := subscriberMixinFields1[0].Descriptor()
+	// subscriber.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriber.DefaultCreatedAt = subscriberDescCreatedAt.Default.(func() time.Time)
+	// subscriberDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriberDescUpdatedAt := subscriberMixinFields1[1].Descriptor()
+	// subscriber.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriber.DefaultUpdatedAt = subscriberDescUpdatedAt.Default.(func() time.Time)
+	// subscriber.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriber.UpdateDefaultUpdatedAt = subscriberDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriberDescEmail is the schema descriptor for email field.
+	subscriberDescEmail := subscriberFields[0].Descriptor()
+	// subscriber.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	subscriber.EmailValidator = subscriberDescEmail.Validators[0].(func(string) error)
+	// subscriberDescID is the schema descriptor for id field.
+	subscriberDescID := subscriberMixinFields0[0].Descriptor()
+	// subscriber.DefaultID holds the default value on creation for the id field.
+	subscriber.DefaultID = subscriberDescID.Default.(func() uuid.UUID)
 	tagMixin := schema.Tag{}.Mixin()
 	tagMixinFields0 := tagMixin[0].Fields()
 	_ = tagMixinFields0

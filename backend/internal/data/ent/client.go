@@ -19,6 +19,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 )
@@ -34,6 +35,8 @@ type Client struct {
 	Category *CategoryClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
+	// Subscriber is the client for interacting with the Subscriber builders.
+	Subscriber *SubscriberClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
 	// User is the client for interacting with the User builders.
@@ -52,6 +55,7 @@ func (c *Client) init() {
 	c.Article = NewArticleClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Comment = NewCommentClient(c.config)
+	c.Subscriber = NewSubscriberClient(c.config)
 	c.Tag = NewTagClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -144,13 +148,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Article:  NewArticleClient(cfg),
-		Category: NewCategoryClient(cfg),
-		Comment:  NewCommentClient(cfg),
-		Tag:      NewTagClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Article:    NewArticleClient(cfg),
+		Category:   NewCategoryClient(cfg),
+		Comment:    NewCommentClient(cfg),
+		Subscriber: NewSubscriberClient(cfg),
+		Tag:        NewTagClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -168,13 +173,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Article:  NewArticleClient(cfg),
-		Category: NewCategoryClient(cfg),
-		Comment:  NewCommentClient(cfg),
-		Tag:      NewTagClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Article:    NewArticleClient(cfg),
+		Category:   NewCategoryClient(cfg),
+		Comment:    NewCommentClient(cfg),
+		Subscriber: NewSubscriberClient(cfg),
+		Tag:        NewTagClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -203,21 +209,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Article.Use(hooks...)
-	c.Category.Use(hooks...)
-	c.Comment.Use(hooks...)
-	c.Tag.Use(hooks...)
-	c.User.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Article, c.Category, c.Comment, c.Subscriber, c.Tag, c.User,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Article.Intercept(interceptors...)
-	c.Category.Intercept(interceptors...)
-	c.Comment.Intercept(interceptors...)
-	c.Tag.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Article, c.Category, c.Comment, c.Subscriber, c.Tag, c.User,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -229,6 +235,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Category.mutate(ctx, m)
 	case *CommentMutation:
 		return c.Comment.mutate(ctx, m)
+	case *SubscriberMutation:
+		return c.Subscriber.mutate(ctx, m)
 	case *TagMutation:
 		return c.Tag.mutate(ctx, m)
 	case *UserMutation:
@@ -685,6 +693,139 @@ func (c *CommentClient) mutate(ctx context.Context, m *CommentMutation) (Value, 
 	}
 }
 
+// SubscriberClient is a client for the Subscriber schema.
+type SubscriberClient struct {
+	config
+}
+
+// NewSubscriberClient returns a client for the Subscriber from the given config.
+func NewSubscriberClient(c config) *SubscriberClient {
+	return &SubscriberClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `subscriber.Hooks(f(g(h())))`.
+func (c *SubscriberClient) Use(hooks ...Hook) {
+	c.hooks.Subscriber = append(c.hooks.Subscriber, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `subscriber.Intercept(f(g(h())))`.
+func (c *SubscriberClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Subscriber = append(c.inters.Subscriber, interceptors...)
+}
+
+// Create returns a builder for creating a Subscriber entity.
+func (c *SubscriberClient) Create() *SubscriberCreate {
+	mutation := newSubscriberMutation(c.config, OpCreate)
+	return &SubscriberCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Subscriber entities.
+func (c *SubscriberClient) CreateBulk(builders ...*SubscriberCreate) *SubscriberCreateBulk {
+	return &SubscriberCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SubscriberClient) MapCreateBulk(slice any, setFunc func(*SubscriberCreate, int)) *SubscriberCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SubscriberCreateBulk{err: fmt.Errorf("calling to SubscriberClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SubscriberCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SubscriberCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Subscriber.
+func (c *SubscriberClient) Update() *SubscriberUpdate {
+	mutation := newSubscriberMutation(c.config, OpUpdate)
+	return &SubscriberUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SubscriberClient) UpdateOne(_m *Subscriber) *SubscriberUpdateOne {
+	mutation := newSubscriberMutation(c.config, OpUpdateOne, withSubscriber(_m))
+	return &SubscriberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SubscriberClient) UpdateOneID(id uuid.UUID) *SubscriberUpdateOne {
+	mutation := newSubscriberMutation(c.config, OpUpdateOne, withSubscriberID(id))
+	return &SubscriberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Subscriber.
+func (c *SubscriberClient) Delete() *SubscriberDelete {
+	mutation := newSubscriberMutation(c.config, OpDelete)
+	return &SubscriberDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SubscriberClient) DeleteOne(_m *Subscriber) *SubscriberDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SubscriberClient) DeleteOneID(id uuid.UUID) *SubscriberDeleteOne {
+	builder := c.Delete().Where(subscriber.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SubscriberDeleteOne{builder}
+}
+
+// Query returns a query builder for Subscriber.
+func (c *SubscriberClient) Query() *SubscriberQuery {
+	return &SubscriberQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSubscriber},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Subscriber entity by its id.
+func (c *SubscriberClient) Get(ctx context.Context, id uuid.UUID) (*Subscriber, error) {
+	return c.Query().Where(subscriber.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SubscriberClient) GetX(ctx context.Context, id uuid.UUID) *Subscriber {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SubscriberClient) Hooks() []Hook {
+	return c.hooks.Subscriber
+}
+
+// Interceptors returns the client interceptors.
+func (c *SubscriberClient) Interceptors() []Interceptor {
+	return c.inters.Subscriber
+}
+
+func (c *SubscriberClient) mutate(ctx context.Context, m *SubscriberMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SubscriberCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SubscriberUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SubscriberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SubscriberDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Subscriber mutation op: %q", m.Op())
+	}
+}
+
 // TagClient is a client for the Tag schema.
 type TagClient struct {
 	config
@@ -970,9 +1111,9 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Article, Category, Comment, Tag, User []ent.Hook
+		Article, Category, Comment, Subscriber, Tag, User []ent.Hook
 	}
 	inters struct {
-		Article, Category, Comment, Tag, User []ent.Interceptor
+		Article, Category, Comment, Subscriber, Tag, User []ent.Interceptor
 	}
 )

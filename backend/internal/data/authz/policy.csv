@@ -50,6 +50,16 @@ p, admin, /blog.v1.CategoryService/UpdateCategory, *
 p, admin, /blog.v1.CategoryService/DeleteCategory, *
 p, admin, /blog.v1.CategoryService/GetCategory, *
 
+# --- public: email subscription registration ---
+p, public, /v1/subscribers/subscribe, POST
+p, public, /blog.v1.SubscriberService/Subscribe, *
+
+# --- admin: subscription management ---
+p, admin, /v1/subscribers/list, GET
+p, admin, /v1/subscribers/{email}, DELETE
+p, admin, /blog.v1.SubscriberService/ListSubscribers, *
+p, admin, /blog.v1.SubscriberService/DeleteSubscriber, *
+
 # --- role hierarchy: named roles inherit the authenticated subject, which in
 # turn inherits public, so a signed-in reader is never denied a public read ---
 g, authenticated, public

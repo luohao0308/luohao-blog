@@ -15,6 +15,9 @@ type Category func(*sql.Selector)
 // Comment is the predicate function for comment builders.
 type Comment func(*sql.Selector)
 
+// Subscriber is the predicate function for subscriber builders.
+type Subscriber func(*sql.Selector)
+
 // Tag is the predicate function for tag builders.
 type Tag func(*sql.Selector)
 

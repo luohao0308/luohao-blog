@@ -18,6 +18,8 @@ type Tx struct {
 	Category *CategoryClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
+	// Subscriber is the client for interacting with the Subscriber builders.
+	Subscriber *SubscriberClient
 	// Tag is the client for interacting with the Tag builders.
 	Tag *TagClient
 	// User is the client for interacting with the User builders.
@@ -156,6 +158,7 @@ func (tx *Tx) init() {
 	tx.Article = NewArticleClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)
+	tx.Subscriber = NewSubscriberClient(tx.config)
 	tx.Tag = NewTagClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }

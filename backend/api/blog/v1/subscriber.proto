@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "SubscriberProto";
+
+// SubscriberService registers emails for future article notifications. Actual
+// sending is not wired yet: subscribing records the email so a future sender
+// can pick the list up. Subscribe is idempotent — re-subscribing an existing
+// email succeeds without change, so the public endpoint does not leak which
+// addresses are registered.
+service SubscriberService {
+  // Subscribe registers an email address. Emails are stored lowercased.
+  // Authorization: public (rate limited per client IP).
+  // Returns INVALID_ARGUMENT if the email is malformed, and TOO_MANY_ATTEMPTS
+  // when the client exceeds the submission budget.
+  rpc Subscribe (SubscribeRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/subscribers/subscribe"
+      body: "*"
+    };
+  }
+
+  // ListSubscribers returns a page of subscribers ordered by creation time,
+  // newest first. Authorization: ADMIN only (Authorization: Bearer).
+  rpc ListSubscribers (ListSubscribersRequest) returns (SubscriberSet) {
+    option (google.api.http) = {
+      get: "/v1/subscribers/list"
+    };
+  }
+
+  // DeleteSubscriber removes a subscription.
+  // Authorization: ADMIN only (Authorization: Bearer).
+  // Returns NOT_FOUND if no subscriber exists with the supplied email.
+  rpc DeleteSubscriber (DeleteSubscriberRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/subscribers/{email}"
+    };
+  }
+}
+
+// Subscriber is the canonical representation of a registered email.
+message Subscriber {
+  // Application-generated UUIDv7 identifier. Read-only.
+  string id = 1;
+  // Lowercased email address, unique.
+  string email = 2 [(google.api.field_behavior) = REQUIRED];
+  // Time at which the subscription was registered. Server-assigned,
+  // read-only.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// SubscriberSet is a paginated collection of subscribers.
+message SubscriberSet {
+  // The page of subscribers, newest first.
+  repeated Subscriber subscribers = 1;
+  // Token used to retrieve the next page via
+  // ListSubscribersRequest.page_token. Empty when there are no more results.
+  string next_page_token = 2;
+}
+
+// SubscribeRequest is the input for SubscriberService.Subscribe.
+message SubscribeRequest {
+  // Email address to register. Stored lowercased.
+  string email = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ListSubscribersRequest is the input for SubscriberService.ListSubscribers.
+message ListSubscribersRequest {
+  // Optional. Maximum number of subscribers to return in a single page.
+  // The server may apply a default and a maximum when unset or out of range.
+  int32 page_size = 1;
+  // Optional. Token from a previous response's next_page_token used to fetch
+  // the next page. Leave empty to request the first page.
+  string page_token = 2;
+}
+
+// DeleteSubscriberRequest is the input for SubscriberService.DeleteSubscriber.
+message DeleteSubscriberRequest {
+  // Email address to remove. Compared case-insensitively.
+  string email = 1 [(google.api.field_behavior) = REQUIRED];
+}

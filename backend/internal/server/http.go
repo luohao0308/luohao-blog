@@ -15,7 +15,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, comment *service.CommentService, search *service.ArticleSearchService, chat *service.ChatService) (*http.Server, error) {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
@@ -43,6 +43,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	srv := http.NewServer(opts...)
 	v1.RegisterArticleServiceHTTPServer(srv, article)
 	v1.RegisterCategoryServiceHTTPServer(srv, category)
+	v1.RegisterSubscriberServiceHTTPServer(srv, subscriber)
 	v1.RegisterAuthServiceHTTPServer(srv, auth)
 	v1.RegisterCommentServiceHTTPServer(srv, comment)
 	v1.RegisterArticleSearchServiceHTTPServer(srv, search)

@@ -15,6 +15,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 )
@@ -77,11 +78,12 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			article.Table:  article.ValidColumn,
-			category.Table: category.ValidColumn,
-			comment.Table:  comment.ValidColumn,
-			tag.Table:      tag.ValidColumn,
-			user.Table:     user.ValidColumn,
+			article.Table:    article.ValidColumn,
+			category.Table:   category.ValidColumn,
+			comment.Table:    comment.ValidColumn,
+			subscriber.Table: subscriber.ValidColumn,
+			tag.Table:        tag.ValidColumn,
+			user.Table:       user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

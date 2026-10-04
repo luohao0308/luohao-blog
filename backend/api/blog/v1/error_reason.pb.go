@@ -24,28 +24,31 @@ const (
 type ErrorReason int32
 
 const (
-	ErrorReason_ARTICLE_UNSPECIFIED        ErrorReason = 0
-	ErrorReason_ARTICLE_NOT_FOUND          ErrorReason = 1
-	ErrorReason_ARTICLE_INVALID_ARGUMENT   ErrorReason = 2
-	ErrorReason_ARTICLE_SLUG_CONFLICT      ErrorReason = 3
-	ErrorReason_USER_NOT_FOUND             ErrorReason = 4
-	ErrorReason_USER_INVALID_ARGUMENT      ErrorReason = 5
-	ErrorReason_USER_INVALID_CREDENTIALS   ErrorReason = 6
-	ErrorReason_USER_EMAIL_CONFLICT        ErrorReason = 7
-	ErrorReason_AUTH_UNAUTHORIZED          ErrorReason = 8
-	ErrorReason_AUTH_TOKEN_EXPIRED         ErrorReason = 9
-	ErrorReason_AUTH_INVALID_REFRESH_TOKEN ErrorReason = 10
-	ErrorReason_AUTH_TOO_MANY_ATTEMPTS     ErrorReason = 11
-	ErrorReason_AUTH_FORBIDDEN             ErrorReason = 12
-	ErrorReason_COMMENT_NOT_FOUND          ErrorReason = 13
-	ErrorReason_COMMENT_INVALID_ARGUMENT   ErrorReason = 14
-	ErrorReason_COMMENT_TOO_MANY_ATTEMPTS  ErrorReason = 15
-	ErrorReason_CHAT_UNAVAILABLE           ErrorReason = 16
-	ErrorReason_CHAT_INVALID_ARGUMENT      ErrorReason = 17
-	ErrorReason_CHAT_TOO_MANY_ATTEMPTS     ErrorReason = 18
-	ErrorReason_CATEGORY_NOT_FOUND         ErrorReason = 19
-	ErrorReason_CATEGORY_INVALID_ARGUMENT  ErrorReason = 20
-	ErrorReason_CATEGORY_SLUG_CONFLICT     ErrorReason = 21
+	ErrorReason_ARTICLE_UNSPECIFIED          ErrorReason = 0
+	ErrorReason_ARTICLE_NOT_FOUND            ErrorReason = 1
+	ErrorReason_ARTICLE_INVALID_ARGUMENT     ErrorReason = 2
+	ErrorReason_ARTICLE_SLUG_CONFLICT        ErrorReason = 3
+	ErrorReason_USER_NOT_FOUND               ErrorReason = 4
+	ErrorReason_USER_INVALID_ARGUMENT        ErrorReason = 5
+	ErrorReason_USER_INVALID_CREDENTIALS     ErrorReason = 6
+	ErrorReason_USER_EMAIL_CONFLICT          ErrorReason = 7
+	ErrorReason_AUTH_UNAUTHORIZED            ErrorReason = 8
+	ErrorReason_AUTH_TOKEN_EXPIRED           ErrorReason = 9
+	ErrorReason_AUTH_INVALID_REFRESH_TOKEN   ErrorReason = 10
+	ErrorReason_AUTH_TOO_MANY_ATTEMPTS       ErrorReason = 11
+	ErrorReason_AUTH_FORBIDDEN               ErrorReason = 12
+	ErrorReason_COMMENT_NOT_FOUND            ErrorReason = 13
+	ErrorReason_COMMENT_INVALID_ARGUMENT     ErrorReason = 14
+	ErrorReason_COMMENT_TOO_MANY_ATTEMPTS    ErrorReason = 15
+	ErrorReason_CHAT_UNAVAILABLE             ErrorReason = 16
+	ErrorReason_CHAT_INVALID_ARGUMENT        ErrorReason = 17
+	ErrorReason_CHAT_TOO_MANY_ATTEMPTS       ErrorReason = 18
+	ErrorReason_CATEGORY_NOT_FOUND           ErrorReason = 19
+	ErrorReason_CATEGORY_INVALID_ARGUMENT    ErrorReason = 20
+	ErrorReason_CATEGORY_SLUG_CONFLICT       ErrorReason = 21
+	ErrorReason_SUBSCRIBER_INVALID_ARGUMENT  ErrorReason = 22
+	ErrorReason_SUBSCRIBER_NOT_FOUND         ErrorReason = 23
+	ErrorReason_SUBSCRIBER_TOO_MANY_ATTEMPTS ErrorReason = 24
 )
 
 // Enum value maps for ErrorReason.
@@ -73,30 +76,36 @@ var (
 		19: "CATEGORY_NOT_FOUND",
 		20: "CATEGORY_INVALID_ARGUMENT",
 		21: "CATEGORY_SLUG_CONFLICT",
+		22: "SUBSCRIBER_INVALID_ARGUMENT",
+		23: "SUBSCRIBER_NOT_FOUND",
+		24: "SUBSCRIBER_TOO_MANY_ATTEMPTS",
 	}
 	ErrorReason_value = map[string]int32{
-		"ARTICLE_UNSPECIFIED":        0,
-		"ARTICLE_NOT_FOUND":          1,
-		"ARTICLE_INVALID_ARGUMENT":   2,
-		"ARTICLE_SLUG_CONFLICT":      3,
-		"USER_NOT_FOUND":             4,
-		"USER_INVALID_ARGUMENT":      5,
-		"USER_INVALID_CREDENTIALS":   6,
-		"USER_EMAIL_CONFLICT":        7,
-		"AUTH_UNAUTHORIZED":          8,
-		"AUTH_TOKEN_EXPIRED":         9,
-		"AUTH_INVALID_REFRESH_TOKEN": 10,
-		"AUTH_TOO_MANY_ATTEMPTS":     11,
-		"AUTH_FORBIDDEN":             12,
-		"COMMENT_NOT_FOUND":          13,
-		"COMMENT_INVALID_ARGUMENT":   14,
-		"COMMENT_TOO_MANY_ATTEMPTS":  15,
-		"CHAT_UNAVAILABLE":           16,
-		"CHAT_INVALID_ARGUMENT":      17,
-		"CHAT_TOO_MANY_ATTEMPTS":     18,
-		"CATEGORY_NOT_FOUND":         19,
-		"CATEGORY_INVALID_ARGUMENT":  20,
-		"CATEGORY_SLUG_CONFLICT":     21,
+		"ARTICLE_UNSPECIFIED":          0,
+		"ARTICLE_NOT_FOUND":            1,
+		"ARTICLE_INVALID_ARGUMENT":     2,
+		"ARTICLE_SLUG_CONFLICT":        3,
+		"USER_NOT_FOUND":               4,
+		"USER_INVALID_ARGUMENT":        5,
+		"USER_INVALID_CREDENTIALS":     6,
+		"USER_EMAIL_CONFLICT":          7,
+		"AUTH_UNAUTHORIZED":            8,
+		"AUTH_TOKEN_EXPIRED":           9,
+		"AUTH_INVALID_REFRESH_TOKEN":   10,
+		"AUTH_TOO_MANY_ATTEMPTS":       11,
+		"AUTH_FORBIDDEN":               12,
+		"COMMENT_NOT_FOUND":            13,
+		"COMMENT_INVALID_ARGUMENT":     14,
+		"COMMENT_TOO_MANY_ATTEMPTS":    15,
+		"CHAT_UNAVAILABLE":             16,
+		"CHAT_INVALID_ARGUMENT":        17,
+		"CHAT_TOO_MANY_ATTEMPTS":       18,
+		"CATEGORY_NOT_FOUND":           19,
+		"CATEGORY_INVALID_ARGUMENT":    20,
+		"CATEGORY_SLUG_CONFLICT":       21,
+		"SUBSCRIBER_INVALID_ARGUMENT":  22,
+		"SUBSCRIBER_NOT_FOUND":         23,
+		"SUBSCRIBER_TOO_MANY_ATTEMPTS": 24,
 	}
 )
 
@@ -131,7 +140,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xcf\x04\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xac\x05\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -155,7 +164,10 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x16CHAT_TOO_MANY_ATTEMPTS\x10\x12\x12\x16\n" +
 	"\x12CATEGORY_NOT_FOUND\x10\x13\x12\x1d\n" +
 	"\x19CATEGORY_INVALID_ARGUMENT\x10\x14\x12\x1a\n" +
-	"\x16CATEGORY_SLUG_CONFLICT\x10\x15BQ\n" +
+	"\x16CATEGORY_SLUG_CONFLICT\x10\x15\x12\x1f\n" +
+	"\x1bSUBSCRIBER_INVALID_ARGUMENT\x10\x16\x12\x18\n" +
+	"\x14SUBSCRIBER_NOT_FOUND\x10\x17\x12 \n" +
+	"\x1cSUBSCRIBER_TOO_MANY_ATTEMPTS\x10\x18BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (
