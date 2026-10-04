@@ -1,8 +1,14 @@
 # M2+ 分类体系（Category）实施计划
 
-_status: approved（2026-10-04，用户批准三切片与"单选可选"设计）_
+_status: delivered（2026-10-04，三切片全部合并/交付）_
 _task: M2+ 内容组织（分类部分）_
 _scope: backend / frontend-admin / frontend-public_
+
+## 交付记录
+
+- S1 后端模型与契约：PR #31 squash 合并（merge `96b65f3`，required CI 两项通过，guard push/PR/merge 全 consume allow）
+- S2 管理后台：PR #32 squash 合并（merge `d95875d`，required CI 两项通过，guard push/PR/merge 全 consume allow）
+- S3 前台导航与聚合页：本 PR（含本计划文档与任务板收尾）
 
 ## 目标
 
