@@ -8,7 +8,7 @@ _scope: backend / frontend-admin / frontend-public_
 
 - S1 后端模型与契约：PR #31 squash 合并（merge `96b65f3`，required CI 两项通过，guard push/PR/merge 全 consume allow）
 - S2 管理后台：PR #32 squash 合并（merge `d95875d`，required CI 两项通过，guard push/PR/merge 全 consume allow）
-- S3 前台导航与聚合页：本 PR（含本计划文档与任务板收尾）
+- S3 前台导航与聚合页：PR #33 squash 合并（merge `d3f8398`，required CI 两项通过；分支含 main 同步 merge 提交，解决 add/add 冲突后 CI 恢复触发）
 
 ## 目标
 
