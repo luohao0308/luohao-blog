@@ -188,16 +188,14 @@ func NewRateLimiter(rdb redis.UniversalClient, a *conf.Auth) biz.RateLimiter {
 // Allow increments the fixed-window counter for key. The window TTL is set
 // only on the first increment of a window so retries do not extend it.
 func (r *rateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	n, err := r.rdb.Incr(ctx, rateKeyPrefix+key).Result()
-	if err != nil {
+	k := rateKeyPrefix + key
+	pipe := r.rdb.TxPipeline()
+	incr := pipe.Incr(ctx, k)
+	pipe.ExpireNX(ctx, k, r.window)
+	if _, err := pipe.Exec(ctx); err != nil {
 		return false, err
 	}
-	if n == 1 {
-		if err := r.rdb.Expire(ctx, rateKeyPrefix+key, r.window).Err(); err != nil {
-			return false, err
-		}
-	}
-	return n <= r.attempts, nil
+	return incr.Val() <= r.attempts, nil
 }
 
 // NewRefreshTokenTTL exposes the session TTL to wire as a plain value; the
