@@ -81,6 +81,20 @@ export async function searchPublishedArticles(query: string, pageSize = 100): Pr
   return (page.articles ?? []).filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
 }
 
+// tagCounts aggregates how often each tag appears across articles, ordered by
+// usage count desc then name, for the tag cloud and the tags index page.
+export function tagCounts(articles: Article[]): Array<{ tag: string, count: number }> {
+  const counts = new Map<string, number>()
+  for (const article of articles) {
+    for (const tag of article.tags ?? []) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    }
+  }
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, 'zh-CN'))
+}
+
 // formatDate renders an RFC3339 timestamp as a plain local date.
 export function articleDate(ts?: ArticleTimestamp): string {
   if (!ts) return ''

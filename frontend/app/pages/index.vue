@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { projects } from '~/data/projects'
-import { formatDate, searchPublishedArticles, useArticleList, usePublishedArticles } from '~/composables/useArticles'
+import { formatDate, searchPublishedArticles, tagCounts, useArticleList, usePublishedArticles } from '~/composables/useArticles'
 
 const { data } = useArticleList({ pageSize: 3 })
 
@@ -36,6 +36,8 @@ const hotArticles = computed(() =>
     .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
     .slice(0, 5),
 )
+
+const tags = computed(() => tagCounts(allArticles.value ?? []))
 
 watch(searchQuery, async (value) => {
   if (!value?.trim()) {
@@ -174,6 +176,23 @@ watch(searchQuery, async (value) => {
         </NuxtLink>
       </div>
       <p v-else class="text-sm text-slate-500">暂无热门文章。</p>
+    </section>
+
+    <!-- tag cloud -->
+    <section class="space-y-4">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-xl font-bold tracking-tight">标签云</h2>
+        <NuxtLink to="/tags" class="text-sm text-blue-600 hover:underline dark:text-blue-400">全部标签 →</NuxtLink>
+      </div>
+      <nav v-if="tags.length" aria-label="文章标签" class="flex flex-wrap gap-2">
+        <NuxtLink
+          v-for="item in tags.slice(0, 12)"
+          :key="item.tag"
+          :to="`/tags/${encodeURIComponent(item.tag)}`"
+          class="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-[#e5def1] dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        >{{ item.tag }}<span class="ml-1.5 text-xs text-slate-400 dark:text-slate-500">{{ item.count }}</span></NuxtLink>
+      </nav>
+      <p v-else class="text-sm text-slate-500">文章发布后标签会集中在这里。</p>
     </section>
 
     <!-- featured projects -->
