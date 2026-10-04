@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getProject } from '~/data/projects'
+import { getProject, projects } from '~/data/projects'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
@@ -8,6 +8,18 @@ const project = computed(() => getProject(slug.value))
 if (!project.value) {
   throw createError({ statusCode: 404, message: '项目不存在' })
 }
+
+// Related projects rank by shared stack entries. Zero-overlap projects still
+// show (ranked last): the portfolio is small, and the section doubles as
+// "what else is here" navigation rather than disappearing entirely.
+const relatedProjects = computed(() =>
+  projects
+    .filter(item => item.slug !== project.value?.slug)
+    .map(item => ({ project: item, overlap: item.stack.filter(s => project.value?.stack.includes(s)).length }))
+    .sort((a, b) => b.overlap - a.overlap)
+    .slice(0, 2)
+    .map(entry => entry.project),
+)
 
 useHead(() => ({ title: `${project.value?.name ?? '项目'} · 作品集` }))
 </script>
@@ -44,6 +56,13 @@ useHead(() => ({ title: `${project.value?.name ?? '项目'} · 作品集` }))
         </ul>
       </aside>
     </div>
+
+    <section v-if="relatedProjects.length" class="space-y-4 border-t border-slate-200 pt-9 dark:border-slate-800">
+      <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">相关项目</h2>
+      <div class="grid gap-6 sm:grid-cols-2">
+        <ProjectCard v-for="item in relatedProjects" :key="item.slug" :project="item" />
+      </div>
+    </section>
 
     <nav aria-label="项目导航" class="border-t border-slate-200 pt-6 dark:border-slate-800">
       <NuxtLink to="/projects" class="text-sm text-[#3c5d85] hover:underline dark:text-blue-300">浏览全部项目 →</NuxtLink>
