@@ -42,6 +42,15 @@ _last-updated: 2026-10-04_
 - [x] M4/S1 analyzer 兼容性修复：stock Elasticsearch 使用内置 `standard` analyzer，PR #16 squash 合并（head `28077dc`，merge `e086e92`，required CI 两项通过，2026-10-02）
 - [x] M4/S2 embedding、S3 语义搜索 + RAG：按用户指示暂缓，保留计划与依赖关系（2026-10-02）
 
+
+- [x] M2+ 内容发现能力补全：首页文章搜索（复用搜索 API）、按阅读量展示热门文章、文章/项目/标签统计和最近更新时间；前端 lint/typecheck/build 通过（2026-10-04）
+- [x] M2+ 内容组织（标签部分）：首页标签云（前 12 + 全部入口）、标签总览页 /tags、导航"标签"入口、tagCounts 聚合函数；标签聚合页 /tags/[tag] 沿用既有；lint/typecheck/build + 预览冒烟通过（2026-10-04）
+- [ ] M2+ 内容组织（分类部分）：独立分类体系——后端无 category 数据模型（仅 tags），方案待用户决策（前端标签分组配置 / 后端立项 category）
+- [ ] M2+ 项目展示增强：作品集技术栈筛选、项目详情关联项目推荐
+- [ ] M3 互动与增长能力：RSS 订阅、邮件订阅、阅读排行榜
+- [ ] M3 内容推荐体系：相关文章推荐、热门内容推荐位
+- [ ] M3 用户互动能力：点赞、收藏、评论体验增强（评论已上线，补齐前台体验与数据展示）
+
 ## 未授权或未立项 (Do Not Start)
 
 - M5 上线：未立项；M4 已按计划立项，S2 需 embedding 配置就绪后开始
@@ -69,15 +78,13 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | LLM 120s vs HTTP server 60s 超时错配 | 中 | reasoning 模型下聊天 60s 必失败：`data/llm.go:41` vs `configs/config.yaml:5`，统一并文档化耦合 |
 | errors.Error 实际走 protojson | 中 | codec.go"stdlib 形状"注释错误（内嵌 Status 满足 proto.Message）；错误体多 `metadata:{}`；非法 UTF-8 → 裸 500 空体；需特判 + 钉死编码路径测试 |
 | page_token 合法大 offset 未钳 | 中 | 解析失败已修，但合法编码的巨大 offset 直通 ES from（>10000 → 500）与 MySQL OFFSET：`service/search.go:45`，补 offset 上限 |
-| openapi.yaml 属性名漂移 | 中 | #28 UseProtoNames 后线上 snake_case vs 生成物 camelCase：重配 protoc-gen-openapi 选项再生成 |
-| release.yml 无并发控制/无测试门禁 | 中 | 旧构建可反向覆盖 ghcr latest；main 直推绕过 CI 出镜像；两 workflow 无 timeout-minutes |
-| update_mask 未知字段静默忽略 | 中 | proto/openapi 承诺 400，einride 直接 return：`service/article.go:146` 加 fieldmask.Validate |
+| release.yml 镜像发布门禁 | 已修复 | `ci-gate` 复用 CI 工作流并作为镜像任务前置依赖；保留 concurrency 与 30 分钟超时 |
 | 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
 | Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 中 | 可观测性与恢复安全三件 |
-| backup.sh 空库假成功 | 中 | mysqldump 早败产生合法空 gzip，gzip -t 挡不住；trap 删残骸 + dump 头校验 |
+| backup.sh 空库假成功 | 已修复 | 临时文件 + EXIT 清理，gzip 完整性与 dump 头校验通过后原子重命名 |
 | E2E known_issue 失效 + 限流自撞 | 中 | P0 已修但标注未摘（回归会静默放行）；一轮耗 7 次登录限流连跑必挂 |
 | demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
-| 限流器 Incr+Expire 非原子（两轮确认） | 中 | `data/auth.go:190` INCR 成功而 EXPIRE 失败 → key 永久无 TTL → 该 IP 永久 429（NAT 后是大批真实用户）；Lua 原子化或 EXPIRE NX 兜底，补失败恢复测试 |
+| 限流器 Incr+Expire 异常路径 | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
 | dev compose 端口发布 0.0.0.0 | 低 | MySQL/Redis/ES/MinIO 对局域网暴露，建议 `127.0.0.1:` 前缀 |
 | CI 杂项 | 低 | ci.yml 第三方 action 未 pin SHA、无 permissions 块、无 paths 过滤；backup.sh 清理按空白分词 |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |

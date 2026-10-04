@@ -35,6 +35,14 @@ const (
 // offset escapes the pagination window (negative, or beyond maxPageOffset).
 var errPageOffsetOutOfRange = errors.New("page offset beyond the pagination window")
 
+var allowedArticleUpdateMaskPaths = map[string]struct{}{
+	"title": {},
+	"summary": {},
+	"content_md": {},
+	"tags": {},
+	"status": {},
+}
+
 // clampPageSize enforces maxPageSize on a request's page size in place.
 func clampPageSize(size *int32) {
 	if *size > maxPageSize {
@@ -164,6 +172,11 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 func (s *ArticleService) UpdateArticle(ctx context.Context, req *v1.UpdateArticleRequest) (*v1.Article, error) {
 	if req.GetArticle().GetSlug() == "" || req.GetUpdateMask() == nil || len(req.GetUpdateMask().GetPaths()) == 0 {
 		return nil, biz.ErrArticleInvalidArgument
+	}
+	for _, path := range req.GetUpdateMask().GetPaths() {
+		if _, ok := allowedArticleUpdateMaskPaths[path]; !ok {
+			return nil, biz.ErrArticleInvalidArgument.WithCause(errors.New("unknown update_mask path: " + path))
+		}
 	}
 	current, err := s.GetArticle(ctx, &v1.GetArticleRequest{Slug: req.GetArticle().GetSlug()})
 	if err != nil {

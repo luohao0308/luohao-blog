@@ -247,3 +247,41 @@ func TestRateLimiterWindow(t *testing.T) {
 		t.Fatalf("default limiter allowed %d attempts, want %d", allowed, biz.DefaultLoginAttempts)
 	}
 }
+
+func TestRateLimiterSetsTTLWithoutExtendingWindow(t *testing.T) {
+	ctx := context.Background()
+	rdb, mr := newTestRedis(t)
+	limiter := NewRateLimiter(rdb, limiterTestConfig(5, time.Minute))
+	key := "login:ttl"
+	if _, err := limiter.Allow(ctx, key); err != nil {
+		t.Fatal(err)
+	}
+	first := mr.TTL(rateKeyPrefix + key)
+	mr.FastForward(30 * time.Second)
+	if _, err := limiter.Allow(ctx, key); err != nil {
+		t.Fatal(err)
+	}
+	second := mr.TTL(rateKeyPrefix + key)
+	if second >= first {
+		t.Fatalf("ttl extended: first=%v second=%v", first, second)
+	}
+}
+
+func TestRateLimiterRedisFailureDoesNotLeaveCounter(t *testing.T) {
+	ctx := context.Background()
+	rdb, mr := newTestRedis(t)
+	limiter := NewRateLimiter(rdb, limiterTestConfig(5, time.Minute))
+	key := "login:redis-failure"
+
+	// Simulate Redis refusing the transaction before it can commit. The
+	// limiter must surface the outage and must not leave a counter without a
+	// TTL that can permanently deny this client.
+	mr.SetError("LOADING Redis is loading the dataset in memory")
+	if _, err := limiter.Allow(ctx, key); err == nil {
+		t.Fatal("Allow() error = nil, want Redis failure")
+	}
+	mr.SetError("")
+	if mr.Exists(rateKeyPrefix + key) {
+		t.Fatalf("rate-limit counter %q remained after Redis failure", key)
+	}
+}

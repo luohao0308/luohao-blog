@@ -8,6 +8,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // The update flow merges the patch into the current record and converts it
@@ -98,4 +99,17 @@ func TestListArticlesFilterHandling(t *testing.T) {
 			t.Fatalf("unsupported order_by error = %v, want bad request", err)
 		}
 	})
+}
+
+func TestUpdateArticleRejectsUnknownUpdateMaskPath(t *testing.T) {
+	svc := NewArticleService(biz.NewArticleUsecase(&stubArticleRepo{}, nil))
+	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
+		Article: &v1.Article{Slug: "demo"},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"unknown_field"},
+		},
+	})
+	if !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("error = %v, want bad request", err)
+	}
 }

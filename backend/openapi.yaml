@@ -42,7 +42,7 @@ paths:
                  Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
             operationId: ArticleService_ListArticles
             parameters:
-                - name: pageSize
+                - name: page_size
                   in: query
                   description: |-
                     Optional. Maximum number of articles to return in a single page.
@@ -50,7 +50,7 @@ paths:
                   schema:
                     type: integer
                     format: int32
-                - name: pageToken
+                - name: page_token
                   in: query
                   description: |-
                     Optional. Token from a previous response's next_page_token used to fetch
@@ -70,7 +70,7 @@ paths:
                         * `created_at` range, `updated_at` range
                   schema:
                     type: string
-                - name: orderBy
+                - name: order_by
                   in: query
                   description: |-
                     Optional. A comma-separated list of fields to order by.
@@ -106,7 +106,7 @@ paths:
                  INVALID_ARGUMENT if update_mask references unknown fields.
             operationId: ArticleService_UpdateArticle
             parameters:
-                - name: updateMask
+                - name: update_mask
                   in: query
                   description: |-
                     Set of field paths in article to overwrite. Fields not listed are left
@@ -186,13 +186,13 @@ paths:
                   required: true
                   schema:
                     type: string
-                - name: pageSize
+                - name: page_size
                   in: query
                   description: Optional. Maximum number of comments to return in a single page.
                   schema:
                     type: integer
                     format: int32
-                - name: pageToken
+                - name: page_token
                   in: query
                   description: Optional. Token from a previous response's next_page_token.
                   schema:
@@ -351,13 +351,13 @@ paths:
                  Authorization: ADMIN only.
             operationId: CommentService_ListComments
             parameters:
-                - name: pageSize
+                - name: page_size
                   in: query
                   description: Optional. Maximum number of comments to return in a single page.
                   schema:
                     type: integer
                     format: int32
-                - name: pageToken
+                - name: page_token
                   in: query
                   description: Optional. Token from a previous response's next_page_token.
                   schema:
@@ -467,13 +467,13 @@ paths:
                      tags of published articles.
                   schema:
                     type: string
-                - name: pageSize
+                - name: page_size
                   in: query
                   description: Optional. Maximum number of articles to return in a single page.
                   schema:
                     type: integer
                     format: int32
-                - name: pageToken
+                - name: page_token
                   in: query
                   description: Optional. Token from a previous response's next_page_token.
                   schema:
@@ -500,7 +500,7 @@ components:
             required:
                 - slug
                 - title
-                - contentMd
+                - content_md
             type: object
             properties:
                 id:
@@ -517,10 +517,10 @@ components:
                     description: |-
                         Optional short excerpt used in list views; derived from content_md when
                          empty.
-                contentMd:
+                content_md:
                     type: string
                     description: Markdown source of the article body.
-                contentHtml:
+                content_html:
                     type: string
                     description: |-
                         Server-rendered HTML for content_md. Read-only: regenerated whenever
@@ -536,19 +536,19 @@ components:
                         Lifecycle state. Server-assigned: new articles start as DRAFT; move them
                          with UpdateArticle on status; DeleteArticle moves them to DELETED.
                     format: enum
-                publishedAt:
+                published_at:
                     type: string
                     description: Time at which the article first moved to PUBLISHED. Server-assigned.
                     format: date-time
-                createdAt:
+                created_at:
                     type: string
                     description: Time at which the article was created. Server-assigned, read-only.
                     format: date-time
-                updatedAt:
+                updated_at:
                     type: string
                     description: Time at which the article was last modified. Server-assigned, read-only.
                     format: date-time
-                viewCount:
+                view_count:
                     type: string
                     description: |-
                         Public read counter. Incremented when a client reports a view through
@@ -562,7 +562,7 @@ components:
                     items:
                         $ref: '#/components/schemas/blog.v1.Article'
                     description: The page of articles in the order requested by ListArticlesRequest.order_by.
-                nextPageToken:
+                next_page_token:
                     type: string
                     description: |-
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
@@ -622,11 +622,11 @@ components:
                     type: integer
                     description: 'Moderation state. Server-assigned: new comments start PENDING.'
                     format: enum
-                createdAt:
+                created_at:
                     type: string
                     description: Time at which the comment was created. Server-assigned, read-only.
                     format: date-time
-                updatedAt:
+                updated_at:
                     type: string
                     description: Time at which the comment was last modified. Server-assigned, read-only.
                     format: date-time
@@ -638,7 +638,7 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/blog.v1.Comment'
-                nextPageToken:
+                next_page_token:
                     type: string
                     description: |-
                         Token used to retrieve the next page. Empty when there are no more
@@ -738,7 +738,7 @@ components:
                     type: integer
                     description: Account role.
                     format: enum
-                createdAt:
+                created_at:
                     type: string
                     description: Time at which the account was created. Server-assigned.
                     format: date-time
