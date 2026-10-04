@@ -653,6 +653,77 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.ArticleSet'
+    /v1/subscribers/list:
+        get:
+            tags:
+                - SubscriberService
+            description: |-
+                ListSubscribers returns a page of subscribers ordered by creation time,
+                 newest first. Authorization: ADMIN only (Authorization: Bearer).
+            operationId: SubscriberService_ListSubscribers
+            parameters:
+                - name: page_size
+                  in: query
+                  description: |-
+                    Optional. Maximum number of subscribers to return in a single page.
+                     The server may apply a default and a maximum when unset or out of range.
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  description: |-
+                    Optional. Token from a previous response's next_page_token used to fetch
+                     the next page. Leave empty to request the first page.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.SubscriberSet'
+    /v1/subscribers/subscribe:
+        post:
+            tags:
+                - SubscriberService
+            description: |-
+                Subscribe registers an email address. Emails are stored lowercased.
+                 Authorization: public (rate limited per client IP).
+                 Returns INVALID_ARGUMENT if the email is malformed, and TOO_MANY_ATTEMPTS
+                 when the client exceeds the submission budget.
+            operationId: SubscriberService_Subscribe
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.SubscribeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/subscribers/{email}:
+        delete:
+            tags:
+                - SubscriberService
+            description: |-
+                DeleteSubscriber removes a subscription.
+                 Authorization: ADMIN only (Authorization: Bearer).
+                 Returns NOT_FOUND if no subscriber exists with the supplied email.
+            operationId: SubscriberService_DeleteSubscriber
+            parameters:
+                - name: email
+                  in: path
+                  description: Email address to remove. Compared case-insensitively.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
 components:
     schemas:
         blog.v1.ApproveCommentRequest:
@@ -972,6 +1043,47 @@ components:
                 RefreshRequest is the input for AuthService.Refresh. The refresh token is
                  transported out of band (cookie or X-Refresh-Token header), so the message
                  body is empty.
+        blog.v1.SubscribeRequest:
+            required:
+                - email
+            type: object
+            properties:
+                email:
+                    type: string
+                    description: Email address to register. Stored lowercased.
+            description: SubscribeRequest is the input for SubscriberService.Subscribe.
+        blog.v1.Subscriber:
+            required:
+                - email
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Application-generated UUIDv7 identifier. Read-only.
+                email:
+                    type: string
+                    description: Lowercased email address, unique.
+                created_at:
+                    type: string
+                    description: |-
+                        Time at which the subscription was registered. Server-assigned,
+                         read-only.
+                    format: date-time
+            description: Subscriber is the canonical representation of a registered email.
+        blog.v1.SubscriberSet:
+            type: object
+            properties:
+                subscribers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Subscriber'
+                    description: The page of subscribers, newest first.
+                next_page_token:
+                    type: string
+                    description: |-
+                        Token used to retrieve the next page via
+                         ListSubscribersRequest.page_token. Empty when there are no more results.
+            description: SubscriberSet is a paginated collection of subscribers.
         blog.v1.User:
             type: object
             properties:
@@ -1040,3 +1152,10 @@ tags:
          becomes publicly visible only after an admin approves it. Admin operations
          require the Authorization header; public ones are rate limited per client
          IP.
+    - name: SubscriberService
+      description: |-
+        SubscriberService registers emails for future article notifications. Actual
+         sending is not wired yet: subscribing records the email so a future sender
+         can pick the list up. Subscribe is idempotent — re-subscribing an existing
+         email succeeds without change, so the public endpoint does not leak which
+         addresses are registered.

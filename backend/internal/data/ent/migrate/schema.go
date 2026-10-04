@@ -110,6 +110,26 @@ var (
 			},
 		},
 	}
+	// SubscribersColumns holds the columns for the "subscribers" table.
+	SubscribersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "email", Type: field.TypeString, Unique: true},
+	}
+	// SubscribersTable holds the schema information for the "subscribers" table.
+	SubscribersTable = &schema.Table{
+		Name:       "subscribers",
+		Columns:    SubscribersColumns,
+		PrimaryKey: []*schema.Column{SubscribersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriber_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{SubscribersColumns[2]},
+			},
+		},
+	}
 	// TagsColumns holds the columns for the "tags" table.
 	TagsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -183,6 +203,7 @@ var (
 		ArticlesTable,
 		CategoriesTable,
 		CommentsTable,
+		SubscribersTable,
 		TagsTable,
 		UsersTable,
 		ArticleTagsTable,

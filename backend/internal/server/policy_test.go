@@ -16,6 +16,7 @@ func registerCategoryRoutes(t *testing.T) *kratoshttp.Server {
 	srv := kratoshttp.NewServer()
 	v1.RegisterArticleServiceHTTPServer(srv, service.NewArticleService(biz.NewArticleUsecase(nil, nil)))
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
+	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	return srv
 }
 
