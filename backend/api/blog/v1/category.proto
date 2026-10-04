@@ -17,7 +17,22 @@ option java_outer_classname = "CategoryProto";
 // single-level, admin-curated grouping: an article belongs to at most one
 // category and may be uncategorized. The public identifier is the slug:
 // unique, URL-safe, and immutable after creation.
+//
+// Route order matters: the mux matches in registration order, so the static
+// list route MUST be declared before the {slug} param routes — otherwise
+// GET /v1/categories/list resolves to GetCategory and inherits its
+// admin-only policy (see the route-order test in internal/server).
 service CategoryService {
+  // ListCategories returns a page of categories ordered by sort, then slug.
+  // Each category carries article_count, the number of published articles in
+  // it. Use next_page_token to retrieve subsequent pages.
+  // Authorization: public.
+  rpc ListCategories (ListCategoriesRequest) returns (CategorySet) {
+    option (google.api.http) = {
+      get: "/v1/categories/list"
+    };
+  }
+
   // CreateCategory creates a category and returns the persisted record with
   // the server-assigned id and timestamps.
   // Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -60,16 +75,6 @@ service CategoryService {
   rpc GetCategory (GetCategoryRequest) returns (Category) {
     option (google.api.http) = {
       get: "/v1/categories/{slug}"
-    };
-  }
-
-  // ListCategories returns a page of categories ordered by sort, then slug.
-  // Each category carries article_count, the number of published articles in
-  // it. Use next_page_token to retrieve subsequent pages.
-  // Authorization: public.
-  rpc ListCategories (ListCategoriesRequest) returns (CategorySet) {
-    option (google.api.http) = {
-      get: "/v1/categories/list"
     };
   }
 }

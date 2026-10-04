@@ -470,12 +470,12 @@ const file_blog_v1_category_proto_rawDesc = "" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken2\x99\x04\n" +
-	"\x0fCategoryService\x12l\n" +
+	"\x0fCategoryService\x12c\n" +
+	"\x0eListCategories\x12\x1e.blog.v1.ListCategoriesRequest\x1a\x14.blog.v1.CategorySet\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/categories/list\x12l\n" +
 	"\x0eCreateCategory\x12\x1e.blog.v1.CreateCategoryRequest\x1a\x11.blog.v1.Category\"'\x82\xd3\xe4\x93\x02!:\bcategory\"\x15/v1/categories/create\x12l\n" +
 	"\x0eUpdateCategory\x12\x1e.blog.v1.UpdateCategoryRequest\x1a\x11.blog.v1.Category\"'\x82\xd3\xe4\x93\x02!:\bcategory\x1a\x15/v1/categories/update\x12g\n" +
 	"\x0eDeleteCategory\x12\x1e.blog.v1.DeleteCategoryRequest\x1a\x16.google.protobuf.Empty\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/v1/categories/{slug}\x12\\\n" +
-	"\vGetCategory\x12\x1b.blog.v1.GetCategoryRequest\x1a\x11.blog.v1.Category\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/categories/{slug}\x12c\n" +
-	"\x0eListCategories\x12\x1e.blog.v1.ListCategoriesRequest\x1a\x14.blog.v1.CategorySet\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/categories/listBe\n" +
+	"\vGetCategory\x12\x1b.blog.v1.GetCategoryRequest\x1a\x11.blog.v1.Category\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/categories/{slug}Be\n" +
 	"\x18io.grpc.examples.blog.v1B\rCategoryProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -510,16 +510,16 @@ var file_blog_v1_category_proto_depIdxs = []int32{
 	0,  // 3: blog.v1.CreateCategoryRequest.category:type_name -> blog.v1.Category
 	0,  // 4: blog.v1.UpdateCategoryRequest.category:type_name -> blog.v1.Category
 	8,  // 5: blog.v1.UpdateCategoryRequest.update_mask:type_name -> google.protobuf.FieldMask
-	2,  // 6: blog.v1.CategoryService.CreateCategory:input_type -> blog.v1.CreateCategoryRequest
-	3,  // 7: blog.v1.CategoryService.UpdateCategory:input_type -> blog.v1.UpdateCategoryRequest
-	4,  // 8: blog.v1.CategoryService.DeleteCategory:input_type -> blog.v1.DeleteCategoryRequest
-	5,  // 9: blog.v1.CategoryService.GetCategory:input_type -> blog.v1.GetCategoryRequest
-	6,  // 10: blog.v1.CategoryService.ListCategories:input_type -> blog.v1.ListCategoriesRequest
-	0,  // 11: blog.v1.CategoryService.CreateCategory:output_type -> blog.v1.Category
-	0,  // 12: blog.v1.CategoryService.UpdateCategory:output_type -> blog.v1.Category
-	9,  // 13: blog.v1.CategoryService.DeleteCategory:output_type -> google.protobuf.Empty
-	0,  // 14: blog.v1.CategoryService.GetCategory:output_type -> blog.v1.Category
-	1,  // 15: blog.v1.CategoryService.ListCategories:output_type -> blog.v1.CategorySet
+	6,  // 6: blog.v1.CategoryService.ListCategories:input_type -> blog.v1.ListCategoriesRequest
+	2,  // 7: blog.v1.CategoryService.CreateCategory:input_type -> blog.v1.CreateCategoryRequest
+	3,  // 8: blog.v1.CategoryService.UpdateCategory:input_type -> blog.v1.UpdateCategoryRequest
+	4,  // 9: blog.v1.CategoryService.DeleteCategory:input_type -> blog.v1.DeleteCategoryRequest
+	5,  // 10: blog.v1.CategoryService.GetCategory:input_type -> blog.v1.GetCategoryRequest
+	1,  // 11: blog.v1.CategoryService.ListCategories:output_type -> blog.v1.CategorySet
+	0,  // 12: blog.v1.CategoryService.CreateCategory:output_type -> blog.v1.Category
+	0,  // 13: blog.v1.CategoryService.UpdateCategory:output_type -> blog.v1.Category
+	9,  // 14: blog.v1.CategoryService.DeleteCategory:output_type -> google.protobuf.Empty
+	0,  // 15: blog.v1.CategoryService.GetCategory:output_type -> blog.v1.Category
 	11, // [11:16] is the sub-list for method output_type
 	6,  // [6:11] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name

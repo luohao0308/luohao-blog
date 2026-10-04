@@ -57,11 +57,30 @@ type CategoryServiceHTTPServer interface {
 
 func RegisterCategoryServiceHTTPServer(s *http.Server, srv CategoryServiceHTTPServer) {
 	r := s.Route("/")
+	r.Handle("GET", "/v1/categories/list", _CategoryService_ListCategories0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/categories/create", _CategoryService_CreateCategory0_HTTP_Handler(srv))
 	r.Handle("PUT", "/v1/categories/update", _CategoryService_UpdateCategory0_HTTP_Handler(srv))
 	r.Handle("DELETE", "/v1/categories/{slug}", _CategoryService_DeleteCategory0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/categories/{slug}", _CategoryService_GetCategory0_HTTP_Handler(srv))
-	r.Handle("GET", "/v1/categories/list", _CategoryService_ListCategories0_HTTP_Handler(srv))
+}
+
+func _CategoryService_ListCategories0_HTTP_Handler(srv CategoryServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListCategoriesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCategoryServiceListCategories)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListCategories(ctx, req.(*ListCategoriesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CategorySet)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _CategoryService_CreateCategory0_HTTP_Handler(srv CategoryServiceHTTPServer) func(ctx http.Context) error {
@@ -148,25 +167,6 @@ func _CategoryService_GetCategory0_HTTP_Handler(srv CategoryServiceHTTPServer) f
 			return err
 		}
 		reply := out.(*Category)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _CategoryService_ListCategories0_HTTP_Handler(srv CategoryServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in ListCategoriesRequest
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationCategoryServiceListCategories)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListCategories(ctx, req.(*ListCategoriesRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*CategorySet)
 		return ctx.Result(200, reply)
 	}
 }
