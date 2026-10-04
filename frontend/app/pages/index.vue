@@ -130,6 +130,8 @@ watch(searchQuery, async (value) => {
           <div class="mt-2 text-sm font-medium">{{ formatDate(stats.latestUpdated) || '暂无' }}</div>
         </div>
       </div>
+
+      <SubscribeForm />
     </section>
 
     <!-- featured articles -->
