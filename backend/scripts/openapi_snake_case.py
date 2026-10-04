@@ -2,7 +2,7 @@
 from pathlib import Path
 import re
 
-p = Path("openapi.yaml")
+p = Path(__file__).resolve().parent.parent / "openapi.yaml"
 text = p.read_text()
 
 def camel_to_snake(s):
@@ -18,4 +18,3 @@ for t in sorted(targets, key=len, reverse=True):
     text = re.sub(rf'\b{t}\b', camel_to_snake(t), text)
 
 p.write_text(text)
-
