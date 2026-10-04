@@ -17,6 +17,7 @@ config:
 # generate api proto
 api:
 	buf generate --template buf.gen.yaml
+	python3 scripts/openapi_snake_case.py
 
 .PHONY: build
 # build
