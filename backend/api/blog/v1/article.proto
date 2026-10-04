@@ -87,6 +87,19 @@ service ArticleService {
       body: "*"
     };
   }
+
+  // MarkArticleLiked records one public like of an article. The server
+  // deduplicates by client identity within a 24h window, so repeat calls from
+  // the same client do not increase the counter. Likes are only counted for
+  // PUBLISHED articles. Authorization: public (rate limited).
+  // Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+  // article does not exist or is not published.
+  rpc MarkArticleLiked (MarkArticleLikedRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/articles/{slug}/like"
+      body: "*"
+    };
+  }
 }
 
 // ArticleStatus is the lifecycle state of an article.
@@ -132,6 +145,9 @@ message Article {
   // Public read counter. Incremented when a client reports a view through
   // MarkArticleViewed and the 24h per-client dedup window admits it.
   uint64 view_count = 12;
+  // Public like counter. Incremented when a client reports a like through
+  // MarkArticleLiked and the 24h per-client dedup window admits it.
+  uint64 like_count = 14;
   // Single curated category of the article. Server-managed through
   // Create/UpdateArticle on the category field; absent when uncategorized.
   CategoryBrief category = 13;
@@ -223,5 +239,13 @@ message DeleteArticleRequest {
 // message body.
 message MarkArticleViewedRequest {
   // Unique slug of the article being viewed.
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// MarkArticleLikedRequest is the input for ArticleService.MarkArticleLiked.
+// The client identity comes from the transport (client IP), not from the
+// message body.
+message MarkArticleLikedRequest {
+  // Unique slug of the article being liked.
   string slug = 1 [(google.api.field_behavior) = REQUIRED];
 }

@@ -59,6 +59,7 @@ type Article struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	ViewCount    uint64
+	LikeCount    uint64
 }
 
 // ArticleSearchIndex is the full-text index the write path keeps in sync and
@@ -91,6 +92,10 @@ type ArticleRepo interface {
 	// already counted inside the repo's dedup window. It returns the
 	// article's current view count and whether this call counted.
 	IncrementView(context.Context, string, string) (uint64, bool, error)
+	// IncrementLike adds one public like for slug unless clientKey was
+	// already counted inside the repo's dedup window. It returns the
+	// article's current like count and whether this call counted.
+	IncrementLike(context.Context, string, string) (uint64, bool, error)
 }
 
 // ListOption configures article list queries.
@@ -324,6 +329,23 @@ func (uc *ArticleUsecase) MarkViewed(ctx context.Context, slug, clientKey string
 		return 0, false, ErrArticleNotFound
 	}
 	return uc.repo.IncrementView(ctx, slug, clientKey)
+}
+
+// MarkLiked records one public like of a published article, mirroring
+// MarkViewed: the dedup window and counter update live in the repo, and only
+// well-formed slugs of published articles can move the counter.
+func (uc *ArticleUsecase) MarkLiked(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
+	if !ValidSlug(slug) {
+		return 0, false, ErrArticleInvalidArgument
+	}
+	a, err := uc.repo.FindBySlug(ctx, slug)
+	if err != nil {
+		return 0, false, err
+	}
+	if a.Status != ArticleStatusPublished {
+		return 0, false, ErrArticleNotFound
+	}
+	return uc.repo.IncrementLike(ctx, slug, clientKey)
 }
 
 // validateArticle checks the mutable fields of an article at the biz boundary.

@@ -22,6 +22,7 @@ const OperationArticleServiceCreateArticle = "/blog.v1.ArticleService/CreateArti
 const OperationArticleServiceDeleteArticle = "/blog.v1.ArticleService/DeleteArticle"
 const OperationArticleServiceGetArticle = "/blog.v1.ArticleService/GetArticle"
 const OperationArticleServiceListArticles = "/blog.v1.ArticleService/ListArticles"
+const OperationArticleServiceMarkArticleLiked = "/blog.v1.ArticleService/MarkArticleLiked"
 const OperationArticleServiceMarkArticleViewed = "/blog.v1.ArticleService/MarkArticleViewed"
 const OperationArticleServiceUpdateArticle = "/blog.v1.ArticleService/UpdateArticle"
 
@@ -48,6 +49,13 @@ type ArticleServiceHTTPServer interface {
 	// Authorization: public.
 	// Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
 	ListArticles(context.Context, *ListArticlesRequest) (*ArticleSet, error)
+	// MarkArticleLiked MarkArticleLiked records one public like of an article. The server
+	// deduplicates by client identity within a 24h window, so repeat calls from
+	// the same client do not increase the counter. Likes are only counted for
+	// PUBLISHED articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleLiked(context.Context, *MarkArticleLikedRequest) (*emptypb.Empty, error)
 	// MarkArticleViewed MarkArticleViewed records one public view of an article. Intended to be
 	// called by the browser once per page open: the server deduplicates by
 	// client identity within a 24h window, so repeat calls from the same client
@@ -75,6 +83,7 @@ func RegisterArticleServiceHTTPServer(s *http.Server, srv ArticleServiceHTTPServ
 	r.Handle("PUT", "/v1/articles/update", _ArticleService_UpdateArticle0_HTTP_Handler(srv))
 	r.Handle("DELETE", "/v1/articles/{slug}", _ArticleService_DeleteArticle0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/articles/{slug}/view", _ArticleService_MarkArticleViewed0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/articles/{slug}/like", _ArticleService_MarkArticleLiked0_HTTP_Handler(srv))
 }
 
 func _ArticleService_CreateArticle0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
@@ -206,6 +215,28 @@ func _ArticleService_MarkArticleViewed0_HTTP_Handler(srv ArticleServiceHTTPServe
 	}
 }
 
+func _ArticleService_MarkArticleLiked0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in MarkArticleLikedRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceMarkArticleLiked)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.MarkArticleLiked(ctx, req.(*MarkArticleLikedRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ArticleServiceHTTPClient interface {
 	// CreateArticle CreateArticle creates a new article and returns the persisted record with
 	// the server-assigned id, timestamps, rendered HTML, and DRAFT status.
@@ -229,6 +260,13 @@ type ArticleServiceHTTPClient interface {
 	// Authorization: public.
 	// Returns INVALID_ARGUMENT if filter, order_by, or page_token are malformed.
 	ListArticles(ctx context.Context, req *ListArticlesRequest, opts ...http.CallOption) (rsp *ArticleSet, err error)
+	// MarkArticleLiked MarkArticleLiked records one public like of an article. The server
+	// deduplicates by client identity within a 24h window, so repeat calls from
+	// the same client do not increase the counter. Likes are only counted for
+	// PUBLISHED articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleLiked(ctx context.Context, req *MarkArticleLikedRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 	// MarkArticleViewed MarkArticleViewed records one public view of an article. Intended to be
 	// called by the browser once per page open: the server deduplicates by
 	// client identity within a 24h window, so repeat calls from the same client
@@ -333,6 +371,29 @@ func (c *ArticleServiceHTTPClientImpl) ListArticles(ctx context.Context, in *Lis
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// MarkArticleLiked MarkArticleLiked records one public like of an article. The server
+// deduplicates by client identity within a 24h window, so repeat calls from
+// the same client do not increase the counter. Likes are only counted for
+// PUBLISHED articles. Authorization: public (rate limited).
+// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+// article does not exist or is not published.
+func (c *ArticleServiceHTTPClientImpl) MarkArticleLiked(ctx context.Context, in *MarkArticleLikedRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/articles/{slug}/like"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationArticleServiceMarkArticleLiked),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -54,6 +54,9 @@ func (Article) Fields() []ent.Field {
 		// view-report endpoint increments it (after the Redis per-client
 		// dedup); the article write path leaves it untouched.
 		field.Uint64("view_count").Default(0),
+		// like_count mirrors view_count: denormalized, incremented only by
+		// the like endpoint after the Redis per-client dedup admits it.
+		field.Uint64("like_count").Default(0),
 	}
 }
 

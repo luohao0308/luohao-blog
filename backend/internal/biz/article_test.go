@@ -16,6 +16,7 @@ type fakeArticleRepo struct {
 	articles map[string]*Article
 	public   bool
 	views    map[string]uint64
+	likes    map[string]uint64
 }
 
 type fakeArticleSearchIndex struct {
@@ -41,7 +42,7 @@ func (f *fakeArticleSearchIndex) RecreateIndex(_ context.Context) error {
 }
 
 func newFakeArticleRepo() *fakeArticleRepo {
-	return &fakeArticleRepo{articles: map[string]*Article{}, views: map[string]uint64{}}
+	return &fakeArticleRepo{articles: map[string]*Article{}, views: map[string]uint64{}, likes: map[string]uint64{}}
 }
 
 func (f *fakeArticleRepo) FindBySlug(_ context.Context, slug string) (*Article, error) {
@@ -95,6 +96,17 @@ func (f *fakeArticleRepo) IncrementView(_ context.Context, slug, _ string) (uint
 	f.views[slug]++
 	a.ViewCount = f.views[slug]
 	return a.ViewCount, true, nil
+}
+
+// IncrementLike mirrors IncrementView for the like counter.
+func (f *fakeArticleRepo) IncrementLike(_ context.Context, slug, _ string) (uint64, bool, error) {
+	a, ok := f.articles[slug]
+	if !ok {
+		return 0, false, ErrArticleNotFound
+	}
+	f.likes[slug]++
+	a.LikeCount = f.likes[slug]
+	return a.LikeCount, true, nil
 }
 
 func (f *fakeArticleRepo) DeleteArticle(_ context.Context, slug string) error {

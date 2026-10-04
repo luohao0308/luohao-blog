@@ -208,6 +208,35 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.CommentSet'
+    /v1/articles/{slug}/like:
+        post:
+            tags:
+                - ArticleService
+            description: |-
+                MarkArticleLiked records one public like of an article. The server
+                 deduplicates by client identity within a 24h window, so repeat calls from
+                 the same client do not increase the counter. Likes are only counted for
+                 PUBLISHED articles. Authorization: public (rate limited).
+                 Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+                 article does not exist or is not published.
+            operationId: ArticleService_MarkArticleLiked
+            parameters:
+                - name: slug
+                  in: path
+                  description: Unique slug of the article being liked.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.MarkArticleLikedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/articles/{slug}/view:
         post:
             tags:
@@ -692,6 +721,11 @@ components:
                     description: |-
                         Public read counter. Incremented when a client reports a view through
                          MarkArticleViewed and the 24h per-client dedup window admits it.
+                likeCount:
+                    type: string
+                    description: |-
+                        Public like counter. Incremented when a client reports a like through
+                         MarkArticleLiked and the 24h per-client dedup window admits it.
                 category:
                     allOf:
                         - $ref: '#/components/schemas/blog.v1.CategoryBrief'
@@ -907,6 +941,18 @@ components:
             description: |-
                 LogoutRequest is the input for AuthService.Logout. Like Refresh, the
                  refresh token arrives via cookie or header.
+        blog.v1.MarkArticleLikedRequest:
+            required:
+                - slug
+            type: object
+            properties:
+                slug:
+                    type: string
+                    description: Unique slug of the article being liked.
+            description: |-
+                MarkArticleLikedRequest is the input for ArticleService.MarkArticleLiked.
+                 The client identity comes from the transport (client IP), not from the
+                 message body.
         blog.v1.MarkArticleViewedRequest:
             required:
                 - slug

@@ -36,6 +36,8 @@ const (
 	FieldPublishedAt = "published_at"
 	// FieldViewCount holds the string denoting the view_count field in the database.
 	FieldViewCount = "view_count"
+	// FieldLikeCount holds the string denoting the like_count field in the database.
+	FieldLikeCount = "like_count"
 	// EdgeTags holds the string denoting the tags edge name in mutations.
 	EdgeTags = "tags"
 	// EdgeCategory holds the string denoting the category edge name in mutations.
@@ -69,6 +71,7 @@ var Columns = []string{
 	FieldStatus,
 	FieldPublishedAt,
 	FieldViewCount,
+	FieldLikeCount,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "articles"
@@ -111,6 +114,8 @@ var (
 	DefaultStatus biz.ArticleStatus
 	// DefaultViewCount holds the default value on creation for the "view_count" field.
 	DefaultViewCount uint64
+	// DefaultLikeCount holds the default value on creation for the "like_count" field.
+	DefaultLikeCount uint64
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -171,6 +176,11 @@ func ByPublishedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByViewCount orders the results by the view_count field.
 func ByViewCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldViewCount, opts...).ToFunc()
+}
+
+// ByLikeCount orders the results by the like_count field.
+func ByLikeCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLikeCount, opts...).ToFunc()
 }
 
 // ByTagsCount orders the results by tags count.

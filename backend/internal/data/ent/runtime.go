@@ -48,6 +48,10 @@ func init() {
 	articleDescViewCount := articleFields[7].Descriptor()
 	// article.DefaultViewCount holds the default value on creation for the view_count field.
 	article.DefaultViewCount = articleDescViewCount.Default.(uint64)
+	// articleDescLikeCount is the schema descriptor for like_count field.
+	articleDescLikeCount := articleFields[8].Descriptor()
+	// article.DefaultLikeCount holds the default value on creation for the like_count field.
+	article.DefaultLikeCount = articleDescLikeCount.Default.(uint64)
 	// articleDescID is the schema descriptor for id field.
 	articleDescID := articleMixinFields0[0].Descriptor()
 	// article.DefaultID holds the default value on creation for the id field.

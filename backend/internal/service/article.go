@@ -212,6 +212,16 @@ func (s *ArticleService) MarkArticleViewed(ctx context.Context, req *v1.MarkArti
 	return &emptypb.Empty{}, nil
 }
 
+// MarkArticleLiked records a public like, mirroring MarkArticleViewed: the
+// client identity is the transport client IP and the dedup window lives in
+// the data layer.
+func (s *ArticleService) MarkArticleLiked(ctx context.Context, req *v1.MarkArticleLikedRequest) (*emptypb.Empty, error) {
+	if _, _, err := s.uc.MarkLiked(ctx, req.GetSlug(), clientIP(ctx)); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
 // convertArticle parses an incoming proto into a DO. Server-assigned fields
 // (id, content_html, timestamps) are omitted: only the mutable fields cross
 // over. Status rides along because the update flow merges the patch into the
@@ -248,6 +258,7 @@ func convertArticleReply(in *biz.Article) *v1.Article {
 		CreatedAt:   timestamppb.New(in.CreatedAt),
 		UpdatedAt:   timestamppb.New(in.UpdatedAt),
 		ViewCount:   in.ViewCount,
+		LikeCount:   in.LikeCount,
 	}
 	if in.CategorySlug != "" {
 		out.Category = &v1.CategoryBrief{Slug: in.CategorySlug, Name: in.CategoryName}

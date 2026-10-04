@@ -40,6 +40,8 @@ type Article struct {
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 	// ViewCount holds the value of the "view_count" field.
 	ViewCount uint64 `json:"view_count,omitempty"`
+	// LikeCount holds the value of the "like_count" field.
+	LikeCount uint64 `json:"like_count,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
 	Edges        ArticleEdges `json:"edges"`
@@ -83,7 +85,7 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case article.FieldStatus, article.FieldViewCount:
+		case article.FieldStatus, article.FieldViewCount, article.FieldLikeCount:
 			values[i] = new(sql.NullInt64)
 		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML:
 			values[i] = new(sql.NullString)
@@ -175,6 +177,12 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ViewCount = uint64(value.Int64)
 			}
+		case article.FieldLikeCount:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field like_count", values[i])
+			} else if value.Valid {
+				_m.LikeCount = uint64(value.Int64)
+			}
 		case article.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field category_id", values[i])
@@ -259,6 +267,9 @@ func (_m *Article) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("view_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ViewCount))
+	builder.WriteString(", ")
+	builder.WriteString("like_count=")
+	builder.WriteString(fmt.Sprintf("%v", _m.LikeCount))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -29,14 +30,16 @@ func init() {
 }
 
 // newTestRepo opens an in-file SQLite database through enttest (auto
-// migration from the ent schema) and returns repos over it.
-func newTestRepo(t *testing.T) (biz.CategoryRepo, biz.ArticleRepo) {
+// migration from the ent schema) and returns repos over it. The article repo
+// ships with a nil Redis: tests that exercise the dedup counters build their
+// own articleRepo over the returned *Data with a miniredis client.
+func newTestRepo(t *testing.T) (biz.CategoryRepo, biz.ArticleRepo, *Data) {
 	t.Helper()
 	dsn := "file:" + filepath.Join(t.TempDir(), "test.db") + "?_pragma=foreign_keys(1)"
 	client := enttest.Open(t, "sqlite3", dsn)
 	t.Cleanup(func() { _ = client.Close() })
 	data := &Data{db: client}
-	return NewCategoryRepo(data), NewArticleRepo(data, nil)
+	return NewCategoryRepo(data), NewArticleRepo(data, nil), data
 }
 
 func mustCreateCategory(t *testing.T, repo biz.CategoryRepo, slug, name string, sort int32) *biz.Category {
@@ -50,7 +53,7 @@ func mustCreateCategory(t *testing.T, repo biz.CategoryRepo, slug, name string, 
 
 func TestCategoryCRUDAndConflict(t *testing.T) {
 	ctx := context.Background()
-	repo, _ := newTestRepo(t)
+	repo, _, _ := newTestRepo(t)
 
 	_ = mustCreateCategory(t, repo, "engineering", "工程实践", 1)
 	if _, err := repo.CreateCategory(ctx, &biz.Category{Slug: "engineering", Name: "dup"}); err != biz.ErrCategorySlugConflict {
@@ -68,7 +71,7 @@ func TestCategoryCRUDAndConflict(t *testing.T) {
 
 func TestListCategoriesCountsPublishedOnly(t *testing.T) {
 	ctx := context.Background()
-	catRepo, articleRepo := newTestRepo(t)
+	catRepo, articleRepo, _ := newTestRepo(t)
 
 	mustCreateCategory(t, catRepo, "engineering", "工程实践", 1)
 	mustCreateCategory(t, catRepo, "notes", "随笔", 2)
@@ -107,7 +110,7 @@ func TestListCategoriesCountsPublishedOnly(t *testing.T) {
 
 func TestArticleCategoryAttachClearAndFilter(t *testing.T) {
 	ctx := context.Background()
-	catRepo, articleRepo := newTestRepo(t)
+	catRepo, articleRepo, _ := newTestRepo(t)
 
 	mustCreateCategory(t, catRepo, "engineering", "工程实践", 1)
 	mustCreateCategory(t, catRepo, "notes", "随笔", 2)
@@ -170,5 +173,43 @@ func TestArticleCategoryAttachClearAndFilter(t *testing.T) {
 	}
 	if _, err := catRepo.FindBySlug(ctx, "engineering"); err != biz.ErrCategoryNotFound {
 		t.Fatalf("deleted category lookup = %v, want not found", err)
+	}
+}
+
+// Like counting mirrors view counting: one count per client inside the 24h
+// dedup window, guarded by the published-only check at the usecase layer.
+func TestLikeCountingAndDedup(t *testing.T) {
+	ctx := context.Background()
+	_, _, data := newTestRepo(t)
+	rdb, mr := newTestRedis(t)
+	repo := &articleRepo{data: data, rdb: rdb}
+	usecase := biz.NewArticleUsecase(repo, nil)
+
+	a, err := repo.CreateArticle(ctx, &biz.Article{Slug: "like-me", Title: "t", ContentMD: "md"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Drafts are rejected by the usecase guard before any counter moves.
+	if _, _, err := usecase.MarkLiked(ctx, "like-me", "client-1"); err != biz.ErrArticleNotFound {
+		t.Fatalf("draft like = %v, want not found", err)
+	}
+	a.Status = biz.ArticleStatusPublished
+	if _, err := repo.UpdateArticle(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+
+	n, counted, err := usecase.MarkLiked(ctx, "like-me", "client-1")
+	if err != nil || !counted || n != 1 {
+		t.Fatalf("first like = %d/%v/%v, want 1/counted", n, counted, err)
+	}
+	if n, counted, _ := usecase.MarkLiked(ctx, "like-me", "client-1"); counted || n != 1 {
+		t.Fatalf("duplicate like = %d/%v, want 1/not counted", n, counted)
+	}
+	if n, counted, _ := usecase.MarkLiked(ctx, "like-me", "client-2"); !counted || n != 2 {
+		t.Fatalf("second client like = %d/%v, want 2/counted", n, counted)
+	}
+	mr.FastForward(25 * time.Hour)
+	if n, counted, _ := usecase.MarkLiked(ctx, "like-me", "client-1"); !counted || n != 3 {
+		t.Fatalf("post-window like = %d/%v, want 3/counted", n, counted)
 	}
 }

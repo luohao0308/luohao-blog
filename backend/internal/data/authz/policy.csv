@@ -8,6 +8,7 @@
 p, public, /v1/articles/list, GET
 p, public, /v1/articles/{slug}, GET
 p, public, /v1/articles/{slug}/view, POST
+p, public, /v1/articles/{slug}/like, POST
 p, public, /v1/search/articles, GET
 p, public, /v1/chat, POST
 p, public, /v1/auth/login, POST
@@ -16,6 +17,7 @@ p, public, /v1/auth/logout, POST
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
 p, public, /blog.v1.ArticleService/MarkArticleViewed, *
+p, public, /blog.v1.ArticleService/MarkArticleLiked, *
 p, public, /blog.v1.ArticleSearchService/SearchArticles, *
 p, public, /blog.v1.ChatService/Chat, *
 p, public, /blog.v1.AuthService/Login, *
