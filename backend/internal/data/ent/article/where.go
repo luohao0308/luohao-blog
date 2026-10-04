@@ -108,6 +108,11 @@ func ViewCount(v uint64) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldViewCount, v))
 }
 
+// LikeCount applies equality check predicate on the "like_count" field. It's identical to LikeCountEQ.
+func LikeCount(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldLikeCount, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldCreatedAt, v))
@@ -695,6 +700,46 @@ func ViewCountLT(v uint64) predicate.Article {
 // ViewCountLTE applies the LTE predicate on the "view_count" field.
 func ViewCountLTE(v uint64) predicate.Article {
 	return predicate.Article(sql.FieldLTE(FieldViewCount, v))
+}
+
+// LikeCountEQ applies the EQ predicate on the "like_count" field.
+func LikeCountEQ(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldLikeCount, v))
+}
+
+// LikeCountNEQ applies the NEQ predicate on the "like_count" field.
+func LikeCountNEQ(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldNEQ(FieldLikeCount, v))
+}
+
+// LikeCountIn applies the In predicate on the "like_count" field.
+func LikeCountIn(vs ...uint64) predicate.Article {
+	return predicate.Article(sql.FieldIn(FieldLikeCount, vs...))
+}
+
+// LikeCountNotIn applies the NotIn predicate on the "like_count" field.
+func LikeCountNotIn(vs ...uint64) predicate.Article {
+	return predicate.Article(sql.FieldNotIn(FieldLikeCount, vs...))
+}
+
+// LikeCountGT applies the GT predicate on the "like_count" field.
+func LikeCountGT(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldGT(FieldLikeCount, v))
+}
+
+// LikeCountGTE applies the GTE predicate on the "like_count" field.
+func LikeCountGTE(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldGTE(FieldLikeCount, v))
+}
+
+// LikeCountLT applies the LT predicate on the "like_count" field.
+func LikeCountLT(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldLT(FieldLikeCount, v))
+}
+
+// LikeCountLTE applies the LTE predicate on the "like_count" field.
+func LikeCountLTE(v uint64) predicate.Article {
+	return predicate.Article(sql.FieldLTE(FieldLikeCount, v))
 }
 
 // HasTags applies the HasEdge predicate on the "tags" edge.

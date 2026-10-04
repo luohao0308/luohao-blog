@@ -23,6 +23,7 @@ import (
 // is how long a (slug, client) pair stays counted after its first view.
 const (
 	viewDedupPrefix = "blog:view:"
+	likeDedupPrefix = "blog:like:"
 	viewDedupWindow = 24 * time.Hour
 )
 
@@ -46,6 +47,7 @@ func toBiz(po *ent.Article, tagNames []string, cat *ent.Category) *biz.Article {
 		CreatedAt:   po.CreatedAt,
 		UpdatedAt:   po.UpdatedAt,
 		ViewCount:   po.ViewCount,
+		LikeCount:   po.LikeCount,
 	}
 	if cat != nil {
 		out.CategorySlug = cat.Slug
@@ -466,23 +468,30 @@ func (r *articleRepo) DeleteArticle(ctx context.Context, slug string) error {
 	return nil
 }
 
-// IncrementView adds one view unless clientKey already counted inside the
-// dedup window. Redis holds the window; when it is unavailable the call
-// degrades to counting every view (fail-open on dedup, the counter itself is
-// never lost), because under- or not-counting would corrupt the metric
-// permanently while over-counting self-heals as windows expire.
-func (r *articleRepo) IncrementView(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
-	counted := true
-	ok, err := r.rdb.SetNX(ctx, viewDedupPrefix+slug+":"+clientKey, 1, viewDedupWindow).Result()
+// counterDedup reports whether this (prefix, slug, client) pair may count
+// inside the dedup window. Redis holds the window; when it is unavailable
+// the call degrades to counting every request (fail-open on dedup, the
+// counter itself is never lost), because under- or not-counting would
+// corrupt the metric permanently while over-counting self-heals as windows
+// expire.
+func (r *articleRepo) counterDedup(ctx context.Context, prefix, slug, clientKey string) bool {
+	ok, err := r.rdb.SetNX(ctx, prefix+slug+":"+clientKey, 1, viewDedupWindow).Result()
 	if err == nil {
 		// A present key means this client already counted inside the window.
-		counted = ok
+		return ok
 	}
 	// On a Redis error keep counted=true: fail-open on dedup so the counter
 	// itself is never lost. Over-counting self-heals as windows expire.
-	if !counted {
+	return true
+}
+
+// IncrementView adds one view unless clientKey already counted inside the
+// dedup window. Reads skip the status filter so an in-flight delete cannot
+// lose an admitted count.
+func (r *articleRepo) IncrementView(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
+	if !r.counterDedup(ctx, viewDedupPrefix, slug, clientKey) {
 		po, err := r.data.db.Article.Query().
-			Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
+			Where(article.SlugEQ(slug)).
 			Only(ctx)
 		if err != nil {
 			return 0, false, err
@@ -506,4 +515,34 @@ func (r *articleRepo) IncrementView(ctx context.Context, slug, clientKey string)
 		return 0, false, err
 	}
 	return po.ViewCount, true, nil
+}
+
+// IncrementLike mirrors IncrementView for the public like counter.
+func (r *articleRepo) IncrementLike(ctx context.Context, slug, clientKey string) (uint64, bool, error) {
+	if !r.counterDedup(ctx, likeDedupPrefix, slug, clientKey) {
+		po, err := r.data.db.Article.Query().
+			Where(article.SlugEQ(slug)).
+			Only(ctx)
+		if err != nil {
+			return 0, false, err
+		}
+		return po.LikeCount, false, nil
+	}
+	affected, err := r.data.db.Article.Update().
+		Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
+		AddLikeCount(1).
+		Save(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	if affected == 0 {
+		return 0, false, biz.ErrArticleNotFound
+	}
+	po, err := r.data.db.Article.Query().
+		Where(article.SlugEQ(slug)).
+		Only(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	return po.LikeCount, true, nil
 }

@@ -114,6 +114,9 @@ type Article struct {
 	// Public read counter. Incremented when a client reports a view through
 	// MarkArticleViewed and the 24h per-client dedup window admits it.
 	ViewCount uint64 `protobuf:"varint,12,opt,name=view_count,json=viewCount,proto3" json:"view_count,omitempty"`
+	// Public like counter. Incremented when a client reports a like through
+	// MarkArticleLiked and the 24h per-client dedup window admits it.
+	LikeCount uint64 `protobuf:"varint,14,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`
 	// Single curated category of the article. Server-managed through
 	// Create/UpdateArticle on the category field; absent when uncategorized.
 	Category      *CategoryBrief `protobuf:"bytes,13,opt,name=category,proto3" json:"category,omitempty"`
@@ -231,6 +234,13 @@ func (x *Article) GetUpdatedAt() *timestamppb.Timestamp {
 func (x *Article) GetViewCount() uint64 {
 	if x != nil {
 		return x.ViewCount
+	}
+	return 0
+}
+
+func (x *Article) GetLikeCount() uint64 {
+	if x != nil {
+		return x.LikeCount
 	}
 	return 0
 }
@@ -693,11 +703,59 @@ func (x *MarkArticleViewedRequest) GetSlug() string {
 	return ""
 }
 
+// MarkArticleLikedRequest is the input for ArticleService.MarkArticleLiked.
+// The client identity comes from the transport (client IP), not from the
+// message body.
+type MarkArticleLikedRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique slug of the article being liked.
+	Slug          string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkArticleLikedRequest) Reset() {
+	*x = MarkArticleLikedRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkArticleLikedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkArticleLikedRequest) ProtoMessage() {}
+
+func (x *MarkArticleLikedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkArticleLikedRequest.ProtoReflect.Descriptor instead.
+func (*MarkArticleLikedRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MarkArticleLikedRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
 var File_blog_v1_article_proto protoreflect.FileDescriptor
 
 const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfa\x03\n" +
+	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x99\x04\n" +
 	"\aArticle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04slug\x18\x02 \x01(\tB\x03\xe0A\x02R\x04slug\x12\x19\n" +
@@ -715,7 +773,9 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"view_count\x18\f \x01(\x04R\tviewCount\x122\n" +
+	"view_count\x18\f \x01(\x04R\tviewCount\x12\x1d\n" +
+	"\n" +
+	"like_count\x18\x0e \x01(\x04R\tlikeCount\x122\n" +
 	"\bcategory\x18\r \x01(\v2\x16.blog.v1.CategoryBriefR\bcategory\"7\n" +
 	"\rCategoryBrief\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x12\n" +
@@ -741,12 +801,14 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\x14DeleteArticleRequest\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"3\n" +
 	"\x18MarkArticleViewedRequest\x12\x17\n" +
+	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"2\n" +
+	"\x17MarkArticleLikedRequest\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug*\x83\x01\n" +
 	"\rArticleStatus\x12\x1e\n" +
 	"\x1aARTICLE_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ARTICLE_STATUS_DRAFT\x10\x01\x12\x1c\n" +
 	"\x18ARTICLE_STATUS_PUBLISHED\x10\x02\x12\x1a\n" +
-	"\x16ARTICLE_STATUS_DELETED\x10\x032\xf1\x04\n" +
+	"\x16ARTICLE_STATUS_DELETED\x10\x032\xe4\x05\n" +
 	"\x0eArticleService\x12f\n" +
 	"\rCreateArticle\x12\x1d.blog.v1.CreateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\"\x13/v1/articles/create\x12\\\n" +
 	"\fListArticles\x12\x1c.blog.v1.ListArticlesRequest\x1a\x13.blog.v1.ArticleSet\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/articles/list\x12W\n" +
@@ -754,7 +816,8 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"GetArticle\x12\x1a.blog.v1.GetArticleRequest\x1a\x10.blog.v1.Article\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/articles/{slug}\x12f\n" +
 	"\rUpdateArticle\x12\x1d.blog.v1.UpdateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\x1a\x13/v1/articles/update\x12c\n" +
 	"\rDeleteArticle\x12\x1d.blog.v1.DeleteArticleRequest\x1a\x16.google.protobuf.Empty\"\x1b\x82\xd3\xe4\x93\x02\x15*\x13/v1/articles/{slug}\x12s\n" +
-	"\x11MarkArticleViewed\x12!.blog.v1.MarkArticleViewedRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/articles/{slug}/viewBd\n" +
+	"\x11MarkArticleViewed\x12!.blog.v1.MarkArticleViewedRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/articles/{slug}/view\x12q\n" +
+	"\x10MarkArticleLiked\x12 .blog.v1.MarkArticleLikedRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/articles/{slug}/likeBd\n" +
 	"\x18io.grpc.examples.blog.v1B\fArticleProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -770,7 +833,7 @@ func file_blog_v1_article_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_blog_v1_article_proto_goTypes = []any{
 	(ArticleStatus)(0),               // 0: blog.v1.ArticleStatus
 	(*Article)(nil),                  // 1: blog.v1.Article
@@ -782,34 +845,37 @@ var file_blog_v1_article_proto_goTypes = []any{
 	(*UpdateArticleRequest)(nil),     // 7: blog.v1.UpdateArticleRequest
 	(*DeleteArticleRequest)(nil),     // 8: blog.v1.DeleteArticleRequest
 	(*MarkArticleViewedRequest)(nil), // 9: blog.v1.MarkArticleViewedRequest
-	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),    // 11: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),            // 12: google.protobuf.Empty
+	(*MarkArticleLikedRequest)(nil),  // 10: blog.v1.MarkArticleLikedRequest
+	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),    // 12: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),            // 13: google.protobuf.Empty
 }
 var file_blog_v1_article_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.Article.status:type_name -> blog.v1.ArticleStatus
-	10, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
-	10, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
-	10, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
+	11, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
+	11, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
+	11, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
 	1,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
 	1,  // 6: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
 	1,  // 7: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
-	11, // 8: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	12, // 8: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
 	4,  // 9: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
 	6,  // 10: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
 	5,  // 11: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
 	7,  // 12: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
 	8,  // 13: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
 	9,  // 14: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
-	1,  // 15: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
-	3,  // 16: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
-	1,  // 17: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
-	1,  // 18: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
-	12, // 19: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
-	12, // 20: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
-	15, // [15:21] is the sub-list for method output_type
-	9,  // [9:15] is the sub-list for method input_type
+	10, // 15: blog.v1.ArticleService.MarkArticleLiked:input_type -> blog.v1.MarkArticleLikedRequest
+	1,  // 16: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
+	3,  // 17: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
+	1,  // 18: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
+	1,  // 19: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
+	13, // 20: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
+	13, // 21: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
+	13, // 22: blog.v1.ArticleService.MarkArticleLiked:output_type -> google.protobuf.Empty
+	16, // [16:23] is the sub-list for method output_type
+	9,  // [9:16] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -826,7 +892,7 @@ func file_blog_v1_article_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_article_proto_rawDesc), len(file_blog_v1_article_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

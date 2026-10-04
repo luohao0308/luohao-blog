@@ -156,6 +156,20 @@ func (_c *ArticleCreate) SetNillableViewCount(v *uint64) *ArticleCreate {
 	return _c
 }
 
+// SetLikeCount sets the "like_count" field.
+func (_c *ArticleCreate) SetLikeCount(v uint64) *ArticleCreate {
+	_c.mutation.SetLikeCount(v)
+	return _c
+}
+
+// SetNillableLikeCount sets the "like_count" field if the given value is not nil.
+func (_c *ArticleCreate) SetNillableLikeCount(v *uint64) *ArticleCreate {
+	if v != nil {
+		_c.SetLikeCount(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ArticleCreate) SetID(v uuid.UUID) *ArticleCreate {
 	_c.mutation.SetID(v)
@@ -255,6 +269,10 @@ func (_c *ArticleCreate) defaults() {
 		v := article.DefaultViewCount
 		_c.mutation.SetViewCount(v)
 	}
+	if _, ok := _c.mutation.LikeCount(); !ok {
+		v := article.DefaultLikeCount
+		_c.mutation.SetLikeCount(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := article.DefaultID()
 		_c.mutation.SetID(v)
@@ -282,6 +300,9 @@ func (_c *ArticleCreate) check() error {
 	}
 	if _, ok := _c.mutation.ViewCount(); !ok {
 		return &ValidationError{Name: "view_count", err: errors.New(`ent: missing required field "Article.view_count"`)}
+	}
+	if _, ok := _c.mutation.LikeCount(); !ok {
+		return &ValidationError{Name: "like_count", err: errors.New(`ent: missing required field "Article.like_count"`)}
 	}
 	return nil
 }
@@ -357,6 +378,10 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ViewCount(); ok {
 		_spec.SetField(article.FieldViewCount, field.TypeUint64, value)
 		_node.ViewCount = value
+	}
+	if value, ok := _c.mutation.LikeCount(); ok {
+		_spec.SetField(article.FieldLikeCount, field.TypeUint64, value)
+		_node.LikeCount = value
 	}
 	if nodes := _c.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

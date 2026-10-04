@@ -26,6 +26,7 @@ const (
 	ArticleService_UpdateArticle_FullMethodName     = "/blog.v1.ArticleService/UpdateArticle"
 	ArticleService_DeleteArticle_FullMethodName     = "/blog.v1.ArticleService/DeleteArticle"
 	ArticleService_MarkArticleViewed_FullMethodName = "/blog.v1.ArticleService/MarkArticleViewed"
+	ArticleService_MarkArticleLiked_FullMethodName  = "/blog.v1.ArticleService/MarkArticleLiked"
 )
 
 // ArticleServiceClient is the client API for ArticleService service.
@@ -74,6 +75,13 @@ type ArticleServiceClient interface {
 	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
 	// article does not exist or is not published.
 	MarkArticleViewed(ctx context.Context, in *MarkArticleViewedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// MarkArticleLiked records one public like of an article. The server
+	// deduplicates by client identity within a 24h window, so repeat calls from
+	// the same client do not increase the counter. Likes are only counted for
+	// PUBLISHED articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleLiked(ctx context.Context, in *MarkArticleLikedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type articleServiceClient struct {
@@ -144,6 +152,16 @@ func (c *articleServiceClient) MarkArticleViewed(ctx context.Context, in *MarkAr
 	return out, nil
 }
 
+func (c *articleServiceClient) MarkArticleLiked(ctx context.Context, in *MarkArticleLikedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, ArticleService_MarkArticleLiked_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ArticleServiceServer is the server API for ArticleService service.
 // All implementations must embed UnimplementedArticleServiceServer
 // for forward compatibility.
@@ -190,6 +208,13 @@ type ArticleServiceServer interface {
 	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
 	// article does not exist or is not published.
 	MarkArticleViewed(context.Context, *MarkArticleViewedRequest) (*emptypb.Empty, error)
+	// MarkArticleLiked records one public like of an article. The server
+	// deduplicates by client identity within a 24h window, so repeat calls from
+	// the same client do not increase the counter. Likes are only counted for
+	// PUBLISHED articles. Authorization: public (rate limited).
+	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
+	// article does not exist or is not published.
+	MarkArticleLiked(context.Context, *MarkArticleLikedRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedArticleServiceServer()
 }
 
@@ -217,6 +242,9 @@ func (UnimplementedArticleServiceServer) DeleteArticle(context.Context, *DeleteA
 }
 func (UnimplementedArticleServiceServer) MarkArticleViewed(context.Context, *MarkArticleViewedRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method MarkArticleViewed not implemented")
+}
+func (UnimplementedArticleServiceServer) MarkArticleLiked(context.Context, *MarkArticleLikedRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkArticleLiked not implemented")
 }
 func (UnimplementedArticleServiceServer) mustEmbedUnimplementedArticleServiceServer() {}
 func (UnimplementedArticleServiceServer) testEmbeddedByValue()                        {}
@@ -347,6 +375,24 @@ func _ArticleService_MarkArticleViewed_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArticleService_MarkArticleLiked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkArticleLikedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).MarkArticleLiked(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_MarkArticleLiked_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).MarkArticleLiked(ctx, req.(*MarkArticleLikedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ArticleService_ServiceDesc is the grpc.ServiceDesc for ArticleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -377,6 +423,10 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MarkArticleViewed",
 			Handler:    _ArticleService_MarkArticleViewed_Handler,
+		},
+		{
+			MethodName: "MarkArticleLiked",
+			Handler:    _ArticleService_MarkArticleLiked_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

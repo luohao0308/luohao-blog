@@ -58,6 +58,9 @@ func (s *stubArticleRepo) DeleteArticle(context.Context, string) error {
 func (s *stubArticleRepo) IncrementView(context.Context, string, string) (uint64, bool, error) {
 	return 0, false, biz.ErrArticleInvalidArgument
 }
+func (s *stubArticleRepo) IncrementLike(context.Context, string, string) (uint64, bool, error) {
+	return 0, false, biz.ErrArticleInvalidArgument
+}
 
 // The documented status filter (status:"PUBLISHED", the form the admin panel
 // sends) used to fail the declaration check and surface as a 500: the AIP

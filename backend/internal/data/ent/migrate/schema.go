@@ -21,6 +21,7 @@ var (
 		{Name: "status", Type: field.TypeInt32, Default: 1},
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 		{Name: "view_count", Type: field.TypeUint64, Default: 0},
+		{Name: "like_count", Type: field.TypeUint64, Default: 0},
 		{Name: "category_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
@@ -31,7 +32,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "articles_categories_articles",
-				Columns:    []*schema.Column{ArticlesColumns[11]},
+				Columns:    []*schema.Column{ArticlesColumns[12]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
