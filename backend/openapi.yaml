@@ -976,6 +976,11 @@ tags:
          single-level, admin-curated grouping: an article belongs to at most one
          category and may be uncategorized. The public identifier is the slug:
          unique, URL-safe, and immutable after creation.
+
+         Route order matters: the mux matches in registration order, so the static
+         list route MUST be declared before the {slug} param routes — otherwise
+         GET /v1/categories/list resolves to GetCategory and inherits its
+         admin-only policy (see the route-order test in internal/server).
     - name: ChatService
       description: |-
         ChatService answers visitor questions with retrieval-augmented generation:

@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	CategoryService_ListCategories_FullMethodName = "/blog.v1.CategoryService/ListCategories"
 	CategoryService_CreateCategory_FullMethodName = "/blog.v1.CategoryService/CreateCategory"
 	CategoryService_UpdateCategory_FullMethodName = "/blog.v1.CategoryService/UpdateCategory"
 	CategoryService_DeleteCategory_FullMethodName = "/blog.v1.CategoryService/DeleteCategory"
 	CategoryService_GetCategory_FullMethodName    = "/blog.v1.CategoryService/GetCategory"
-	CategoryService_ListCategories_FullMethodName = "/blog.v1.CategoryService/ListCategories"
 )
 
 // CategoryServiceClient is the client API for CategoryService service.
@@ -35,7 +35,17 @@ const (
 // single-level, admin-curated grouping: an article belongs to at most one
 // category and may be uncategorized. The public identifier is the slug:
 // unique, URL-safe, and immutable after creation.
+//
+// Route order matters: the mux matches in registration order, so the static
+// list route MUST be declared before the {slug} param routes — otherwise
+// GET /v1/categories/list resolves to GetCategory and inherits its
+// admin-only policy (see the route-order test in internal/server).
 type CategoryServiceClient interface {
+	// ListCategories returns a page of categories ordered by sort, then slug.
+	// Each category carries article_count, the number of published articles in
+	// it. Use next_page_token to retrieve subsequent pages.
+	// Authorization: public.
+	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*CategorySet, error)
 	// CreateCategory creates a category and returns the persisted record with
 	// the server-assigned id and timestamps.
 	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -59,11 +69,6 @@ type CategoryServiceClient interface {
 	// Authorization: ADMIN only (Authorization: Bearer).
 	// Returns NOT_FOUND if no category exists with the supplied slug.
 	GetCategory(ctx context.Context, in *GetCategoryRequest, opts ...grpc.CallOption) (*Category, error)
-	// ListCategories returns a page of categories ordered by sort, then slug.
-	// Each category carries article_count, the number of published articles in
-	// it. Use next_page_token to retrieve subsequent pages.
-	// Authorization: public.
-	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*CategorySet, error)
 }
 
 type categoryServiceClient struct {
@@ -72,6 +77,16 @@ type categoryServiceClient struct {
 
 func NewCategoryServiceClient(cc grpc.ClientConnInterface) CategoryServiceClient {
 	return &categoryServiceClient{cc}
+}
+
+func (c *categoryServiceClient) ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*CategorySet, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CategorySet)
+	err := c.cc.Invoke(ctx, CategoryService_ListCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *categoryServiceClient) CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*Category, error) {
@@ -114,16 +129,6 @@ func (c *categoryServiceClient) GetCategory(ctx context.Context, in *GetCategory
 	return out, nil
 }
 
-func (c *categoryServiceClient) ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*CategorySet, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CategorySet)
-	err := c.cc.Invoke(ctx, CategoryService_ListCategories_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // CategoryServiceServer is the server API for CategoryService service.
 // All implementations must embed UnimplementedCategoryServiceServer
 // for forward compatibility.
@@ -132,7 +137,17 @@ func (c *categoryServiceClient) ListCategories(ctx context.Context, in *ListCate
 // single-level, admin-curated grouping: an article belongs to at most one
 // category and may be uncategorized. The public identifier is the slug:
 // unique, URL-safe, and immutable after creation.
+//
+// Route order matters: the mux matches in registration order, so the static
+// list route MUST be declared before the {slug} param routes — otherwise
+// GET /v1/categories/list resolves to GetCategory and inherits its
+// admin-only policy (see the route-order test in internal/server).
 type CategoryServiceServer interface {
+	// ListCategories returns a page of categories ordered by sort, then slug.
+	// Each category carries article_count, the number of published articles in
+	// it. Use next_page_token to retrieve subsequent pages.
+	// Authorization: public.
+	ListCategories(context.Context, *ListCategoriesRequest) (*CategorySet, error)
 	// CreateCategory creates a category and returns the persisted record with
 	// the server-assigned id and timestamps.
 	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -156,11 +171,6 @@ type CategoryServiceServer interface {
 	// Authorization: ADMIN only (Authorization: Bearer).
 	// Returns NOT_FOUND if no category exists with the supplied slug.
 	GetCategory(context.Context, *GetCategoryRequest) (*Category, error)
-	// ListCategories returns a page of categories ordered by sort, then slug.
-	// Each category carries article_count, the number of published articles in
-	// it. Use next_page_token to retrieve subsequent pages.
-	// Authorization: public.
-	ListCategories(context.Context, *ListCategoriesRequest) (*CategorySet, error)
 	mustEmbedUnimplementedCategoryServiceServer()
 }
 
@@ -171,6 +181,9 @@ type CategoryServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCategoryServiceServer struct{}
 
+func (UnimplementedCategoryServiceServer) ListCategories(context.Context, *ListCategoriesRequest) (*CategorySet, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
+}
 func (UnimplementedCategoryServiceServer) CreateCategory(context.Context, *CreateCategoryRequest) (*Category, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateCategory not implemented")
 }
@@ -182,9 +195,6 @@ func (UnimplementedCategoryServiceServer) DeleteCategory(context.Context, *Delet
 }
 func (UnimplementedCategoryServiceServer) GetCategory(context.Context, *GetCategoryRequest) (*Category, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCategory not implemented")
-}
-func (UnimplementedCategoryServiceServer) ListCategories(context.Context, *ListCategoriesRequest) (*CategorySet, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
 }
 func (UnimplementedCategoryServiceServer) mustEmbedUnimplementedCategoryServiceServer() {}
 func (UnimplementedCategoryServiceServer) testEmbeddedByValue()                         {}
@@ -205,6 +215,24 @@ func RegisterCategoryServiceServer(s grpc.ServiceRegistrar, srv CategoryServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&CategoryService_ServiceDesc, srv)
+}
+
+func _CategoryService_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCategoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoryServiceServer).ListCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CategoryService_ListCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoryServiceServer).ListCategories(ctx, req.(*ListCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CategoryService_CreateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -279,24 +307,6 @@ func _CategoryService_GetCategory_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CategoryService_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListCategoriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CategoryServiceServer).ListCategories(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CategoryService_ListCategories_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CategoryServiceServer).ListCategories(ctx, req.(*ListCategoriesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // CategoryService_ServiceDesc is the grpc.ServiceDesc for CategoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +314,10 @@ var CategoryService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "blog.v1.CategoryService",
 	HandlerType: (*CategoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListCategories",
+			Handler:    _CategoryService_ListCategories_Handler,
+		},
 		{
 			MethodName: "CreateCategory",
 			Handler:    _CategoryService_CreateCategory_Handler,
@@ -319,10 +333,6 @@ var CategoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCategory",
 			Handler:    _CategoryService_GetCategory_Handler,
-		},
-		{
-			MethodName: "ListCategories",
-			Handler:    _CategoryService_ListCategories_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
