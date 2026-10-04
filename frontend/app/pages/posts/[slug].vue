@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticles } from '~/composables/useArticles'
+import { isCollected, toggleCollection } from '~/composables/useCollections'
 
 const route = useRoute()
 definePageMeta({ key: route => route.path })
@@ -20,6 +21,38 @@ const adjacent = computed(() => {
   const index = list.findIndex(item => item.slug === slug.value)
   return index < 0 ? {} : { newer: list[index - 1], older: list[index + 1] }
 })
+
+// Like state mirrors the server's per-client dedup: localStorage remembers
+// the like so the button reflects this browser, while the server enforces
+// the real 24h window. Optimistic on click; the displayed count reads SSR
+// data plus the local bump.
+const liked = ref(false)
+const likeCount = ref(article.value.like_count ?? 0)
+const collected = ref(false)
+
+onMounted(() => {
+  liked.value = localStorage.getItem(`blog:liked:${slug.value}`) === '1'
+  collected.value = isCollected(slug.value)
+})
+
+async function like() {
+  if (liked.value)
+    return
+  liked.value = true
+  likeCount.value++
+  localStorage.setItem(`blog:liked:${slug.value}`, '1')
+  try {
+    await $fetch(`/api/v1/articles/${encodeURIComponent(slug.value)}/like`, { method: 'POST' })
+  }
+  catch {
+    // Keep the local state: the server dedups by client anyway and the
+    // count reconciles on the next SSR read.
+  }
+}
+
+function toggleCollect() {
+  collected.value = toggleCollection(slug.value, article.value.title)
+}
 
 // Report one view per page open. Fire-and-forget: the server deduplicates by
 // client identity within 24h, and the counter the page shows is the one read
@@ -42,6 +75,20 @@ useHead({ title: article.value.title })
       <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
         <time>{{ formatDate(article.published_at || article.created_at) }}</time>
         <span aria-label="阅读量">{{ article.view_count }} 次阅读</span>
+        <button
+          type="button"
+          class="rounded px-2 py-1 text-xs transition-colors"
+          :class="liked ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-100 text-slate-600 hover:bg-rose-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-rose-950/40'"
+          :aria-pressed="liked"
+          @click="like"
+        >{{ liked ? '♥' : '♡' }} 点赞 {{ likeCount }}</button>
+        <button
+          type="button"
+          class="rounded px-2 py-1 text-xs transition-colors"
+          :class="collected ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-slate-100 text-slate-600 hover:bg-amber-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-amber-950/40'"
+          :aria-pressed="collected"
+          @click="toggleCollect"
+        >{{ collected ? '★ 已收藏' : '☆ 收藏' }}</button>
         <span
           v-if="article.status !== 2"
           class="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
