@@ -40,7 +40,7 @@ _last-updated: 2026-10-04_
 - [x] 清理已合并远端分支：11 个远端 feat/* 全部经 merged-PR 核验（#1–#11）后删除，远端仅剩 main；本地同名单同步清理（本地 `feat/m2-s3-rbac` 为 S3 中间态分支、内容已入 main，保守保留）（2026-10-01，用户当次授权）
 - [x] M4/S1 ES + BM25 关键词搜索：文章索引同步、公开搜索契约、前端搜索入口；PR #15 squash 合并（head `38fea4b`，merge `645da8e`，required CI 两项通过，2026-10-01）
 - [x] M4/S1 analyzer 兼容性修复：stock Elasticsearch 使用内置 `standard` analyzer，PR #16 squash 合并（head `28077dc`，merge `e086e92`，required CI 两项通过，2026-10-02）
-- [x] M4/S2 embedding、S3 语义搜索 + RAG：按用户指示暂缓，保留计划与依赖关系（2026-10-02）
+- [x] M4/S2 embedding、S3 语义搜索 + RAG：PR #20（embedding 管道）/ #22（混合检索 + RAG 聊天窗）交付；2026-10-05 生产实证——ES 4 文档 1024 维向量在库，两个换说法查询第一名命中正确文章，chat 真实生成 + 引用 + 无编造（此前该行误记为暂缓）
 
 
 - [x] M2+ 内容发现能力补全：首页文章搜索（复用搜索 API）、按阅读量展示热门文章、文章/项目/标签统计和最近更新时间；前端 lint/typecheck/build 通过（2026-10-04）
@@ -53,7 +53,7 @@ _last-updated: 2026-10-04_
 
 ## 未授权或未立项 (Do Not Start)
 
-- M5 上线：未立项；M4 已按计划立项，S2 需 embedding 配置就绪后开始
+- M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
 - tag/Release、镜像发布、部署、迁移、仓库设置类操作：未授权，按 manifest `privilegedOperationsDefault=deny` 逐次申请
 
 ## 已完成 (Done)
