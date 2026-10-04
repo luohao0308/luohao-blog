@@ -61,7 +61,12 @@ async function like() {
   likeCount.value++
   localStorage.setItem(`blog:liked:${slug.value}`, '1')
   try {
-    await $fetch(`/api/v1/articles/${encodeURIComponent(slug.value)}/like`, { method: 'POST' })
+    // Same content-type contract as the view report: the backend binds the
+    // (empty) JSON body and rejects bodyless posts without the header.
+    await $fetch(`/api/v1/articles/${encodeURIComponent(slug.value)}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
   catch {
     // Keep the local state: the server dedups by client anyway and the
