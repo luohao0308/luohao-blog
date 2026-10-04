@@ -43,3 +43,15 @@ export function useAdminCategories() {
 
   return { categories, loading, load }
 }
+
+// usePublicCategories loads the category list for the public site
+// (navigation and aggregation pages). The endpoint is open; useAsyncData
+// keeps it SSR-safe and deduplicated across pages.
+export function usePublicCategories() {
+  return useAsyncData('public-categories', async () => {
+    const set = await $fetch<CategorySet>('/api/v1/categories/list', {
+      query: { page_size: 100 },
+    })
+    return set.categories ?? []
+  })
+}

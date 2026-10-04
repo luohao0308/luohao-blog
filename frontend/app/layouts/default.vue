@@ -11,6 +11,7 @@ onMounted(() => {
 const links = [
   { to: '/', label: '首页' },
   { to: '/posts', label: '文章' },
+  { to: '/categories', label: '分类' },
   { to: '/tags', label: '标签' },
   { to: '/projects', label: '作品集' },
   { to: '/archives', label: '归档' },

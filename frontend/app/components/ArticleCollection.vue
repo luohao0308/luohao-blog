@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { searchPublishedArticles, usePublishedArticles, type Article } from '~/composables/useArticles'
 
-const props = defineProps<{ tag?: string }>()
+const props = defineProps<{ tag?: string, categorySlug?: string }>()
 const query = ref('')
 const { data, status, error, refresh } = await usePublishedArticles()
 const searchResults = ref<Article[] | null>(null)
@@ -37,7 +37,9 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
   // tags 在 proto3 JSON 下可能整体缺省，所有取值点都要兜住空数组
   const tagList = article.tags ?? []
   const text = `${article.title} ${article.summary ?? ''} ${tagList.join(' ')}`.toLocaleLowerCase()
-  return (!props.tag || tagList.includes(props.tag)) && text.includes(query.value.trim().toLocaleLowerCase())
+  return (!props.categorySlug || article.category?.slug === props.categorySlug)
+    && (!props.tag || tagList.includes(props.tag))
+    && text.includes(query.value.trim().toLocaleLowerCase())
 }))
 </script>
 
@@ -64,7 +66,7 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
       <div v-if="articles.length" class="grid auto-rows-fr gap-5 sm:grid-cols-2">
         <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
       </div>
-      <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : tag ? '这个标签下暂无文章。' : '第一篇文章正在路上。' }}</p>
+      <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : categorySlug ? '这个分类下暂无文章。' : tag ? '这个标签下暂无文章。' : '第一篇文章正在路上。' }}</p>
     </template>
   </section>
 </template>
