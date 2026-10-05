@@ -64,6 +64,31 @@ service AuthService {
       get: "/v1/auth/me"
     };
   }
+
+  // UpdatePassword rotates the calling account's password. The current
+  // password must be supplied and is verified before the change; the new
+  // password follows the same rules as account creation (at least 8
+  // characters). Existing refresh sessions keep working until their natural
+  // expiry; the next login must use the new password.
+  // Authorization: any authenticated account (Authorization: Bearer).
+  // Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+  // when fields are empty or the new password is too short.
+  rpc UpdatePassword (UpdatePasswordRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/update-password"
+      body: "*"
+    };
+  }
+}
+
+// UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
+// fields ride in the request body; the target account comes from the access
+// token, never from the payload.
+message UpdatePasswordRequest {
+  // Current password, verified before the change.
+  string old_password = 1 [(google.api.field_behavior) = REQUIRED];
+  // New password; at least 8 characters, same rule as account creation.
+  string new_password = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // UserRole is the account role. Values mirror the domain model; ADMIN can

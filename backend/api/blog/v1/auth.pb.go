@@ -79,6 +79,63 @@ func (UserRole) EnumDescriptor() ([]byte, []int) {
 	return file_blog_v1_auth_proto_rawDescGZIP(), []int{0}
 }
 
+// UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
+// fields ride in the request body; the target account comes from the access
+// token, never from the payload.
+type UpdatePasswordRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Current password, verified before the change.
+	OldPassword string `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
+	// New password; at least 8 characters, same rule as account creation.
+	NewPassword   string `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePasswordRequest) Reset() {
+	*x = UpdatePasswordRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePasswordRequest) ProtoMessage() {}
+
+func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePasswordRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *UpdatePasswordRequest) GetOldPassword() string {
+	if x != nil {
+		return x.OldPassword
+	}
+	return ""
+}
+
+func (x *UpdatePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
 // User is the public representation of an account. Credentials never appear
 // in responses.
 type User struct {
@@ -99,7 +156,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_blog_v1_auth_proto_msgTypes[0]
+	mi := &file_blog_v1_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -111,7 +168,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[0]
+	mi := &file_blog_v1_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -124,7 +181,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{0}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *User) GetId() string {
@@ -175,7 +232,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_blog_v1_auth_proto_msgTypes[1]
+	mi := &file_blog_v1_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -187,7 +244,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[1]
+	mi := &file_blog_v1_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,7 +257,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{1}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LoginRequest) GetEmail() string {
@@ -236,7 +293,7 @@ type LoginReply struct {
 
 func (x *LoginReply) Reset() {
 	*x = LoginReply{}
-	mi := &file_blog_v1_auth_proto_msgTypes[2]
+	mi := &file_blog_v1_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -248,7 +305,7 @@ func (x *LoginReply) String() string {
 func (*LoginReply) ProtoMessage() {}
 
 func (x *LoginReply) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[2]
+	mi := &file_blog_v1_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,7 +318,7 @@ func (x *LoginReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginReply.ProtoReflect.Descriptor instead.
 func (*LoginReply) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{2}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LoginReply) GetAccessToken() string {
@@ -303,7 +360,7 @@ type RefreshRequest struct {
 
 func (x *RefreshRequest) Reset() {
 	*x = RefreshRequest{}
-	mi := &file_blog_v1_auth_proto_msgTypes[3]
+	mi := &file_blog_v1_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -315,7 +372,7 @@ func (x *RefreshRequest) String() string {
 func (*RefreshRequest) ProtoMessage() {}
 
 func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[3]
+	mi := &file_blog_v1_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -328,7 +385,7 @@ func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
 func (*RefreshRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{3}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{4}
 }
 
 // LogoutRequest is the input for AuthService.Logout. Like Refresh, the
@@ -341,7 +398,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_blog_v1_auth_proto_msgTypes[4]
+	mi := &file_blog_v1_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -353,7 +410,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[4]
+	mi := &file_blog_v1_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -366,7 +423,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{4}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{5}
 }
 
 // GetMeRequest is the input for AuthService.GetMe. The caller is identified
@@ -379,7 +436,7 @@ type GetMeRequest struct {
 
 func (x *GetMeRequest) Reset() {
 	*x = GetMeRequest{}
-	mi := &file_blog_v1_auth_proto_msgTypes[5]
+	mi := &file_blog_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -391,7 +448,7 @@ func (x *GetMeRequest) String() string {
 func (*GetMeRequest) ProtoMessage() {}
 
 func (x *GetMeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_blog_v1_auth_proto_msgTypes[5]
+	mi := &file_blog_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -404,14 +461,17 @@ func (x *GetMeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMeRequest.ProtoReflect.Descriptor instead.
 func (*GetMeRequest) Descriptor() ([]byte, []int) {
-	return file_blog_v1_auth_proto_rawDescGZIP(), []int{5}
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 var File_blog_v1_auth_proto protoreflect.FileDescriptor
 
 const file_blog_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x12blog/v1/auth.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb1\x01\n" +
+	"\x12blog/v1/auth.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"g\n" +
+	"\x15UpdatePasswordRequest\x12&\n" +
+	"\fold_password\x18\x01 \x01(\tB\x03\xe0A\x02R\voldPassword\x12&\n" +
+	"\fnew_password\x18\x02 \x01(\tB\x03\xe0A\x02R\vnewPassword\"\xb1\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
@@ -436,12 +496,13 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\bUserRole\x12\x19\n" +
 	"\x15USER_ROLE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fUSER_ROLE_ADMIN\x10\x01\x12\x14\n" +
-	"\x10USER_ROLE_READER\x10\x022\xcd\x02\n" +
+	"\x10USER_ROLE_READER\x10\x022\xbc\x03\n" +
 	"\vAuthService\x12N\n" +
 	"\x05Login\x12\x15.blog.v1.LoginRequest\x1a\x13.blog.v1.LoginReply\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12T\n" +
 	"\aRefresh\x12\x17.blog.v1.RefreshRequest\x1a\x13.blog.v1.LoginReply\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/auth/refresh\x12T\n" +
 	"\x06Logout\x12\x16.blog.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/auth/logout\x12B\n" +
-	"\x05GetMe\x12\x15.blog.v1.GetMeRequest\x1a\r.blog.v1.User\"\x13\x82\xd3\xe4\x93\x02\r\x12\v/v1/auth/meBa\n" +
+	"\x05GetMe\x12\x15.blog.v1.GetMeRequest\x1a\r.blog.v1.User\"\x13\x82\xd3\xe4\x93\x02\r\x12\v/v1/auth/me\x12m\n" +
+	"\x0eUpdatePassword\x12\x1e.blog.v1.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/auth/update-passwordBa\n" +
 	"\x18io.grpc.examples.blog.v1B\tAuthProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -457,32 +518,35 @@ func file_blog_v1_auth_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_blog_v1_auth_proto_goTypes = []any{
 	(UserRole)(0),                 // 0: blog.v1.UserRole
-	(*User)(nil),                  // 1: blog.v1.User
-	(*LoginRequest)(nil),          // 2: blog.v1.LoginRequest
-	(*LoginReply)(nil),            // 3: blog.v1.LoginReply
-	(*RefreshRequest)(nil),        // 4: blog.v1.RefreshRequest
-	(*LogoutRequest)(nil),         // 5: blog.v1.LogoutRequest
-	(*GetMeRequest)(nil),          // 6: blog.v1.GetMeRequest
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
+	(*UpdatePasswordRequest)(nil), // 1: blog.v1.UpdatePasswordRequest
+	(*User)(nil),                  // 2: blog.v1.User
+	(*LoginRequest)(nil),          // 3: blog.v1.LoginRequest
+	(*LoginReply)(nil),            // 4: blog.v1.LoginReply
+	(*RefreshRequest)(nil),        // 5: blog.v1.RefreshRequest
+	(*LogoutRequest)(nil),         // 6: blog.v1.LogoutRequest
+	(*GetMeRequest)(nil),          // 7: blog.v1.GetMeRequest
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),         // 9: google.protobuf.Empty
 }
 var file_blog_v1_auth_proto_depIdxs = []int32{
 	0, // 0: blog.v1.User.role:type_name -> blog.v1.UserRole
-	7, // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	1, // 2: blog.v1.LoginReply.user:type_name -> blog.v1.User
-	2, // 3: blog.v1.AuthService.Login:input_type -> blog.v1.LoginRequest
-	4, // 4: blog.v1.AuthService.Refresh:input_type -> blog.v1.RefreshRequest
-	5, // 5: blog.v1.AuthService.Logout:input_type -> blog.v1.LogoutRequest
-	6, // 6: blog.v1.AuthService.GetMe:input_type -> blog.v1.GetMeRequest
-	3, // 7: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
-	3, // 8: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
-	8, // 9: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	1, // 10: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
+	8, // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	2, // 2: blog.v1.LoginReply.user:type_name -> blog.v1.User
+	3, // 3: blog.v1.AuthService.Login:input_type -> blog.v1.LoginRequest
+	5, // 4: blog.v1.AuthService.Refresh:input_type -> blog.v1.RefreshRequest
+	6, // 5: blog.v1.AuthService.Logout:input_type -> blog.v1.LogoutRequest
+	7, // 6: blog.v1.AuthService.GetMe:input_type -> blog.v1.GetMeRequest
+	1, // 7: blog.v1.AuthService.UpdatePassword:input_type -> blog.v1.UpdatePasswordRequest
+	4, // 8: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
+	4, // 9: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
+	9, // 10: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	2, // 11: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
+	9, // 12: blog.v1.AuthService.UpdatePassword:output_type -> google.protobuf.Empty
+	8, // [8:13] is the sub-list for method output_type
+	3, // [3:8] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
 	3, // [3:3] is the sub-list for extension extendee
 	0, // [0:3] is the sub-list for field type_name
@@ -499,7 +563,7 @@ func file_blog_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_auth_proto_rawDesc), len(file_blog_v1_auth_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

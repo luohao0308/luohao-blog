@@ -44,6 +44,16 @@ func (f *fakeUserRepo) Create(_ context.Context, u *User) (*User, error) {
 	return u, nil
 }
 
+func (f *fakeUserRepo) UpdatePassword(_ context.Context, id uuid.UUID, passwordHash string) error {
+	for _, u := range f.users {
+		if u.ID == id {
+			u.PasswordHash = passwordHash
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
 func TestHashPasswordRoundTrip(t *testing.T) {
 	hash, err := HashPassword("correct horse battery staple")
 	if err != nil {
@@ -118,5 +128,32 @@ func TestUserUsecaseAuthenticate(t *testing.T) {
 	}
 	if _, err := uc.Authenticate(ctx, "author@example.com", "wrongpassword"); !kratoserrors.IsUnauthorized(err) {
 		t.Fatalf("Authenticate(wrong password) error = %v, want unauthorized", err)
+	}
+}
+
+func TestUpdatePassword(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	uc := NewUserUsecase(repo)
+	u, err := uc.CreateAuthor(ctx, "admin@example.com", "old-password-1", "罗")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := uc.UpdatePassword(ctx, u.ID, "wrong-old-password", "new-password-1"); !kratoserrors.IsUnauthorized(err) {
+		t.Fatalf("wrong old password = %v, want unauthorized", err)
+	}
+	if err := uc.UpdatePassword(ctx, u.ID, "old-password-1", "short"); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("short new password = %v, want bad request", err)
+	}
+	if err := uc.UpdatePassword(ctx, u.ID, "old-password-1", "new-password-1"); err != nil {
+		t.Fatalf("rotate: %v", err)
+	}
+	// The stored hash must verify against the new password and reject the old.
+	if _, err := uc.Authenticate(ctx, "admin@example.com", "old-password-1"); !kratoserrors.IsUnauthorized(err) {
+		t.Fatalf("old password after rotation = %v, want unauthorized", err)
+	}
+	if _, err := uc.Authenticate(ctx, "admin@example.com", "new-password-1"); err != nil {
+		t.Fatalf("new password login: %v", err)
 	}
 }

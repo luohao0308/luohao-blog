@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Admin-only chrome: slim top bar with management entry points and the
 // signed-in account. Follows the site dark mode through the html.dark class.
-import { NButton, NConfigProvider, NDialogProvider, NMessageProvider, darkTheme, dateZhCN, zhCN } from 'naive-ui'
+import { NButton, NConfigProvider, NDialogProvider, NForm, NFormItem, NInput, NMessageProvider, NModal, darkTheme, dateZhCN, zhCN } from 'naive-ui'
+import type { FormInst, FormRules } from 'naive-ui'
 
-const { user, logout, ensureSession } = useAuth()
+const { user, logout, ensureSession, authFetch } = useAuth()
 const { preference, init } = useTheme()
 
 // matchMedia is client-only, so system preference tracking starts empty and
@@ -18,6 +19,58 @@ onMounted(() => {
 const isDark = computed(() =>
   preference.value === 'dark' || (preference.value === 'system' && systemDark.value),
 )
+
+// Password rotation: the modal posts to the authenticated update-password
+// endpoint; the backend verifies the old password before storing the new
+// one. Errors render inline — the layout is the message provider itself, so
+// naive-ui message APIs are unavailable at this level.
+const pwModalVisible = ref(false)
+const pwSubmitting = ref(false)
+const pwError = ref('')
+const pwForm = reactive({ old_password: '', new_password: '', confirm: '' })
+const pwFormRef = ref<FormInst | null>(null)
+
+const pwRules: FormRules = {
+  old_password: { required: true, message: '请输入当前密码', trigger: 'blur' },
+  new_password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 8, message: '新密码至少 8 位', trigger: 'blur' },
+  ],
+  confirm: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_rule, value: string) => value === pwForm.new_password,
+      message: '两次输入的新密码不一致',
+      trigger: 'blur',
+    },
+  ],
+}
+
+async function submitPassword() {
+  pwError.value = ''
+  pwFormRef.value?.validate(async (errors) => {
+    if (errors)
+      return
+    pwSubmitting.value = true
+    try {
+      await authFetch('/api/v1/auth/update-password', {
+        method: 'POST',
+        body: { old_password: pwForm.old_password, new_password: pwForm.new_password },
+      })
+      pwModalVisible.value = false
+      pwForm.old_password = ''
+      pwForm.new_password = ''
+      pwForm.confirm = ''
+    }
+    catch (err: unknown) {
+      const status = (err as { response?: { status?: number } } | null)?.response?.status
+      pwError.value = status === 401 ? '当前密码不正确' : '修改失败，请稍后再试'
+    }
+    finally {
+      pwSubmitting.value = false
+    }
+  })
+}
 
 // No useMessage here: this layout is the provider itself, and naive-ui
 // message APIs only resolve inside its descendants.
@@ -54,6 +107,9 @@ async function onLogout() {
               </div>
               <div class="flex items-center gap-3 text-sm">
                 <span v-if="user" class="text-slate-600 dark:text-slate-300">{{ user.display_name }}</span>
+                <NButton size="small" quaternary @click="pwModalVisible = true">
+                  修改密码
+                </NButton>
                 <NButton size="small" quaternary @click="onLogout">
                   退出
                 </NButton>
@@ -61,9 +117,41 @@ async function onLogout() {
             </div>
           </header>
 
-          <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-            <slot />
-          </main>
+      <NModal
+        v-model:show="pwModalVisible"
+        preset="card"
+        class="w-[24rem]"
+        title="修改密码"
+      >
+        <NForm ref="pwFormRef" :model="pwForm" :rules="pwRules" label-placement="top" :show-require-mark="false">
+          <NFormItem label="当前密码" path="old_password" :show-feedback="false">
+            <NInput v-model:value="pwForm.old_password" type="password" show-password-on="click" placeholder="当前密码" />
+          </NFormItem>
+          <NFormItem label="新密码（至少 8 位）" path="new_password" :show-feedback="false">
+            <NInput v-model:value="pwForm.new_password" type="password" show-password-on="click" placeholder="新密码" />
+          </NFormItem>
+          <NFormItem label="确认新密码" path="confirm" :show-feedback="false">
+            <NInput v-model:value="pwForm.confirm" type="password" show-password-on="click" placeholder="再次输入新密码" />
+          </NFormItem>
+        </NForm>
+        <p v-if="pwError" class="mb-3 text-sm text-red-600 dark:text-red-400" role="alert">
+          {{ pwError }}
+        </p>
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <NButton @click="pwModalVisible = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="pwSubmitting" @click="submitPassword">
+              确认修改
+            </NButton>
+          </div>
+        </template>
+      </NModal>
+
+      <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <slot />
+      </main>
         </div>
       </NDialogProvider>
     </NMessageProvider>

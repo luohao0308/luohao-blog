@@ -75,6 +75,7 @@ type UserRepository interface {
 	FindByEmail(context.Context, string) (*User, error)
 	FindByID(context.Context, uuid.UUID) (*User, error)
 	Create(context.Context, *User) (*User, error)
+	UpdatePassword(context.Context, uuid.UUID, string) error
 }
 
 // HashPassword derives an argon2id PHC string for a plaintext password:
@@ -200,4 +201,26 @@ func (uc *UserUsecase) Authenticate(ctx context.Context, email, password string)
 		return nil, ErrUserInvalidCredentials
 	}
 	return user, nil
+}
+
+// UpdatePassword rotates the calling account's password: the current
+// password is verified first, the new one follows the creation rules, and
+// the stored hash is replaced. The account identity comes from the verified
+// access token, never from the payload.
+func (uc *UserUsecase) UpdatePassword(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
+	user, err := uc.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !VerifyPassword(oldPassword, user.PasswordHash) {
+		return ErrUserInvalidCredentials
+	}
+	if len(newPassword) < 8 {
+		return ErrUserInvalidArgument
+	}
+	hash, err := HashPassword(newPassword)
+	if err != nil {
+		return ErrUserInvalidArgument
+	}
+	return uc.repo.UpdatePassword(ctx, id, hash)
 }

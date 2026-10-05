@@ -26,7 +26,9 @@ p, public, /blog.v1.AuthService/Logout, *
 
 # --- any authenticated account ---
 p, authenticated, /v1/auth/me, GET
+p, authenticated, /v1/auth/update-password, POST
 p, authenticated, /blog.v1.AuthService/GetMe, *
+p, authenticated, /blog.v1.AuthService/UpdatePassword, *
 
 # --- admin: article writes ---
 p, admin, /v1/articles/create, POST

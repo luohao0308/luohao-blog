@@ -351,6 +351,30 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/auth/update-password:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                UpdatePassword rotates the calling account's password. The current
+                 password must be supplied and is verified before the change; the new
+                 password follows the same rules as account creation (at least 8
+                 characters). Existing refresh sessions keep working until their natural
+                 expiry; the next login must use the new password.
+                 Authorization: any authenticated account (Authorization: Bearer).
+                 Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+                 when fields are empty or the new password is too short.
+            operationId: AuthService_UpdatePassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.UpdatePasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/categories/create:
         post:
             tags:
@@ -1084,6 +1108,22 @@ components:
                         Token used to retrieve the next page via
                          ListSubscribersRequest.page_token. Empty when there are no more results.
             description: SubscriberSet is a paginated collection of subscribers.
+        blog.v1.UpdatePasswordRequest:
+            required:
+                - oldPassword
+                - newPassword
+            type: object
+            properties:
+                oldPassword:
+                    type: string
+                    description: Current password, verified before the change.
+                newPassword:
+                    type: string
+                    description: New password; at least 8 characters, same rule as account creation.
+            description: |-
+                UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
+                 fields ride in the request body; the target account comes from the access
+                 token, never from the payload.
         blog.v1.User:
             type: object
             properties:
