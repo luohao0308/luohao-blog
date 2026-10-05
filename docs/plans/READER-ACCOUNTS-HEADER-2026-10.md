@@ -49,7 +49,7 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
 | S1 | 开放注册 + 头像/资料 API + 磁盘存储 | backend、compose/backup | 无 | go build/vet/test + 冒烟脚本 | 单 PR revert；迁移 down.sql | completed |
-| S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | pending |
+| S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | completed |
 | S3 | /settings 个人设置（头像/昵称/密码） | frontend | S1 S2 | 构建 + 上传端到端冒烟 | 单 PR revert | pending |
 | S4 | 评论登录门禁（前后端） | backend、frontend、E2E | S1 S2 | 契约测试 + E2E | 单 PR revert | pending |
 
@@ -76,10 +76,10 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ### S2：前台头部改版 + 登录/注册页
 
-- 状态：pending
-- 修改范围：`layouts/default.vue`、新 UserMenu/NavDropdown 组件、`/login`、`/register`
+- 状态：completed（2026-10-05/06 交付）
+- 修改范围：`layouts/default.vue`、新 UserMenu/NavDropdown 组件、`/login`、`/register`、`utils/assets.ts`、useAuth 扩展（register + avatar_url）
 - 步骤：导航收拢（文章▾：全部/分类/标签/归档）→ UserMenu（登录按钮/头像下拉）→ 公开布局 onMounted 恢复会话 → 两个新页面。
-- 切片验收：`pnpm lint && pnpm typecheck && pnpm build`；GUI 冒烟：登录/注册/下拉跳后台/登出/刷新恢复。
+- 切片验收：✅ `pnpm lint && pnpm typecheck && pnpm build` 全绿；✅ GUI 冒烟（IAB 浏览器，无后端预览）：登录/注册页渲染（暗色+亮色）、文章下拉展开与 opaque 覆盖、菜单项导航 /posts、头部登录链接导航、注册表单空提交与短密码校验提示、主题切换——证据 /tmp/s2-shots/t1–t6；⛔ 无后端受阻项：真实注册/登录成功流、头像显示、超管进入后台入口、会话恢复——待 docker 栈或生产部署后补测。
 - 回退点：单 PR revert。
 
 ### S3：个人设置页
