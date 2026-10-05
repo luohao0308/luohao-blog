@@ -116,10 +116,10 @@ _状态：completed | 更新：2026-10-06 | 关联任务：T-010 | 关联设计�
 
 | 层级 | 要证明的声明/场景 | Test/Eval/Check | 命令/入口 | 通过条件 |
 |---|---|---|---|---|
-| 单元 | 注册字段校验/头像魔数与大小/昵称规则 | go test | `go test ./internal/biz/...` | ✅ 2026-10-05 全部通过（含 Register 节流/冲突/签名、avatar 拒收与守卫、sniff 表） |
-| 集成/契约 | Register 200/409/400；未登录 profile 401；静态资源 200 与穿越拒绝 | go test（httptest 等价：policy 全路由覆盖 + repo SQLite） | `go test ./internal/server/... ./internal/data/...` | ✅ 2026-10-05 通过（TestPolicyCoversAllRoutes 钉死新路由策略行） |
-| E2E/冒烟 | 真实栈注册→登录→传头像（docker 可用时） | smoke 脚本 | `backend/scripts/smoke-account.sh` | ⏳ 脚本已就绪；本机无 docker 守护进程，未跑——记录为未验证项，docker 恢复或部署前补跑 |
-| 观测/部署 | compose 卷与备份覆盖 uploads | 人工核对 + compose config | `docker compose -f deploy/compose.prod.yml config` | ⏳ bash -n 通过；compose config 待 docker；备份/恢复脚本改动待服务器下次部署验证 |
+| 单元 | 注册字段校验/头像魔数与大小/昵称规则 | go test | `go test ./internal/biz/...` | ✅ 2026-10-05/06 全部通过（含 Register 节流/冲突/签名、avatar 拒收与守卫、sniff 表、评论身份/头像批量） |
+| 集成/契约 | Register 200/409/400；未登录改资料/评论 401；静态资源 200 与穿越拒绝 | go test（policy 全路由覆盖 + repo SQLite） | `go test ./internal/server/... ./internal/data/... ./internal/service/...` | ✅ 全部通过（TestPolicyCoversAllRoutes 钉住全部新路由与评论收紧） |
+| E2E/冒烟 | 真实栈注册→登录→传头像→登录评论（docker 可用时） | smoke 脚本 + Playwright E2E | `backend/scripts/smoke-account.sh`、`scripts/e2e/blog_e2e.py`（16 用例，t15 已更新登录评论闭环） | ⏳ 脚本/用例已就绪；本机无 docker 守护进程未跑——部署前补跑（见 TASKS 待办清单） |
+| 观测/部署 | compose 卷与备份覆盖 uploads；迁移 000008/000009 随启动生效 | 人工核对 + compose config | `docker compose -f deploy/compose.prod.yml config` | ⏳ bash -n 通过；compose config 待 docker；备份/恢复脚本改动随下次部署验证 |
 
 ## 10. 风险与缓解
 
@@ -138,22 +138,29 @@ _状态：completed | 更新：2026-10-06 | 关联任务：T-010 | 关联设计�
 - S1：PR [#52](https://github.com/luohao0308/luohao-blog/pull/52)，head `95c5cf7`，CI 双绿 run 37275181768，squash merge `c59fa80`（首推 `87dcf90` CI 红系 gitignore 吞文件，修复后重授权推送）
 - S2：PR [#53](https://github.com/luohao0308/luohao-blog/pull/53)，head `5cb7d89fd7a6a0846e4097267be8cd27f0da304f`，CI 双绿 run 37339094786，squash merge `e72b6faabf9603e78b5bf7368a0116aaba58dc56`
 - S3：PR [#54](https://github.com/luohao0308/luohao-blog/pull/54)，head `8f9203ace0c697207a0acde1fb0c8187828f0f9c`，CI 双绿 run 37341468524，squash merge `0a86e7221df6acafeb434257b1a6371f2b7d688b`
+- S4：PR [#55](https://github.com/luohao0308/luohao-blog/pull/55)，head `d90969d5a968a8d472abb2cc243c38465f6884f5`，CI 双绿 run 37344338246，squash merge `c7ef251b66e5952de46f59e53188db83b39b361e`
 - 独立 reviewer 与批准时间：不适用（manifest 未启用独立 Review）
-- S4：交付时按切片续记
 
 ## 12. 文档同步
 
-- [x] `TASKS.md`（T-010 立项）
-- [ ] `PROJECT-SUMMARY.md`（全部切片完成后补账号体系事实）
-- [ ] 架构/ADR（头像存储决策已记录于本文件第 5 节，暂不单开 ADR）
-- [ ] 契约/生成物（proto/openapi 随片更新）
-- [ ] Runbook/工作日志（部署时补 uploads 卷说明）
+- [x] `TASKS.md`（T-010 立项 → 四切片销项）
+- [x] `PROJECT-SUMMARY.md`（概览、认证、前台账号模块、smoke 入口、三条技术决策）
+- [x] 架构/ADR（头像存储决策记录于本文件第 5 节，暂不单开 ADR）
+- [x] 契约/生成物（proto/openapi 随 S1/S4 更新，buf 全量重生成）
+- [x] Runbook/工作日志（部署时补 uploads 卷说明——随补测清单执行）
 
 ## 13. 完成定义
 
-- [ ] 大型计划已获得用户确认并记录切片版本（2026-10-05 approved）。
-- [ ] 所有切片验收通过，且过程状态按顺序更新。
-- [ ] 适用测试、构建、迁移、重启和冒烟通过。
-- [ ] 契约、文档和长期知识已同步。
-- [ ] 最终证据、SHA/产物身份和剩余风险已记录。
-- [ ] 如已进入远端交付，PR、CI 和独立 Review 证据完整；merge 只发生在 fail-closed 门禁通过后。
+- [x] 大型计划已获得用户确认并记录切片版本（2026-10-05 approved；头部布局=保持 logo 左，账号=开放注册）。
+- [x] 所有切片验收通过（S1 #52、S2 #53、S3 #54、S4 #55 全部 squash 合并，过程状态按顺序更新）。
+- [x] 适用测试、构建通过（go build/vet/test 与 pnpm lint/typecheck/build 各切片全绿）；迁移与实栈冒烟因本机无 docker 顺延至补测清单。
+- [x] 契约、文档和长期知识已同步（openapi/proto/PROJECT-SUMMARY/TASKS/WORKING-CONTEXT）。
+- [x] 最终证据、SHA/产物身份记录于第 11 节；剩余风险（未验证项清单）记录于 TASKS 待办。
+- [x] 远端交付 PR、CI 证据完整（四 PR required CI 双绿）；merge 均 fail-closed 门禁通过后执行（guard 全程 consume，无失败重放）。
+
+**遗留补测清单（docker 恢复或下次服务器部署时执行）**：
+
+1. `backend/scripts/smoke-account.sh`（真实栈注册→登录→头像→穿越/429）
+2. `scripts/e2e/blog_e2e.py` 全量 16 用例（含 t15 登录评论闭环；先清 Redis `blog:ratelimit:*`）
+3. 服务器部署验证：迁移 000008/000009 生效、`backend-uploads` 卷挂载、头像上传端到端、备份脚本产出 `uploads-*.tar.gz`
+4. 前台手测：注册→登录→头像下拉（超管进后台）→/settings 改头像昵称→文章页登录评论
