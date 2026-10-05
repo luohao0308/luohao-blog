@@ -1,8 +1,30 @@
 <script setup lang="ts">
 // Admin-only chrome: slim top bar with management entry points and the
 // signed-in account. Follows the site dark mode through the html.dark class.
-import { NButton, NConfigProvider, NDialogProvider, NForm, NFormItem, NInput, NMessageProvider, NModal, darkTheme, dateZhCN, zhCN } from 'naive-ui'
-import type { FormInst, FormRules } from 'naive-ui'
+// naive-ui is themed to the site palette (#3c5d85 brand, 8px radius) so the
+// management pages read as part of the same site in both modes.
+import { NButton, NConfigProvider, NDialogProvider, NForm, NFormItem, NInput, NMessageProvider, NModal, darkTheme, dateZhCN, zhCN, type FormInst, type FormRules, type GlobalThemeOverrides } from 'naive-ui'
+
+// Light mode: the site's brand blue; dark mode: the blue-300 the site's
+// dark: variants use for accents.
+const lightOverrides: GlobalThemeOverrides = {
+  common: {
+    primaryColor: '#3c5d85',
+    primaryColorHover: '#2d486b',
+    primaryColorPressed: '#24405f',
+    primaryColorSuppl: '#3c5d85',
+    borderRadius: '8px',
+  },
+}
+const darkOverrides: GlobalThemeOverrides = {
+  common: {
+    primaryColor: '#93c5fd',
+    primaryColorHover: '#bfdbfe',
+    primaryColorPressed: '#60a5fa',
+    primaryColorSuppl: '#93c5fd',
+    borderRadius: '8px',
+  },
+}
 
 const { user, logout, ensureSession, authFetch } = useAuth()
 const { preference, init } = useTheme()
@@ -81,10 +103,10 @@ async function onLogout() {
 </script>
 
 <template>
-  <NConfigProvider :theme="isDark ? darkTheme : null" :locale="zhCN" :date-locale="dateZhCN">
+  <NConfigProvider :theme="isDark ? darkTheme : null" :theme-overrides="isDark ? darkOverrides : lightOverrides" :locale="zhCN" :date-locale="dateZhCN">
     <NMessageProvider>
       <NDialogProvider>
-        <div class="flex min-h-screen flex-col bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
+        <div class="flex min-h-screen flex-col bg-white text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
           <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
               <div class="flex items-center gap-6">

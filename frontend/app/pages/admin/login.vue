@@ -2,7 +2,7 @@
 // Login page. Registration is closed (accounts exist only via cmd/seed), so
 // this is a credentials form and nothing else. After login, users return to
 // the ?redirect= target captured by the admin-auth middleware.
-import { NButton, NCard, NForm, NFormItem, NInput } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput } from 'naive-ui'
 
 definePageMeta({ layout: 'admin' })
 
@@ -56,7 +56,14 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-sm pt-16">
-    <NCard title="登录管理后台">
+    <div class="space-y-6 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
+      <header class="space-y-3">
+        <p class="text-xs text-[#3c5d85] dark:text-blue-300">Admin / 管理后台</p>
+        <h1 class="text-2xl font-bold tracking-tight">
+          登录 <span class="text-blue-600 dark:text-blue-400">luohao</span><span class="text-slate-800 dark:text-slate-100">.blog</span>
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">仅站长账号可登录，注册通道不开放。</p>
+      </header>
       <NForm label-placement="top" @submit.prevent="submit">
         <NFormItem label="邮箱">
           <NInput v-model:value="email" type="text" placeholder="you@example.com" :input-props="{ autocomplete: 'username', type: 'email' }" />
@@ -71,6 +78,9 @@ async function submit() {
           登录
         </NButton>
       </NForm>
-    </NCard>
+    </div>
+    <p class="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
+      <NuxtLink to="/" class="hover:underline">← 返回前台</NuxtLink>
+    </p>
   </div>
 </template>
