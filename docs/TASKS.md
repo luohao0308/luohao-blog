@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-04_
+_last-updated: 2026-10-05_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -50,6 +50,7 @@ _last-updated: 2026-10-04_
 - [x] M3 互动与增长能力：RSS 订阅（/rss.xml + head 发现，PR #44 merge `6a95fe7`）、邮件订阅（登记制：后端表+幂等公开接口+限流 PR #43 merge `0853004`，前端表单+管理页 #44）、阅读排行榜（/ranking 前十 + 列表热门位 #38）；生产验收通过（订阅 200/幂等/400、RSS 4 items、页面全 200）（2026-10-05）
 - [x] M3 内容推荐体系：相关文章推荐（分类加权+标签重叠，回退最新）+ 文章列表热门阅读位（PR #38 squash 合并 merge `fc7be0d`）（2026-10-05）
 - [x] M3 用户互动能力：点赞（后端 like_count+去重 PR #36 merge `f70ff20`；前端按钮 PR #37 merge `524badc`，content-type 修复 #40 merge `301de3f`）、收藏（localStorage 本地方案 + /collections 页）、评论体验（待审块/昵称记忆/字数统计/重试，PR #39 merge `07d582c`）；生产已部署验收（2026-10-05）
+- [x] 前台页面布局修复：首页两栏化（主栏 hero + 最新文章 6 篇 + 精选项目，侧栏搜索/博客数据/热门 Top5/标签云/订阅，移动端单栏塌缩）、新增 PageHeader 组件统一 10 个页面紧凑页头（去眉题+大标题+说明大块）、文章页移除热门阅读位；pnpm lint/typecheck/build 全绿 + 本地真实数据逐页截图验收；[PR #49](https://github.com/luohao0308/luohao-blog/pull/49) squash 合并（head `af22f42`，merge `2cca4f4`，required CI 两项通过，guard push/PR/merge 三次 consume 全 allow，2026-10-05）
 
 ## 未授权或未立项 (Do Not Start)
 
