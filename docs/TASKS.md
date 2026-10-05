@@ -18,12 +18,13 @@ _last-updated: 2026-10-05_
 
 ## 待办 (Todo)
 
-### T-010 遗留补测清单（docker 恢复或下次服务器部署时执行）
+### T-010 遗留补测清单（2026-10-06 生产部署 + 生产 E2E 后基本完成）
 
-- [ ] 真实栈跑 `backend/scripts/smoke-account.sh`（注册→登录→头像→穿越/429）
-- [ ] 真实栈跑 `scripts/e2e/blog_e2e.py` 全量 16 用例（t15 已改登录评论闭环；先清 Redis `blog:ratelimit:*`）
-- [ ] 服务器部署验证：迁移 000008/000009 生效、`backend-uploads` 卷挂载、头像上传端到端、备份脚本产出 `uploads-*.tar.gz`
-- [ ] 前台手测：注册→登录→头像下拉（超管进后台）→ /settings 改头像昵称 → 文章页登录评论
+- [x] 注册→登录→头像上传→immutable 回读：生产实弹验证（探针账号 `e2e-probe@luohao.blog`，头像 `1f4245a0….png` 卷内落盘+字节一致）
+- [x] 生产 E2E（2026-10-06，用户"对生产跑"授权）：公开用例 **12/12 全绿**（首页/列表/标签/详情×2/归档/作品集/关于/搜索/404/AI 问答真实 LLM/错误密码拒绝）；t05 修复为按环境动态选文章（原硬编码 dev 栈 seed slug `m5-prod-smoke`，生产不存在）；**t13–t16（后台列表/发文/评论审核闭环/登出守卫）需管理员凭据，未跑**——生产管理员密码属用户私密，不进对话
+- [x] 服务器部署验证：迁移 v9 生效、`backend-uploads` 卷挂载、backup.sh 实跑产出 uploads tar
+- [x] 前台 UI 走查（生产，探针账号）：登录→头像下拉（昵称邮箱/个人设置/退出，READER 无后台入口✓）→ /settings 三卡片（头像回显/昵称/改密，未修改时保存禁用✓）→ 文章页「以 部署探针 的身份发表」→ 提交成功→待审核块展示；**探针留言一条在待审区**（`部署验证：登录身份评论链路 OK`），用户可在后台通过或删除
+- [ ] t13–t16 补跑（需管理员凭据走 env 注入，或本地 docker 栈）
 
 - [x] T-010 前台账号体系与头部改版（四切片全部交付）：**S1** 后端账号基座（开放注册 READER+自动登录+独立限流、User.avatar_url、UserService UpdateProfile/UploadAvatar/GetAvatar（HttpBody+immutable 缓存）、本地磁盘存储+compose `backend-uploads` 卷+备份/恢复、迁移 000008，[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) merge `c59fa80`）；**S2** 前台头部改版（导航 8→5 项+文章▾ 下拉、UserMenu 登录/头像下拉（超管进后台）、公开布局会话恢复、/login /register，[PR #53](https://github.com/luohao0308/luohao-blog/pull/53) merge `e72b6fa`）；**S3** /settings 个人设置（头像 canvas 压缩上传/昵称/改密、客户端登录守卫，[PR #54](https://github.com/luohao0308/luohao-blog/pull/54) merge `0a86e72`）；**S4** 评论登录门禁（CreateComment 需 JWT、身份取自 token、user_id 落库兼容旧匿名行、头像批量附加、评论区登录引导，迁移 000009，[PR #55](https://github.com/luohao0308/luohao-blog/pull/55) merge `c7ef251`）；各片 go build/vet/test 与 pnpm lint/typecheck/build 全绿，required CI 双绿，guard 全程 consume allow（2026-10-05/06）；交付中一次 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI 红（教训：ignore 锚定 `/data/`）；计划与执行记录 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`；真实栈补测清单见上方待办
 
