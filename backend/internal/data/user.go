@@ -63,6 +63,26 @@ func (r *userRepo) FindByID(ctx context.Context, id uuid.UUID) (*biz.User, error
 	return userToBiz(po), nil
 }
 
+// FindByIDs returns the accounts present in the input. Deleted ids are
+// simply missing from the result: callers decorate lists with this and must
+// tolerate absent authors.
+func (r *userRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*biz.User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	pos, err := r.data.db.User.Query().
+		Where(user.IDIn(ids...)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*biz.User, 0, len(pos))
+	for _, po := range pos {
+		out = append(out, userToBiz(po))
+	}
+	return out, nil
+}
+
 func (r *userRepo) Create(ctx context.Context, u *biz.User) (*biz.User, error) {
 	po, err := r.data.db.User.Create().
 		SetEmail(u.Email).

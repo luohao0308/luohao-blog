@@ -310,31 +310,35 @@ def t14(page, ctx):
     anon.close()
 
 
-@run("t15_comment_moderation", "访客评论 → 后台审核通过 → 前台可见（闭环）")
+@run("t15_comment_moderation", "登录评论（身份取自账号）→ 后台审核通过 → 前台可见（闭环）")
 def t15(page, ctx):
     marker = f"e2e评论{int(time.time())}"
     try:
-        anon = ctx.new_page()
-        anon.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
-        fill_hydrated(anon.locator('input[placeholder="昵称"]'), "E2E访客")
-        fill_hydrated(anon.locator('textarea[placeholder*="写下你的评论"]'), f"{marker} 内容待审核验证。")
-        anon.click('button:has-text("发表评论")')
-        notice = anon.wait_for_selector('[role="status"]', timeout=10_000)
-        assert "通过审核后展示" in notice.inner_text(), f"提交反馈异常: {notice.inner_text()}"
-        assert anon.get_by_text(marker).count() == 0, "未审核评论不应直接展示"
-        anon.close()
-
+        # 评论要求登录：先用管理员会话在文章页提交（身份取自账号，无昵称输入框）
         login_admin(page)
+        page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
+        # 未登录访客应看到登录引导而非评论表单（S4 门禁）
+        logged_out = ctx.new_page()
+        logged_out.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
+        logged_out.wait_for_selector('text=登录后即可发表评论', timeout=10_000)
+        assert logged_out.locator('textarea[placeholder*="写下你的评论"]').count() == 0, "未登录不应出现评论输入框"
+        logged_out.close()
+
+        assert page.locator('input[placeholder="昵称"]').count() == 0, "登录后不应再有昵称输入框"
+        fill_hydrated(page.locator('textarea[placeholder*="写下你的评论"]'), f"{marker} 内容待审核验证。")
+        page.click('button:has-text("发表评论")')
+        notice = page.wait_for_selector('[role="status"]', timeout=10_000)
+        assert "通过审核后展示" in notice.inner_text(), f"提交反馈异常: {notice.inner_text()}"
+        assert page.get_by_text(marker).count() == 0, "未审核评论不应直接展示"
+
         page.goto(f"{BASE_URL}/admin/comments", wait_until="networkidle")
         row = page.locator(f".n-data-table tr:has-text('{marker}')")
         row.wait_for(timeout=15_000)
         row.locator('button:has-text("通过")').click()
         page.wait_for_selector('.n-message:has-text("已通过")', timeout=10_000)
-        # 前台可见
-        anon2 = ctx.new_page()
-        anon2.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
-        assert anon2.get_by_text(marker).count() >= 1, "审核通过后前台仍未展示"
-        anon2.close()
+        # 前台可见（登录态页面：审核通过的评论带账号身份展示）
+        page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
+        assert page.get_by_text(marker).count() >= 1, "审核通过后前台仍未展示"
     finally:
         # 清理走 API：UI 删除按钮的 popconfirm 在无头环境不稳定，且与用例断言无关
         removed = api_cleanup_comments(ctx, marker)

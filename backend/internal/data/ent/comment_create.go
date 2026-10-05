@@ -90,6 +90,20 @@ func (_c *CommentCreate) SetNillableStatus(v *biz.CommentStatus) *CommentCreate 
 	return _c
 }
 
+// SetUserID sets the "user_id" field.
+func (_c *CommentCreate) SetUserID(v uuid.UUID) *CommentCreate {
+	_c.mutation.SetUserID(v)
+	return _c
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_c *CommentCreate) SetNillableUserID(v *uuid.UUID) *CommentCreate {
+	if v != nil {
+		_c.SetUserID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *CommentCreate) SetID(v uuid.UUID) *CommentCreate {
 	_c.mutation.SetID(v)
@@ -242,6 +256,10 @@ func (_c *CommentCreate) createSpec() (*Comment, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(comment.FieldStatus, field.TypeInt32, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.UserID(); ok {
+		_spec.SetField(comment.FieldUserID, field.TypeUUID, value)
+		_node.UserID = &value
 	}
 	return _node, _spec
 }

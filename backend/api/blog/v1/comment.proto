@@ -12,17 +12,23 @@ option java_multiple_files = true;
 option java_package = "io.grpc.examples.blog.v1";
 option java_outer_classname = "CommentProto";
 
-// CommentService handles visitor comments on articles. Commenters are
-// anonymous (registration is closed): every new comment starts PENDING and
-// becomes publicly visible only after an admin approves it. Admin operations
-// require the Authorization header; public ones are rate limited per client
-// IP.
+// CommentService handles article comments. Commenters are authenticated
+// accounts: readers register openly through the auth service, and every new
+// comment is authored by the caller's account (identity comes from the
+// access token, never from the payload). Every new comment starts PENDING
+// and becomes publicly visible only after an admin approves it. Legacy rows
+// from the closed-registration era have no user and keep their stored
+// display name. Admin operations require the ADMIN role; public reads stay
+// open and submissions are rate limited per client IP.
 service CommentService {
-  // CreateComment submits a visitor comment. The comment enters PENDING and
-  // is not publicly visible until approved. The target article must exist
-  // and be PUBLISHED. Authorization: public (rate limited per client IP;
-  // excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-  // fields fail validation and NOT_FOUND when the article is missing or not
+  // CreateComment submits a comment authored by the calling account. The
+  // comment enters PENDING and is not publicly visible until approved. The
+  // target article must exist and be PUBLISHED. The display name is the
+  // account's current profile name; the payload carries no identity fields.
+  // Authorization: any authenticated account (Authorization: Bearer);
+  // anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+  // attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+  // fail validation and NOT_FOUND when the article is missing or not
   // published.
   rpc CreateComment (CreateCommentRequest) returns (Comment) {
     option (google.api.http) = {
@@ -79,15 +85,16 @@ enum CommentStatus {
   COMMENT_STATUS_APPROVED = 2;
 }
 
-// Comment is the canonical representation of a visitor comment.
+// Comment is the canonical representation of an article comment.
 message Comment {
   // Application-generated UUIDv7 identifier. Read-only.
   string id = 1;
   // Slug of the commented article.
   string article_slug = 2;
-  // Visitor-provided display name.
+  // Author display name: the account's profile name at submission time for
+  // account comments; the visitor-provided name for legacy anonymous rows.
   string display_name = 3;
-  // Visitor-provided comment body.
+  // Comment body.
   string content = 4;
   // Moderation state. Server-assigned: new comments start PENDING.
   CommentStatus status = 5;
@@ -95,6 +102,12 @@ message Comment {
   google.protobuf.Timestamp created_at = 6;
   // Time at which the comment was last modified. Server-assigned, read-only.
   google.protobuf.Timestamp updated_at = 7;
+  // Author account identifier. Empty for legacy anonymous comments.
+  string user_id = 8;
+  // Author avatar as a site-relative path (see User.avatar_url). Empty for
+  // legacy anonymous comments and accounts without an upload; clients fall
+  // back to an initials disc.
+  string avatar_url = 9;
 }
 
 // CommentSet is a paginated collection of comments.
@@ -105,15 +118,17 @@ message CommentSet {
   string next_page_token = 2;
 }
 
-// CreateCommentRequest is the input for CommentService.CreateComment.
+// CreateCommentRequest is the input for CommentService.CreateComment. The
+// author is the authenticated caller; the payload carries no identity.
 message CreateCommentRequest {
   // Slug of the article being commented on. Must reference a PUBLISHED
   // article.
   string article_slug = 1 [(google.api.field_behavior) = REQUIRED];
-  // Visitor display name, 1-32 characters.
-  string display_name = 2 [(google.api.field_behavior) = REQUIRED];
   // Comment body, 1-1000 characters.
   string content = 3 [(google.api.field_behavior) = REQUIRED];
+
+  reserved 2;
+  reserved "display_name";
 }
 
 // ListArticleCommentsRequest is the input for

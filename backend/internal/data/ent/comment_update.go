@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
@@ -104,6 +105,26 @@ func (_u *CommentUpdate) AddStatus(v biz.CommentStatus) *CommentUpdate {
 	return _u
 }
 
+// SetUserID sets the "user_id" field.
+func (_u *CommentUpdate) SetUserID(v uuid.UUID) *CommentUpdate {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *CommentUpdate) SetNillableUserID(v *uuid.UUID) *CommentUpdate {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *CommentUpdate) ClearUserID() *CommentUpdate {
+	_u.mutation.ClearUserID()
+	return _u
+}
+
 // Mutation returns the CommentMutation object of the builder.
 func (_u *CommentUpdate) Mutation() *CommentMutation {
 	return _u.mutation
@@ -192,6 +213,12 @@ func (_u *CommentUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(comment.FieldStatus, field.TypeInt32, value)
+	}
+	if value, ok := _u.mutation.UserID(); ok {
+		_spec.SetField(comment.FieldUserID, field.TypeUUID, value)
+	}
+	if _u.mutation.UserIDCleared() {
+		_spec.ClearField(comment.FieldUserID, field.TypeUUID)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -285,6 +312,26 @@ func (_u *CommentUpdateOne) SetNillableStatus(v *biz.CommentStatus) *CommentUpda
 // AddStatus adds value to the "status" field.
 func (_u *CommentUpdateOne) AddStatus(v biz.CommentStatus) *CommentUpdateOne {
 	_u.mutation.AddStatus(v)
+	return _u
+}
+
+// SetUserID sets the "user_id" field.
+func (_u *CommentUpdateOne) SetUserID(v uuid.UUID) *CommentUpdateOne {
+	_u.mutation.SetUserID(v)
+	return _u
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (_u *CommentUpdateOne) SetNillableUserID(v *uuid.UUID) *CommentUpdateOne {
+	if v != nil {
+		_u.SetUserID(*v)
+	}
+	return _u
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (_u *CommentUpdateOne) ClearUserID() *CommentUpdateOne {
+	_u.mutation.ClearUserID()
 	return _u
 }
 
@@ -406,6 +453,12 @@ func (_u *CommentUpdateOne) sqlSave(ctx context.Context) (_node *Comment, err er
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(comment.FieldStatus, field.TypeInt32, value)
+	}
+	if value, ok := _u.mutation.UserID(); ok {
+		_spec.SetField(comment.FieldUserID, field.TypeUUID, value)
+	}
+	if _u.mutation.UserIDCleared() {
+		_spec.ClearField(comment.FieldUserID, field.TypeUUID)
 	}
 	_node = &Comment{config: _u.config}
 	_spec.Assign = _node.assignValues

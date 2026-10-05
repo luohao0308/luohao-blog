@@ -78,6 +78,10 @@ type User struct {
 type UserRepository interface {
 	FindByEmail(context.Context, string) (*User, error)
 	FindByID(context.Context, uuid.UUID) (*User, error)
+	// FindByIDs returns the accounts present in the input; missing ids are
+	// simply absent from the result (comment avatar decoration tolerates
+	// deleted authors).
+	FindByIDs(context.Context, []uuid.UUID) ([]*User, error)
 	Create(context.Context, *User) (*User, error)
 	UpdatePassword(context.Context, uuid.UUID, string) error
 	// UpdateProfile replaces the public display name.
@@ -190,6 +194,24 @@ func (uc *UserUsecase) CreateAccount(ctx context.Context, email, password, displ
 // ByID returns the account with the given id.
 func (uc *UserUsecase) ByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	return uc.repo.FindByID(ctx, id)
+}
+
+// ByIDs returns the accounts found for the given ids, deduplicating the
+// input and skipping empty requests entirely.
+func (uc *UserUsecase) ByIDs(ctx context.Context, ids []uuid.UUID) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	unique := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	return uc.repo.FindByIDs(ctx, unique)
 }
 
 // Authenticate verifies credentials and returns the account on success.

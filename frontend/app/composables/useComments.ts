@@ -23,6 +23,11 @@ export interface Comment {
   display_name: string
   content: string
   status: CommentStatus
+  // Author account (empty for legacy anonymous comments).
+  user_id?: string
+  // Site-relative avatar path (see useAuth); empty for legacy comments and
+  // accounts without an upload.
+  avatar_url?: string
   created_at: import('./useArticles').ArticleTimestamp
   updated_at: import('./useArticles').ArticleTimestamp
 }
@@ -34,7 +39,6 @@ export interface CommentSet {
 
 // Limits mirror the backend biz rules; enforcing them here only saves a
 // round trip, the server is the authority.
-export const COMMENT_NAME_MAX = 32
 export const COMMENT_CONTENT_MAX = 1000
 
 export function useArticleComments(slug: string, opts?: { pageSize?: number }) {

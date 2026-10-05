@@ -1,6 +1,6 @@
 # 前台账号体系与头部改版 实施计划
 
-_状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计：无独立设计文档，设计决定见第 5 节_
+_状态：completed | 更新：2026-10-06 | 关联任务：T-010 | 关联设计：无独立设计文档，设计决定见第 5 节_
 
 ## 1. 目标、成功标准与停止条件
 
@@ -51,7 +51,7 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 | S1 | 开放注册 + 头像/资料 API + 磁盘存储 | backend、compose/backup | 无 | go build/vet/test + 冒烟脚本 | 单 PR revert；迁移 down.sql | completed |
 | S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | completed |
 | S3 | /settings 个人设置（头像/昵称/密码） | frontend | S1 S2 | 构建 + 上传端到端冒烟 | 单 PR revert | pending |
-| S4 | 评论登录门禁（前后端） | backend、frontend、E2E | S1 S2 | 契约测试 + E2E | 单 PR revert | pending |
+| S4 | 评论登录门禁（前后端） | backend、frontend、E2E | S1 S2 | 契约测试 + E2E | 单 PR revert | completed |
 
 ## 5. 原则与决策
 
@@ -92,11 +92,11 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ### S4：评论登录门禁
 
-- 状态：pending
-- 修改范围：`comment.proto`（CreateComment 需认证 + user_id）、评论 data/biz/service、`CommentSection.vue`、E2E 用例
-- 步骤：契约变更 → 后端门禁与身份落库 → 前端登录引导/身份展示 → E2E 更新。
-- 切片验收：未登录 401 契约测试；E2E 发评→待审→审核展示；旧评论展示回归。
-- 回退点：单 PR revert。
+- 状态：completed（2026-10-06 交付）
+- 修改范围：`comment.proto`（CreateComment 需认证 + user_id/avatar_url 字段 + reserved display_name）、评论 biz/service/data、`policy.csv`（public→authenticated）、`CommentSection.vue`、`useComments.ts`、E2E t15、迁移 000009
+- 步骤：契约变更（reserved display_name，新增 user_id/avatar_url）→ policy 收紧（public 行移除，authenticated 行新增）→ 后端门禁与身份落库（display_name 取账号当前昵称，旧匿名评论 NULL user_id 不受影响）→ 列表批量补头像 → 前端登录引导/身份展示/评论区头像 → E2E 更新（登录评论 + 未登录引导断言）。
+- 切片验收：✅ go build/vet/test 全绿（新增：匿名 401 usecase+service 双层、deleted account 401、身份取自账号、头像批量附加、user_id SQLite 往返、legacy NULL 回归）；✅ pnpm lint/typecheck/build 全绿；✅ policy 全路由覆盖测试自动钉住新行；✅ E2E t15 更新为登录评论闭环（Python 语法校验，⛔ 真实栈执行待 docker）；⛔ 头像显示/登录评论实弹待真实环境。
+- 回退点：单 PR revert；迁移 down.sql。
 
 ## 7. 偏移控制
 

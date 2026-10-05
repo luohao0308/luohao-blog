@@ -35,6 +35,20 @@ func (f *fakeUserRepo) FindByID(_ context.Context, id uuid.UUID) (*User, error) 
 	return nil, ErrUserNotFound
 }
 
+func (f *fakeUserRepo) FindByIDs(_ context.Context, ids []uuid.UUID) ([]*User, error) {
+	want := make(map[uuid.UUID]struct{}, len(ids))
+	for _, id := range ids {
+		want[id] = struct{}{}
+	}
+	var out []*User
+	for _, u := range f.users {
+		if _, ok := want[u.ID]; ok {
+			out = append(out, u)
+		}
+	}
+	return out, nil
+}
+
 func (f *fakeUserRepo) Create(_ context.Context, u *User) (*User, error) {
 	if _, ok := f.users[u.Email]; ok {
 		return nil, ErrUserEmailConflict

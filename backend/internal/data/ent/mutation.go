@@ -1953,6 +1953,7 @@ type CommentMutation struct {
 	content       *string
 	status        *biz.CommentStatus
 	addstatus     *biz.CommentStatus
+	user_id       *uuid.UUID
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*Comment, error)
@@ -2312,6 +2313,55 @@ func (m *CommentMutation) ResetStatus() {
 	m.addstatus = nil
 }
 
+// SetUserID sets the "user_id" field.
+func (m *CommentMutation) SetUserID(u uuid.UUID) {
+	m.user_id = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *CommentMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Comment entity.
+// If the Comment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CommentMutation) OldUserID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (m *CommentMutation) ClearUserID() {
+	m.user_id = nil
+	m.clearedFields[comment.FieldUserID] = struct{}{}
+}
+
+// UserIDCleared returns if the "user_id" field was cleared in this mutation.
+func (m *CommentMutation) UserIDCleared() bool {
+	_, ok := m.clearedFields[comment.FieldUserID]
+	return ok
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *CommentMutation) ResetUserID() {
+	m.user_id = nil
+	delete(m.clearedFields, comment.FieldUserID)
+}
+
 // Where appends a list predicates to the CommentMutation builder.
 func (m *CommentMutation) Where(ps ...predicate.Comment) {
 	m.predicates = append(m.predicates, ps...)
@@ -2346,7 +2396,7 @@ func (m *CommentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CommentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, comment.FieldCreatedAt)
 	}
@@ -2364,6 +2414,9 @@ func (m *CommentMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, comment.FieldStatus)
+	}
+	if m.user_id != nil {
+		fields = append(fields, comment.FieldUserID)
 	}
 	return fields
 }
@@ -2385,6 +2438,8 @@ func (m *CommentMutation) Field(name string) (ent.Value, bool) {
 		return m.Content()
 	case comment.FieldStatus:
 		return m.Status()
+	case comment.FieldUserID:
+		return m.UserID()
 	}
 	return nil, false
 }
@@ -2406,6 +2461,8 @@ func (m *CommentMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldContent(ctx)
 	case comment.FieldStatus:
 		return m.OldStatus(ctx)
+	case comment.FieldUserID:
+		return m.OldUserID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Comment field %s", name)
 }
@@ -2457,6 +2514,13 @@ func (m *CommentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case comment.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Comment field %s", name)
 }
@@ -2505,6 +2569,9 @@ func (m *CommentMutation) ClearedFields() []string {
 	if m.FieldCleared(comment.FieldContent) {
 		fields = append(fields, comment.FieldContent)
 	}
+	if m.FieldCleared(comment.FieldUserID) {
+		fields = append(fields, comment.FieldUserID)
+	}
 	return fields
 }
 
@@ -2521,6 +2588,9 @@ func (m *CommentMutation) ClearField(name string) error {
 	switch name {
 	case comment.FieldContent:
 		m.ClearContent()
+		return nil
+	case comment.FieldUserID:
+		m.ClearUserID()
 		return nil
 	}
 	return fmt.Errorf("unknown Comment nullable field %s", name)
@@ -2547,6 +2617,9 @@ func (m *CommentMutation) ResetField(name string) error {
 		return nil
 	case comment.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case comment.FieldUserID:
+		m.ResetUserID()
 		return nil
 	}
 	return fmt.Errorf("unknown Comment field %s", name)
