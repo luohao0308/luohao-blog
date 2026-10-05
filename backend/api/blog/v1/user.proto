@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "blog/v1/auth.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/httpbody.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "UserProto";
+
+// UserService manages the profile of the authenticated account: the display
+// name and the avatar. Every operation is identified by the access token —
+// the payload never names a target account, so an account can only ever edit
+// itself. Avatars live on the server's local disk (no object store in the
+// production topology); the bytes are served back through GetAvatar as a raw
+// HTTP body.
+service UserService {
+  // UpdateProfile renames the calling account. The display name is the
+  // identity shown on comments and the header menu. Returns
+  // INVALID_ARGUMENT when the name is empty or longer than 32 characters and
+  // UNAUTHORIZED when the token is missing, malformed, forged, or expired.
+  rpc UpdateProfile (UpdateProfileRequest) returns (User) {
+    option (google.api.http) = {
+      put: "/v1/user/profile"
+      body: "*"
+    };
+  }
+
+  // UploadAvatar stores a new avatar for the calling account and returns the
+  // updated account. The image rides in the JSON body as base64 `data`
+  // (clients canvas-downscale before sending). The server sniffs the real
+  // format from magic bytes — jpeg, png, or webp — and rejects anything
+  // else, or anything above 2 MiB after decoding, with INVALID_ARGUMENT.
+  // Overwriting replaces the stored file; the random filename changes, so
+  // cached copies of the old image keep working but stop being referenced.
+  rpc UploadAvatar (UploadAvatarRequest) returns (User) {
+    option (google.api.http) = {
+      put: "/v1/user/avatar"
+      body: "*"
+    };
+  }
+
+  // GetAvatar serves the avatar bytes for the given stored filename. The
+  // name is the server-generated random filename (32 hex chars + extension)
+  // carried inside User.avatar_url; anything else is NOT_FOUND. Public:
+  // avatars render on article pages for every visitor.
+  rpc GetAvatar (GetAvatarRequest) returns (google.api.HttpBody) {
+    option (google.api.http) = {
+      get: "/v1/assets/avatars/{name}"
+    };
+  }
+}
+
+// UpdateProfileRequest is the input for UserService.UpdateProfile. The
+// target account comes from the access token, never from the payload.
+message UpdateProfileRequest {
+  // New public display name, 1-32 characters after trimming.
+  string display_name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// UploadAvatarRequest is the input for UserService.UploadAvatar. The target
+// account comes from the access token, never from the payload.
+message UploadAvatarRequest {
+  // Raw image bytes (jpeg/png/webp), at most 2 MiB after the transport
+  // decodes the base64 JSON encoding.
+  bytes data = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// GetAvatarRequest is the input for UserService.GetAvatar.
+message GetAvatarRequest {
+  // Server-generated filename as embedded in User.avatar_url.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+}

@@ -7,8 +7,9 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 )
 
-// User holds the schema definition for the User entity. Accounts are created
-// by the seed command only; there is no public registration.
+// User holds the schema definition for the User entity. READER accounts are
+// created through the open registration endpoint; ADMIN accounts are created
+// by the seed command only.
 type User struct {
 	ent.Schema
 }
@@ -31,5 +32,8 @@ func (User) Fields() []ent.Field {
 		field.Int32("role").
 			GoType(biz.UserRole(0)).
 			Default(int32(biz.UserRoleAdmin)),
+		// Site-relative avatar path served by GetAvatar, e.g.
+		// /v1/assets/avatars/<32-hex>.<ext>. Empty until the first upload.
+		field.String("avatar_url").Default(""),
 	}
 }

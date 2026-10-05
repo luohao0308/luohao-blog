@@ -52,8 +52,9 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, boot
 	userUsecase := biz.NewUserUsecase(userRepository)
 	sessionRepo := data.NewSessionRepo(universalClient)
 	rateLimiter := data.NewRateLimiter(universalClient, auth)
+	registerRateLimiter := data.NewRegisterRateLimiter(universalClient, auth)
 	duration := data.NewRefreshTokenTTL(auth)
-	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, duration)
+	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, registerRateLimiter, duration)
 	authService := service.NewAuthService(authUsecase)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
@@ -69,7 +70,14 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, boot
 	chatUsecase := biz.NewChatUsecase(articleUsecase, chatLLM, chatRateLimiter)
 	chatService := service.NewChatService(chatUsecase)
 	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, commentService, subscriberService, articleSearchService, chatService)
-	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, commentService, subscriberService, articleSearchService, chatService)
+	avatarStore, err := data.NewAvatarStore(confData)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	avatarUsecase := biz.NewAvatarUsecase(avatarStore, userUsecase)
+	userService := service.NewUserService(userUsecase, avatarUsecase)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, userService, commentService, subscriberService, articleSearchService, chatService)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

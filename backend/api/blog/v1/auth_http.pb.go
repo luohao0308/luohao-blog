@@ -22,6 +22,7 @@ const OperationAuthServiceGetMe = "/blog.v1.AuthService/GetMe"
 const OperationAuthServiceLogin = "/blog.v1.AuthService/Login"
 const OperationAuthServiceLogout = "/blog.v1.AuthService/Logout"
 const OperationAuthServiceRefresh = "/blog.v1.AuthService/Refresh"
+const OperationAuthServiceRegister = "/blog.v1.AuthService/Register"
 const OperationAuthServiceUpdatePassword = "/blog.v1.AuthService/UpdatePassword"
 
 type AuthServiceHTTPServer interface {
@@ -46,6 +47,12 @@ type AuthServiceHTTPServer interface {
 	// cookie (or header) is missing, expired, revoked, or belongs to a deleted
 	// account.
 	Refresh(context.Context, *RefreshRequest) (*LoginReply, error)
+	// Register Register creates a READER account and signs the caller in: the reply is
+	// the same token pair Login returns, delivered with the refresh cookie.
+	// Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+	// the email is already registered. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS.
+	Register(context.Context, *RegisterRequest) (*LoginReply, error)
 	// UpdatePassword UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
 	// password follows the same rules as account creation (at least 8
@@ -59,11 +66,31 @@ type AuthServiceHTTPServer interface {
 
 func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
 	r := s.Route("/")
+	r.Handle("POST", "/v1/auth/register", _AuthService_Register0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/login", _AuthService_Login0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/refresh", _AuthService_Refresh0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/logout", _AuthService_Logout0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/auth/me", _AuthService_GetMe0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/update-password", _AuthService_UpdatePassword0_HTTP_Handler(srv))
+}
+
+func _AuthService_Register0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RegisterRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceRegister)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Register(ctx, req.(*RegisterRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LoginReply)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _AuthService_Login0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
@@ -183,6 +210,12 @@ type AuthServiceHTTPClient interface {
 	// cookie (or header) is missing, expired, revoked, or belongs to a deleted
 	// account.
 	Refresh(ctx context.Context, req *RefreshRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	// Register Register creates a READER account and signs the caller in: the reply is
+	// the same token pair Login returns, delivered with the refresh cookie.
+	// Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+	// the email is already registered. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS.
+	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
 	// UpdatePassword UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
 	// password follows the same rules as account creation (at least 8
@@ -277,6 +310,28 @@ func (c *AuthServiceHTTPClientImpl) Refresh(ctx context.Context, in *RefreshRequ
 		http.Accept("application/protojson"),
 		http.ContentType("application/protojson"),
 		http.Operation(OperationAuthServiceRefresh),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Register Register creates a READER account and signs the caller in: the reply is
+// the same token pair Login returns, delivered with the refresh cookie.
+// Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+// the email is already registered. Rate limited per client IP; excess
+// attempts return TOO_MANY_REQUESTS.
+func (c *AuthServiceHTTPClientImpl) Register(ctx context.Context, in *RegisterRequest, opts ...http.CallOption) (*LoginReply, error) {
+	var out LoginReply
+	pattern := "/v1/auth/register"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceRegister),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)

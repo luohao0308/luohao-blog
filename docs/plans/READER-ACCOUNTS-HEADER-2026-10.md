@@ -48,7 +48,7 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
-| S1 | 开放注册 + 头像/资料 API + 磁盘存储 | backend、compose/backup | 无 | go build/vet/test + 冒烟脚本 | 单 PR revert；迁移 down.sql | in_progress |
+| S1 | 开放注册 + 头像/资料 API + 磁盘存储 | backend、compose/backup | 无 | go build/vet/test + 冒烟脚本 | 单 PR revert；迁移 down.sql | completed |
 | S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | pending |
 | S3 | /settings 个人设置（头像/昵称/密码） | frontend | S1 S2 | 构建 + 上传端到端冒烟 | 单 PR revert | pending |
 | S4 | 评论登录门禁（前后端） | backend、frontend、E2E | S1 S2 | 契约测试 + E2E | 单 PR revert | pending |
@@ -116,10 +116,10 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 | 层级 | 要证明的声明/场景 | Test/Eval/Check | 命令/入口 | 通过条件 |
 |---|---|---|---|---|
-| 单元 | 注册字段校验/头像魔数与大小/昵称规则 | go test | `go test ./internal/biz/...` | 全部断言通过 |
-| 集成/契约 | Register 200/409/400；未登录 profile 401；静态资源 200 与穿越拒绝 | go test（httptest） | `go test ./internal/service/...` | 全部断言通过 |
-| E2E/冒烟 | 真实栈注册→登录→传头像（docker 可用时） | smoke 脚本 | `backend/scripts/smoke-account.sh` | 脚本 0 退出；无 docker 则记录未验证 |
-| 观测/部署 | compose 卷与备份覆盖 uploads | 人工核对 + compose config | `docker compose -f deploy/compose.prod.yml config` | 配置校验通过（无 docker 时以文件评审替代） |
+| 单元 | 注册字段校验/头像魔数与大小/昵称规则 | go test | `go test ./internal/biz/...` | ✅ 2026-10-05 全部通过（含 Register 节流/冲突/签名、avatar 拒收与守卫、sniff 表） |
+| 集成/契约 | Register 200/409/400；未登录 profile 401；静态资源 200 与穿越拒绝 | go test（httptest 等价：policy 全路由覆盖 + repo SQLite） | `go test ./internal/server/... ./internal/data/...` | ✅ 2026-10-05 通过（TestPolicyCoversAllRoutes 钉死新路由策略行） |
+| E2E/冒烟 | 真实栈注册→登录→传头像（docker 可用时） | smoke 脚本 | `backend/scripts/smoke-account.sh` | ⏳ 脚本已就绪；本机无 docker 守护进程，未跑——记录为未验证项，docker 恢复或部署前补跑 |
+| 观测/部署 | compose 卷与备份覆盖 uploads | 人工核对 + compose config | `docker compose -f deploy/compose.prod.yml config` | ⏳ bash -n 通过；compose config 待 docker；备份/恢复脚本改动待服务器下次部署验证 |
 
 ## 10. 风险与缓解
 
@@ -133,7 +133,7 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ## 11. 交付状态与 PR 证据
 
-- 当前状态：not_started
+- 当前状态：committed（S1 本地提交完成，待用户授权 push/PR）
 - repo / remote：github.com/luohao0308/luohao-blog / origin
 - PR 编号或链接：（S1 待创建）
 - source ref / target ref：feat/reader-accounts-backend → main

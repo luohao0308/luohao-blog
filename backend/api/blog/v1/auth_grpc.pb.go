@@ -20,6 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	AuthService_Register_FullMethodName       = "/blog.v1.AuthService/Register"
 	AuthService_Login_FullMethodName          = "/blog.v1.AuthService/Login"
 	AuthService_Refresh_FullMethodName        = "/blog.v1.AuthService/Refresh"
 	AuthService_Logout_FullMethodName         = "/blog.v1.AuthService/Logout"
@@ -32,14 +33,23 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // AuthService issues and revokes the credentials used to call privileged
-// endpoints. Registration is closed: accounts exist only through the seed
-// command. The access token is a short-lived JWT carried in the
+// endpoints. Registration is open: anyone can create a READER account with an
+// email, a password, and a display name (no email verification yet; abuse is
+// bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+// are still created only by the seed command. The access
+// token is a short-lived JWT carried in the
 // Authorization header; the refresh token is an opaque secret delivered as an
 // httpOnly cookie (Path=/v1/auth) and rotated on every refresh, with the
 // server-side session kept in Redis. Refresh and Logout read the token from
 // the cookie, falling back to the X-Refresh-Token header for non-cookie
 // clients.
 type AuthServiceClient interface {
+	// Register creates a READER account and signs the caller in: the reply is
+	// the same token pair Login returns, delivered with the refresh cookie.
+	// Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+	// the email is already registered. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS.
+	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*LoginReply, error)
 	// Login verifies credentials and returns an access token, a refresh token
 	// cookie, and the account. Returns INVALID_ARGUMENT when fields are empty
 	// and UNAUTHORIZED when the credentials are wrong (indistinguishable
@@ -78,6 +88,16 @@ type authServiceClient struct {
 
 func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
 	return &authServiceClient{cc}
+}
+
+func (c *authServiceClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*LoginReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginReply)
+	err := c.cc.Invoke(ctx, AuthService_Register_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error) {
@@ -135,14 +155,23 @@ func (c *authServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswo
 // for forward compatibility.
 //
 // AuthService issues and revokes the credentials used to call privileged
-// endpoints. Registration is closed: accounts exist only through the seed
-// command. The access token is a short-lived JWT carried in the
+// endpoints. Registration is open: anyone can create a READER account with an
+// email, a password, and a display name (no email verification yet; abuse is
+// bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+// are still created only by the seed command. The access
+// token is a short-lived JWT carried in the
 // Authorization header; the refresh token is an opaque secret delivered as an
 // httpOnly cookie (Path=/v1/auth) and rotated on every refresh, with the
 // server-side session kept in Redis. Refresh and Logout read the token from
 // the cookie, falling back to the X-Refresh-Token header for non-cookie
 // clients.
 type AuthServiceServer interface {
+	// Register creates a READER account and signs the caller in: the reply is
+	// the same token pair Login returns, delivered with the refresh cookie.
+	// Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+	// the email is already registered. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS.
+	Register(context.Context, *RegisterRequest) (*LoginReply, error)
 	// Login verifies credentials and returns an access token, a refresh token
 	// cookie, and the account. Returns INVALID_ARGUMENT when fields are empty
 	// and UNAUTHORIZED when the credentials are wrong (indistinguishable
@@ -183,6 +212,9 @@ type AuthServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuthServiceServer struct{}
 
+func (UnimplementedAuthServiceServer) Register(context.Context, *RegisterRequest) (*LoginReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Register not implemented")
+}
 func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*LoginReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
 }
@@ -217,6 +249,24 @@ func RegisterAuthServiceServer(s grpc.ServiceRegistrar, srv AuthServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&AuthService_ServiceDesc, srv)
+}
+
+func _AuthService_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_Register_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).Register(ctx, req.(*RegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -316,6 +366,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "blog.v1.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Register",
+			Handler:    _AuthService_Register_Handler,
+		},
 		{
 			MethodName: "Login",
 			Handler:    _AuthService_Login_Handler,

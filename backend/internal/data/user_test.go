@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
+	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 )
 
@@ -79,5 +80,44 @@ func TestUserRepoNotFound(t *testing.T) {
 
 	if _, err := repo.FindByEmail(ctx, "missing@example.com"); !kratoserrors.IsNotFound(err) {
 		t.Fatalf("FindByEmail(missing) error = %v, want not found", err)
+	}
+}
+
+func TestUserRepoUpdateProfileAndAvatar(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestUserRepo(t)
+
+	created, err := repo.Create(ctx, &biz.User{
+		Email:        "author@example.com",
+		PasswordHash: "$argon2id$fake",
+		DisplayName:  "作者",
+		Role:         biz.UserRoleAdmin,
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := repo.UpdateProfile(ctx, created.ID, "罗浩"); err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	avatarURL := "/v1/assets/avatars/0123456789abcdef0123456789abcdef.png"
+	if err := repo.UpdateAvatar(ctx, created.ID, avatarURL); err != nil {
+		t.Fatalf("UpdateAvatar() error = %v", err)
+	}
+
+	got, err := repo.FindByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("FindByID() error = %v", err)
+	}
+	if got.DisplayName != "罗浩" || got.AvatarURL != avatarURL {
+		t.Fatalf("FindByID() = %q/%q, want updated profile and avatar", got.DisplayName, got.AvatarURL)
+	}
+
+	missing := uuid.Must(uuid.NewV7())
+	if err := repo.UpdateProfile(ctx, missing, "x"); !kratoserrors.IsNotFound(err) {
+		t.Fatalf("UpdateProfile(missing) error = %v, want not found", err)
+	}
+	if err := repo.UpdateAvatar(ctx, missing, "x"); !kratoserrors.IsNotFound(err) {
+		t.Fatalf("UpdateAvatar(missing) error = %v, want not found", err)
 	}
 }

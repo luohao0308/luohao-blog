@@ -98,6 +98,10 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
+  // Directory for user-uploaded files (currently avatars). Created on boot
+  // when missing. Defaults to ./data/uploads when unset; production mounts a
+  // named Docker volume here so uploads survive container replacement.
+  string uploads_dir = 3;
 }
 
 message Auth {
@@ -124,6 +128,12 @@ message Auth {
     int64 chat_attempts = 5;
     // Fixed window size for the chat counter. Defaults to 5m when unset.
     google.protobuf.Duration chat_window = 6;
+    // Account registrations allowed per client IP inside register_window.
+    // Defaults to 10 when unset.
+    int64 register_attempts = 7;
+    // Fixed window size for the registration counter. Defaults to 5m when
+    // unset.
+    google.protobuf.Duration register_window = 8;
   }
   // Access token signing settings.
   JWT jwt = 1;

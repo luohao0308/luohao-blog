@@ -34,7 +34,20 @@ const (
 	DefaultRefreshTokenTTL = 7 * 24 * time.Hour
 	DefaultLoginAttempts   = 10
 	DefaultLoginWindow     = 5 * time.Minute
+	// DefaultRegisterAttempts/DefaultRegisterWindow bound self-service
+	// account creation per client IP. Registration is the cheapest endpoint
+	// to spam (it writes rows), so it gets its own budget separate from
+	// login's.
+	DefaultRegisterAttempts = 10
+	DefaultRegisterWindow   = 5 * time.Minute
 )
+
+// RegisterRateLimiter is the fixed-window limiter for account registration,
+// kept distinct from the login limiter so a login brute force cannot crowd
+// out sign-ups and vice versa.
+type RegisterRateLimiter interface {
+	Allow(ctx context.Context, key string) (bool, error)
+}
 
 // Claims is the payload extracted from a verified access token.
 type Claims struct {
@@ -111,21 +124,50 @@ type TokenPair struct {
 }
 
 // AuthUsecase is the authentication usecase: credential login with
-// brute-force throttling, refresh rotation, and revocation.
+// brute-force throttling, self-service registration with its own throttle,
+// refresh rotation, and revocation.
 type AuthUsecase struct {
-	users      *UserUsecase
-	sessions   SessionRepo
-	issuer     TokenIssuer
-	limiter    RateLimiter
-	refreshTTL time.Duration
+	users           *UserUsecase
+	sessions        SessionRepo
+	issuer          TokenIssuer
+	limiter         RateLimiter
+	registerLimiter RegisterRateLimiter
+	refreshTTL      time.Duration
 }
 
 // NewAuthUsecase new an Auth usecase.
-func NewAuthUsecase(users *UserUsecase, sessions SessionRepo, issuer TokenIssuer, limiter RateLimiter, refreshTTL time.Duration) *AuthUsecase {
+func NewAuthUsecase(users *UserUsecase, sessions SessionRepo, issuer TokenIssuer, limiter RateLimiter, registerLimiter RegisterRateLimiter, refreshTTL time.Duration) *AuthUsecase {
 	if refreshTTL <= 0 {
 		refreshTTL = DefaultRefreshTokenTTL
 	}
-	return &AuthUsecase{users: users, sessions: sessions, issuer: issuer, limiter: limiter, refreshTTL: refreshTTL}
+	return &AuthUsecase{users: users, sessions: sessions, issuer: issuer, limiter: limiter, registerLimiter: registerLimiter, refreshTTL: refreshTTL}
+}
+
+// Register creates a READER account and signs the caller in. Throttling is
+// per client IP on its own budget; like login, the limiter fails open so a
+// Redis outage cannot lock the sign-up page.
+func (uc *AuthUsecase) Register(ctx context.Context, email, password, displayName, clientIP string) (*User, *TokenPair, error) {
+	if uc.registerLimiter != nil {
+		ok, err := uc.registerLimiter.Allow(ctx, "register:"+clientIP)
+		if err != nil {
+			log.Warn("auth: register rate limiter unavailable, failing open", "err", err)
+		} else if !ok {
+			return nil, nil, ErrAuthTooManyAttempts
+		}
+	}
+	name, err := NormalizeDisplayName(displayName)
+	if err != nil {
+		return nil, nil, err
+	}
+	u, err := uc.users.CreateAccount(ctx, email, password, name, UserRoleReader)
+	if err != nil {
+		return nil, nil, err
+	}
+	pair, err := uc.issuePair(ctx, u)
+	if err != nil {
+		return nil, nil, err
+	}
+	return u, pair, nil
 }
 
 // Login verifies credentials and starts a session. Throttling is per client

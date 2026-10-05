@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -93,6 +94,7 @@ func newTestAuthUsecase() (*AuthUsecase, *fakeSessionRepo) {
 		sessions,
 		newFakeIssuer(),
 		&fakeLimiter{n: 3},
+		nil,
 		time.Hour,
 	)
 	// The account every Login in this file authenticates against.
@@ -154,6 +156,7 @@ func TestAuthUsecaseLoginLimiterFailOpen(t *testing.T) {
 		newFakeSessionRepo(),
 		newFakeIssuer(),
 		&fakeLimiter{withErr: errors.New("redis down")},
+		nil,
 		time.Hour,
 	)
 	if _, err := users.CreateAuthor(context.Background(), "author@example.com", "longenough1", "作者"); err != nil {
@@ -213,7 +216,7 @@ func TestAuthUsecaseRefreshAfterAccountDeletion(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	sessions := newFakeSessionRepo()
-	uc := NewAuthUsecase(NewUserUsecase(repo), sessions, newFakeIssuer(), &fakeLimiter{n: 100}, time.Hour)
+	uc := NewAuthUsecase(NewUserUsecase(repo), sessions, newFakeIssuer(), &fakeLimiter{n: 100}, nil, time.Hour)
 
 	if _, err := uc.users.CreateAuthor(ctx, "author@example.com", "longenough1", "作者"); err != nil {
 		t.Fatalf("CreateAuthor() error = %v", err)
@@ -248,5 +251,95 @@ func TestAuthUsecaseLogoutRevokes(t *testing.T) {
 	}
 	if err := uc.Logout(ctx, ""); err != nil {
 		t.Fatalf("Logout(empty) error = %v, want nil", err)
+	}
+}
+
+func TestAuthUsecaseRegisterSignsIn(t *testing.T) {
+	uc, sessions := newTestAuthUsecase()
+	ctx := context.Background()
+
+	u, pair, err := uc.Register(ctx, "Reader@Example.COM", "longenough1", "  读者 ", "10.0.0.9")
+	if err != nil {
+		t.Fatalf("Register() error = %v", err)
+	}
+	if u.Role != UserRoleReader {
+		t.Fatalf("Register() role = %d, want reader", u.Role)
+	}
+	if u.Email != "reader@example.com" || u.DisplayName != "读者" {
+		t.Fatalf("Register() account = %q/%q, want normalized values", u.Email, u.DisplayName)
+	}
+	session, ok := sessions.sessions[pair.Refresh.Token]
+	if !ok || session.UserID != u.ID {
+		t.Fatalf("register did not start a session for the account: %+v", session)
+	}
+	// The fresh account refreshes like any login.
+	if _, _, err := uc.Refresh(ctx, pair.Refresh.Token); err != nil {
+		t.Fatalf("Refresh(after register) error = %v", err)
+	}
+}
+
+func TestAuthUsecaseRegisterValidatesInput(t *testing.T) {
+	uc, sessions := newTestAuthUsecase()
+	ctx := context.Background()
+
+	cases := []struct {
+		name        string
+		email       string
+		password    string
+		displayName string
+	}{
+		{"bad email", "not-an-email", "longenough1", "读者"},
+		{"short password", "reader@example.com", "short", "读者"},
+		{"empty name", "reader@example.com", "longenough1", "   "},
+		{"name over 32 runes", "reader@example.com", "longenough1", strings.Repeat("名", MaxDisplayNameLen+1)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, _, err := uc.Register(ctx, tc.email, tc.password, tc.displayName, "10.0.0.9"); !errors.Is(err, ErrUserInvalidArgument) {
+				t.Fatalf("Register(%s) error = %v, want invalid argument", tc.name, err)
+			}
+		})
+	}
+	if len(sessions.sessions) != 0 {
+		t.Fatalf("rejected registrations left %d session(s) behind", len(sessions.sessions))
+	}
+}
+
+func TestAuthUsecaseRegisterConflict(t *testing.T) {
+	uc, _ := newTestAuthUsecase()
+
+	// Emails match case-insensitively: the admin from the test fixture
+	// blocks every casing variant.
+	if _, _, err := uc.Register(context.Background(), "AUTHOR@EXAMPLE.COM", "longenough1", "读者", "10.0.0.9"); !errors.Is(err, ErrUserEmailConflict) {
+		t.Fatalf("Register(conflict) error = %v, want email conflict", err)
+	}
+}
+
+func TestAuthUsecaseRegisterThrottled(t *testing.T) {
+	sessions := newFakeSessionRepo()
+	uc := NewAuthUsecase(
+		NewUserUsecase(newFakeUserRepo()),
+		sessions,
+		newFakeIssuer(),
+		&fakeLimiter{n: 100},
+		// One registration per IP; logins live on a separate budget.
+		&fakeLimiter{n: 1},
+		time.Hour,
+	)
+	ctx := context.Background()
+	if _, err := uc.users.CreateAuthor(ctx, "author@example.com", "longenough1", "作者"); err != nil {
+		t.Fatalf("CreateAuthor() error = %v", err)
+	}
+
+	if _, _, err := uc.Register(ctx, "reader1@example.com", "longenough1", "读者", "10.0.0.9"); err != nil {
+		t.Fatalf("Register(first) error = %v", err)
+	}
+	if _, _, err := uc.Register(ctx, "reader2@example.com", "longenough1", "读者", "10.0.0.9"); !errors.Is(err, ErrAuthTooManyAttempts) {
+		t.Fatalf("Register(throttled) error = %v, want too many attempts", err)
+	}
+	// The register budget is independent: login attempts from the same IP
+	// are still admitted.
+	if _, _, err := uc.Login(ctx, "author@example.com", "longenough1", "10.0.0.9"); err != nil {
+		t.Fatalf("Login(same IP) error = %v, want success", err)
 	}
 }

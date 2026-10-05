@@ -22,6 +22,7 @@ func userToBiz(po *ent.User) *biz.User {
 		PasswordHash: po.PasswordHash,
 		DisplayName:  po.DisplayName,
 		Role:         po.Role,
+		AvatarURL:    po.AvatarURL,
 		CreatedAt:    po.CreatedAt,
 		UpdatedAt:    po.UpdatedAt,
 	}
@@ -83,6 +84,36 @@ func (r *userRepo) Create(ctx context.Context, u *biz.User) (*biz.User, error) {
 func (r *userRepo) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
 	_, err := r.data.db.User.UpdateOneID(id).
 		SetPasswordHash(passwordHash).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return biz.ErrUserNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+// UpdateProfile replaces the public display name. A missing account maps to
+// the domain not-found error like the read paths.
+func (r *userRepo) UpdateProfile(ctx context.Context, id uuid.UUID, displayName string) error {
+	_, err := r.data.db.User.UpdateOneID(id).
+		SetDisplayName(displayName).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return biz.ErrUserNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+// UpdateAvatar replaces the site-relative avatar path; an empty string
+// clears it.
+func (r *userRepo) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL string) error {
+	_, err := r.data.db.User.UpdateOneID(id).
+		SetAvatarURL(avatarURL).
 		Save(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
