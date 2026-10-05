@@ -13,14 +13,29 @@ option java_package = "io.grpc.examples.blog.v1";
 option java_outer_classname = "AuthProto";
 
 // AuthService issues and revokes the credentials used to call privileged
-// endpoints. Registration is closed: accounts exist only through the seed
-// command. The access token is a short-lived JWT carried in the
+// endpoints. Registration is open: anyone can create a READER account with an
+// email, a password, and a display name (no email verification yet; abuse is
+// bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+// are still created only by the seed command. The access
+// token is a short-lived JWT carried in the
 // Authorization header; the refresh token is an opaque secret delivered as an
 // httpOnly cookie (Path=/v1/auth) and rotated on every refresh, with the
 // server-side session kept in Redis. Refresh and Logout read the token from
 // the cookie, falling back to the X-Refresh-Token header for non-cookie
 // clients.
 service AuthService {
+  // Register creates a READER account and signs the caller in: the reply is
+  // the same token pair Login returns, delivered with the refresh cookie.
+  // Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+  // the email is already registered. Rate limited per client IP; excess
+  // attempts return TOO_MANY_REQUESTS.
+  rpc Register (RegisterRequest) returns (LoginReply) {
+    option (google.api.http) = {
+      post: "/v1/auth/register"
+      body: "*"
+    };
+  }
+
   // Login verifies credentials and returns an access token, a refresh token
   // cookie, and the account. Returns INVALID_ARGUMENT when fields are empty
   // and UNAUTHORIZED when the credentials are wrong (indistinguishable
@@ -92,14 +107,14 @@ message UpdatePasswordRequest {
 }
 
 // UserRole is the account role. Values mirror the domain model; ADMIN can
-// author and manage articles, READER is reserved for future reader-facing
-// features.
+// author and manage articles, READER is a self-registered reader account
+// that can comment and manage its own profile.
 enum UserRole {
   // Default value. Never returned by the server.
   USER_ROLE_UNSPECIFIED = 0;
   // Can author and manage articles.
   USER_ROLE_ADMIN = 1;
-  // Reserved for future reader-facing features.
+  // Self-registered reader; comments and manages its own profile.
   USER_ROLE_READER = 2;
 }
 
@@ -116,6 +131,21 @@ message User {
   UserRole role = 4;
   // Time at which the account was created. Server-assigned.
   google.protobuf.Timestamp created_at = 5;
+  // Site-relative avatar path, e.g. /v1/assets/avatars/<random>.<ext>, or
+  // empty when no avatar was uploaded. Clients resolve it against the API
+  // origin (the Nuxt BFF prefixes /api).
+  string avatar_url = 6;
+}
+
+// RegisterRequest is the input for AuthService.Register. The new account is
+// always a READER; ADMIN accounts exist only through the seed command.
+message RegisterRequest {
+  // Login email, matched case-insensitively and stored lowercased.
+  string email = 1 [(google.api.field_behavior) = REQUIRED];
+  // Plaintext password; at least 8 characters. Sent once over TLS.
+  string password = 2 [(google.api.field_behavior) = REQUIRED];
+  // Public display name, 1-32 characters.
+  string display_name = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 // LoginRequest is the input for AuthService.Login.

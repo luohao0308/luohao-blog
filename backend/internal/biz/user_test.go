@@ -54,6 +54,26 @@ func (f *fakeUserRepo) UpdatePassword(_ context.Context, id uuid.UUID, passwordH
 	return ErrUserNotFound
 }
 
+func (f *fakeUserRepo) UpdateProfile(_ context.Context, id uuid.UUID, displayName string) error {
+	for _, u := range f.users {
+		if u.ID == id {
+			u.DisplayName = displayName
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
+func (f *fakeUserRepo) UpdateAvatar(_ context.Context, id uuid.UUID, avatarURL string) error {
+	for _, u := range f.users {
+		if u.ID == id {
+			u.AvatarURL = avatarURL
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
 func TestHashPasswordRoundTrip(t *testing.T) {
 	hash, err := HashPassword("correct horse battery staple")
 	if err != nil {
@@ -155,5 +175,49 @@ func TestUpdatePassword(t *testing.T) {
 	}
 	if _, err := uc.Authenticate(ctx, "admin@example.com", "new-password-1"); err != nil {
 		t.Fatalf("new password login: %v", err)
+	}
+}
+
+func TestUserUsecaseUpdateProfile(t *testing.T) {
+	ctx := context.Background()
+	uc := NewUserUsecase(newFakeUserRepo())
+	u, err := uc.CreateAuthor(ctx, "author@example.com", "longenough1", "作者")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := uc.UpdateProfile(ctx, u.ID, "   "); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("UpdateProfile(blank) error = %v, want bad request", err)
+	}
+	if _, err := uc.UpdateProfile(ctx, u.ID, strings.Repeat("名", MaxDisplayNameLen+1)); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("UpdateProfile(too long) error = %v, want bad request", err)
+	}
+	// The bound counts runes: 32 Chinese characters fit just like 32 Latin ones.
+	got, err := uc.UpdateProfile(ctx, u.ID, "  罗浩 LuoHao ")
+	if err != nil {
+		t.Fatalf("UpdateProfile(ok) error = %v", err)
+	}
+	if got.DisplayName != "罗浩 LuoHao" {
+		t.Fatalf("UpdateProfile() name = %q, want trimmed value", got.DisplayName)
+	}
+}
+
+func TestUserUsecaseUpdateAvatar(t *testing.T) {
+	ctx := context.Background()
+	uc := NewUserUsecase(newFakeUserRepo())
+	u, err := uc.CreateAuthor(ctx, "author@example.com", "longenough1", "作者")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := uc.UpdateAvatar(ctx, u.ID, "/v1/assets/avatars/0123456789abcdef0123456789abcdef.png")
+	if err != nil {
+		t.Fatalf("UpdateAvatar() error = %v", err)
+	}
+	if got.AvatarURL == "" {
+		t.Fatal("UpdateAvatar() did not record the avatar path")
+	}
+	if _, err := uc.UpdateAvatar(ctx, uuid.Must(uuid.NewV7()), "x"); !kratoserrors.IsNotFound(err) {
+		t.Fatalf("UpdateAvatar(unknown account) error = %v, want not found", err)
 	}
 }

@@ -12,8 +12,10 @@ p, public, /v1/articles/{slug}/like, POST
 p, public, /v1/search/articles, GET
 p, public, /v1/chat, POST
 p, public, /v1/auth/login, POST
+p, public, /v1/auth/register, POST
 p, public, /v1/auth/refresh, POST
 p, public, /v1/auth/logout, POST
+p, public, /v1/assets/avatars/{name}, GET
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
 p, public, /blog.v1.ArticleService/MarkArticleViewed, *
@@ -21,14 +23,20 @@ p, public, /blog.v1.ArticleService/MarkArticleLiked, *
 p, public, /blog.v1.ArticleSearchService/SearchArticles, *
 p, public, /blog.v1.ChatService/Chat, *
 p, public, /blog.v1.AuthService/Login, *
+p, public, /blog.v1.AuthService/Register, *
 p, public, /blog.v1.AuthService/Refresh, *
 p, public, /blog.v1.AuthService/Logout, *
+p, public, /blog.v1.UserService/GetAvatar, *
 
 # --- any authenticated account ---
 p, authenticated, /v1/auth/me, GET
 p, authenticated, /v1/auth/update-password, POST
+p, authenticated, /v1/user/profile, PUT
+p, authenticated, /v1/user/avatar, PUT
 p, authenticated, /blog.v1.AuthService/GetMe, *
 p, authenticated, /blog.v1.AuthService/UpdatePassword, *
+p, authenticated, /blog.v1.UserService/UpdateProfile, *
+p, authenticated, /blog.v1.UserService/UploadAvatar, *
 
 # --- admin: article writes ---
 p, admin, /v1/articles/create, POST

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-kratos/kratos/v3/errors"
 	"github.com/google/uuid"
@@ -66,8 +67,11 @@ type User struct {
 	PasswordHash string
 	DisplayName  string
 	Role         UserRole
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// AvatarURL is the site-relative avatar path served by the GetAvatar
+	// route (/v1/assets/avatars/<name>), or "" when no avatar was uploaded.
+	AvatarURL string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // UserRepository is a user repo.
@@ -76,6 +80,10 @@ type UserRepository interface {
 	FindByID(context.Context, uuid.UUID) (*User, error)
 	Create(context.Context, *User) (*User, error)
 	UpdatePassword(context.Context, uuid.UUID, string) error
+	// UpdateProfile replaces the public display name.
+	UpdateProfile(context.Context, uuid.UUID, string) error
+	// UpdateAvatar replaces the site-relative avatar path ("" clears it).
+	UpdateAvatar(context.Context, uuid.UUID, string) error
 }
 
 // HashPassword derives an argon2id PHC string for a plaintext password:
@@ -223,4 +231,43 @@ func (uc *UserUsecase) UpdatePassword(ctx context.Context, id uuid.UUID, oldPass
 		return ErrUserInvalidArgument
 	}
 	return uc.repo.UpdatePassword(ctx, id, hash)
+}
+
+// UpdateProfile renames the calling account. The name is the comment/header
+// identity, so it follows the same bounds as a comment nickname: 1-32
+// characters after trimming.
+func (uc *UserUsecase) UpdateProfile(ctx context.Context, id uuid.UUID, displayName string) (*User, error) {
+	name, err := NormalizeDisplayName(displayName)
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.repo.UpdateProfile(ctx, id, name); err != nil {
+		return nil, err
+	}
+	return uc.repo.FindByID(ctx, id)
+}
+
+// UpdateAvatar records the site-relative avatar path for the calling
+// account. The path is produced by the avatar usecase; nothing here trusts
+// it beyond storing it verbatim.
+func (uc *UserUsecase) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL string) (*User, error) {
+	if err := uc.repo.UpdateAvatar(ctx, id, avatarURL); err != nil {
+		return nil, err
+	}
+	return uc.repo.FindByID(ctx, id)
+}
+
+// MaxDisplayNameLen bounds the public display name, matching the comment
+// nickname limit so identities stay consistent across surfaces.
+const MaxDisplayNameLen = 32
+
+// NormalizeDisplayName trims a display name and enforces the 1-32 character
+// bound. The limit counts runes, not bytes, so Chinese names get the same
+// room as Latin ones.
+func NormalizeDisplayName(displayName string) (string, error) {
+	name := strings.TrimSpace(displayName)
+	if name == "" || utf8.RuneCountInString(name) > MaxDisplayNameLen {
+		return "", ErrUserInvalidArgument
+	}
+	return name, nil
 }

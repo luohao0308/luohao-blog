@@ -37,6 +37,18 @@ func NewAuthService(uc *biz.AuthUsecase) *AuthService {
 	return &AuthService{uc: uc}
 }
 
+// Register creates a READER account and issues the token pair, delivering
+// the refresh token as an httpOnly cookie — the caller is signed in exactly
+// as if they had logged in.
+func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.LoginReply, error) {
+	u, pair, err := s.uc.Register(ctx, req.GetEmail(), req.GetPassword(), req.GetDisplayName(), clientIP(ctx))
+	if err != nil {
+		return nil, err
+	}
+	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	return convertLoginReply(u, pair), nil
+}
+
 // Login verifies credentials and issues the token pair, delivering the
 // refresh token as an httpOnly cookie.
 func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginReply, error) {
@@ -108,6 +120,7 @@ func convertUser(u *biz.User) *v1.User {
 		Email:       u.Email,
 		DisplayName: u.DisplayName,
 		Role:        convertUserRole(u.Role),
+		AvatarUrl:   u.AvatarURL,
 		CreatedAt:   timestamppb.New(u.CreatedAt),
 	}
 }

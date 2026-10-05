@@ -267,6 +267,28 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/assets/avatars/{name}:
+        get:
+            tags:
+                - UserService
+            description: |-
+                GetAvatar serves the avatar bytes for the given stored filename. The
+                 name is the server-generated random filename (32 hex chars + extension)
+                 carried inside User.avatar_url; anything else is NOT_FOUND. Public:
+                 avatars render on article pages for every visitor.
+            operationId: UserService_GetAvatar
+            parameters:
+                - name: name
+                  in: path
+                  description: Server-generated filename as embedded in User.avatar_url.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        '*/*': {}
     /v1/auth/login:
         post:
             tags:
@@ -343,6 +365,30 @@ paths:
                     application/json:
                         schema:
                             $ref: '#/components/schemas/blog.v1.RefreshRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.LoginReply'
+    /v1/auth/register:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                Register creates a READER account and signs the caller in: the reply is
+                 the same token pair Login returns, delivered with the refresh cookie.
+                 Returns INVALID_ARGUMENT when fields fail validation and CONFLICT when
+                 the email is already registered. Rate limited per client IP; excess
+                 attempts return TOO_MANY_REQUESTS.
+            operationId: AuthService_Register
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RegisterRequest'
                 required: true
             responses:
                 "200":
@@ -748,6 +794,55 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/user/avatar:
+        put:
+            tags:
+                - UserService
+            description: |-
+                UploadAvatar stores a new avatar for the calling account and returns the
+                 updated account. The image rides in the JSON body as base64 `data`
+                 (clients canvas-downscale before sending). The server sniffs the real
+                 format from magic bytes — jpeg, png, or webp — and rejects anything
+                 else, or anything above 2 MiB after decoding, with INVALID_ARGUMENT.
+                 Overwriting replaces the stored file; the random filename changes, so
+                 cached copies of the old image keep working but stop being referenced.
+            operationId: UserService_UploadAvatar
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.UploadAvatarRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.User'
+    /v1/user/profile:
+        put:
+            tags:
+                - UserService
+            description: |-
+                UpdateProfile renames the calling account. The display name is the
+                 identity shown on comments and the header menu. Returns
+                 INVALID_ARGUMENT when the name is empty or longer than 32 characters and
+                 UNAUTHORIZED when the token is missing, malformed, forged, or expired.
+            operationId: UserService_UpdateProfile
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.UpdateProfileRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.User'
 components:
     schemas:
         blog.v1.ApproveCommentRequest:
@@ -1067,6 +1162,25 @@ components:
                 RefreshRequest is the input for AuthService.Refresh. The refresh token is
                  transported out of band (cookie or X-Refresh-Token header), so the message
                  body is empty.
+        blog.v1.RegisterRequest:
+            required:
+                - email
+                - password
+                - displayName
+            type: object
+            properties:
+                email:
+                    type: string
+                    description: Login email, matched case-insensitively and stored lowercased.
+                password:
+                    type: string
+                    description: Plaintext password; at least 8 characters. Sent once over TLS.
+                displayName:
+                    type: string
+                    description: Public display name, 1-32 characters.
+            description: |-
+                RegisterRequest is the input for AuthService.Register. The new account is
+                 always a READER; ADMIN accounts exist only through the seed command.
         blog.v1.SubscribeRequest:
             required:
                 - email
@@ -1124,6 +1238,31 @@ components:
                 UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
                  fields ride in the request body; the target account comes from the access
                  token, never from the payload.
+        blog.v1.UpdateProfileRequest:
+            required:
+                - displayName
+            type: object
+            properties:
+                displayName:
+                    type: string
+                    description: New public display name, 1-32 characters after trimming.
+            description: |-
+                UpdateProfileRequest is the input for UserService.UpdateProfile. The
+                 target account comes from the access token, never from the payload.
+        blog.v1.UploadAvatarRequest:
+            required:
+                - data
+            type: object
+            properties:
+                data:
+                    type: string
+                    description: |-
+                        Raw image bytes (jpeg/png/webp), at most 2 MiB after the transport
+                         decodes the base64 JSON encoding.
+                    format: bytes
+            description: |-
+                UploadAvatarRequest is the input for UserService.UploadAvatar. The target
+                 account comes from the access token, never from the payload.
         blog.v1.User:
             type: object
             properties:
@@ -1144,6 +1283,12 @@ components:
                     type: string
                     description: Time at which the account was created. Server-assigned.
                     format: date-time
+                avatarUrl:
+                    type: string
+                    description: |-
+                        Site-relative avatar path, e.g. /v1/assets/avatars/<random>.<ext>, or
+                         empty when no avatar was uploaded. Clients resolve it against the API
+                         origin (the Nuxt BFF prefixes /api).
             description: |-
                 User is the public representation of an account. Credentials never appear
                  in responses.
@@ -1161,8 +1306,11 @@ tags:
     - name: AuthService
       description: |-
         AuthService issues and revokes the credentials used to call privileged
-         endpoints. Registration is closed: accounts exist only through the seed
-         command. The access token is a short-lived JWT carried in the
+         endpoints. Registration is open: anyone can create a READER account with an
+         email, a password, and a display name (no email verification yet; abuse is
+         bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+         are still created only by the seed command. The access
+         token is a short-lived JWT carried in the
          Authorization header; the refresh token is an opaque secret delivered as an
          httpOnly cookie (Path=/v1/auth) and rotated on every refresh, with the
          server-side session kept in Redis. Refresh and Logout read the token from
@@ -1199,3 +1347,11 @@ tags:
          can pick the list up. Subscribe is idempotent — re-subscribing an existing
          email succeeds without change, so the public endpoint does not leak which
          addresses are registered.
+    - name: UserService
+      description: |-
+        UserService manages the profile of the authenticated account: the display
+         name and the avatar. Every operation is identified by the access token —
+         the payload never names a target account, so an account can only ever edit
+         itself. Avatars live on the server's local disk (no object store in the
+         production topology); the bytes are served back through GetAvatar as a raw
+         HTTP body.

@@ -159,6 +159,7 @@ var (
 		{Name: "password_hash", Type: field.TypeString},
 		{Name: "display_name", Type: field.TypeString, Default: ""},
 		{Name: "role", Type: field.TypeInt32, Default: 1},
+		{Name: "avatar_url", Type: field.TypeString, Default: ""},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

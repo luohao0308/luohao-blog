@@ -11,13 +11,16 @@ KEEP=${KEEP:-14}
 COMPOSE=(docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod)
 
 mkdir -p backups
-file="backups/blog-$(date +%Y%m%d-%H%M%S).sql.gz"
+ts="$(date +%Y%m%d-%H%M%S)"
+file="backups/blog-$ts.sql.gz"
+uploads="backups/uploads-$ts.tar.gz"
 tmp="${file}.tmp.$$"
+utmp="${uploads}.tmp.$$"
 
 cleanup() {
 	local status=$?
 	if (( status != 0 )); then
-		rm -f -- "$tmp"
+		rm -f -- "$tmp" "$utmp"
 	fi
 	return "$status"
 }
@@ -32,7 +35,14 @@ if ! gunzip -c -- "$tmp" | awk '/^-- (MySQL|MariaDB) dump|^CREATE TABLE|^INSERT 
 	echo "invalid or empty MySQL dump: $tmp" >&2
 	exit 1
 fi
-
 mv -- "$tmp" "$file"
+
+# 用户上传（头像）随库一起备份：从 backend 容器打包 uploads 目录（compose
+# 命名卷 backend-uploads）。空目录产出合法的空包，不会失败。
+"${COMPOSE[@]}" exec -T backend tar czf - -C /app/data uploads > "$utmp"
+gzip -t -- "$utmp"
+mv -- "$utmp" "$uploads"
+
 ls -1t backups/blog-*.sql.gz | tail -n +$((KEEP + 1)) | xargs -r rm --
-echo "backup written: $file"
+ls -1t backups/uploads-*.tar.gz | tail -n +$((KEEP + 1)) | xargs -r rm --
+echo "backup written: $file, $uploads"

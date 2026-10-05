@@ -198,6 +198,20 @@ func (r *rateLimiter) Allow(ctx context.Context, key string) (bool, error) {
 	return incr.Val() <= r.attempts, nil
 }
 
+// NewRegisterRateLimiter builds the registration throttler from the auth
+// config, applying the same defaults pattern as the login throttler.
+func NewRegisterRateLimiter(rdb redis.UniversalClient, a *conf.Auth) biz.RegisterRateLimiter {
+	attempts := a.GetRateLimit().GetRegisterAttempts()
+	if attempts <= 0 {
+		attempts = biz.DefaultRegisterAttempts
+	}
+	window := a.GetRateLimit().GetRegisterWindow().AsDuration()
+	if window <= 0 {
+		window = biz.DefaultRegisterWindow
+	}
+	return &rateLimiter{rdb: rdb, attempts: attempts, window: window}
+}
+
 // NewRefreshTokenTTL exposes the session TTL to wire as a plain value; the
 // auth usecase takes primitives, not the whole config tree.
 func NewRefreshTokenTTL(a *conf.Auth) time.Duration {

@@ -59,6 +59,9 @@ services:
       KRATOS_JWT_SECRET: ${JWT_SECRET:-}
     volumes:
       - ./prod-conf:/data/conf:ro
+      # 用户上传（头像）落本地磁盘，命名卷保证容器替换不丢文件；
+      # 备份见 deploy/backup.sh（uploads tar）。
+      - backend-uploads:/app/data/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -121,3 +124,4 @@ volumes:
   caddy-config:
   mysql-data:
   es-data:
+  backend-uploads:

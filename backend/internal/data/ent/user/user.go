@@ -27,6 +27,8 @@ const (
 	FieldDisplayName = "display_name"
 	// FieldRole holds the string denoting the role field in the database.
 	FieldRole = "role"
+	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
+	FieldAvatarURL = "avatar_url"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 )
@@ -40,6 +42,7 @@ var Columns = []string{
 	FieldPasswordHash,
 	FieldDisplayName,
 	FieldRole,
+	FieldAvatarURL,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -67,6 +70,8 @@ var (
 	DefaultDisplayName string
 	// DefaultRole holds the default value on creation for the "role" field.
 	DefaultRole biz.UserRole
+	// DefaultAvatarURL holds the default value on creation for the "avatar_url" field.
+	DefaultAvatarURL string
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -107,4 +112,9 @@ func ByDisplayName(opts ...sql.OrderTermOption) OrderOption {
 // ByRole orders the results by the role field.
 func ByRole(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRole, opts...).ToFunc()
+}
+
+// ByAvatarURL orders the results by the avatar_url field.
+func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
 }

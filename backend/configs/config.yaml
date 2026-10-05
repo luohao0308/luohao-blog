@@ -20,6 +20,9 @@ data:
     addr: ${REDIS_ADDR:127.0.0.1:6379}
     read_timeout: 0.2s
     write_timeout: 0.2s
+  # User uploads (avatars). Production mounts a named volume at
+  # /app/data/uploads; see deploy/compose.prod.yml.
+  uploads_dir: ${UPLOADS_DIR:./data/uploads}
 auth:
   jwt:
     # Required. Generate once per environment, e.g. `openssl rand -hex 32`,
@@ -36,6 +39,9 @@ auth:
     # Anonymous comment submissions. Defaults when unset: 20 per 5m per IP.
     comment_attempts: 20
     comment_window: 300s # 5m
+    # Self-service account registrations. Defaults when unset: 10 per 5m per IP.
+    register_attempts: 10
+    register_window: 300s # 5m
 
 es:
   addresses:
