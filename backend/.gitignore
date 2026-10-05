@@ -37,5 +37,7 @@ bin/
 .idea/
 *.swp
 
-# Local user uploads (avatars) written by the backend in dev
-data/
+# Local user uploads (avatars) written by the backend in dev. Anchored to the
+# repo root on purpose: an unanchored `data/` would also ignore the
+# internal/data source package (CI typecheck failure on 2026-10-05).
+/data/
