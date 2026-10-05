@@ -133,14 +133,12 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ## 11. 交付状态与 PR 证据
 
-- 当前状态：merged（S1；2026-10-05 用户逐次授权 push×2/PR×1/merge×1，guard 五次 consume 全 allow）
+- 当前状态：merged（S1 + S2；2026-10-05/06 用户逐次授权，guard 全程 consume allow）
 - repo / remote：github.com/luohao0308/luohao-blog / origin（https://github.com/luohao0308/luohao-blog.git）
-- PR 编号或链接：https://github.com/luohao0308/luohao-blog/pull/52
-- source ref / target ref：feat/reader-accounts-backend → main
-- exact head SHA：95c5cf78467fc0f66bd05273f8d70d62098cd280
-- required CI 结果与时间：Backend lint & build & test pass、Frontend lint & typecheck & build pass（run 37275181768，2026-10-05）
+- S1：PR [#52](https://github.com/luohao0308/luohao-blog/pull/52)，head `95c5cf7`，CI 双绿 run 37275181768，squash merge `c59fa80`（首推 `87dcf90` CI 红系 gitignore 吞文件，修复后重授权推送）
+- S2：PR [#53](https://github.com/luohao0308/luohao-blog/pull/53)，head `5cb7d89fd7a6a0846e4097267be8cd27f0da304f`，CI 双绿 run 37339094786，squash merge `e72b6faabf9603e78b5bf7368a0116aaba58dc56`
 - 独立 reviewer 与批准时间：不适用（manifest 未启用独立 Review）
-- merge commit：c59fa80481a2d59ef319e0e31515da0ba06bfad4（squash；首推 head `87dcf90` CI 红系 gitignore 吞文件，修复后重授权推送）
+- S3/S4：交付时按切片续记
 
 ## 12. 文档同步
 
