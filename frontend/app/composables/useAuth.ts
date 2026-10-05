@@ -46,6 +46,12 @@ export function useAuth() {
     user.value = reply.user
   }
 
+  // External updates (profile rename, avatar upload) patch the shared
+  // account state in place so the header menu reflects them immediately.
+  function setUser(next: AuthUser) {
+    user.value = next
+  }
+
   function clearSession() {
     accessToken = ''
     user.value = null
@@ -172,5 +178,5 @@ export function useAuth() {
     }
   }
 
-  return { user, errReason, login, register, logout, refresh, ensureSession, authFetch }
+  return { user, errReason, login, register, logout, refresh, ensureSession, authFetch, setUser }
 }

@@ -73,6 +73,14 @@ async function signOut() {
         <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ user.email }}</p>
       </div>
       <NuxtLink
+        to="/settings"
+        role="menuitem"
+        class="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+        @click="menuOpen = false"
+      >
+        个人设置
+      </NuxtLink>
+      <NuxtLink
         v-if="isAdmin"
         to="/admin"
         role="menuitem"
