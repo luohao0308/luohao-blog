@@ -201,3 +201,9 @@ func (uc *AuthUsecase) issuePair(ctx context.Context, u *User) (*TokenPair, erro
 	}
 	return &TokenPair{Access: access, Refresh: refresh}, nil
 }
+
+// UpdatePassword rotates the authenticated account's password, delegating
+// verification and hashing to the user usecase.
+func (uc *AuthUsecase) UpdatePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+	return uc.users.UpdatePassword(ctx, userID, oldPassword, newPassword)
+}

@@ -212,3 +212,18 @@ func rightmostForwardedIP(xff string) string {
 	}
 	return ""
 }
+
+// UpdatePassword rotates the calling account's password. The account
+// identity comes from the verified access token; the policy layer already
+// restricts the route to authenticated subjects, and the usecase re-checks
+// the claims as defense in depth.
+func (s *AuthService) UpdatePassword(ctx context.Context, req *v1.UpdatePasswordRequest) (*emptypb.Empty, error) {
+	claims, ok := biz.AuthFromContext(ctx)
+	if !ok {
+		return nil, biz.ErrAuthUnauthorized
+	}
+	if err := s.uc.UpdatePassword(ctx, claims.UserID, req.GetOldPassword(), req.GetNewPassword()); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}

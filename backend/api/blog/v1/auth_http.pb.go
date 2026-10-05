@@ -22,6 +22,7 @@ const OperationAuthServiceGetMe = "/blog.v1.AuthService/GetMe"
 const OperationAuthServiceLogin = "/blog.v1.AuthService/Login"
 const OperationAuthServiceLogout = "/blog.v1.AuthService/Logout"
 const OperationAuthServiceRefresh = "/blog.v1.AuthService/Refresh"
+const OperationAuthServiceUpdatePassword = "/blog.v1.AuthService/UpdatePassword"
 
 type AuthServiceHTTPServer interface {
 	// GetMe GetMe returns the account identified by the access token in the
@@ -45,6 +46,15 @@ type AuthServiceHTTPServer interface {
 	// cookie (or header) is missing, expired, revoked, or belongs to a deleted
 	// account.
 	Refresh(context.Context, *RefreshRequest) (*LoginReply, error)
+	// UpdatePassword UpdatePassword rotates the calling account's password. The current
+	// password must be supplied and is verified before the change; the new
+	// password follows the same rules as account creation (at least 8
+	// characters). Existing refresh sessions keep working until their natural
+	// expiry; the next login must use the new password.
+	// Authorization: any authenticated account (Authorization: Bearer).
+	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+	// when fields are empty or the new password is too short.
+	UpdatePassword(context.Context, *UpdatePasswordRequest) (*emptypb.Empty, error)
 }
 
 func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
@@ -53,6 +63,7 @@ func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
 	r.Handle("POST", "/v1/auth/refresh", _AuthService_Refresh0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/logout", _AuthService_Logout0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/auth/me", _AuthService_GetMe0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/auth/update-password", _AuthService_UpdatePassword0_HTTP_Handler(srv))
 }
 
 func _AuthService_Login0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
@@ -131,6 +142,25 @@ func _AuthService_GetMe0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.C
 	}
 }
 
+func _AuthService_UpdatePassword0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdatePasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceUpdatePassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdatePassword(ctx, req.(*UpdatePasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AuthServiceHTTPClient interface {
 	// GetMe GetMe returns the account identified by the access token in the
 	// Authorization header. Returns UNAUTHORIZED when the token is missing,
@@ -153,6 +183,15 @@ type AuthServiceHTTPClient interface {
 	// cookie (or header) is missing, expired, revoked, or belongs to a deleted
 	// account.
 	Refresh(ctx context.Context, req *RefreshRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	// UpdatePassword UpdatePassword rotates the calling account's password. The current
+	// password must be supplied and is verified before the change; the new
+	// password follows the same rules as account creation (at least 8
+	// characters). Existing refresh sessions keep working until their natural
+	// expiry; the next login must use the new password.
+	// Authorization: any authenticated account (Authorization: Bearer).
+	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+	// when fields are empty or the new password is too short.
+	UpdatePassword(ctx context.Context, req *UpdatePasswordRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 }
 
 type AuthServiceHTTPClientImpl struct {
@@ -238,6 +277,31 @@ func (c *AuthServiceHTTPClientImpl) Refresh(ctx context.Context, in *RefreshRequ
 		http.Accept("application/protojson"),
 		http.ContentType("application/protojson"),
 		http.Operation(OperationAuthServiceRefresh),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdatePassword UpdatePassword rotates the calling account's password. The current
+// password must be supplied and is verified before the change; the new
+// password follows the same rules as account creation (at least 8
+// characters). Existing refresh sessions keep working until their natural
+// expiry; the next login must use the new password.
+// Authorization: any authenticated account (Authorization: Bearer).
+// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+// when fields are empty or the new password is too short.
+func (c *AuthServiceHTTPClientImpl) UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/auth/update-password"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceUpdatePassword),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)

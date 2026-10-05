@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Login_FullMethodName   = "/blog.v1.AuthService/Login"
-	AuthService_Refresh_FullMethodName = "/blog.v1.AuthService/Refresh"
-	AuthService_Logout_FullMethodName  = "/blog.v1.AuthService/Logout"
-	AuthService_GetMe_FullMethodName   = "/blog.v1.AuthService/GetMe"
+	AuthService_Login_FullMethodName          = "/blog.v1.AuthService/Login"
+	AuthService_Refresh_FullMethodName        = "/blog.v1.AuthService/Refresh"
+	AuthService_Logout_FullMethodName         = "/blog.v1.AuthService/Logout"
+	AuthService_GetMe_FullMethodName          = "/blog.v1.AuthService/GetMe"
+	AuthService_UpdatePassword_FullMethodName = "/blog.v1.AuthService/UpdatePassword"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -60,6 +61,15 @@ type AuthServiceClient interface {
 	// Authorization header. Returns UNAUTHORIZED when the token is missing,
 	// malformed, forged, or expired.
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*User, error)
+	// UpdatePassword rotates the calling account's password. The current
+	// password must be supplied and is verified before the change; the new
+	// password follows the same rules as account creation (at least 8
+	// characters). Existing refresh sessions keep working until their natural
+	// expiry; the next login must use the new password.
+	// Authorization: any authenticated account (Authorization: Bearer).
+	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+	// when fields are empty or the new password is too short.
+	UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -110,6 +120,16 @@ func (c *authServiceClient) GetMe(ctx context.Context, in *GetMeRequest, opts ..
 	return out, nil
 }
 
+func (c *authServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_UpdatePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -144,6 +164,15 @@ type AuthServiceServer interface {
 	// Authorization header. Returns UNAUTHORIZED when the token is missing,
 	// malformed, forged, or expired.
 	GetMe(context.Context, *GetMeRequest) (*User, error)
+	// UpdatePassword rotates the calling account's password. The current
+	// password must be supplied and is verified before the change; the new
+	// password follows the same rules as account creation (at least 8
+	// characters). Existing refresh sessions keep working until their natural
+	// expiry; the next login must use the new password.
+	// Authorization: any authenticated account (Authorization: Bearer).
+	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
+	// when fields are empty or the new password is too short.
+	UpdatePassword(context.Context, *UpdatePasswordRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -165,6 +194,9 @@ func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*
 }
 func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMe not implemented")
+}
+func (UnimplementedAuthServiceServer) UpdatePassword(context.Context, *UpdatePasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdatePassword not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -259,6 +291,24 @@ func _AuthService_GetMe_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_UpdatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).UpdatePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_UpdatePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).UpdatePassword(ctx, req.(*UpdatePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -281,6 +331,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMe",
 			Handler:    _AuthService_GetMe_Handler,
+		},
+		{
+			MethodName: "UpdatePassword",
+			Handler:    _AuthService_UpdatePassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
