@@ -133,12 +133,12 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ## 11. 交付状态与 PR 证据
 
-- 当前状态：committed（S1 本地提交完成，待用户授权 push/PR）
-- repo / remote：github.com/luohao0308/luohao-blog / origin
-- PR 编号或链接：（S1 待创建）
+- 当前状态：pushed → pr_open（用户 2026-10-05 会话授权 push + PR 创建；guard push/PR 各 consume 一次）
+- repo / remote：github.com/luohao0308/luohao-blog / origin（https://github.com/luohao0308/luohao-blog.git）
+- PR 编号或链接：本计划所在 PR（创建后见仓库 PR 列表；最终 merge 证据在合并后由 TASKS.md 记录）
 - source ref / target ref：feat/reader-accounts-backend → main
-- exact head SHA：（待 push 前记录）
-- required CI 结果与时间：（待 CI）
+- exact head SHA：以 push 时 guard 授权记录为准（见 `.dev-workflow/authorizations/`）
+- required CI 结果与时间：（待 CI，PR 页面为准）
 - 独立 reviewer 与批准时间：不适用（manifest 未启用独立 Review）
 - merge commit：（待合并）
 
