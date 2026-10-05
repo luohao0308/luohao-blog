@@ -7,7 +7,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 
 ## 1. 项目概览
 
-个人技术博客，内容方向为全栈开发与 AI Agent。Go（Kratos）后端 + Vue 3（Nuxt）前端的单仓库项目，**已上线 http://193.112.128.245**。M0–M5 全部交付：内容核心、账号后台（JWT+RBAC）、互动统计、ES 混合搜索 + RAG 问答、生产部署（caddy→BFF→backend+mysql/redis/es 六容器）、发布流水线（ghcr）、备份+看门狗。里程碑见根 `README.md`。
+个人技术博客，内容方向为全栈开发与 AI Agent。Go（Kratos）后端 + Vue 3（Nuxt）前端的单仓库项目，**已上线 http://193.112.128.245**。M0–M5 全部交付：内容核心、账号后台（JWT+RBAC）、互动统计、ES 混合搜索 + RAG 问答、生产部署（caddy→BFF→backend+mysql/redis/es 六容器）、发布流水线（ghcr）、备份+看门狗；前台账号体系（开放注册、头像、个人设置、评论登录门禁）已交付（T-010，PR #52–#55）。里程碑见根 `README.md`。
 
 ## 2. 仓库拓扑与所有权
 
@@ -28,7 +28,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 | 层/能力 | 当前方案 | 稳定约束 |
 |---|---|---|
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
-| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转）+ 登录限流（Redis 固定窗口） | 注册关闭，账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
+| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号，无邮箱验证）；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据（未接入代码） | MySQL 8.4 · Redis 7.4 · ES 8.17.4 · MinIO（compose 提供本地实例） | ES 未来一件两用：BM25 + kNN；compose 账号密码为本地占位 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
@@ -44,8 +44,9 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 | 数据访问 | `backend/internal/data/` | repo 实现、存储客户端、ent | data→biz | `auth.go`：JWT 签发/校验、Redis 会话、限流器 |
 | 配置 | `backend/internal/conf/` `backend/configs/` | 配置 proto 与 yaml | 无凭据入库 | `make config` 生成 |
 | API 契约 | `backend/api/<domain>/<version>/` | proto 源 + 生成物 | 唯一对外契约 | M1 起按领域新增 |
-| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情 | 布局 `app/layouts/` | 文章搜索、标签筛选、相邻文章；项目技术栈筛选 |
+| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 文章搜索、标签筛选、相邻文章；项目技术栈筛选；前台头部 5 项导航（文章▾ 下拉）+ 登录/头像菜单（`components/UserMenu.vue`） |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
+| 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
 
 ## 5. 开发、验证与交付入口
 
@@ -54,9 +55,9 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 | 后端全量验证 | `go build ./... && go test ./... && golangci-lint run` | backend/ | 2026-09-29 全部通过 |
 | proto 生成 | `make api`（api/）/ `make config`（conf） | backend/ | buf 插件走 `go run` 固定版本 |
 | 后端启动 | `KRATOS_JWT_SECRET=<密钥> go run ./cmd/server -conf ./configs` | backend/ | 空密钥 fail-fast；conf 默认值 `../../configs` 仅适用 cmd/server cwd |
-| 创建作者账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一建号入口；先幂等执行迁移 |
+| 创建 ADMIN 账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一 ADMIN 建号入口（READER 走前台注册）；先幂等执行迁移 |
 | 演示文章 seed | `go run ./cmd/seed -conf ./configs -demo-articles`（`-reset` 覆写） | backend/ | 内嵌 markdown（`cmd/seed/demoarticles/`）；幂等补缺，默认不覆盖后台编辑 |
-| 认证冒烟 | `./scripts/smoke-auth.sh` | backend/ | 需 compose 依赖服务 + jq；覆盖 login/me/refresh/logout/负向/限流 |
+| 认证冒烟 | `./scripts/smoke-auth.sh` / `./scripts/smoke-account.sh` | backend/ | 需 compose 依赖服务 + jq；auth 覆盖 login/me/refresh/logout/负向/限流；account 覆盖 register/profile/avatar/静态资源/穿越/429 |
 | 前端验证 | `pnpm lint && pnpm typecheck && pnpm build` | frontend/ | 2026-09-29 全部通过 |
 | 前端启动 | `pnpm dev` | frontend/ | :3000 |
 | 依赖服务 | `docker compose -f deploy/docker-compose.yml up -d` | 仓库根 | `config -q` 已校验；启动冒烟 M1 做 |
@@ -84,6 +85,9 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 | RBAC | casbin（enforcer 挂 HTTP/gRPC 中间件） | S3 已实现；公开文章仅列已发布内容，admin 可管理草稿 | backend auth/article | active |
 | 管理后台编辑器 | Milkdown Crepe（所见即所得 Markdown） | S4 冒烟验证：`#`/`**` 实时渲染、markdownUpdated 回传 source；SSR 受阻时降级路径为 Tiptap+tiptap-markdown（未触发） | frontend admin | active |
 | BFF refresh cookie | `cookiePathRewrite {'/v1/auth': '/api/v1/auth'}` | S4 冒烟验证：后端契约不变，浏览器经 `/api/v1/auth/*` 自动携带 httpOnly cookie | frontend server/api | active |
+| 开放注册 | READER 自助注册（无邮箱验证），独立 IP 限流 fail-open；垃圾评论由先审后显兜底 | T-010/S1（PR #52）；SMTP 未接前不做邮箱验证 | auth/评论 | active |
+| 头像存储 | 后端本地磁盘卷（`data.uploads_dir`，JSON base64 上传，魔数 sniff，2MiB） | 生产拓扑无 MinIO、2C4G 不再加服务；文件名 UUIDv4 随机，GetAvatar 以 HttpBody 返回 + immutable 缓存 | 用户头像/评论头像 | active |
+| 评论身份模型 | CreateComment 需认证，身份取自 token；`comments.user_id` 可空兼容旧匿名行 | T-010/S4（PR #55）契约测试 + SQLite 回归 | 评论（破坏性契约变更） | active |
 
 ## 8. 已知风险与技术债
 
