@@ -29,7 +29,7 @@ function isDraft(status: number): boolean {
 
 <template>
   <section class="space-y-8">
-    <h1 class="text-2xl font-bold tracking-tight">归档</h1>
+    <PageHeader title="归档" />
 
     <div v-if="error" class="text-red-600">加载失败：{{ error.message }}</div>
     <div v-else-if="!data?.articles?.length" class="text-slate-500">暂无文章。</div>

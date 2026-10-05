@@ -8,12 +8,8 @@ const tags = computed(() => tagCounts(data.value ?? []))
 </script>
 
 <template>
-  <div class="space-y-9">
-    <header class="space-y-4 py-5">
-      <p class="text-xs text-[#3c5d85] dark:text-blue-300">Browse / 内容组织</p>
-      <h1 class="text-3xl font-medium text-slate-800 dark:text-slate-100">标签</h1>
-      <p class="max-w-xl text-sm leading-8 text-slate-600 dark:text-slate-400">按标签浏览技术记录，数字是收录的文章数。</p>
-    </header>
+  <div class="space-y-8">
+    <PageHeader title="标签" description="按标签浏览技术记录，数字是收录的文章数。" />
     <div v-if="error" role="alert" class="space-y-3 py-12 text-center">
       <p class="text-sm text-slate-600 dark:text-slate-400">标签加载失败，请稍后重试。</p>
       <button type="button" class="text-sm text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>

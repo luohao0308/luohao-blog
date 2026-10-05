@@ -17,12 +17,8 @@ function remove(entry: CollectionEntry) {
 </script>
 
 <template>
-  <div class="space-y-9">
-    <header class="space-y-4 py-5">
-      <p class="text-xs text-[#3c5d85] dark:text-blue-300">Browse / 我的收藏</p>
-      <h1 class="text-3xl font-medium text-slate-800 dark:text-slate-100">收藏</h1>
-      <p class="max-w-xl text-sm leading-8 text-slate-600 dark:text-slate-400">收藏只保存在当前浏览器里，不会同步到服务器；换设备或清理浏览器数据后不会保留。</p>
-    </header>
+  <div class="space-y-8">
+    <PageHeader title="收藏" description="收藏只保存在当前浏览器里，不会同步到服务器；换设备或清理浏览器数据后不会保留。" />
 
     <ul v-if="items.length" class="space-y-3">
       <li
