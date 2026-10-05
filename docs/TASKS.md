@@ -14,11 +14,12 @@ _last-updated: 2026-10-05_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-010 | 前台账号体系与头部改版：开放注册/头像上传/个人设置/头部导航收拢（5 项+头像下拉，超管跳后台）/评论登录门禁 | backend + frontend | 计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`（2026-10-05 用户确认） | S1 后端代码完成（build/vet/test 全绿，分支 `feat/reader-accounts-backend`），待用户授权 push/PR；真实栈冒烟待 docker |
+| T-010 | 前台账号体系与头部改版：开放注册/头像上传/个人设置/头部导航收拢（5 项+头像下拉，超管跳后台）/评论登录门禁 | backend + frontend | 计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`（2026-10-05 用户确认） | S1 已合并（[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) squash merge `c59fa80`，required CI 双绿，guard push/PR/merge 五次 consume 全 allow）；S2 前台头部改版待启动；真实栈冒烟待 docker |
 | T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待域名 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密：API+后台入口已上线（PR #47），**用户已完成改密（2026-10-05，销项）**；HTTPS 待域名；**服务器待部署 #28 修复（见技术债）** |
 
 ## 待办 (Todo)
 
+- [x] T-010/S1 后端账号基座：开放注册（Register API→READER+自动登录，独立 IP 限流 fail-open）、User.avatar_url 契约、UserService（UpdateProfile/UploadAvatar base64 2MiB 魔数校验/GetAvatar HttpBody+immutable 缓存）、本地磁盘存储+compose 命名卷+备份/恢复脚本、迁移 000008、policy 8 行+全路由覆盖测试；go build/vet/test 全绿；交付中 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI typecheck 红（教训：ignore 模式锚定 `/data/`），修复后重授权推送；[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) squash 合并（head `95c5cf7`，merge `c59fa80`，required CI 两项通过，guard push×2/PR×1/merge×1 consume 全 allow，2026-10-05）；计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`
 - [x] 全量代码 review + Python Playwright E2E 套件（16 用例）+ 四切片修复交付：P0 无标签文章打挂全站（前端 3 文件判空 + 后端 protojson codec 根治）、限流键 XFF 最右跳、搜索 400 + page_size 上限、useAuth 刷新单飞、backend/.dockerignore + gitignore/备份脚本泄漏面收口；go/vet/test 与 pnpm lint/typecheck/build 全绿，E2E 16/16，本地生产栈已重建验证；[PR #28](https://github.com/luohao0308/luohao-blog/pull/28) squash 合并（head `c48860f`，merge `6a4d0d3`，required CI 两项通过，guard push/PR/merge 三次 consume 全 allow，2026-10-04）；计划与执行记录 `docs/plans/REVIEW-FIXES-2026-10.md`
 - [x] 服务器（193.112.128.245）部署 #28：git pull → `compose up -d --build backend frontend`（用户"你继续就行"授权 AI SSH，与 M5/S2 同模式）；公网核验——API 新 wire 格式（tags 恒在/枚举数字/RFC3339）、全部页面 200、搜索非法 token 400、page_size 上限生效；**公网 E2E 16/16 全绿**（含后台完整 CRUD/评论审核/登出守卫，测试数据自清理，无遗留）；六容器 healthy（2026-10-04）
 

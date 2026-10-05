@@ -133,14 +133,14 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ## 11. 交付状态与 PR 证据
 
-- 当前状态：pushed → pr_open（用户 2026-10-05 会话授权 push + PR 创建；guard push/PR 各 consume 一次）
+- 当前状态：merged（S1；2026-10-05 用户逐次授权 push×2/PR×1/merge×1，guard 五次 consume 全 allow）
 - repo / remote：github.com/luohao0308/luohao-blog / origin（https://github.com/luohao0308/luohao-blog.git）
-- PR 编号或链接：本计划所在 PR（创建后见仓库 PR 列表；最终 merge 证据在合并后由 TASKS.md 记录）
+- PR 编号或链接：https://github.com/luohao0308/luohao-blog/pull/52
 - source ref / target ref：feat/reader-accounts-backend → main
-- exact head SHA：以 push 时 guard 授权记录为准（见 `.dev-workflow/authorizations/`）
-- required CI 结果与时间：（待 CI，PR 页面为准）
+- exact head SHA：95c5cf78467fc0f66bd05273f8d70d62098cd280
+- required CI 结果与时间：Backend lint & build & test pass、Frontend lint & typecheck & build pass（run 37275181768，2026-10-05）
 - 独立 reviewer 与批准时间：不适用（manifest 未启用独立 Review）
-- merge commit：（待合并）
+- merge commit：c59fa80481a2d59ef319e0e31515da0ba06bfad4（squash；首推 head `87dcf90` CI 红系 gitignore 吞文件，修复后重授权推送）
 
 ## 12. 文档同步
 
