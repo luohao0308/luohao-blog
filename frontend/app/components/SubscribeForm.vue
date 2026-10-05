@@ -43,7 +43,7 @@ async function subscribe() {
 <template>
   <section class="max-w-2xl space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
     <div>
-      <h2 class="text-sm font-medium">订阅更新</h2>
+      <h2 class="text-sm font-semibold tracking-tight">订阅更新</h2>
       <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
         登记邮箱，新文章发布时收到通知；也可以用
         <a href="/rss.xml" class="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">RSS 订阅</a>。

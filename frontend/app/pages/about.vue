@@ -21,12 +21,10 @@ const contacts = [
 
 <template>
   <div class="space-y-12">
-    <header class="space-y-3">
-      <h1 class="text-3xl font-bold tracking-tight">关于我</h1>
-      <p class="text-slate-600 dark:text-slate-400">
-        全栈工程师 · Go / Vue 双栈 · AI Agent 工程实践者。相信工程治理和自动化流程是个人开发者的杠杆。
-      </p>
-    </header>
+    <PageHeader
+      title="关于我"
+      description="全栈工程师 · Go / Vue 双栈 · AI Agent 工程实践者。相信工程治理和自动化流程是个人开发者的杠杆。"
+    />
 
     <section class="space-y-4">
       <h2 class="text-xl font-bold tracking-tight">技能栈</h2>

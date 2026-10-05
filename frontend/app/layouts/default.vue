@@ -8,6 +8,11 @@ onMounted(() => {
   init()
 })
 
+// Pages can opt into a wider container via definePageMeta({ wide: true });
+// the homepage uses it for its two-column layout.
+const route = useRoute()
+const wide = computed(() => route.meta.wide === true)
+
 const links = [
   { to: '/', label: '首页' },
   { to: '/posts', label: '文章' },
@@ -54,7 +59,7 @@ const links = [
       </nav>
     </header>
 
-    <main class="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+    <main class="mx-auto w-full flex-1 px-6 py-10" :class="wide ? 'max-w-6xl' : 'max-w-4xl'">
       <slot />
     </main>
 

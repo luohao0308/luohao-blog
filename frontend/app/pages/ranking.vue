@@ -12,12 +12,8 @@ const ranking = computed(() =>
 </script>
 
 <template>
-  <div class="space-y-9">
-    <header class="space-y-4 py-5">
-      <p class="text-xs text-[#3c5d85] dark:text-blue-300">Writing / 阅读排行</p>
-      <h1 class="text-3xl font-medium text-slate-800 dark:text-slate-100">阅读排行</h1>
-      <p class="max-w-xl text-sm leading-8 text-slate-600 dark:text-slate-400">按 24h 去重后的阅读量排序的前十篇文章。</p>
-    </header>
+  <div class="space-y-8">
+    <PageHeader title="阅读排行" description="按 24h 去重后的阅读量排序的前十篇文章。" />
 
     <div v-if="error" role="alert" class="space-y-3 py-12 text-center">
       <p class="text-sm text-slate-600 dark:text-slate-400">排行榜加载失败，请稍后重试。</p>
