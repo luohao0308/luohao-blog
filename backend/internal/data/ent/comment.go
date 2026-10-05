@@ -30,7 +30,9 @@ type Comment struct {
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       biz.CommentStatus `json:"status,omitempty"`
+	Status biz.CommentStatus `json:"status,omitempty"`
+	// UserID holds the value of the "user_id" field.
+	UserID       *uuid.UUID `json:"user_id,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -39,6 +41,8 @@ func (*Comment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case comment.FieldUserID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case comment.FieldStatus:
 			values[i] = new(sql.NullInt64)
 		case comment.FieldArticleSlug, comment.FieldDisplayName, comment.FieldContent:
@@ -104,6 +108,13 @@ func (_m *Comment) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = biz.CommentStatus(value.Int64)
 			}
+		case comment.FieldUserID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+			} else if value.Valid {
+				_m.UserID = new(uuid.UUID)
+				*_m.UserID = *value.S.(*uuid.UUID)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -157,6 +168,11 @@ func (_m *Comment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.UserID; v != nil {
+		builder.WriteString("user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

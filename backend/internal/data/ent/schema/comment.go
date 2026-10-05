@@ -5,12 +5,16 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/google/uuid"
+
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 )
 
 // Comment holds the schema definition for a visitor comment. Comments link to
 // articles by slug (articles soft-delete, so no FK edge is warranted) and are
-// pre-moderated: they start pending and only approved rows are public.
+// pre-moderated: they start pending and only approved rows are public. New
+// comments carry their author account; legacy rows from the anonymous era
+// have a NULL user_id and keep their stored display name.
 type Comment struct {
 	ent.Schema
 }
@@ -39,6 +43,11 @@ func (Comment) Fields() []ent.Field {
 		field.Int32("status").
 			GoType(biz.CommentStatus(0)).
 			Default(int32(biz.CommentStatusPending)),
+		// Authoring account (mirror column lives in migration 000009; the
+		// two sides must change together). NULL for legacy anonymous rows.
+		field.UUID("user_id", uuid.UUID{}).
+			Optional().
+			Nillable(),
 	}
 }
 

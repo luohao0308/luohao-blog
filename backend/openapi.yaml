@@ -618,11 +618,14 @@ paths:
             tags:
                 - CommentService
             description: |-
-                CreateComment submits a visitor comment. The comment enters PENDING and
-                 is not publicly visible until approved. The target article must exist
-                 and be PUBLISHED. Authorization: public (rate limited per client IP;
-                 excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-                 fields fail validation and NOT_FOUND when the article is missing or not
+                CreateComment submits a comment authored by the calling account. The
+                 comment enters PENDING and is not publicly visible until approved. The
+                 target article must exist and be PUBLISHED. The display name is the
+                 account's current profile name; the payload carries no identity fields.
+                 Authorization: any authenticated account (Authorization: Bearer);
+                 anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+                 attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+                 fail validation and NOT_FOUND when the article is missing or not
                  published.
             operationId: CommentService_CreateComment
             requestBody:
@@ -1042,10 +1045,12 @@ components:
                     description: Slug of the commented article.
                 displayName:
                     type: string
-                    description: Visitor-provided display name.
+                    description: |-
+                        Author display name: the account's profile name at submission time for
+                         account comments; the visitor-provided name for legacy anonymous rows.
                 content:
                     type: string
-                    description: Visitor-provided comment body.
+                    description: Comment body.
                 status:
                     type: integer
                     description: 'Moderation state. Server-assigned: new comments start PENDING.'
@@ -1058,7 +1063,16 @@ components:
                     type: string
                     description: Time at which the comment was last modified. Server-assigned, read-only.
                     format: date-time
-            description: Comment is the canonical representation of a visitor comment.
+                userId:
+                    type: string
+                    description: Author account identifier. Empty for legacy anonymous comments.
+                avatarUrl:
+                    type: string
+                    description: |-
+                        Author avatar as a site-relative path (see User.avatar_url). Empty for
+                         legacy anonymous comments and accounts without an upload; clients fall
+                         back to an initials disc.
+            description: Comment is the canonical representation of an article comment.
         blog.v1.CommentSet:
             type: object
             properties:
@@ -1075,7 +1089,6 @@ components:
         blog.v1.CreateCommentRequest:
             required:
                 - articleSlug
-                - displayName
                 - content
             type: object
             properties:
@@ -1084,13 +1097,12 @@ components:
                     description: |-
                         Slug of the article being commented on. Must reference a PUBLISHED
                          article.
-                displayName:
-                    type: string
-                    description: Visitor display name, 1-32 characters.
                 content:
                     type: string
                     description: Comment body, 1-1000 characters.
-            description: CreateCommentRequest is the input for CommentService.CreateComment.
+            description: |-
+                CreateCommentRequest is the input for CommentService.CreateComment. The
+                 author is the authenticated caller; the payload carries no identity.
         blog.v1.LoginReply:
             type: object
             properties:
@@ -1335,11 +1347,14 @@ tags:
          retrieval reuses the hybrid article search. Authorization: public.
     - name: CommentService
       description: |-
-        CommentService handles visitor comments on articles. Commenters are
-         anonymous (registration is closed): every new comment starts PENDING and
-         becomes publicly visible only after an admin approves it. Admin operations
-         require the Authorization header; public ones are rate limited per client
-         IP.
+        CommentService handles article comments. Commenters are authenticated
+         accounts: readers register openly through the auth service, and every new
+         comment is authored by the caller's account (identity comes from the
+         access token, never from the payload). Every new comment starts PENDING
+         and becomes publicly visible only after an admin approves it. Legacy rows
+         from the closed-registration era have no user and keep their stored
+         display name. Admin operations require the ADMIN role; public reads stay
+         open and submissions are rate limited per client IP.
     - name: SubscriberService
       description: |-
         SubscriberService registers emails for future article notifications. Actual

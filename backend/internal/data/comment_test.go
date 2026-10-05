@@ -74,3 +74,43 @@ func TestCommentRepoApproveMissing(t *testing.T) {
 		t.Fatalf("Approve(missing) error = %v, want not found", err)
 	}
 }
+
+func TestCommentRepoUserIDRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestCommentRepo(t)
+
+	author := uuid.Must(uuid.NewV7())
+	created, err := repo.Create(ctx, &biz.Comment{
+		ArticleSlug: "post",
+		DisplayName: "罗豪",
+		Content:     "登录后评论",
+		Status:      biz.CommentStatusPending,
+		UserID:      &author,
+	})
+	if err != nil {
+		t.Fatalf("Create(with user) error = %v", err)
+	}
+	got, err := repo.FindByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("FindByID() error = %v", err)
+	}
+	if got.UserID == nil || *got.UserID != author {
+		t.Fatalf("FindByID() user = %v, want the author id", got.UserID)
+	}
+
+	// Legacy anonymous rows keep a NULL user and their stored display name.
+	legacy, err := repo.Create(ctx, &biz.Comment{ArticleSlug: "post", DisplayName: "历史访客", Content: "旧评论", Status: biz.CommentStatusApproved})
+	if err != nil {
+		t.Fatalf("Create(legacy) error = %v", err)
+	}
+	got, err = repo.FindByID(ctx, legacy.ID)
+	if err != nil {
+		t.Fatalf("FindByID(legacy) error = %v", err)
+	}
+	if got.UserID != nil {
+		t.Fatalf("FindByID(legacy) user = %v, want nil", got.UserID)
+	}
+	if got.DisplayName != "历史访客" {
+		t.Fatalf("FindByID(legacy) name = %q, want the stored name", got.DisplayName)
+	}
+}

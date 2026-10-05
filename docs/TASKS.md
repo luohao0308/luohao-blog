@@ -14,7 +14,7 @@ _last-updated: 2026-10-05_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-010 | 前台账号体系与头部改版：开放注册/头像上传/个人设置/头部导航收拢（5 项+头像下拉，超管跳后台）/评论登录门禁 | backend + frontend | 计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`（2026-10-05 用户确认） | S1+S2 已合并（PR #52 merge `c59fa80`、PR #53 merge `e72b6fa`）；S3 /settings 代码完成（构建全绿+守卫重定向冒烟），待 push/PR 授权；真实上传端到端待 docker 栈 |
+| T-010 | 前台账号体系与头部改版：开放注册/头像上传/个人设置/头部导航收拢（5 项+头像下拉，超管跳后台）/评论登录门禁 | backend + frontend | 计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`（2026-10-05 用户确认） | S1-S3 已合并（PR #52/53/54）；S4 评论登录门禁代码完成（后端 build/vet/test 全绿 + 前端构建全绿 + E2E 用例更新），待 push/PR 授权；真实栈 E2E 与上传端到端待 docker |
 | T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待域名 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密：API+后台入口已上线（PR #47），**用户已完成改密（2026-10-05，销项）**；HTTPS 待域名；**服务器待部署 #28 修复（见技术债）** |
 
 ## 待办 (Todo)

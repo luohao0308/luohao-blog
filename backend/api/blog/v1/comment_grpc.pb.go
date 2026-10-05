@@ -31,17 +31,23 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// CommentService handles visitor comments on articles. Commenters are
-// anonymous (registration is closed): every new comment starts PENDING and
-// becomes publicly visible only after an admin approves it. Admin operations
-// require the Authorization header; public ones are rate limited per client
-// IP.
+// CommentService handles article comments. Commenters are authenticated
+// accounts: readers register openly through the auth service, and every new
+// comment is authored by the caller's account (identity comes from the
+// access token, never from the payload). Every new comment starts PENDING
+// and becomes publicly visible only after an admin approves it. Legacy rows
+// from the closed-registration era have no user and keep their stored
+// display name. Admin operations require the ADMIN role; public reads stay
+// open and submissions are rate limited per client IP.
 type CommentServiceClient interface {
-	// CreateComment submits a visitor comment. The comment enters PENDING and
-	// is not publicly visible until approved. The target article must exist
-	// and be PUBLISHED. Authorization: public (rate limited per client IP;
-	// excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-	// fields fail validation and NOT_FOUND when the article is missing or not
+	// CreateComment submits a comment authored by the calling account. The
+	// comment enters PENDING and is not publicly visible until approved. The
+	// target article must exist and be PUBLISHED. The display name is the
+	// account's current profile name; the payload carries no identity fields.
+	// Authorization: any authenticated account (Authorization: Bearer);
+	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*Comment, error)
 	// ListArticleComments returns a page of APPROVED comments for an article,
@@ -124,17 +130,23 @@ func (c *commentServiceClient) DeleteComment(ctx context.Context, in *DeleteComm
 // All implementations must embed UnimplementedCommentServiceServer
 // for forward compatibility.
 //
-// CommentService handles visitor comments on articles. Commenters are
-// anonymous (registration is closed): every new comment starts PENDING and
-// becomes publicly visible only after an admin approves it. Admin operations
-// require the Authorization header; public ones are rate limited per client
-// IP.
+// CommentService handles article comments. Commenters are authenticated
+// accounts: readers register openly through the auth service, and every new
+// comment is authored by the caller's account (identity comes from the
+// access token, never from the payload). Every new comment starts PENDING
+// and becomes publicly visible only after an admin approves it. Legacy rows
+// from the closed-registration era have no user and keep their stored
+// display name. Admin operations require the ADMIN role; public reads stay
+// open and submissions are rate limited per client IP.
 type CommentServiceServer interface {
-	// CreateComment submits a visitor comment. The comment enters PENDING and
-	// is not publicly visible until approved. The target article must exist
-	// and be PUBLISHED. Authorization: public (rate limited per client IP;
-	// excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-	// fields fail validation and NOT_FOUND when the article is missing or not
+	// CreateComment submits a comment authored by the calling account. The
+	// comment enters PENDING and is not publicly visible until approved. The
+	// target article must exist and be PUBLISHED. The display name is the
+	// account's current profile name; the payload carries no identity fields.
+	// Authorization: any authenticated account (Authorization: Bearer);
+	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(context.Context, *CreateCommentRequest) (*Comment, error)
 	// ListArticleComments returns a page of APPROVED comments for an article,

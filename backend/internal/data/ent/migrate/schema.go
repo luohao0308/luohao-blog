@@ -86,6 +86,7 @@ var (
 		{Name: "display_name", Type: field.TypeString},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "status", Type: field.TypeInt32, Default: 1},
+		{Name: "user_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// CommentsTable holds the schema information for the "comments" table.
 	CommentsTable = &schema.Table{

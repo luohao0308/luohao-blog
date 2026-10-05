@@ -58,7 +58,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, boot
 	authService := service.NewAuthService(authUsecase)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
-	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, commentRateLimiter)
+	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, userUsecase, commentRateLimiter)
 	commentService := service.NewCommentService(commentUsecase)
 	subscriberRepo := data.NewSubscriberRepo(dataData)
 	subscribeRateLimiter := data.NewSubscribeRateLimiter(universalClient)

@@ -25,14 +25,20 @@ func NewCommentService(uc *biz.CommentUsecase) *CommentService {
 	return &CommentService{uc: uc}
 }
 
-// CreateComment submits a visitor comment for moderation. The client IP
-// (same derivation as the login throttler) feeds the per-IP budget.
+// CreateComment submits a comment for moderation. The author is the
+// authenticated caller: the policy layer already restricts the route to
+// authenticated subjects, and the claims re-check is defense in depth. The
+// client IP (same derivation as the login throttler) feeds the per-IP
+// budget.
 func (s *CommentService) CreateComment(ctx context.Context, req *v1.CreateCommentRequest) (*v1.Comment, error) {
+	claims, ok := biz.AuthFromContext(ctx)
+	if !ok {
+		return nil, biz.ErrAuthUnauthorized
+	}
 	comment, err := s.uc.Submit(ctx, &biz.Comment{
 		ArticleSlug: req.GetArticleSlug(),
-		DisplayName: req.GetDisplayName(),
 		Content:     req.GetContent(),
-	}, clientIP(ctx))
+	}, claims, clientIP(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -154,19 +160,25 @@ func parseCommentID(raw string) (uuid.UUID, error) {
 }
 
 // convertCommentReply maps a domain comment onto the api representation.
+// user_id/avatar_url stay empty for legacy anonymous comments.
 func convertCommentReply(in *biz.Comment) *v1.Comment {
 	if in == nil {
 		return nil
 	}
-	return &v1.Comment{
+	out := &v1.Comment{
 		Id:          in.ID.String(),
 		ArticleSlug: in.ArticleSlug,
 		DisplayName: in.DisplayName,
 		Content:     in.Content,
 		Status:      convertCommentStatus(in.Status),
+		AvatarUrl:   in.AvatarURL,
 		CreatedAt:   timestamppb.New(in.CreatedAt),
 		UpdatedAt:   timestamppb.New(in.UpdatedAt),
 	}
+	if in.UserID != nil {
+		out.UserId = in.UserID.String()
+	}
+	return out
 }
 
 // convertCommentStatus maps a domain status onto the api enum. The two share

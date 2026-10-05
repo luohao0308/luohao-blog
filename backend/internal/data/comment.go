@@ -14,7 +14,8 @@ import (
 )
 
 // toBizComment converts a persisted comment row into the domain
-// representation. The status column is bound to biz.CommentStatus.
+// representation. The status column is bound to biz.CommentStatus; user_id
+// is NULL for legacy anonymous rows.
 func toBizComment(po *ent.Comment) *biz.Comment {
 	if po == nil {
 		return nil
@@ -25,6 +26,7 @@ func toBizComment(po *ent.Comment) *biz.Comment {
 		DisplayName: po.DisplayName,
 		Content:     po.Content,
 		Status:      po.Status,
+		UserID:      po.UserID,
 		CreatedAt:   po.CreatedAt,
 		UpdatedAt:   po.UpdatedAt,
 	}
@@ -46,6 +48,11 @@ func (r *commentRepo) Create(ctx context.Context, c *biz.Comment) (*biz.Comment,
 	if c.ID != uuid.Nil {
 		create = create.SetID(c.ID)
 	}
+	// Legacy-style rows without an author stay NULL; account comments carry
+	// the authoring account.
+	if c.UserID != nil {
+		create = create.SetUserID(*c.UserID)
+	}
 	po, err := create.
 		SetArticleSlug(c.ArticleSlug).
 		SetDisplayName(c.DisplayName).
@@ -57,7 +64,6 @@ func (r *commentRepo) Create(ctx context.Context, c *biz.Comment) (*biz.Comment,
 	}
 	return toBizComment(po), nil
 }
-
 func (r *commentRepo) FindByID(ctx context.Context, id uuid.UUID) (*biz.Comment, error) {
 	po, err := r.data.db.Comment.Get(ctx, id)
 	if err != nil {

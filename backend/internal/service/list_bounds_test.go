@@ -68,7 +68,7 @@ func TestListPageTokenInvalidArgument(t *testing.T) {
 		}
 	})
 	t.Run("public comments", func(t *testing.T) {
-		svc := NewCommentService(biz.NewCommentUsecase(&stubCommentRepo{}, nil, nil))
+		svc := NewCommentService(biz.NewCommentUsecase(&stubCommentRepo{}, nil, nil, nil))
 		_, err := svc.ListArticleComments(ctx, &v1.ListArticleCommentsRequest{Slug: "some-slug", PageToken: "bogus-token"})
 		if !kratoserrors.IsBadRequest(err) {
 			t.Fatalf("comments bad token error = %v, want bad request", err)
@@ -114,7 +114,7 @@ func TestListPageOffsetBeyondWindow(t *testing.T) {
 		}
 	})
 	t.Run("public comments", func(t *testing.T) {
-		svc := NewCommentService(biz.NewCommentUsecase(&stubCommentRepo{}, nil, nil))
+		svc := NewCommentService(biz.NewCommentUsecase(&stubCommentRepo{}, nil, nil, nil))
 		req := &v1.ListArticleCommentsRequest{Slug: "some-slug", PageToken: synthToken(t, &v1.ListArticleCommentsRequest{Slug: "some-slug"}, 20000)}
 		if _, err := svc.ListArticleComments(ctx, req); !kratoserrors.IsBadRequest(err) {
 			t.Fatalf("huge offset error = %v, want bad request", err)

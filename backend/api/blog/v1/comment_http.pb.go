@@ -29,11 +29,14 @@ type CommentServiceHTTPServer interface {
 	// Idempotent for already-approved comments. Authorization: ADMIN only.
 	// Returns NOT_FOUND when the comment does not exist.
 	ApproveComment(context.Context, *ApproveCommentRequest) (*Comment, error)
-	// CreateComment CreateComment submits a visitor comment. The comment enters PENDING and
-	// is not publicly visible until approved. The target article must exist
-	// and be PUBLISHED. Authorization: public (rate limited per client IP;
-	// excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-	// fields fail validation and NOT_FOUND when the article is missing or not
+	// CreateComment CreateComment submits a comment authored by the calling account. The
+	// comment enters PENDING and is not publicly visible until approved. The
+	// target article must exist and be PUBLISHED. The display name is the
+	// account's current profile name; the payload carries no identity fields.
+	// Authorization: any authenticated account (Authorization: Bearer);
+	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(context.Context, *CreateCommentRequest) (*Comment, error)
 	// DeleteComment DeleteComment removes a comment permanently. Pending and approved
@@ -168,11 +171,14 @@ type CommentServiceHTTPClient interface {
 	// Idempotent for already-approved comments. Authorization: ADMIN only.
 	// Returns NOT_FOUND when the comment does not exist.
 	ApproveComment(ctx context.Context, req *ApproveCommentRequest, opts ...http.CallOption) (rsp *Comment, err error)
-	// CreateComment CreateComment submits a visitor comment. The comment enters PENDING and
-	// is not publicly visible until approved. The target article must exist
-	// and be PUBLISHED. Authorization: public (rate limited per client IP;
-	// excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-	// fields fail validation and NOT_FOUND when the article is missing or not
+	// CreateComment CreateComment submits a comment authored by the calling account. The
+	// comment enters PENDING and is not publicly visible until approved. The
+	// target article must exist and be PUBLISHED. The display name is the
+	// account's current profile name; the payload carries no identity fields.
+	// Authorization: any authenticated account (Authorization: Bearer);
+	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(ctx context.Context, req *CreateCommentRequest, opts ...http.CallOption) (rsp *Comment, err error)
 	// DeleteComment DeleteComment removes a comment permanently. Pending and approved
@@ -217,11 +223,14 @@ func (c *CommentServiceHTTPClientImpl) ApproveComment(ctx context.Context, in *A
 	return &out, nil
 }
 
-// CreateComment CreateComment submits a visitor comment. The comment enters PENDING and
-// is not publicly visible until approved. The target article must exist
-// and be PUBLISHED. Authorization: public (rate limited per client IP;
-// excess attempts return TOO_MANY_REQUESTS). Returns INVALID_ARGUMENT when
-// fields fail validation and NOT_FOUND when the article is missing or not
+// CreateComment CreateComment submits a comment authored by the calling account. The
+// comment enters PENDING and is not publicly visible until approved. The
+// target article must exist and be PUBLISHED. The display name is the
+// account's current profile name; the payload carries no identity fields.
+// Authorization: any authenticated account (Authorization: Bearer);
+// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
+// fail validation and NOT_FOUND when the article is missing or not
 // published.
 func (c *CommentServiceHTTPClientImpl) CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...http.CallOption) (*Comment, error) {
 	var out Comment

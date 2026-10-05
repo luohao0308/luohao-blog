@@ -77,23 +77,30 @@ func (CommentStatus) EnumDescriptor() ([]byte, []int) {
 	return file_blog_v1_comment_proto_rawDescGZIP(), []int{0}
 }
 
-// Comment is the canonical representation of a visitor comment.
+// Comment is the canonical representation of an article comment.
 type Comment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Application-generated UUIDv7 identifier. Read-only.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Slug of the commented article.
 	ArticleSlug string `protobuf:"bytes,2,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
-	// Visitor-provided display name.
+	// Author display name: the account's profile name at submission time for
+	// account comments; the visitor-provided name for legacy anonymous rows.
 	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// Visitor-provided comment body.
+	// Comment body.
 	Content string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	// Moderation state. Server-assigned: new comments start PENDING.
 	Status CommentStatus `protobuf:"varint,5,opt,name=status,proto3,enum=blog.v1.CommentStatus" json:"status,omitempty"`
 	// Time at which the comment was created. Server-assigned, read-only.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Time at which the comment was last modified. Server-assigned, read-only.
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Author account identifier. Empty for legacy anonymous comments.
+	UserId string `protobuf:"bytes,8,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Author avatar as a site-relative path (see User.avatar_url). Empty for
+	// legacy anonymous comments and accounts without an upload; clients fall
+	// back to an initials disc.
+	AvatarUrl     string `protobuf:"bytes,9,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -177,6 +184,20 @@ func (x *Comment) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Comment) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *Comment) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
 // CommentSet is a paginated collection of comments.
 type CommentSet struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
@@ -232,14 +253,13 @@ func (x *CommentSet) GetNextPageToken() string {
 	return ""
 }
 
-// CreateCommentRequest is the input for CommentService.CreateComment.
+// CreateCommentRequest is the input for CommentService.CreateComment. The
+// author is the authenticated caller; the payload carries no identity.
 type CreateCommentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Slug of the article being commented on. Must reference a PUBLISHED
 	// article.
 	ArticleSlug string `protobuf:"bytes,1,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
-	// Visitor display name, 1-32 characters.
-	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Comment body, 1-1000 characters.
 	Content       string `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -279,13 +299,6 @@ func (*CreateCommentRequest) Descriptor() ([]byte, []int) {
 func (x *CreateCommentRequest) GetArticleSlug() string {
 	if x != nil {
 		return x.ArticleSlug
-	}
-	return ""
-}
-
-func (x *CreateCommentRequest) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
 	}
 	return ""
 }
@@ -523,7 +536,7 @@ var File_blog_v1_comment_proto protoreflect.FileDescriptor
 
 const file_blog_v1_comment_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/comment.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x02\n" +
+	"\x15blog/v1/comment.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd7\x02\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\farticle_slug\x18\x02 \x01(\tR\varticleSlug\x12!\n" +
@@ -533,15 +546,17 @@ const file_blog_v1_comment_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"b\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x17\n" +
+	"\auser_id\x18\b \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\t \x01(\tR\tavatarUrl\"b\n" +
 	"\n" +
 	"CommentSet\x12,\n" +
 	"\bcomments\x18\x01 \x03(\v2\x10.blog.v1.CommentR\bcomments\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x85\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"q\n" +
 	"\x14CreateCommentRequest\x12&\n" +
-	"\farticle_slug\x18\x01 \x01(\tB\x03\xe0A\x02R\varticleSlug\x12&\n" +
-	"\fdisplay_name\x18\x02 \x01(\tB\x03\xe0A\x02R\vdisplayName\x12\x1d\n" +
-	"\acontent\x18\x03 \x01(\tB\x03\xe0A\x02R\acontent\"q\n" +
+	"\farticle_slug\x18\x01 \x01(\tB\x03\xe0A\x02R\varticleSlug\x12\x1d\n" +
+	"\acontent\x18\x03 \x01(\tB\x03\xe0A\x02R\acontentJ\x04\b\x02\x10\x03R\fdisplay_name\"q\n" +
 	"\x1aListArticleCommentsRequest\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +

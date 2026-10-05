@@ -76,11 +76,13 @@ g, authenticated, public
 g, admin, authenticated
 g, reader, authenticated
 
-# --- public: visitor comments (pre-moderated) ---
-p, public, /v1/comments, POST
+# --- public: visitor comment reads (pre-moderated) ---
 p, public, /v1/articles/{slug}/comments, GET
-p, public, /blog.v1.CommentService/CreateComment, *
 p, public, /blog.v1.CommentService/ListArticleComments, *
+
+# --- authenticated: comment submissions (identity from the access token) ---
+p, authenticated, /v1/comments, POST
+p, authenticated, /blog.v1.CommentService/CreateComment, *
 
 # --- admin: comment moderation ---
 p, admin, /v1/comments, GET

@@ -36,8 +36,8 @@ var (
 	ErrCommentArticleNotPublic = ErrArticleNotFound
 	CommentDisplayNameMaxRunes = 32
 	CommentContentMaxRunes     = 1000
-	// DefaultCommentAttempts/DefaultCommentWindow bound anonymous submissions
-	// per client IP when the config leaves them unset.
+	// DefaultCommentAttempts/DefaultCommentWindow bound submissions per
+	// client IP when the config leaves them unset.
 	DefaultCommentAttempts int64 = 20
 	DefaultCommentWindow         = 5 * time.Minute
 )
@@ -49,8 +49,14 @@ type Comment struct {
 	DisplayName string
 	Content     string
 	Status      CommentStatus
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// UserID is the authoring account; nil only for legacy rows from the
+	// anonymous era. New comments always carry one.
+	UserID *uuid.UUID
+	// AvatarURL is resolved at read time from the author account and is
+	// never persisted; empty for legacy rows and accounts without an upload.
+	AvatarURL string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // CommentFilter narrows admin comment listings. The CEL filter compiles
@@ -104,9 +110,9 @@ type CommentRepo interface {
 	Delete(context.Context, uuid.UUID) error
 }
 
-// CommentRateLimiter is the fixed-window limiter for anonymous comment
-// submissions. Deliberately a distinct type from RateLimiter so wire can
-// wire login and comment throttling with separate budgets.
+// CommentRateLimiter is the fixed-window limiter for comment submissions.
+// Deliberately a distinct type from RateLimiter so wire can wire login and
+// comment throttling with separate budgets.
 type CommentRateLimiter interface {
 	Allow(ctx context.Context, key string) (bool, error)
 }
@@ -115,18 +121,22 @@ type CommentRateLimiter interface {
 type CommentUsecase struct {
 	repo     CommentRepo
 	articles *ArticleUsecase
+	users    *UserUsecase
 	limiter  CommentRateLimiter
 }
 
 // NewCommentUsecase new a Comment usecase.
-func NewCommentUsecase(repo CommentRepo, articles *ArticleUsecase, limiter CommentRateLimiter) *CommentUsecase {
-	return &CommentUsecase{repo: repo, articles: articles, limiter: limiter}
+func NewCommentUsecase(repo CommentRepo, articles *ArticleUsecase, users *UserUsecase, limiter CommentRateLimiter) *CommentUsecase {
+	return &CommentUsecase{repo: repo, articles: articles, users: users, limiter: limiter}
 }
 
-// Submit validates and stores a visitor comment as pending. The target
-// article must be publicly readable, and submissions are throttled per
-// client IP; the limiter fails open like the login throttler.
-func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, clientIP string) (*Comment, error) {
+// Submit stores a comment authored by the authenticated caller as pending.
+// The identity comes from the verified access token claims: the account must
+// still exist (a token for a deleted account is refused), and the stored
+// display name is the account's current profile name — never a payload
+// field. The target article must be publicly readable, and submissions are
+// throttled per client IP; the limiter fails open like the login throttler.
+func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims, clientIP string) (*Comment, error) {
 	if uc.limiter != nil {
 		ok, err := uc.limiter.Allow(ctx, "comment:"+clientIP)
 		if err != nil {
@@ -135,30 +145,94 @@ func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, clientIP strin
 			return nil, ErrCommentTooManyAttempts
 		}
 	}
+	if claims == nil {
+		return nil, ErrAuthUnauthorized
+	}
+	author, err := uc.users.ByID(ctx, claims.UserID)
+	if err != nil {
+		// A valid token for a since-deleted account must not resurrect as a
+		// comment author.
+		return nil, ErrAuthUnauthorized
+	}
+	c.ID = uuid.Nil // repo assigns a fresh UUIDv7
+	c.Status = CommentStatusPending
+	c.UserID = &author.ID
+	c.DisplayName = author.DisplayName
 	if err := validateComment(c); err != nil {
 		return nil, err
 	}
 	if _, err := uc.articles.GetPublicArticle(ctx, c.ArticleSlug); err != nil {
 		return nil, ErrCommentArticleNotPublic
 	}
-	c.ID = uuid.Nil // repo assigns a fresh UUIDv7
-	c.Status = CommentStatusPending
 	return uc.repo.Create(ctx, c)
 }
 
-// ListPublic returns approved comments of an article, newest first. Reads of
-// a non-public article are indistinguishable from an empty list: they carry
-// no information about the article's existence.
+// ListPublic returns approved comments of an article, newest first, with the
+// authors' avatars attached for display. Reads of a non-public article are
+// indistinguishable from an empty list: they carry no information about the
+// article's existence.
 func (uc *CommentUsecase) ListPublic(ctx context.Context, slug string, limit, offset int) ([]*Comment, error) {
 	if !ValidSlug(slug) {
 		return nil, ErrCommentInvalidArgument
 	}
-	return uc.repo.ListApprovedBySlug(ctx, slug, limit, offset)
+	comments, err := uc.repo.ListApprovedBySlug(ctx, slug, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	uc.attachAvatars(ctx, comments)
+	return comments, nil
 }
 
-// ListAdmin returns comments in any moderation state.
+// ListAdmin returns comments in any moderation state, avatars attached for
+// the moderation view.
 func (uc *CommentUsecase) ListAdmin(ctx context.Context, opts ...CommentListOption) ([]*Comment, error) {
-	return uc.repo.List(ctx, opts...)
+	comments, err := uc.repo.List(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	uc.attachAvatars(ctx, comments)
+	return comments, nil
+}
+
+// attachAvatars fills the transient AvatarURL of account-authored comments
+// in one batched lookup. Legacy anonymous comments and unknown accounts keep
+// the empty avatar; the display name column remains the source of identity
+// text for them.
+func (uc *CommentUsecase) attachAvatars(ctx context.Context, comments []*Comment) {
+	if uc.users == nil || len(comments) == 0 {
+		return
+	}
+	seen := make(map[uuid.UUID]struct{}, len(comments))
+	ids := make([]uuid.UUID, 0, len(comments))
+	for _, c := range comments {
+		if c.UserID == nil {
+			continue
+		}
+		if _, ok := seen[*c.UserID]; ok {
+			continue
+		}
+		seen[*c.UserID] = struct{}{}
+		ids = append(ids, *c.UserID)
+	}
+	if len(ids) == 0 {
+		return
+	}
+	users, err := uc.users.ByIDs(ctx, ids)
+	if err != nil {
+		// Avatar decoration must never break the comment listing; degrade to
+		// the initials fallback on the frontend.
+		log.Warn("comment: avatar lookup failed, serving without avatars", "err", err)
+		return
+	}
+	avatars := make(map[uuid.UUID]string, len(users))
+	for _, u := range users {
+		avatars[u.ID] = u.AvatarURL
+	}
+	for _, c := range comments {
+		if c.UserID != nil {
+			c.AvatarURL = avatars[*c.UserID]
+		}
+	}
 }
 
 // Approve moves a comment to approved. Approving an approved comment is
