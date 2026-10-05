@@ -14,6 +14,9 @@ export interface AuthUser {
   email: string
   display_name: string
   role: number
+  // Site-relative avatar path (/v1/assets/avatars/<name>) since the reader
+  // accounts slice; empty until the first upload. Rendered through assetUrl().
+  avatar_url?: string
 }
 
 export interface LoginReply {
@@ -21,6 +24,12 @@ export interface LoginReply {
   token_type: string
   expires_in: number
   user: AuthUser
+}
+
+export interface RegisterPayload {
+  email: string
+  password: string
+  display_name: string
 }
 
 // Module-scope client state, shared across components like a store singleton.
@@ -62,6 +71,17 @@ export function useAuth() {
       method: 'POST',
       headers: jsonHeaders,
       body: { email, password },
+    })
+    applyReply(reply)
+  }
+
+  // Register creates a READER account; the backend signs the caller in with
+  // the same reply shape as login, so the session state updates identically.
+  async function register(payload: RegisterPayload): Promise<void> {
+    const reply = await $fetch<LoginReply>('/api/v1/auth/register', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: payload,
     })
     applyReply(reply)
   }
@@ -152,5 +172,5 @@ export function useAuth() {
     }
   }
 
-  return { user, errReason, login, logout, refresh, ensureSession, authFetch }
+  return { user, errReason, login, register, logout, refresh, ensureSession, authFetch }
 }

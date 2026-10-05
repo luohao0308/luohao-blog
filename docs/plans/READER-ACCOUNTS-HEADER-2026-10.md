@@ -49,7 +49,7 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
 | S1 | 开放注册 + 头像/资料 API + 磁盘存储 | backend、compose/backup | 无 | go build/vet/test + 冒烟脚本 | 单 PR revert；迁移 down.sql | completed |
-| S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | pending |
+| S2 | 头部改版 + 登录/注册页 + 会话恢复 | frontend | S1 | lint/typecheck/build + GUI 冒烟 | 单 PR revert | completed |
 | S3 | /settings 个人设置（头像/昵称/密码） | frontend | S1 S2 | 构建 + 上传端到端冒烟 | 单 PR revert | pending |
 | S4 | 评论登录门禁（前后端） | backend、frontend、E2E | S1 S2 | 契约测试 + E2E | 单 PR revert | pending |
 
@@ -76,10 +76,10 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ### S2：前台头部改版 + 登录/注册页
 
-- 状态：pending
-- 修改范围：`layouts/default.vue`、新 UserMenu/NavDropdown 组件、`/login`、`/register`
+- 状态：completed（2026-10-05/06 交付）
+- 修改范围：`layouts/default.vue`、新 UserMenu/NavDropdown 组件、`/login`、`/register`、`utils/assets.ts`、useAuth 扩展（register + avatar_url）
 - 步骤：导航收拢（文章▾：全部/分类/标签/归档）→ UserMenu（登录按钮/头像下拉）→ 公开布局 onMounted 恢复会话 → 两个新页面。
-- 切片验收：`pnpm lint && pnpm typecheck && pnpm build`；GUI 冒烟：登录/注册/下拉跳后台/登出/刷新恢复。
+- 切片验收：✅ `pnpm lint && pnpm typecheck && pnpm build` 全绿；✅ GUI 冒烟（IAB 浏览器，无后端预览）：登录/注册页渲染（暗色+亮色）、文章下拉展开与 opaque 覆盖、菜单项导航 /posts、头部登录链接导航、注册表单空提交与短密码校验提示、主题切换——证据 /tmp/s2-shots/t1–t6；⛔ 无后端受阻项：真实注册/登录成功流、头像显示、超管进入后台入口、会话恢复——待 docker 栈或生产部署后补测。
 - 回退点：单 PR revert。
 
 ### S3：个人设置页
@@ -133,14 +133,14 @@ _状态：approved | 更新：2026-10-05 | 关联任务：T-010 | 关联设计�
 
 ## 11. 交付状态与 PR 证据
 
-- 当前状态：pushed → pr_open（用户 2026-10-05 会话授权 push + PR 创建；guard push/PR 各 consume 一次）
+- 当前状态：merged（S1；2026-10-05 用户逐次授权 push×2/PR×1/merge×1，guard 五次 consume 全 allow）
 - repo / remote：github.com/luohao0308/luohao-blog / origin（https://github.com/luohao0308/luohao-blog.git）
-- PR 编号或链接：本计划所在 PR（创建后见仓库 PR 列表；最终 merge 证据在合并后由 TASKS.md 记录）
+- PR 编号或链接：https://github.com/luohao0308/luohao-blog/pull/52
 - source ref / target ref：feat/reader-accounts-backend → main
-- exact head SHA：以 push 时 guard 授权记录为准（见 `.dev-workflow/authorizations/`）
-- required CI 结果与时间：（待 CI，PR 页面为准）
+- exact head SHA：95c5cf78467fc0f66bd05273f8d70d62098cd280
+- required CI 结果与时间：Backend lint & build & test pass、Frontend lint & typecheck & build pass（run 37275181768，2026-10-05）
 - 独立 reviewer 与批准时间：不适用（manifest 未启用独立 Review）
-- merge commit：（待合并）
+- merge commit：c59fa80481a2d59ef319e0e31515da0ba06bfad4（squash；首推 head `87dcf90` CI 红系 gitignore 吞文件，修复后重授权推送）
 
 ## 12. 文档同步
 
