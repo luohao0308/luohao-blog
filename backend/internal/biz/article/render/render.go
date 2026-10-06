@@ -12,6 +12,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/util"
 )
 
 // md is the shared goldmark instance. Options are fixed so that every article
@@ -20,8 +21,11 @@ import (
 //   - auto heading IDs for anchor links;
 //   - hard wraps: single newlines become <br>, which matches how Chinese
 //     prose is usually written in Markdown editors;
-//   - raw HTML in the source is kept (Unsafe): articles are authored by the
-//     site owner; the assumption is revisited when M2 adds authentication;
+//   - raw HTML in the source is escaped (the default): content_html is
+//     embedded by the frontend via v-html, so the renderer is the XSS
+//     boundary. The original "author is the site owner" exception predates
+//     open registration; no existing article uses raw HTML (2026-10 audit),
+//     and goldmark's escaping is the safe default going forward.
 //   - code blocks highlight through chroma with CSS classes (no inline
 //     styles), so the frontend owns the theme.
 var md = goldmark.New(
@@ -36,10 +40,10 @@ var md = goldmark.New(
 	),
 	goldmark.WithParserOptions(
 		parser.WithAutoHeadingID(),
+		parser.WithASTTransformers(util.Prioritized(&safeLinkTransformer{}, 0)),
 	),
 	goldmark.WithRendererOptions(
 		html.WithHardWraps(),
-		html.WithUnsafe(),
 	),
 )
 
