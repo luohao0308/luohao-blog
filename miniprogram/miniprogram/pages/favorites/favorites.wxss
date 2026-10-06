@@ -1,0 +1,26 @@
+.fav-card {
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.fav-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.fav-meta {
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fav-remove {
+  color: #2563eb;
+}

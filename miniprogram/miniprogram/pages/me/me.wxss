@@ -120,6 +120,25 @@
   margin-top: 20rpx;
 }
 
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 8rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.menu-arrow {
+  color: #94a3b8;
+  font-size: 32rpx;
+}
+
+.hero-avatar-img {
+  background: #e2e8f0;
+}
+
 .hint {
   margin-top: 20rpx;
   color: #94a3b8;
