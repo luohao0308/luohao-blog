@@ -4,7 +4,8 @@
   <!-- 已登录 -->
   <block wx:elif="{{mode === 'signedin'}}">
     <view class="hero">
-      <view class="hero-avatar">
+      <image wx:if="{{account.avatarUrl}}" class="hero-avatar hero-avatar-img" src="{{account.avatarUrl}}" mode="aspectFill" />
+      <view wx:else class="hero-avatar">
         <text>{{account.displayName[0] || '博'}}</text>
       </view>
       <view class="hero-name">{{account.displayName}}</view>
@@ -12,6 +13,10 @@
       <view class="hero-badge">已绑定微信</view>
     </view>
     <view class="panel">
+      <view class="menu-row" bindtap="goFavorites">
+        <text>我的收藏</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <button class="btn btn-ghost" bindtap="signOut">退出登录</button>
     </view>
   </block>
