@@ -35,6 +35,7 @@ func NewRedis(c *conf.Data) redis.UniversalClient {
 	opts := &redis.Options{
 		Network:      network,
 		Addr:         rc.GetAddr(),
+		Password:     rc.GetPassword(),
 		ReadTimeout:  rc.GetReadTimeout().AsDuration(),
 		WriteTimeout: rc.GetWriteTimeout().AsDuration(),
 	}

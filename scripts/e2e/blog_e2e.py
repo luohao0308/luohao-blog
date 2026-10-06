@@ -14,6 +14,7 @@
     BLOG_E2E_CLEAR_RATELIMIT 设 1 时套件启动前清空本地栈限流键（登录限流
                         10 次/5min/IP，一轮全套加前置验证即触顶，连跑必挂）
     BLOG_E2E_REDIS_CONTAINER 限流键所在 Redis 容器名，默认 blog-redis-prod
+    BLOG_E2E_REDIS_PASSWORD  Redis AUTH 密码（生产栈已启用 requirepass 时必填）
 
 说明：
 - 截图输出到 gui-test-screenshots/e2e-py/。
@@ -391,9 +392,10 @@ def clear_rate_limit() -> str:
     if os.environ.get("BLOG_E2E_CLEAR_RATELIMIT") != "1":
         return "skipped"
     container = os.environ.get("BLOG_E2E_REDIS_CONTAINER", "blog-redis-prod")
+    auth = f" -a {pw} --no-auth-warning" if (pw := os.environ.get("BLOG_E2E_REDIS_PASSWORD")) else ""
     cmd = [
         "docker", "exec", container, "sh", "-c",
-        "redis-cli --scan --pattern 'blog:ratelimit:*' | xargs -r redis-cli del",
+        f"redis-cli{auth} --scan --pattern 'blog:ratelimit:*' | xargs -r redis-cli{auth} del",
     ]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
