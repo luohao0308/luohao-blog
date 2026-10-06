@@ -79,6 +79,60 @@ func (UserRole) EnumDescriptor() ([]byte, []int) {
 	return file_blog_v1_auth_proto_rawDescGZIP(), []int{0}
 }
 
+// WechatLoginStatus tells the mini program which follow-up to take.
+type WechatLoginStatus int32
+
+const (
+	// Default value. Never returned by the server.
+	WechatLoginStatus_WECHAT_LOGIN_STATUS_UNSPECIFIED WechatLoginStatus = 0
+	// The openid was already bound: `login` carries the token pair.
+	WechatLoginStatus_WECHAT_LOGIN_STATUS_OK WechatLoginStatus = 1
+	// The openid is new: `binding_ticket` is set and the client must call
+	// BindWechat with the account's email and password.
+	WechatLoginStatus_WECHAT_LOGIN_STATUS_BINDING_REQUIRED WechatLoginStatus = 2
+)
+
+// Enum value maps for WechatLoginStatus.
+var (
+	WechatLoginStatus_name = map[int32]string{
+		0: "WECHAT_LOGIN_STATUS_UNSPECIFIED",
+		1: "WECHAT_LOGIN_STATUS_OK",
+		2: "WECHAT_LOGIN_STATUS_BINDING_REQUIRED",
+	}
+	WechatLoginStatus_value = map[string]int32{
+		"WECHAT_LOGIN_STATUS_UNSPECIFIED":      0,
+		"WECHAT_LOGIN_STATUS_OK":               1,
+		"WECHAT_LOGIN_STATUS_BINDING_REQUIRED": 2,
+	}
+)
+
+func (x WechatLoginStatus) Enum() *WechatLoginStatus {
+	p := new(WechatLoginStatus)
+	*p = x
+	return p
+}
+
+func (x WechatLoginStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WechatLoginStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_blog_v1_auth_proto_enumTypes[1].Descriptor()
+}
+
+func (WechatLoginStatus) Type() protoreflect.EnumType {
+	return &file_blog_v1_auth_proto_enumTypes[1]
+}
+
+func (x WechatLoginStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WechatLoginStatus.Descriptor instead.
+func (WechatLoginStatus) EnumDescriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{1}
+}
+
 // UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
 // fields ride in the request body; the target account comes from the access
 // token, never from the payload.
@@ -540,6 +594,185 @@ func (*GetMeRequest) Descriptor() ([]byte, []int) {
 	return file_blog_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
+// WechatLoginRequest is the input for AuthService.WechatLogin.
+type WechatLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Temporary login code from wx.login in the mini program. Single-use and
+	// short-lived on WeChat's side; the server exchanges it immediately.
+	Code          string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WechatLoginRequest) Reset() {
+	*x = WechatLoginRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WechatLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WechatLoginRequest) ProtoMessage() {}
+
+func (x *WechatLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WechatLoginRequest.ProtoReflect.Descriptor instead.
+func (*WechatLoginRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *WechatLoginRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+// WechatLoginReply is the output of AuthService.WechatLogin. Exactly one of
+// `login` or `binding_ticket` is meaningful, selected by `status`.
+type WechatLoginReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Which follow-up the client should take.
+	Status WechatLoginStatus `protobuf:"varint,1,opt,name=status,proto3,enum=blog.v1.WechatLoginStatus" json:"status,omitempty"`
+	// Token pair for the bound account; set only when status is OK. The
+	// refresh token travels as the standard cookie / X-Refresh-Token.
+	Login *LoginReply `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
+	// Single-use, 10-minute ticket identifying the unbound openid; set only
+	// when status is BINDING_REQUIRED. Pass it to BindWechat.
+	BindingTicket string `protobuf:"bytes,3,opt,name=binding_ticket,json=bindingTicket,proto3" json:"binding_ticket,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WechatLoginReply) Reset() {
+	*x = WechatLoginReply{}
+	mi := &file_blog_v1_auth_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WechatLoginReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WechatLoginReply) ProtoMessage() {}
+
+func (x *WechatLoginReply) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WechatLoginReply.ProtoReflect.Descriptor instead.
+func (*WechatLoginReply) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *WechatLoginReply) GetStatus() WechatLoginStatus {
+	if x != nil {
+		return x.Status
+	}
+	return WechatLoginStatus_WECHAT_LOGIN_STATUS_UNSPECIFIED
+}
+
+func (x *WechatLoginReply) GetLogin() *LoginReply {
+	if x != nil {
+		return x.Login
+	}
+	return nil
+}
+
+func (x *WechatLoginReply) GetBindingTicket() string {
+	if x != nil {
+		return x.BindingTicket
+	}
+	return ""
+}
+
+// BindWechatRequest is the input for AuthService.BindWechat.
+type BindWechatRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ticket from a WechatLogin reply with status BINDING_REQUIRED. Single
+	// use; consumed even when the bind itself fails.
+	BindingTicket string `protobuf:"bytes,1,opt,name=binding_ticket,json=bindingTicket,proto3" json:"binding_ticket,omitempty"`
+	// Login email of the existing account to attach the openid to.
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// Password of that account; verified before binding.
+	Password      string `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BindWechatRequest) Reset() {
+	*x = BindWechatRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BindWechatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BindWechatRequest) ProtoMessage() {}
+
+func (x *BindWechatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BindWechatRequest.ProtoReflect.Descriptor instead.
+func (*BindWechatRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *BindWechatRequest) GetBindingTicket() string {
+	if x != nil {
+		return x.BindingTicket
+	}
+	return ""
+}
+
+func (x *BindWechatRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *BindWechatRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
 var File_blog_v1_auth_proto protoreflect.FileDescriptor
 
 const file_blog_v1_auth_proto_rawDesc = "" +
@@ -574,18 +807,35 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x04 \x01(\v2\r.blog.v1.UserR\x04user\"\x10\n" +
 	"\x0eRefreshRequest\"\x0f\n" +
 	"\rLogoutRequest\"\x0e\n" +
-	"\fGetMeRequest*P\n" +
+	"\fGetMeRequest\"-\n" +
+	"\x12WechatLoginRequest\x12\x17\n" +
+	"\x04code\x18\x01 \x01(\tB\x03\xe0A\x02R\x04code\"\x98\x01\n" +
+	"\x10WechatLoginReply\x122\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x1a.blog.v1.WechatLoginStatusR\x06status\x12)\n" +
+	"\x05login\x18\x02 \x01(\v2\x13.blog.v1.LoginReplyR\x05login\x12%\n" +
+	"\x0ebinding_ticket\x18\x03 \x01(\tR\rbindingTicket\"{\n" +
+	"\x11BindWechatRequest\x12*\n" +
+	"\x0ebinding_ticket\x18\x01 \x01(\tB\x03\xe0A\x02R\rbindingTicket\x12\x19\n" +
+	"\x05email\x18\x02 \x01(\tB\x03\xe0A\x02R\x05email\x12\x1f\n" +
+	"\bpassword\x18\x03 \x01(\tB\x03\xe0A\x02R\bpassword*P\n" +
 	"\bUserRole\x12\x19\n" +
 	"\x15USER_ROLE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fUSER_ROLE_ADMIN\x10\x01\x12\x14\n" +
-	"\x10USER_ROLE_READER\x10\x022\x95\x04\n" +
+	"\x10USER_ROLE_READER\x10\x02*~\n" +
+	"\x11WechatLoginStatus\x12#\n" +
+	"\x1fWECHAT_LOGIN_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16WECHAT_LOGIN_STATUS_OK\x10\x01\x12(\n" +
+	"$WECHAT_LOGIN_STATUS_BINDING_REQUIRED\x10\x022\xd8\x05\n" +
 	"\vAuthService\x12W\n" +
 	"\bRegister\x12\x18.blog.v1.RegisterRequest\x1a\x13.blog.v1.LoginReply\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/auth/register\x12N\n" +
 	"\x05Login\x12\x15.blog.v1.LoginRequest\x1a\x13.blog.v1.LoginReply\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12T\n" +
 	"\aRefresh\x12\x17.blog.v1.RefreshRequest\x1a\x13.blog.v1.LoginReply\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/auth/refresh\x12T\n" +
 	"\x06Logout\x12\x16.blog.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/auth/logout\x12B\n" +
 	"\x05GetMe\x12\x15.blog.v1.GetMeRequest\x1a\r.blog.v1.User\"\x13\x82\xd3\xe4\x93\x02\r\x12\v/v1/auth/me\x12m\n" +
-	"\x0eUpdatePassword\x12\x1e.blog.v1.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/auth/update-passwordBa\n" +
+	"\x0eUpdatePassword\x12\x1e.blog.v1.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/auth/update-password\x12a\n" +
+	"\vWechatLogin\x12\x1b.blog.v1.WechatLoginRequest\x1a\x19.blog.v1.WechatLoginReply\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/auth/wechat\x12^\n" +
+	"\n" +
+	"BindWechat\x12\x1a.blog.v1.BindWechatRequest\x1a\x13.blog.v1.LoginReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/auth/wechat/bindBa\n" +
 	"\x18io.grpc.examples.blog.v1B\tAuthProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -600,42 +850,52 @@ func file_blog_v1_auth_proto_rawDescGZIP() []byte {
 	return file_blog_v1_auth_proto_rawDescData
 }
 
-var file_blog_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_blog_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_blog_v1_auth_proto_goTypes = []any{
 	(UserRole)(0),                 // 0: blog.v1.UserRole
-	(*UpdatePasswordRequest)(nil), // 1: blog.v1.UpdatePasswordRequest
-	(*User)(nil),                  // 2: blog.v1.User
-	(*RegisterRequest)(nil),       // 3: blog.v1.RegisterRequest
-	(*LoginRequest)(nil),          // 4: blog.v1.LoginRequest
-	(*LoginReply)(nil),            // 5: blog.v1.LoginReply
-	(*RefreshRequest)(nil),        // 6: blog.v1.RefreshRequest
-	(*LogoutRequest)(nil),         // 7: blog.v1.LogoutRequest
-	(*GetMeRequest)(nil),          // 8: blog.v1.GetMeRequest
-	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 10: google.protobuf.Empty
+	(WechatLoginStatus)(0),        // 1: blog.v1.WechatLoginStatus
+	(*UpdatePasswordRequest)(nil), // 2: blog.v1.UpdatePasswordRequest
+	(*User)(nil),                  // 3: blog.v1.User
+	(*RegisterRequest)(nil),       // 4: blog.v1.RegisterRequest
+	(*LoginRequest)(nil),          // 5: blog.v1.LoginRequest
+	(*LoginReply)(nil),            // 6: blog.v1.LoginReply
+	(*RefreshRequest)(nil),        // 7: blog.v1.RefreshRequest
+	(*LogoutRequest)(nil),         // 8: blog.v1.LogoutRequest
+	(*GetMeRequest)(nil),          // 9: blog.v1.GetMeRequest
+	(*WechatLoginRequest)(nil),    // 10: blog.v1.WechatLoginRequest
+	(*WechatLoginReply)(nil),      // 11: blog.v1.WechatLoginReply
+	(*BindWechatRequest)(nil),     // 12: blog.v1.BindWechatRequest
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),         // 14: google.protobuf.Empty
 }
 var file_blog_v1_auth_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.User.role:type_name -> blog.v1.UserRole
-	9,  // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	2,  // 2: blog.v1.LoginReply.user:type_name -> blog.v1.User
-	3,  // 3: blog.v1.AuthService.Register:input_type -> blog.v1.RegisterRequest
-	4,  // 4: blog.v1.AuthService.Login:input_type -> blog.v1.LoginRequest
-	6,  // 5: blog.v1.AuthService.Refresh:input_type -> blog.v1.RefreshRequest
-	7,  // 6: blog.v1.AuthService.Logout:input_type -> blog.v1.LogoutRequest
-	8,  // 7: blog.v1.AuthService.GetMe:input_type -> blog.v1.GetMeRequest
-	1,  // 8: blog.v1.AuthService.UpdatePassword:input_type -> blog.v1.UpdatePasswordRequest
-	5,  // 9: blog.v1.AuthService.Register:output_type -> blog.v1.LoginReply
-	5,  // 10: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
-	5,  // 11: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
-	10, // 12: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	2,  // 13: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
-	10, // 14: blog.v1.AuthService.UpdatePassword:output_type -> google.protobuf.Empty
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	13, // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	3,  // 2: blog.v1.LoginReply.user:type_name -> blog.v1.User
+	1,  // 3: blog.v1.WechatLoginReply.status:type_name -> blog.v1.WechatLoginStatus
+	6,  // 4: blog.v1.WechatLoginReply.login:type_name -> blog.v1.LoginReply
+	4,  // 5: blog.v1.AuthService.Register:input_type -> blog.v1.RegisterRequest
+	5,  // 6: blog.v1.AuthService.Login:input_type -> blog.v1.LoginRequest
+	7,  // 7: blog.v1.AuthService.Refresh:input_type -> blog.v1.RefreshRequest
+	8,  // 8: blog.v1.AuthService.Logout:input_type -> blog.v1.LogoutRequest
+	9,  // 9: blog.v1.AuthService.GetMe:input_type -> blog.v1.GetMeRequest
+	2,  // 10: blog.v1.AuthService.UpdatePassword:input_type -> blog.v1.UpdatePasswordRequest
+	10, // 11: blog.v1.AuthService.WechatLogin:input_type -> blog.v1.WechatLoginRequest
+	12, // 12: blog.v1.AuthService.BindWechat:input_type -> blog.v1.BindWechatRequest
+	6,  // 13: blog.v1.AuthService.Register:output_type -> blog.v1.LoginReply
+	6,  // 14: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
+	6,  // 15: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
+	14, // 16: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	3,  // 17: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
+	14, // 18: blog.v1.AuthService.UpdatePassword:output_type -> google.protobuf.Empty
+	11, // 19: blog.v1.AuthService.WechatLogin:output_type -> blog.v1.WechatLoginReply
+	6,  // 20: blog.v1.AuthService.BindWechat:output_type -> blog.v1.LoginReply
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_auth_proto_init() }
@@ -648,8 +908,8 @@ func file_blog_v1_auth_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_auth_proto_rawDesc), len(file_blog_v1_auth_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   8,
+			NumEnums:      2,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

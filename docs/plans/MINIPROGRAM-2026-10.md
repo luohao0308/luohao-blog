@@ -19,7 +19,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
 | S1 | 原生 TS 骨架 + 文章列表/详情只读浏览 + 阅读量上报 + 分享 | `miniprogram/`（纯新增） | 无 | `tsc --noEmit` + DevTools 打开编译 + 模拟器访问生产 API 实测列表/详情 | 删除目录 | completed |
-| S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | pending |
+| S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | completed |
 | S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | pending |
 
 ## 3. 原则与决策
@@ -42,4 +42,19 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
   - [x] DevTools 编译通过并实跑（用户升级至 Stable 2.02.2608080 后原生编译 TS；旧版 1.05 无 TS 插件曾以 emit JS 兼容层过渡，升级后已清理）
   - [x] 模拟器内列表可见生产文章、下拉刷新/触底翻页生效、详情 rich-text 渲染正常、阅读量 +1、分享卡片标题正确（2026-10-07 用户模拟器实测）
 - 交付：PR #65 squash 合并（merge `758f90e3`，2026-10-07，guard push/pr/merge 三次 consume 全 allow，CI 双绿）
+
+### S2：微信登录（后端 + 小程序）
+
+- 状态：completed（代码与测试交付；真实 code2session 冒烟待生产部署后在模拟器/真机补）
+- 契约（auth 域内新增，2026-10-07 用户以提供 AppSecret 视为确认）：
+  - `POST /v1/auth/wechat`（body: `{code}`）→ `WechatLoginReply{status, login?, binding_ticket?}`：openid 已绑 → status OK + 标准 LoginReply（refresh cookie 同 Login）；未绑 → status BINDING_REQUIRED + 一次性票据（10 分钟，Redis GETDEL 原子消费）
+  - `POST /v1/auth/wechat/bind`（body: `{binding_ticket, email, password}`）→ `LoginReply`：票据换 openid + 邮箱密码认证后绑定并登录；**绑定只面向已有账号，不静默注册**；失败烧票（需重新 wx.login）
+  - 错误：`AUTH_WECHAT_CODE_INVALID`（25）、`AUTH_WECHAT_TICKET_INVALID`（26）、`USER_WECHAT_CONFLICT`（27）；未配置凭据 → 412
+  - 存储：`users.wechat_openid` 唯一可空列（迁移 000010 带 down.sql；ent schema 同步）
+  - 限流：两端点复用 login 每 IP 预算
+- 后端：conf 新增 `wechat.app_id/app_secret`（secret 只进 git-ignored secrets 文件）；`data/wechat.go` code2session 客户端（5s 超时，session_key 不落日志）+ 票据存取；casbin 公开放行两路由
+- 小程序：`utils/auth.ts` 会话存取（access+refresh+过期戳，401 → X-Refresh-Token 单飞刷新 → 重放一次）；我的页登录/绑定/已登录三态 UI
+- 验证：`go build/vet/test` + golangci-lint 全绿（新增 biz 流程测试 9 例、code2session httptest 3 例、authz 路由用例）；小程序 `tsc --noEmit` 全绿
+- 未验证项：真实 wx.login→code2session 链路需生产部署后端（带 wechat secrets）后在模拟器/真机冒烟；部署时服务器 secrets 文件需补 `wechat:` 段
+- 回退点：单 PR revert；迁移 down.sql
 - 回退点：删除 `miniprogram/` 目录，单 PR revert
