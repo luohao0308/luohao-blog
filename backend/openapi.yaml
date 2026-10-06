@@ -421,6 +421,63 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/auth/wechat:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                WechatLogin signs a mini-program user in with a wx.login code. The code
+                 is exchanged (code2session) for the caller's openid; an account already
+                 bound to that openid receives the same token pair Login returns, with
+                 the refresh cookie set. An unbound openid receives status
+                 BINDING_REQUIRED plus a single-use binding ticket (10 minutes): the
+                 client collects the reader's existing email and password and calls
+                 BindWechat. Accounts are never created here — binding requires an
+                 existing READER/ADMIN account.
+                 Returns UNAUTHORIZED when WeChat rejects the code (invalid, expired, or
+                 replayed), and FAILED_PRECONDITION when the server has no WeChat
+                 credentials configured. Rate limited per client IP on the login budget.
+            operationId: AuthService_WechatLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.WechatLoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.WechatLoginReply'
+    /v1/auth/wechat/bind:
+        post:
+            tags:
+                - AuthService
+            description: |-
+                BindWechat attaches the openid behind a WechatLogin binding ticket to
+                 the account authenticated by email and password, then signs the caller
+                 in with the standard token pair and refresh cookie. The ticket is
+                 consumed atomically: a failed bind (wrong password) burns it, and the
+                 client must run wx.login again.
+                 Returns UNAUTHORIZED for an unknown/expired/replayed ticket or wrong
+                 credentials, CONFLICT when another account already holds the openid.
+                 Rate limited per client IP on the login budget.
+            operationId: AuthService_BindWechat
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.BindWechatRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.LoginReply'
     /v1/categories/create:
         post:
             tags:
@@ -940,6 +997,25 @@ components:
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
+        blog.v1.BindWechatRequest:
+            required:
+                - bindingTicket
+                - email
+                - password
+            type: object
+            properties:
+                bindingTicket:
+                    type: string
+                    description: |-
+                        Ticket from a WechatLogin reply with status BINDING_REQUIRED. Single
+                         use; consumed even when the bind itself fails.
+                email:
+                    type: string
+                    description: Login email of the existing account to attach the openid to.
+                password:
+                    type: string
+                    description: Password of that account; verified before binding.
+            description: BindWechatRequest is the input for AuthService.BindWechat.
         blog.v1.Category:
             required:
                 - slug
@@ -1304,6 +1380,38 @@ components:
             description: |-
                 User is the public representation of an account. Credentials never appear
                  in responses.
+        blog.v1.WechatLoginReply:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    description: Which follow-up the client should take.
+                    format: enum
+                login:
+                    allOf:
+                        - $ref: '#/components/schemas/blog.v1.LoginReply'
+                    description: |-
+                        Token pair for the bound account; set only when status is OK. The
+                         refresh token travels as the standard cookie / X-Refresh-Token.
+                bindingTicket:
+                    type: string
+                    description: |-
+                        Single-use, 10-minute ticket identifying the unbound openid; set only
+                         when status is BINDING_REQUIRED. Pass it to BindWechat.
+            description: |-
+                WechatLoginReply is the output of AuthService.WechatLogin. Exactly one of
+                 `login` or `binding_ticket` is meaningful, selected by `status`.
+        blog.v1.WechatLoginRequest:
+            required:
+                - code
+            type: object
+            properties:
+                code:
+                    type: string
+                    description: |-
+                        Temporary login code from wx.login in the mini program. Single-use and
+                         short-lived on WeChat's side; the server exchanges it immediately.
+            description: WechatLoginRequest is the input for AuthService.WechatLogin.
 tags:
     - name: ArticleSearchService
       description: |-

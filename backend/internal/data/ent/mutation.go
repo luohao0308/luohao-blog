@@ -3660,6 +3660,7 @@ type UserMutation struct {
 	role          *biz.UserRole
 	addrole       *biz.UserRole
 	avatar_url    *string
+	wechat_openid *string
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*User, error)
@@ -4042,6 +4043,55 @@ func (m *UserMutation) ResetAvatarURL() {
 	m.avatar_url = nil
 }
 
+// SetWechatOpenid sets the "wechat_openid" field.
+func (m *UserMutation) SetWechatOpenid(s string) {
+	m.wechat_openid = &s
+}
+
+// WechatOpenid returns the value of the "wechat_openid" field in the mutation.
+func (m *UserMutation) WechatOpenid() (r string, exists bool) {
+	v := m.wechat_openid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWechatOpenid returns the old "wechat_openid" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldWechatOpenid(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWechatOpenid is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWechatOpenid requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWechatOpenid: %w", err)
+	}
+	return oldValue.WechatOpenid, nil
+}
+
+// ClearWechatOpenid clears the value of the "wechat_openid" field.
+func (m *UserMutation) ClearWechatOpenid() {
+	m.wechat_openid = nil
+	m.clearedFields[user.FieldWechatOpenid] = struct{}{}
+}
+
+// WechatOpenidCleared returns if the "wechat_openid" field was cleared in this mutation.
+func (m *UserMutation) WechatOpenidCleared() bool {
+	_, ok := m.clearedFields[user.FieldWechatOpenid]
+	return ok
+}
+
+// ResetWechatOpenid resets all changes to the "wechat_openid" field.
+func (m *UserMutation) ResetWechatOpenid() {
+	m.wechat_openid = nil
+	delete(m.clearedFields, user.FieldWechatOpenid)
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -4076,7 +4126,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -4097,6 +4147,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.avatar_url != nil {
 		fields = append(fields, user.FieldAvatarURL)
+	}
+	if m.wechat_openid != nil {
+		fields = append(fields, user.FieldWechatOpenid)
 	}
 	return fields
 }
@@ -4120,6 +4173,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Role()
 	case user.FieldAvatarURL:
 		return m.AvatarURL()
+	case user.FieldWechatOpenid:
+		return m.WechatOpenid()
 	}
 	return nil, false
 }
@@ -4143,6 +4198,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldRole(ctx)
 	case user.FieldAvatarURL:
 		return m.OldAvatarURL(ctx)
+	case user.FieldWechatOpenid:
+		return m.OldWechatOpenid(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -4201,6 +4258,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAvatarURL(v)
 		return nil
+	case user.FieldWechatOpenid:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWechatOpenid(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -4245,7 +4309,11 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(user.FieldWechatOpenid) {
+		fields = append(fields, user.FieldWechatOpenid)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -4258,6 +4326,11 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
+	switch name {
+	case user.FieldWechatOpenid:
+		m.ClearWechatOpenid()
+		return nil
+	}
 	return fmt.Errorf("unknown User nullable field %s", name)
 }
 
@@ -4285,6 +4358,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldAvatarURL:
 		m.ResetAvatarURL()
+		return nil
+	case user.FieldWechatOpenid:
+		m.ResetWechatOpenid()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)

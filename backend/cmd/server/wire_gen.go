@@ -23,7 +23,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, bootstrap *conf.Bootstrap, logger *slog.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wechat *conf.Wechat, bootstrap *conf.Bootstrap, logger *slog.Logger) (*kratos.App, func(), error) {
 	tokenIssuer, err := data.NewTokenIssuer(auth)
 	if err != nil {
 		return nil, nil, err
@@ -55,7 +55,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, boot
 	registerRateLimiter := data.NewRegisterRateLimiter(universalClient, auth)
 	duration := data.NewRefreshTokenTTL(auth)
 	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, registerRateLimiter, duration)
-	authService := service.NewAuthService(authUsecase)
+	wechatClient := data.NewWechatClient(wechat)
+	wechatBindingStore := data.NewWechatBindingStore(universalClient)
+	wechatUsecase := biz.NewWechatUsecase(userUsecase, authUsecase, wechatClient, wechatBindingStore, rateLimiter)
+	authService := service.NewAuthService(authUsecase, wechatUsecase)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
 	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, userUsecase, commentRateLimiter)

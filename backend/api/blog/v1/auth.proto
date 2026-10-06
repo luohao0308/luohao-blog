@@ -94,6 +94,39 @@ service AuthService {
       body: "*"
     };
   }
+
+  // WechatLogin signs a mini-program user in with a wx.login code. The code
+  // is exchanged (code2session) for the caller's openid; an account already
+  // bound to that openid receives the same token pair Login returns, with
+  // the refresh cookie set. An unbound openid receives status
+  // BINDING_REQUIRED plus a single-use binding ticket (10 minutes): the
+  // client collects the reader's existing email and password and calls
+  // BindWechat. Accounts are never created here — binding requires an
+  // existing READER/ADMIN account.
+  // Returns UNAUTHORIZED when WeChat rejects the code (invalid, expired, or
+  // replayed), and FAILED_PRECONDITION when the server has no WeChat
+  // credentials configured. Rate limited per client IP on the login budget.
+  rpc WechatLogin (WechatLoginRequest) returns (WechatLoginReply) {
+    option (google.api.http) = {
+      post: "/v1/auth/wechat"
+      body: "*"
+    };
+  }
+
+  // BindWechat attaches the openid behind a WechatLogin binding ticket to
+  // the account authenticated by email and password, then signs the caller
+  // in with the standard token pair and refresh cookie. The ticket is
+  // consumed atomically: a failed bind (wrong password) burns it, and the
+  // client must run wx.login again.
+  // Returns UNAUTHORIZED for an unknown/expired/replayed ticket or wrong
+  // credentials, CONFLICT when another account already holds the openid.
+  // Rate limited per client IP on the login budget.
+  rpc BindWechat (BindWechatRequest) returns (LoginReply) {
+    option (google.api.http) = {
+      post: "/v1/auth/wechat/bind"
+      body: "*"
+    };
+  }
 }
 
 // UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
@@ -184,4 +217,46 @@ message LogoutRequest {
 // GetMeRequest is the input for AuthService.GetMe. The caller is identified
 // by the access token, not by any request field.
 message GetMeRequest {
+}
+
+// WechatLoginRequest is the input for AuthService.WechatLogin.
+message WechatLoginRequest {
+  // Temporary login code from wx.login in the mini program. Single-use and
+  // short-lived on WeChat's side; the server exchanges it immediately.
+  string code = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// WechatLoginStatus tells the mini program which follow-up to take.
+enum WechatLoginStatus {
+  // Default value. Never returned by the server.
+  WECHAT_LOGIN_STATUS_UNSPECIFIED = 0;
+  // The openid was already bound: `login` carries the token pair.
+  WECHAT_LOGIN_STATUS_OK = 1;
+  // The openid is new: `binding_ticket` is set and the client must call
+  // BindWechat with the account's email and password.
+  WECHAT_LOGIN_STATUS_BINDING_REQUIRED = 2;
+}
+
+// WechatLoginReply is the output of AuthService.WechatLogin. Exactly one of
+// `login` or `binding_ticket` is meaningful, selected by `status`.
+message WechatLoginReply {
+  // Which follow-up the client should take.
+  WechatLoginStatus status = 1;
+  // Token pair for the bound account; set only when status is OK. The
+  // refresh token travels as the standard cookie / X-Refresh-Token.
+  LoginReply login = 2;
+  // Single-use, 10-minute ticket identifying the unbound openid; set only
+  // when status is BINDING_REQUIRED. Pass it to BindWechat.
+  string binding_ticket = 3;
+}
+
+// BindWechatRequest is the input for AuthService.BindWechat.
+message BindWechatRequest {
+  // Ticket from a WechatLogin reply with status BINDING_REQUIRED. Single
+  // use; consumed even when the bind itself fails.
+  string binding_ticket = 1 [(google.api.field_behavior) = REQUIRED];
+  // Login email of the existing account to attach the openid to.
+  string email = 2 [(google.api.field_behavior) = REQUIRED];
+  // Password of that account; verified before binding.
+  string password = 3 [(google.api.field_behavior) = REQUIRED];
 }

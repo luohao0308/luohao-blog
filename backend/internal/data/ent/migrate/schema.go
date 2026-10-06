@@ -161,6 +161,7 @@ var (
 		{Name: "display_name", Type: field.TypeString, Default: ""},
 		{Name: "role", Type: field.TypeInt32, Default: 1},
 		{Name: "avatar_url", Type: field.TypeString, Default: ""},
+		{Name: "wechat_openid", Type: field.TypeString, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{

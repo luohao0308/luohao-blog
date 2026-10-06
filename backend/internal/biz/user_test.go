@@ -88,6 +88,33 @@ func (f *fakeUserRepo) UpdateAvatar(_ context.Context, id uuid.UUID, avatarURL s
 	return ErrUserNotFound
 }
 
+func (f *fakeUserRepo) FindByWechatOpenID(_ context.Context, openid string) (*User, error) {
+	if openid == "" {
+		return nil, ErrUserNotFound
+	}
+	for _, u := range f.users {
+		if u.WechatOpenID == openid {
+			return u, nil
+		}
+	}
+	return nil, ErrUserNotFound
+}
+
+func (f *fakeUserRepo) BindWechat(_ context.Context, id uuid.UUID, openid string) error {
+	for _, u := range f.users {
+		if u.WechatOpenID == openid && u.ID != id {
+			return ErrUserWechatConflict
+		}
+	}
+	for _, u := range f.users {
+		if u.ID == id {
+			u.WechatOpenID = openid
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
 func TestHashPasswordRoundTrip(t *testing.T) {
 	hash, err := HashPassword("correct horse battery staple")
 	if err != nil {

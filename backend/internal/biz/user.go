@@ -29,6 +29,9 @@ var (
 	ErrUserInvalidCredentials = errors.Unauthorized(v1.ErrorReason_USER_INVALID_CREDENTIALS.String(), "invalid email or password")
 	// ErrUserEmailConflict is returned when an email is already registered.
 	ErrUserEmailConflict = errors.Conflict(v1.ErrorReason_USER_EMAIL_CONFLICT.String(), "email already registered")
+	// ErrUserWechatConflict is returned when the openid being bound is
+	// already attached to a different account.
+	ErrUserWechatConflict = errors.Conflict(v1.ErrorReason_USER_WECHAT_CONFLICT.String(), "openid already bound to another account")
 )
 
 // UserRole is the account role. Values match the api enum introduced with
@@ -70,8 +73,11 @@ type User struct {
 	// AvatarURL is the site-relative avatar path served by the GetAvatar
 	// route (/v1/assets/avatars/<name>), or "" when no avatar was uploaded.
 	AvatarURL string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// WechatOpenID is the mini-program identity attached through the wechat
+	// login flow, or "" when the account has never been bound.
+	WechatOpenID string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // UserRepository is a user repo.
@@ -88,6 +94,12 @@ type UserRepository interface {
 	UpdateProfile(context.Context, uuid.UUID, string) error
 	// UpdateAvatar replaces the site-relative avatar path ("" clears it).
 	UpdateAvatar(context.Context, uuid.UUID, string) error
+	// FindByWechatOpenID returns the account bound to the mini-program
+	// openid, or ErrUserNotFound when no account carries it.
+	FindByWechatOpenID(context.Context, string) (*User, error)
+	// BindWechat attaches a WeChat openid to the account. An openid already
+	// held by another account fails with ErrUserWechatConflict.
+	BindWechat(context.Context, uuid.UUID, string) error
 }
 
 // HashPassword derives an argon2id PHC string for a plaintext password:
@@ -277,6 +289,16 @@ func (uc *UserUsecase) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL
 		return nil, err
 	}
 	return uc.repo.FindByID(ctx, id)
+}
+
+// ByWechatOpenID resolves the account bound to a mini-program openid.
+func (uc *UserUsecase) ByWechatOpenID(ctx context.Context, openid string) (*User, error) {
+	return uc.repo.FindByWechatOpenID(ctx, openid)
+}
+
+// BindWechat attaches a WeChat openid to an existing account.
+func (uc *UserUsecase) BindWechat(ctx context.Context, id uuid.UUID, openid string) error {
+	return uc.repo.BindWechat(ctx, id, openid)
 }
 
 // MaxDisplayNameLen bounds the public display name, matching the comment

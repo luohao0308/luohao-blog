@@ -29,12 +29,13 @@ const (
 type AuthService struct {
 	v1.UnimplementedAuthServiceServer
 
-	uc *biz.AuthUsecase
+	uc     *biz.AuthUsecase
+	wechat *biz.WechatUsecase
 }
 
 // NewAuthService new an auth service.
-func NewAuthService(uc *biz.AuthUsecase) *AuthService {
-	return &AuthService{uc: uc}
+func NewAuthService(uc *biz.AuthUsecase, wechat *biz.WechatUsecase) *AuthService {
+	return &AuthService{uc: uc, wechat: wechat}
 }
 
 // Register creates a READER account and issues the token pair, delivering
@@ -224,6 +225,38 @@ func rightmostForwardedIP(xff string) string {
 		}
 	}
 	return ""
+}
+
+// WechatLogin signs a mini-program user in with a wx.login code: bound
+// openids receive the standard token pair (refresh cookie set), unbound ones
+// receive a single-use binding ticket.
+func (s *AuthService) WechatLogin(ctx context.Context, req *v1.WechatLoginRequest) (*v1.WechatLoginReply, error) {
+	res, err := s.wechat.Login(ctx, req.GetCode(), clientIP(ctx))
+	if err != nil {
+		return nil, err
+	}
+	if res.Pair != nil {
+		setRefreshCookie(ctx, res.Pair.Refresh.Token, time.Until(res.Pair.Refresh.ExpiresAt))
+		return &v1.WechatLoginReply{
+			Status: v1.WechatLoginStatus_WECHAT_LOGIN_STATUS_OK,
+			Login:  convertLoginReply(res.User, res.Pair),
+		}, nil
+	}
+	return &v1.WechatLoginReply{
+		Status:        v1.WechatLoginStatus_WECHAT_LOGIN_STATUS_BINDING_REQUIRED,
+		BindingTicket: res.BindingTicket,
+	}, nil
+}
+
+// BindWechat attaches the ticket's openid to an existing account and signs
+// the caller in with the standard token pair and refresh cookie.
+func (s *AuthService) BindWechat(ctx context.Context, req *v1.BindWechatRequest) (*v1.LoginReply, error) {
+	u, pair, err := s.wechat.Bind(ctx, req.GetBindingTicket(), req.GetEmail(), req.GetPassword(), clientIP(ctx))
+	if err != nil {
+		return nil, err
+	}
+	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	return convertLoginReply(u, pair), nil
 }
 
 // UpdatePassword rotates the calling account's password. The account
