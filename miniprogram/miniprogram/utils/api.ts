@@ -1,5 +1,5 @@
 import { http } from './request'
-import type { Article, ArticleSet } from './types'
+import type { Article, ArticleSet, WechatLoginReply } from './types'
 
 // listArticles 按发布时间倒序取公开文章分页；与 Web 端 usePublishedArticles 同参。
 export function listArticles(pageToken: string, pageSize = 20): Promise<ArticleSet> {
@@ -17,4 +17,14 @@ export function getArticle(slug: string): Promise<Article> {
 // reportArticleViewed 上报阅读量；服务端做 24h 去重，失败可静默。
 export function reportArticleViewed(slug: string): Promise<void> {
   return http.post<void>(`/articles/${encodeURIComponent(slug)}/view`, {})
+}
+
+// wechatLogin 用 wx.login code 登录：绑定账号返回 login，新 openid 返回票据。
+export function wechatLogin(code: string): Promise<WechatLoginReply> {
+  return http.post<WechatLoginReply>('/auth/wechat', { code })
+}
+
+// bindWechat 用票据把 openid 绑到已有账号，返回标准登录响应。
+export function bindWechat(ticket: string, email: string, password: string): Promise<import('./types').LoginReply> {
+  return http.post('/auth/wechat/bind', { binding_ticket: ticket, email, password })
 }

@@ -112,6 +112,26 @@ func (_u *UserUpdate) SetNillableAvatarURL(v *string) *UserUpdate {
 	return _u
 }
 
+// SetWechatOpenid sets the "wechat_openid" field.
+func (_u *UserUpdate) SetWechatOpenid(v string) *UserUpdate {
+	_u.mutation.SetWechatOpenid(v)
+	return _u
+}
+
+// SetNillableWechatOpenid sets the "wechat_openid" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableWechatOpenid(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetWechatOpenid(*v)
+	}
+	return _u
+}
+
+// ClearWechatOpenid clears the value of the "wechat_openid" field.
+func (_u *UserUpdate) ClearWechatOpenid() *UserUpdate {
+	_u.mutation.ClearWechatOpenid()
+	return _u
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -200,6 +220,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.WechatOpenid(); ok {
+		_spec.SetField(user.FieldWechatOpenid, field.TypeString, value)
+	}
+	if _u.mutation.WechatOpenidCleared() {
+		_spec.ClearField(user.FieldWechatOpenid, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -301,6 +327,26 @@ func (_u *UserUpdateOne) SetNillableAvatarURL(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetAvatarURL(*v)
 	}
+	return _u
+}
+
+// SetWechatOpenid sets the "wechat_openid" field.
+func (_u *UserUpdateOne) SetWechatOpenid(v string) *UserUpdateOne {
+	_u.mutation.SetWechatOpenid(v)
+	return _u
+}
+
+// SetNillableWechatOpenid sets the "wechat_openid" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableWechatOpenid(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetWechatOpenid(*v)
+	}
+	return _u
+}
+
+// ClearWechatOpenid clears the value of the "wechat_openid" field.
+func (_u *UserUpdateOne) ClearWechatOpenid() *UserUpdateOne {
+	_u.mutation.ClearWechatOpenid()
 	return _u
 }
 
@@ -422,6 +468,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.WechatOpenid(); ok {
+		_spec.SetField(user.FieldWechatOpenid, field.TypeString, value)
+	}
+	if _u.mutation.WechatOpenidCleared() {
+		_spec.ClearField(user.FieldWechatOpenid, field.TypeString)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

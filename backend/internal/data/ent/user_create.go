@@ -104,6 +104,20 @@ func (_c *UserCreate) SetNillableAvatarURL(v *string) *UserCreate {
 	return _c
 }
 
+// SetWechatOpenid sets the "wechat_openid" field.
+func (_c *UserCreate) SetWechatOpenid(v string) *UserCreate {
+	_c.mutation.SetWechatOpenid(v)
+	return _c
+}
+
+// SetNillableWechatOpenid sets the "wechat_openid" field if the given value is not nil.
+func (_c *UserCreate) SetNillableWechatOpenid(v *string) *UserCreate {
+	if v != nil {
+		_c.SetWechatOpenid(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *UserCreate) SetID(v uuid.UUID) *UserCreate {
 	_c.mutation.SetID(v)
@@ -274,6 +288,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
 		_node.AvatarURL = value
+	}
+	if value, ok := _c.mutation.WechatOpenid(); ok {
+		_spec.SetField(user.FieldWechatOpenid, field.TypeString, value)
+		_node.WechatOpenid = value
 	}
 	return _node, _spec
 }

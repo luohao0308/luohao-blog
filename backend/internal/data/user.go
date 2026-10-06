@@ -23,6 +23,7 @@ func userToBiz(po *ent.User) *biz.User {
 		DisplayName:  po.DisplayName,
 		Role:         po.Role,
 		AvatarURL:    po.AvatarURL,
+		WechatOpenID: po.WechatOpenid,
 		CreatedAt:    po.CreatedAt,
 		UpdatedAt:    po.UpdatedAt,
 	}
@@ -138,6 +139,44 @@ func (r *userRepo) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL str
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return biz.ErrUserNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+// FindByWechatOpenID resolves the account bound to a mini-program openid.
+// The empty openid never matches anything: unbound accounts store NULL, and
+// no flow ever looks up "" on purpose.
+func (r *userRepo) FindByWechatOpenID(ctx context.Context, openid string) (*biz.User, error) {
+	if openid == "" {
+		return nil, biz.ErrUserNotFound
+	}
+	po, err := r.data.db.User.Query().
+		Where(user.WechatOpenidEQ(openid)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, biz.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return userToBiz(po), nil
+}
+
+// BindWechat attaches a WeChat openid to the account. The unique index
+// backstops the application check: racing binds of the same openid surface
+// as a constraint error and map to the domain conflict error.
+func (r *userRepo) BindWechat(ctx context.Context, id uuid.UUID, openid string) error {
+	_, err := r.data.db.User.UpdateOneID(id).
+		SetWechatOpenid(openid).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return biz.ErrUserNotFound
+		}
+		if ent.IsConstraintError(err) {
+			return biz.ErrUserWechatConflict
 		}
 		return err
 	}

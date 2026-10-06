@@ -29,6 +29,8 @@ const (
 	FieldRole = "role"
 	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
 	FieldAvatarURL = "avatar_url"
+	// FieldWechatOpenid holds the string denoting the wechat_openid field in the database.
+	FieldWechatOpenid = "wechat_openid"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 )
@@ -43,6 +45,7 @@ var Columns = []string{
 	FieldDisplayName,
 	FieldRole,
 	FieldAvatarURL,
+	FieldWechatOpenid,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -117,4 +120,9 @@ func ByRole(opts ...sql.OrderTermOption) OrderOption {
 // ByAvatarURL orders the results by the avatar_url field.
 func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
+}
+
+// ByWechatOpenid orders the results by the wechat_openid field.
+func ByWechatOpenid(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWechatOpenid, opts...).ToFunc()
 }
