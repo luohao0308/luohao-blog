@@ -98,7 +98,7 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 部分修复 | Caddy 访问日志已启用（`log` → stdout console，docker logs 可查，2026-10-06 容器重建后实弹验证）；**残留**：restore 边服务边恢复、容器日志轮转（daemon.json max-size，需服务器操作单独授权） |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
 | v-html + WithUnsafe XSS 面 | 中 | 信任边界=仅 admin 可写；引入第二作者前必须 sanitize |
-| frontend healthcheck 用整页 SSR 探针 | 中 | 数据层抖动即 unhealthy 并绑架 caddy 启动；建议 Nitro /health |
+| ~~frontend healthcheck 用整页 SSR 探针~~ | 已修复 | Nitro 新增 /health（不触数据层）+ compose 探针改打 /health（2026-10-06 本地栈实弹：frontend ~20s 转 healthy，/health 200，首页/E2E t01–t02 无回归）；backend 探针打 /v1/articles/list 属数据层语义，有意保留 |
 | demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
 | ~~dev compose 端口发布 0.0.0.0~~ | 已修复 | 六端口（mysql/redis/es/minio）全部绑 `127.0.0.1`（compose config 渲染核验，2026-10-06） |
 | ~~CI 杂项~~ | 已修复 | ci.yml 6 个 action 全部 pin 官方 SHA + `permissions: contents: read`（workflow_call 兼容）；backup.sh 轮转改 glob 展开免 ls 空白分词（实跑 KEEP=2 轮转核验）；paths 过滤评估后**不做**——workflow 级 paths 会把 required check 留在 Pending 卡死文档型 PR（官方文档），public 仓库 Actions 免费无收益；**残留**：release.yml 4 个 action 未 pin（下次发布窗口一并处理） |
