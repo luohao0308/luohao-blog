@@ -101,23 +101,23 @@ useHead({ title: article.value.title })
         <span aria-label="阅读量">{{ article.view_count }} 次阅读</span>
         <button
           type="button"
-          class="rounded px-2 py-1 text-xs transition-colors"
+          class="rounded-full px-2.5 py-1 text-xs transition-colors"
           :class="liked ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-100 text-slate-600 hover:bg-rose-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-rose-950/40'"
           :aria-pressed="liked"
           @click="like"
         >{{ liked ? '♥' : '♡' }} 点赞 {{ likeCount }}</button>
         <button
           type="button"
-          class="rounded px-2 py-1 text-xs transition-colors"
+          class="rounded-full px-2.5 py-1 text-xs transition-colors"
           :class="collected ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-slate-100 text-slate-600 hover:bg-amber-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-amber-950/40'"
           :aria-pressed="collected"
           @click="toggleCollect"
         >{{ collected ? '★ 已收藏' : '☆ 收藏' }}</button>
         <span
           v-if="article.status !== 2"
-          class="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
+          class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
         >{{ ARTICLE_STATUS_LABEL[article.status] }}</span>
-        <NuxtLink v-for="tag in article.tags" :key="tag" :to="`/tags/${encodeURIComponent(tag)}`" class="max-w-full break-words rounded bg-[#e7eee9] px-2 py-1 text-xs text-[#365f53] hover:underline dark:bg-emerald-950 dark:text-emerald-200">
+        <NuxtLink v-for="tag in article.tags" :key="tag" :to="`/tags/${encodeURIComponent(tag)}`" class="max-w-full break-words rounded-full bg-[#e7eee9] px-2 py-1 text-xs text-[#365f53] hover:underline dark:bg-emerald-950 dark:text-emerald-200">
           {{ tag }}
         </NuxtLink>
       </div>
@@ -134,7 +134,7 @@ useHead({ title: article.value.title })
           v-for="item in related"
           :key="item.id"
           :to="`/posts/${encodeURIComponent(item.slug)}`"
-          class="rounded-lg border border-slate-200 p-4 transition-shadow hover:shadow-md dark:border-slate-800"
+          class="rounded-xl border border-slate-200 p-4 transition-shadow hover:shadow-md dark:border-slate-800"
         >
           <h3 class="line-clamp-2 text-sm font-medium">{{ item.title }}</h3>
           <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">

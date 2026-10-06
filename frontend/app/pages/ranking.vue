@@ -24,7 +24,7 @@ const ranking = computed(() =>
       <li v-for="(article, index) in ranking" :key="article.id">
         <NuxtLink
           :to="`/posts/${encodeURIComponent(article.slug)}`"
-          class="flex items-baseline gap-4 rounded-lg border border-slate-200 px-4 py-3 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
+          class="flex items-baseline gap-4 rounded-xl border border-slate-200 px-4 py-3 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
         >
           <span
             class="w-8 shrink-0 text-center font-mono text-sm"

@@ -79,21 +79,21 @@ async function submit() {
           maxlength="32"
           autocomplete="nickname"
           placeholder="昵称（1-32 个字，评论区展示）"
-          class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
         >
         <input
           v-model="email"
           type="email"
           autocomplete="username"
           placeholder="邮箱"
-          class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
         >
         <input
           v-model="password"
           type="password"
           autocomplete="new-password"
           placeholder="密码（至少 8 位）"
-          class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
         >
         <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400" role="alert">
           {{ errorMsg }}
@@ -101,7 +101,7 @@ async function submit() {
         <button
           type="submit"
           :disabled="pending"
-          class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+          class="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
           {{ pending ? '注册中…' : '注册并登录' }}
         </button>

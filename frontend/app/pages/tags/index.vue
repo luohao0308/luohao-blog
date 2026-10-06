@@ -20,7 +20,7 @@ const tags = computed(() => tagCounts(data.value ?? []))
         v-for="item in tags"
         :key="item.tag"
         :to="`/tags/${encodeURIComponent(item.tag)}`"
-        class="rounded-lg border border-slate-200 px-4 py-2 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
+        class="rounded-xl border border-slate-200 px-4 py-2 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
       >
         <span class="text-sm text-slate-700 dark:text-slate-200">{{ item.tag }}</span>
         <span class="ml-2 text-xs text-slate-400 dark:text-slate-500">{{ item.count }}</span>

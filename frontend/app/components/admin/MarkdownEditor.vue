@@ -36,7 +36,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div ref="rootEl" class="overflow-hidden rounded-md border border-slate-300 bg-white dark:border-slate-600" />
+  <div ref="rootEl" class="overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-slate-600" />
 </template>
 
 <style>

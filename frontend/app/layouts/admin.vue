@@ -13,7 +13,7 @@ const lightOverrides: GlobalThemeOverrides = {
     primaryColorHover: '#2d486b',
     primaryColorPressed: '#24405f',
     primaryColorSuppl: '#3c5d85',
-    borderRadius: '8px',
+    borderRadius: '10px',
   },
 }
 const darkOverrides: GlobalThemeOverrides = {
@@ -22,7 +22,7 @@ const darkOverrides: GlobalThemeOverrides = {
     primaryColorHover: '#bfdbfe',
     primaryColorPressed: '#60a5fa',
     primaryColorSuppl: '#93c5fd',
-    borderRadius: '8px',
+    borderRadius: '10px',
   },
 }
 
@@ -142,7 +142,7 @@ async function onLogout() {
       <NModal
         v-model:show="pwModalVisible"
         preset="card"
-        class="w-[24rem]"
+        class="w-[26rem]"
         title="修改密码"
       >
         <NForm ref="pwFormRef" :model="pwForm" :rules="pwRules" label-placement="top" :show-require-mark="false">

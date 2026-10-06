@@ -22,7 +22,7 @@ const categories = computed(() =>
         v-for="item in categories"
         :key="item.slug"
         :to="`/categories/${encodeURIComponent(item.slug)}`"
-        class="rounded-lg border border-slate-200 p-4 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
+        class="rounded-xl border border-slate-200 p-4 transition-colors hover:border-[#3c5d85] dark:border-slate-800 dark:hover:border-blue-300"
       >
         <div class="flex items-baseline justify-between">
           <span class="font-medium text-slate-800 dark:text-slate-100">{{ item.name }}</span>

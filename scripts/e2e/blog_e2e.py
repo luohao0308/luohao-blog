@@ -245,8 +245,9 @@ def t11(page, ctx):
     box.locator('button:has-text("提问")').click()
     # 提问后输入框被清空、按钮合理保持禁用；等待「回答气泡」出现而非按钮恢复。
     # 第 1 个气泡是用户提问，第 2 个是助手回答（或兜底/错误文案）。
-    page.wait_for_selector('section[aria-label="AI 问答"] div.rounded-lg >> nth=1', timeout=60_000)
-    reply = box.locator("div.rounded-lg").nth(1).inner_text()
+    # 气泡类名曾被 rounded-lg→rounded-xl 统一改版，选择器按 class*="rounded" 保持与改版无关
+    page.wait_for_selector('section[aria-label="AI 问答"] div[class*="rounded"] >> nth=1', timeout=60_000)
+    reply = box.locator('div[class*="rounded"]').nth(1).inner_text()
     assert reply.strip(), "助手回答为空"
     assert "出处：" in box.inner_text() or reply.strip(), "回答既无出处也无内容"
 

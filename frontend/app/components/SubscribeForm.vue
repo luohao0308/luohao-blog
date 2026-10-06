@@ -57,12 +57,12 @@ async function subscribe() {
         type="email"
         autocomplete="email"
         placeholder="you@example.com"
-        class="w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm outline-none transition focus:border-blue-500 dark:border-slate-700"
+        class="w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 text-sm outline-none transition focus:border-blue-500 dark:border-slate-700"
       >
       <button
         type="submit"
         :disabled="submitting"
-        class="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+        class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
       >
         {{ submitting ? '提交中…' : '订阅' }}
       </button>

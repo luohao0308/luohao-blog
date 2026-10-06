@@ -229,8 +229,8 @@ async function savePassword() {
   }
 }
 
-const inputClass = 'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900'
-const primaryButtonClass = 'rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
+const inputClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900'
+const primaryButtonClass = 'shrink-0 whitespace-nowrap rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
 const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.avatar_url) : ''))
 </script>
 
@@ -264,7 +264,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
           >{{ (user.display_name || user.email).trim().charAt(0).toUpperCase() }}</span>
           <div class="space-y-2">
             <div class="flex gap-2">
-              <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300" @click="selectFile">
+              <button type="button" class="shrink-0 whitespace-nowrap rounded-full border border-slate-300 px-5 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300" @click="selectFile">
                 选择图片
               </button>
               <button type="button" :disabled="!selectedFile || uploading" :class="primaryButtonClass" @click="uploadAvatar">
@@ -287,8 +287,8 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
         <h2 class="font-medium">
           昵称
         </h2>
-        <form class="flex gap-2" @submit.prevent="saveDisplayName">
-          <input v-model="displayName" type="text" maxlength="32" :class="inputClass">
+        <form class="flex gap-3" @submit.prevent="saveDisplayName">
+          <input v-model="displayName" type="text" maxlength="32" :class="[inputClass, 'min-w-0 flex-1']">
           <button type="submit" :disabled="nameSaving || displayName.trim() === user.display_name" :class="primaryButtonClass">
             {{ nameSaving ? '保存中…' : '保存' }}
           </button>
@@ -317,7 +317,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
       </section>
     </template>
     <div v-else class="space-y-4" aria-hidden="true">
-      <div class="h-8 w-40 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+      <div class="h-8 w-40 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
       <div class="h-40 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
       <div class="h-32 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
     </div>

@@ -53,7 +53,7 @@ async function ask() {
 </script>
 
 <template>
-  <section class="space-y-4 rounded-lg border border-slate-200 p-5 dark:border-slate-800" aria-label="AI 问答">
+  <section class="space-y-4 rounded-xl border border-slate-200 p-5 dark:border-slate-800" aria-label="AI 问答">
     <div>
       <h2 class="text-lg font-medium">问一问</h2>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -64,7 +64,7 @@ async function ask() {
     <div v-if="turns.length" class="space-y-4">
       <div v-for="(turn, i) in turns" :key="i" :class="turn.role === 'user' ? 'text-right' : ''">
         <div
-          class="inline-block max-w-full whitespace-pre-wrap rounded-lg px-4 py-3 text-left text-sm leading-6"
+          class="inline-block max-w-full whitespace-pre-wrap rounded-xl px-4 py-3 text-left text-sm leading-6"
           :class="turn.role === 'user'
             ? 'bg-[#e7eee9] text-[#365f53] dark:bg-emerald-950 dark:text-emerald-100'
             : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'"
@@ -89,13 +89,13 @@ async function ask() {
         type="text"
         maxlength="500"
         placeholder="比如：多对多关系怎么建模？"
-        class="w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm leading-6 outline-none focus:border-[#3c5d85] dark:border-slate-700 dark:focus:border-blue-400"
+        class="w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 text-sm leading-6 outline-none focus:border-[#3c5d85] dark:border-slate-700 dark:focus:border-blue-400"
         :disabled="loading"
       >
       <button
         type="submit"
         :disabled="loading || !input.trim()"
-        class="shrink-0 rounded-md bg-[#3c5d85] px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-blue-600"
+        class="shrink-0 rounded-full bg-[#3c5d85] px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-blue-600"
       >
         {{ loading ? '思考中…' : '提问' }}
       </button>

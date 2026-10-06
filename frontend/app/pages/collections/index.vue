@@ -24,7 +24,7 @@ function remove(entry: CollectionEntry) {
       <li
         v-for="entry in items"
         :key="entry.slug"
-        class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800"
+        class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800"
       >
         <div class="min-w-0">
           <NuxtLink
@@ -35,7 +35,7 @@ function remove(entry: CollectionEntry) {
         </div>
         <button
           type="button"
-          class="shrink-0 rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+          class="shrink-0 rounded-full px-3 py-1.5 text-xs text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
           @click="remove(entry)"
         >移除</button>
       </li>
