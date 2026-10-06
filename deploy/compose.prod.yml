@@ -8,11 +8,21 @@
 
 name: luohao-blog-prod
 
+# 容器日志轮转：json-file 每容器 10MB×3，防 caddy 访问日志等无上限增长。
+# 在 compose 层声明而非 daemon.json——配置入库、随 up -d 滚动重建生效，
+# 不需要重启 docker daemon。
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   caddy:
     image: caddy:2
     container_name: blog-caddy
     restart: unless-stopped
+    logging: *default-logging
     ports:
       # 本机 80 被占用时用 HTTP_PORT/HTTPS_PORT 覆盖（如本地冒烟 8080）。
       - "${HTTP_PORT:-80}:80"
@@ -35,6 +45,7 @@ services:
     image: ghcr.io/luohao0308/luohao-blog-frontend:latest
     container_name: blog-frontend
     restart: unless-stopped
+    logging: *default-logging
     environment:
       NUXT_BACKEND_BASE: http://backend:8000
     depends_on:
@@ -56,6 +67,7 @@ services:
     image: ghcr.io/luohao0308/luohao-blog-backend:latest
     container_name: blog-backend
     restart: unless-stopped
+    logging: *default-logging
     environment:
       KRATOS_DATABASE_SOURCE: ${DATABASE_SOURCE}
       KRATOS_JWT_SECRET: ${JWT_SECRET:-}
@@ -81,6 +93,7 @@ services:
     image: mysql:8.4
     container_name: blog-mysql-prod
     restart: unless-stopped
+    logging: *default-logging
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: blog
@@ -98,6 +111,7 @@ services:
     image: redis:7.4-alpine
     container_name: blog-redis-prod
     restart: unless-stopped
+    logging: *default-logging
     # 仅内网；S4 运维基线再评估密码/持久化策略。
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -109,6 +123,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
     container_name: blog-es-prod
     restart: unless-stopped
+    logging: *default-logging
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"

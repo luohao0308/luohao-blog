@@ -98,7 +98,7 @@ HTTPS 证书由 Caddy 自动向 Let's Encrypt 申请；若 443 无响应，检�
 | 应用回滚 | `docker pull ghcr.io/luohao0308/luohao-blog-backend:<旧sha>` 后把 compose 的 image tag 固定为该 sha 再 `up -d`；数据回滚用 restore.sh |
 | 备份 | `deploy/backup.sh`（cron 安装见 §5.1） |
 | 恢复 | `deploy/restore.sh backups/blog-<时间戳>.sql.gz` |
-| 日志 | `docker logs blog-backend --tail 100` / `blog-frontend` / `blog-caddy` |
+| 日志 | `docker logs blog-backend --tail 100` / `blog-frontend` / `blog-caddy`；json-file 轮转 10MB×3 已在 compose 六服务的 `logging` 声明（改配置经 `up -d` 滚动重建生效，无需动 daemon.json） |
 | 服务状态 | `docker compose -f deploy/compose.prod.yml ps` |
 
 ### 5.1 定时任务（备份 + 看门狗，真相源）
