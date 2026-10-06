@@ -18,6 +18,10 @@ data:
     auto_migrate: true
   redis:
     addr: ${REDIS_ADDR:127.0.0.1:6379}
+    # AUTH password; empty disables auth. Local dev Redis (deploy/docker-compose.yml)
+    # has no password — set this only when pointing at a requirepass'd instance,
+    # e.g. secrets.local.yaml or KRATOS_REDIS_PASSWORD.
+    password: ${REDIS_PASSWORD:}
     read_timeout: 0.2s
     write_timeout: 0.2s
   # User uploads (avatars). Production mounts a named volume at

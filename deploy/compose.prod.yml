@@ -71,6 +71,7 @@ services:
     environment:
       KRATOS_DATABASE_SOURCE: ${DATABASE_SOURCE}
       KRATOS_JWT_SECRET: ${JWT_SECRET:-}
+      KRATOS_REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - ./prod-conf:/data/conf:ro
       # 用户上传（头像）落本地磁盘，命名卷保证容器替换不丢文件；
@@ -112,9 +113,13 @@ services:
     container_name: blog-redis-prod
     restart: unless-stopped
     logging: *default-logging
-    # 仅内网；S4 运维基线再评估密码/持久化策略。
+    # 仅内网；密码来自 deploy/.env.prod 的 REDIS_PASSWORD（同源注入后端），
+    # 缺失时 compose 直接报错而不是静默起一个裸 Redis。
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD required in deploy/.env.prod}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
