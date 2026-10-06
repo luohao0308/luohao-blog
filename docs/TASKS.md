@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-05_
+_last-updated: 2026-10-06_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -14,7 +14,7 @@ _last-updated: 2026-10-05_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待域名 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密：API+后台入口已上线（PR #47），**用户已完成改密（2026-10-05，销项）**；HTTPS 待域名；**服务器待部署 #28 修复（见技术债）** |
+| T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待域名 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密已销项（2026-10-05）；#28 服务器部署已完成并公网 E2E 验收（2026-10-04）；**剩余仅 HTTPS 待域名** |
 
 ## 待办 (Todo)
 
@@ -24,7 +24,7 @@ _last-updated: 2026-10-05_
 - [x] 生产 E2E（2026-10-06，用户"对生产跑"授权）：公开用例 **12/12 全绿**（首页/列表/标签/详情×2/归档/作品集/关于/搜索/404/AI 问答真实 LLM/错误密码拒绝）；t05 修复为按环境动态选文章（原硬编码 dev 栈 seed slug `m5-prod-smoke`，生产不存在）；**t13–t16（后台列表/发文/评论审核闭环/登出守卫）需管理员凭据，未跑**——生产管理员密码属用户私密，不进对话
 - [x] 服务器部署验证：迁移 v9 生效、`backend-uploads` 卷挂载、backup.sh 实跑产出 uploads tar
 - [x] 前台 UI 走查（生产，探针账号）：登录→头像下拉（昵称邮箱/个人设置/退出，READER 无后台入口✓）→ /settings 三卡片（头像回显/昵称/改密，未修改时保存禁用✓）→ 文章页「以 部署探针 的身份发表」→ 提交成功→待审核块展示；**探针留言一条在待审区**（`部署验证：登录身份评论链路 OK`），用户可在后台通过或删除
-- [ ] t13–t16 补跑（需管理员凭据走 env 注入，或本地 docker 栈）
+- [x] t13–t16 补跑（2026-10-06，本地生产栈）：镜像从 main 重建（T-010 四切片在镜像内）后 **全套 16/16 全绿**（t01–t16，含 AI 问答真实 LLM）；t13 列表/t14 发文发布/t15 评论审核闭环/t16 登出守卫全部通过。补跑发现并修复 t15 用例两处失真：① 未登录引导断言用 `ctx.new_page()` 模拟访客，但同一 context 共享 cookie，登录后必假——改为登录前在主页面断言；② 提交后断言"未展示"与 S4 语义冲突（作者的待审评论在「待审核」块可见）——改为断言待审块展示 + 已发布列表不出现，审核通过后进入已发布列表；清理断言仅在提交成功后生效。限流自撞现场复现（连跑触顶 t16 登录 429），跑前清 Redis `blog:ratelimit:*`，长期修法见技术债。t15 修复待 PR
 
 - [x] T-010 前台账号体系与头部改版（四切片全部交付）：**S1** 后端账号基座（开放注册 READER+自动登录+独立限流、User.avatar_url、UserService UpdateProfile/UploadAvatar/GetAvatar（HttpBody+immutable 缓存）、本地磁盘存储+compose `backend-uploads` 卷+备份/恢复、迁移 000008，[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) merge `c59fa80`）；**S2** 前台头部改版（导航 8→5 项+文章▾ 下拉、UserMenu 登录/头像下拉（超管进后台）、公开布局会话恢复、/login /register，[PR #53](https://github.com/luohao0308/luohao-blog/pull/53) merge `e72b6fa`）；**S3** /settings 个人设置（头像 canvas 压缩上传/昵称/改密、客户端登录守卫，[PR #54](https://github.com/luohao0308/luohao-blog/pull/54) merge `0a86e72`）；**S4** 评论登录门禁（CreateComment 需 JWT、身份取自 token、user_id 落库兼容旧匿名行、头像批量附加、评论区登录引导，迁移 000009，[PR #55](https://github.com/luohao0308/luohao-blog/pull/55) merge `c7ef251`）；各片 go build/vet/test 与 pnpm lint/typecheck/build 全绿，required CI 双绿，guard 全程 consume allow（2026-10-05/06）；交付中一次 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI 红（教训：ignore 锚定 `/data/`）；计划与执行记录 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`；真实栈补测清单见上方待办
 
@@ -84,25 +84,26 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 
 | 项目 | 风险 | 说明 |
 |---|---|---|
-| **运维资产在版本库外** | **高** | watchdog.sh（服务器 untracked、cron */5）、backup cron（仅服务器 crontab）、**docs/ 与 AGENTS.md 整体未入 git**——服务器重建即失传；备份单机无异地副本、cron 静默失败无告警。修法：watchdog.sh 入库 + docs/AGENTS.md 提交推送 + runbook 补定时任务节 |
-| **useAuth 登出与 in-flight 刷新竞态** | **高** | logout 后 in-flight refresh 会"复活"会话（假登录，#28 单飞修复的镜像 bug）：`useAuth.ts:137` + `biz/auth.go:156`；修法 logout 先 await refreshOnce 或引入 session epoch |
-| LLM 120s vs HTTP server 60s 超时错配 | 中 | reasoning 模型下聊天 60s 必失败：`data/llm.go:41` vs `configs/config.yaml:5`，统一并文档化耦合 |
-| errors.Error 实际走 protojson | 中 | codec.go"stdlib 形状"注释错误（内嵌 Status 满足 proto.Message）；错误体多 `metadata:{}`；非法 UTF-8 → 裸 500 空体；需特判 + 钉死编码路径测试 |
-| page_token 合法大 offset 未钳 | 中 | 解析失败已修，但合法编码的巨大 offset 直通 ES from（>10000 → 500）与 MySQL OFFSET：`service/search.go:45`，补 offset 上限 |
-| release.yml 镜像发布门禁 | 已修复 | `ci-gate` 复用 CI 工作流并作为镜像任务前置依赖；保留 concurrency 与 30 分钟超时 |
-| 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
+| ~~useAuth 登出与 in-flight 刷新竞态~~ | 已修复 | #29：logout 先 await 在途 refreshOnce 再撤销会话（`useAuth.ts` logout）；2026-10-06 复核代码在位 |
+| ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；**残留**：备份仍单机无异地副本、cron 静默失败无告警 |
+| ~~LLM 120s vs HTTP server 60s 超时错配~~ | 已修复 | #29：HTTP deadline 提至 150s 并文档化与 llm.timeout 的耦合 |
+| ~~page_token 合法大 offset 未钳~~ | 已修复 | #29：offset 限 [0, 9900]（页大小上限内不出 ES max_result_window），越界映射 400，负值同拦 |
+| ~~errors.Error 实际走 protojson~~ | 已修复 | #28：codec.go 注释更正（proto 走 protojson、kratos errors 等 non-proto 保持 stdlib 形状）+ TestJSONCodecMarshalKratosError 钉死错误体编码路径；metadata/非法 UTF-8 维持 stdlib 现状（已文档化，不再当缺陷追踪） |
+| ~~es.go 零测试 / schema 双源~~ | 部分修复 | #30 补 es_test.go 3 例（索引配置/embedding 输入/维度）；**残留**：查询路径无覆盖、ent 注释 vs 手写 SQL 漂移未收口 |
+| ~~release.yml 镜像发布门禁~~ | 已修复 | `ci-gate` 复用 CI 工作流并作为镜像任务前置依赖；保留 concurrency 与 30 分钟超时 |
+| ~~backup.sh 空库假成功~~ | 已修复 | 临时文件 + EXIT 清理，gzip 完整性与 dump 头校验通过后原子重命名 |
+| ~~限流器 Incr+Expire 异常路径~~ | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
+| ~~E2E known_issue 失效~~ | 已修复 | #29 摘除过期标注；2026-10-06 复核套件内无 known_issue=True。**限流自撞仍开放**（见下行） |
+| E2E 限流自撞 | 中 | 登录限流 10 次/5min/IP，一轮全套 + 前置验证即触顶（2026-10-06 本地复现：t16 登录被 429）；连跑前需清 Redis `blog:ratelimit:*`，长期修法：套件启动时清键或 E2E 专用限流豁免 |
 | Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 中 | 可观测性与恢复安全三件 |
-| backup.sh 空库假成功 | 已修复 | 临时文件 + EXIT 清理，gzip 完整性与 dump 头校验通过后原子重命名 |
-| E2E known_issue 失效 + 限流自撞 | 中 | P0 已修但标注未摘（回归会静默放行）；一轮耗 7 次登录限流连跑必挂 |
-| demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
-| 限流器 Incr+Expire 异常路径 | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
-| dev compose 端口发布 0.0.0.0 | 低 | MySQL/Redis/ES/MinIO 对局域网暴露，建议 `127.0.0.1:` 前缀 |
-| CI 杂项 | 低 | ci.yml 第三方 action 未 pin SHA、无 permissions 块、无 paths 过滤；backup.sh 清理按空白分词 |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
-| es.go 零测试 / schema 双源 | 中 | httptest 可覆盖；ent 注释 vs 手写 SQL 漂移是"SQLite 测试过但 MySQL 不同"的根因 |
 | v-html + WithUnsafe XSS 面 | 中 | 信任边界=仅 admin 可写；引入第二作者前必须 sanitize |
 | frontend healthcheck 用整页 SSR 探针 | 中 | 数据层抖动即 unhealthy 并绑架 caddy 启动；建议 Nitro /health |
-| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、gui-test-screenshots 未 ignore、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 1000 篇/串行、seed 不回填索引、软删占坑 slug、chat 无缓存、prompt 无定界符、LLM body 无上限、密码无上限——全量见 REVIEW-ROUND2 文档 |
+| demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
+| dev compose 端口发布 0.0.0.0 | 低 | MySQL/Redis/ES/MinIO 对局域网暴露，建议 `127.0.0.1:` 前缀 |
+| CI 杂项 | 低 | ci.yml 第三方 action 未 pin SHA、无 permissions 块、无 paths 过滤；backup.sh 清理按空白分词 |
+| 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
+| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 1000 篇/串行、seed 不回填索引、软删占坑 slug、chat 无缓存、prompt 无定界符、LLM body 无上限、密码无上限——全量见 REVIEW-ROUND2 文档 |
 | ent selector 错误扁平化 | 已规避 | data 层返回错误码必须在查询构建前校验（`data.validateStatusFilter` 模式） |
 | MinIO 拉取 denied / 宿主 3306 被占 | 低 | 环境类备忘 |
 
