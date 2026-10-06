@@ -67,3 +67,10 @@ embedding:
   # Must equal the model's vector dimension; sizes the ES dense_vector field.
   dimensions: ${EMBEDDING_DIMENSIONS:0}
   timeout: 10s
+
+wechat:
+  # Mini program AppID (public by design). The AppSecret lives in the
+  # git-ignored secrets file. Either field empty disables the wechat auth
+  # endpoints with FAILED_PRECONDITION.
+  app_id: ${WECHAT_APP_ID:}
+  app_secret: ${WECHAT_APP_SECRET:}

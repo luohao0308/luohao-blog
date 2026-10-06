@@ -30,3 +30,30 @@ export interface ArticleSet {
 }
 
 export const ARTICLE_STATUS_PUBLISHED = 2
+
+// --- 认证 wire 类型（snake_case，与后端契约一致） ---
+
+export interface Account {
+  id: string
+  email: string
+  displayName: string
+  role: number
+  avatarUrl?: string
+}
+
+export interface LoginReply {
+  access_token: string
+  token_type: string
+  expires_in: number
+  user: Account
+}
+
+export interface WechatLoginReply {
+  // WechatLoginStatus：1 = OK（login 可用），2 = BINDING_REQUIRED（binding_ticket 可用）
+  status: number
+  login?: LoginReply
+  binding_ticket?: string
+}
+
+export const WECHAT_STATUS_OK = 1
+export const WECHAT_STATUS_BINDING_REQUIRED = 2

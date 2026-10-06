@@ -15,6 +15,8 @@ p, public, /v1/auth/login, POST
 p, public, /v1/auth/register, POST
 p, public, /v1/auth/refresh, POST
 p, public, /v1/auth/logout, POST
+p, public, /v1/auth/wechat, POST
+p, public, /v1/auth/wechat/bind, POST
 p, public, /v1/assets/avatars/{name}, GET
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
@@ -26,6 +28,8 @@ p, public, /blog.v1.AuthService/Login, *
 p, public, /blog.v1.AuthService/Register, *
 p, public, /blog.v1.AuthService/Refresh, *
 p, public, /blog.v1.AuthService/Logout, *
+p, public, /blog.v1.AuthService/WechatLogin, *
+p, public, /blog.v1.AuthService/BindWechat, *
 p, public, /blog.v1.UserService/GetAvatar, *
 
 # --- any authenticated account ---

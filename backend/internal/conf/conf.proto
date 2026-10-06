@@ -19,6 +19,17 @@ message Bootstrap {
   // OpenAI-compatible chat LLM for retrieval-augmented answers (M4/S3).
   // Absent or incomplete disables the Chat RPC's generation side.
   Llm llm = 6;
+  // WeChat mini-program login (T-011/S2). Absent or incomplete disables the
+  // wechat auth endpoints with FAILED_PRECONDITION.
+  Wechat wechat = 7;
+}
+
+message Wechat {
+  // Mini program AppID, e.g. wx58089476f518fd3f. Public by design.
+  string app_id = 1;
+  // Mini program AppSecret from the mp.weixin.qq.com console. Provide it via
+  // the git-ignored secrets file, never in source control.
+  string app_secret = 2;
 }
 
 message Llm {

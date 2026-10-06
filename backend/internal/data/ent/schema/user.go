@@ -35,5 +35,10 @@ func (User) Fields() []ent.Field {
 		// Site-relative avatar path served by GetAvatar, e.g.
 		// /v1/assets/avatars/<32-hex>.<ext>. Empty until the first upload.
 		field.String("avatar_url").Default(""),
+		// WeChat mini-program identity (openid). NULL until the account is
+		// bound through the wechat login flow; the unique index guarantees one
+		// openid maps to exactly one account. Must stay in sync with
+		// migrations/000010_user_wechat_openid (schema drift debt).
+		field.String("wechat_openid").Optional().Unique(),
 	}
 }

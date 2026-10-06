@@ -33,5 +33,14 @@ enum ErrorReason {
   SUBSCRIBER_INVALID_ARGUMENT = 22;
   SUBSCRIBER_NOT_FOUND = 23;
   SUBSCRIBER_TOO_MANY_ATTEMPTS = 24;
-  SEARCH_TOO_MANY_ATTEMPTS = 25;
+  // WeChat mini-program login code rejected by WeChat (invalid, expired, or
+  // replayed) — the client must run wx.login again.
+  AUTH_WECHAT_CODE_INVALID = 25;
+  // The single-use wechat binding ticket is missing, expired, or already
+  // consumed — the client must run wx.login again to get a fresh one.
+  AUTH_WECHAT_TICKET_INVALID = 26;
+  // Another account already holds the WeChat openid being bound.
+  USER_WECHAT_CONFLICT = 27;
+
+  SEARCH_TOO_MANY_ATTEMPTS = 28;
 }
