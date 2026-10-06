@@ -41,4 +41,6 @@ enum ErrorReason {
   AUTH_WECHAT_TICKET_INVALID = 26;
   // Another account already holds the WeChat openid being bound.
   USER_WECHAT_CONFLICT = 27;
+
+  SEARCH_TOO_MANY_ATTEMPTS = 28;
 }
