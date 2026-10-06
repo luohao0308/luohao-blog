@@ -64,6 +64,8 @@ _last-updated: 2026-10-07_
 - [x] M3 内容推荐体系：相关文章推荐（分类加权+标签重叠，回退最新）+ 文章列表热门阅读位（PR #38 squash 合并 merge `fc7be0d`）（2026-10-05）
 - [x] M3 用户互动能力：点赞（后端 like_count+去重 PR #36 merge `f70ff20`；前端按钮 PR #37 merge `524badc`，content-type 修复 #40 merge `301de3f`）、收藏（localStorage 本地方案 + /collections 页）、评论体验（待审块/昵称记忆/字数统计/重试，PR #39 merge `07d582c`）；生产已部署验收（2026-10-05）
 
+- [x] 远端分支清理（2026-10-07，用户"继续推进"授权）：删除 21 个已核验远端分支（本任务 4 个特性分支 + ci-probe 探针 + 16 个历史交付分支，逐个经 merged-PR 或 main-祖先核验）；保留 `docs/page-layout-record`、`docs/t012-close` 两个无合并记录分支，远端仅剩 main + 待合并记录分支
+
 ## 未授权或未立项 (Do Not Start)
 
 - M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）

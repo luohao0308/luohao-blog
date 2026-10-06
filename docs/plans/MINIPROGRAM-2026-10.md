@@ -61,6 +61,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 ### S3：互动（点赞/评论/收藏，纯小程序端，后端零改动）
 
 - 状态：completed（2026-10-07）
+- 交付：[PR #72](https://github.com/luohao0308/luohao-blog/pull/72) squash 合并 merge `a822860b`（CI 双绿，竞速循环复用）
 - 实现：详情页互动条（点赞 ♥ 本地去重 + 服务端 24h 去重兜底；收藏 ★ 本地存储快照标题）；评论区（分页拉取、头像/首字回退、自己待审评论带「审核中」标识、登录态输入栏 401 自动刷新重试、未登录引导跳「我的」）；收藏页（新路由 /pages/favorites/favorites，快照列表 + 移除）；我的页新增「我的收藏」菜单行 + 真实头像展示
 - 验证：`tsc --noEmit` 全绿；契约对齐（POST /v1/comments 需 JWT、GET /v1/articles/{slug}/comments 公开、PENDING=1/APPROVED=2）
 - 未验证项：模拟器/真机实操（点赞计数、评论先审后显流转）待用户实测
