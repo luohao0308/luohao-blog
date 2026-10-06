@@ -1,0 +1,13 @@
+{
+  "name": "luohao-blog-miniprogram",
+  "version": "0.1.0",
+  "private": true,
+  "description": "罗浩的个人博客小程序端（原生 TypeScript）",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^4.0.5",
+    "typescript": "^5.6.3"
+  }
+}

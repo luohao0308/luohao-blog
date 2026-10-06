@@ -1,0 +1,21 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state">加载中…</view>
+
+  <view wx:elif="{{error}}" class="state">
+    <view>{{error}}</view>
+    <button class="retry-btn" size="mini" bindtap="retry">重试</button>
+  </view>
+
+  <view wx:else>
+    <view class="post-title">{{title}}</view>
+    <view class="post-meta">
+      <text class="meta-item">{{dateText}}</text>
+      <text class="meta-item">阅读 {{viewCount}}</text>
+      <text wx:if="{{categoryName}}" class="meta-item">{{categoryName}}</text>
+    </view>
+    <view wx:if="{{tags.length}}" class="post-tags">
+      <text wx:for="{{tags}}" wx:key="*this" class="chip">{{item}}</text>
+    </view>
+    <rich-text class="post-content" nodes="{{html}}"></rich-text>
+  </view>
+</view>
