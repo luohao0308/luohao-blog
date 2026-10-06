@@ -2,30 +2,47 @@
   <view wx:if="{{mode === 'loading'}}" class="state">加载中…</view>
 
   <!-- 已登录 -->
-  <view wx:elif="{{mode === 'signedin'}}" class="me-card">
-    <view class="me-avatar">{{account.avatarUrl ? '' : '👤'}}</view>
-    <view class="me-name">{{account.displayName}}</view>
-    <view class="me-tip">{{account.email}}</view>
-    <button class="me-action" size="mini" bindtap="signOut">退出登录</button>
-  </view>
+  <block wx:elif="{{mode === 'signedin'}}">
+    <view class="hero">
+      <view class="hero-avatar">
+        <text>{{account.displayName[0] || '博'}}</text>
+      </view>
+      <view class="hero-name">{{account.displayName}}</view>
+      <view class="hero-email">{{account.email}}</view>
+      <view class="hero-badge">已绑定微信</view>
+    </view>
+    <view class="panel">
+      <button class="btn btn-ghost" bindtap="signOut">退出登录</button>
+    </view>
+  </block>
 
   <!-- 绑定已有账号 -->
-  <view wx:elif="{{mode === 'binding'}}" class="me-card">
-    <view class="me-name">绑定已有账号</view>
-    <view class="me-tip">微信号首次使用，输入你在网页版注册的邮箱和密码完成绑定</view>
-    <input class="me-input" placeholder="邮箱" value="{{email}}" bindinput="onEmailInput" />
-    <input class="me-input" placeholder="密码" password value="{{password}}" bindinput="onPasswordInput" />
-    <view wx:if="{{error}}" class="me-error">{{error}}</view>
-    <button class="me-action primary" size="mini" loading="{{busy}}" bindtap="submitBind">绑定并登录</button>
-    <button class="me-action" size="mini" bindtap="cancelBind">取消</button>
-  </view>
+  <block wx:elif="{{mode === 'binding'}}">
+    <view class="hero hero-compact">
+      <view class="hero-avatar hero-avatar-sm"><text>链</text></view>
+      <view class="hero-name">绑定已有账号</view>
+      <view class="hero-email">验证邮箱密码后，这个微信号即可一键登录</view>
+    </view>
+    <view class="panel">
+      <input class="field" placeholder="邮箱" placeholder-class="field-placeholder" value="{{email}}" bindinput="onEmailInput" />
+      <input class="field" placeholder="密码" password placeholder-class="field-placeholder" value="{{password}}" bindinput="onPasswordInput" />
+      <view wx:if="{{error}}" class="error">{{error}}</view>
+      <button class="btn btn-primary" loading="{{busy}}" disabled="{{busy}}" bindtap="submitBind">绑定并登录</button>
+      <button class="btn btn-ghost" bindtap="cancelBind">取消</button>
+    </view>
+  </block>
 
   <!-- 未登录 -->
-  <view wx:else class="me-card">
-    <view class="me-avatar">👤</view>
-    <view class="me-name">未登录</view>
-    <view class="me-tip">使用微信快捷登录，绑定你的博客账号后可评论、收藏</view>
-    <view wx:if="{{error}}" class="me-error">{{error}}</view>
-    <button class="me-action primary" size="mini" loading="{{busy}}" bindtap="startWechatLogin">微信登录</button>
-  </view>
+  <block wx:else>
+    <view class="hero">
+      <view class="hero-avatar"><text>博</text></view>
+      <view class="hero-name">登录博客账号</view>
+      <view class="hero-email">绑定后可与网页版共用账号：发评论、收文章、得推荐</view>
+    </view>
+    <view class="panel">
+      <view wx:if="{{error}}" class="error">{{error}}</view>
+      <button class="btn btn-primary" loading="{{busy}}" disabled="{{busy}}" bindtap="startWechatLogin">微信一键登录</button>
+      <view class="hint">还没有账号？先在网页版注册，回来一键绑定</view>
+    </view>
+  </block>
 </view>

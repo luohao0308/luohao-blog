@@ -56,5 +56,6 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 小程序：`utils/auth.ts` 会话存取（access+refresh+过期戳，401 → X-Refresh-Token 单飞刷新 → 重放一次）；我的页登录/绑定/已登录三态 UI
 - 验证：`go build/vet/test` + golangci-lint 全绿（新增 biz 流程测试 9 例、code2session httptest 3 例、authz 路由用例）；小程序 `tsc --noEmit` 全绿
 - 未验证项：真实 wx.login→code2session 链路需生产部署后端（带 wechat secrets）后在模拟器/真机冒烟；部署时服务器 secrets 文件需补 `wechat:` 段
+- 打磨（用户实测反馈 2026-10-07）：绑定失败自动静默换新票据留在表单（不再弹回登录页）；我的页按站点设计语言重做（blue-600 药丸主按钮、slate 灰阶、#3c5d85 品牌头像环、渐变头部卡）
 - 回退点：单 PR revert；迁移 down.sql
 - 回退点：删除 `miniprogram/` 目录，单 PR revert

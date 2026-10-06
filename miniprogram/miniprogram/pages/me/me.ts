@@ -1,9 +1,10 @@
-import { currentAccount, fetchMe, isLoggedIn, logout as authLogout, refreshSession, wechatLogin, bindWechat } from '../../utils/auth'
+import { fetchMe, isLoggedIn, logout as authLogout, refreshSession, wechatLogin, bindWechat } from '../../utils/auth'
 import type { Account } from '../../utils/types'
 import { toMessage } from '../../utils/request'
 
 Page({
   data: {
+    // 状态机：loading | guest | binding | signedin
     mode: 'loading',
     account: null as Account | null,
     bindTicket: '',
@@ -69,8 +70,19 @@ Page({
       const account = await bindWechat(bindTicket, email.trim(), password)
       this.setData({ mode: 'signedin', account, busy: false, password: '' })
     } catch (error) {
-      // 票据一次性：失败即作废，回登录页让用户重新 wx.login。
-      this.setData({ mode: 'guest', busy: false, error: toMessage(error) })
+      // 票据是一次性的，失败即作废：静默换一张新票留在表单，
+      // 用户改完密码直接重试，不用回登录页重新点按钮。
+      try {
+        const result = await wechatLogin()
+        if (result.kind === 'binding') {
+          this.setData({ mode: 'binding', bindTicket: result.ticket, busy: false, error: toMessage(error) })
+          return
+        }
+        // 刚才还是未绑定态，这里理论不会发生；兜底回登录页。
+        this.setData({ mode: 'guest', busy: false, error: toMessage(error) })
+      } catch {
+        this.setData({ mode: 'guest', busy: false, error: toMessage(error) })
+      }
     }
   },
 
@@ -81,11 +93,5 @@ Page({
   async signOut() {
     await authLogout()
     this.setData({ mode: 'guest', account: null })
-  },
-
-  refreshMe() {
-    if (currentAccount()) {
-      this.restore()
-    }
   },
 })
