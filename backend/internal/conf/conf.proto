@@ -95,6 +95,9 @@ message Data {
     string addr = 2;
     google.protobuf.Duration read_timeout = 3;
     google.protobuf.Duration write_timeout = 4;
+    // AUTH password. Empty disables auth (local default); production injects
+    // it via KRATOS_REDIS_PASSWORD so the requirepass'd Redis accepts us.
+    string password = 5;
   }
   Database database = 1;
   Redis redis = 2;
