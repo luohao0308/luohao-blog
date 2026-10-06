@@ -1,53 +1,135 @@
-.me-card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 48rpx 32rpx;
+/* 与站点一致的设计语言：blue-600 主色、药丸按钮、slate 灰阶、圆形头像。 */
+
+.page {
+  padding: 32rpx 24rpx 48rpx;
+}
+
+/* --- 头部卡：品牌感头像 + 主文案 --- */
+
+.hero {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 70%);
+  border: 1rpx solid #e2e8f0;
+  border-radius: 28rpx;
+  padding: 56rpx 40rpx 48rpx;
   text-align: center;
 }
 
-.me-avatar {
-  width: 128rpx;
-  height: 128rpx;
+.hero-compact {
+  padding: 44rpx 40rpx 40rpx;
+}
+
+.hero-avatar {
+  width: 136rpx;
+  height: 136rpx;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
-  font-size: 56rpx;
-  line-height: 128rpx;
-  margin: 0 auto;
-}
-
-.me-name {
-  margin-top: 24rpx;
-  font-size: 32rpx;
+  background: #3c5d85;
+  color: #fff;
+  font-size: 60rpx;
   font-weight: 600;
+  line-height: 136rpx;
+  margin: 0 auto;
+  box-shadow: 0 0 0 10rpx rgba(60, 93, 133, 0.12);
 }
 
-.me-tip {
-  margin-top: 12rpx;
-  color: #9ca3af;
+.hero-avatar-sm {
+  width: 104rpx;
+  height: 104rpx;
+  font-size: 44rpx;
+  line-height: 104rpx;
+}
+
+.hero-name {
+  margin-top: 28rpx;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.hero-email {
+  margin-top: 10rpx;
   font-size: 26rpx;
+  color: #64748b;
+  line-height: 1.6;
 }
 
-.me-input {
+.hero-badge {
+  display: inline-block;
   margin-top: 20rpx;
-  background: #f5f6f8;
-  border-radius: 12rpx;
-  padding: 18rpx 24rpx;
+  padding: 6rpx 22rpx;
+  border-radius: 999rpx;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 22rpx;
+}
+
+/* --- 表单/操作面板 --- */
+
+.panel {
+  margin-top: 28rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 28rpx;
+  padding: 36rpx 32rpx 32rpx;
+}
+
+.field {
+  background: #f1f5f9;
+  border-radius: 999rpx;
+  padding: 22rpx 32rpx;
   font-size: 28rpx;
-  text-align: left;
+  margin-bottom: 20rpx;
 }
 
-.me-error {
-  margin-top: 20rpx;
+.field-placeholder {
+  color: #94a3b8;
+}
+
+.error {
+  margin: 4rpx 8rpx 16rpx;
   color: #dc2626;
   font-size: 24rpx;
+  text-align: center;
 }
 
-.me-action {
-  margin-top: 24rpx;
+.btn {
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  line-height: 2.6;
+  margin-top: 8rpx;
 }
 
-.me-action.primary {
-  background: #4f46e5;
+.btn::after {
+  border: none;
+}
+
+.btn-primary {
+  background: #2563eb;
   color: #fff;
+}
+
+.btn-primary[disabled] {
+  background: #93c5fd;
+  color: #fff;
+}
+
+.btn-ghost {
+  background: #fff;
+  color: #475569;
+  border: 1rpx solid #cbd5e1;
+  margin-top: 20rpx;
+}
+
+.hint {
+  margin-top: 20rpx;
+  color: #94a3b8;
+  font-size: 24rpx;
+  text-align: center;
+}
+
+.state {
+  text-align: center;
+  color: #9ca3af;
+  padding: 40rpx 0;
+  font-size: 26rpx;
 }
