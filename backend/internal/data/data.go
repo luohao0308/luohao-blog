@@ -20,7 +20,7 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewRedis, NewTokenIssuer, NewSessionRepo, NewRateLimiter, NewRegisterRateLimiter, NewCommentRateLimiter, NewSubscribeRateLimiter, NewRefreshTokenTTL, NewAuthorizer, NewArticleRepo, NewCategoryRepo, NewCommentRepo, NewSubscriberRepo, NewUserRepo, NewAvatarStore, NewEsIndexer, NewChatLLM, NewChatRateLimiter, NewWechatClient, NewWechatBindingStore)
+var ProviderSet = wire.NewSet(NewData, NewRedis, NewTokenIssuer, NewSessionRepo, NewRateLimiter, NewRegisterRateLimiter, NewCommentRateLimiter, NewSubscribeRateLimiter, NewRefreshTokenTTL, NewAuthorizer, NewArticleRepo, NewCategoryRepo, NewCommentRepo, NewSubscriberRepo, NewUserRepo, NewAvatarStore, NewEsIndexer, NewChatLLM, NewChatRateLimiter, NewSearchRateLimiter, NewWechatClient, NewWechatBindingStore)
 
 // runMigrations applies all pending migrations idempotently from the embedded
 // migrations.FS. The MySQL DSN must enable multiStatements for

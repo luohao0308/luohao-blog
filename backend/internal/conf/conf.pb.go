@@ -925,6 +925,11 @@ type Auth_RateLimit struct {
 	ChatAttempts int64 `protobuf:"varint,5,opt,name=chat_attempts,json=chatAttempts,proto3" json:"chat_attempts,omitempty"`
 	// Fixed window size for the chat counter. Defaults to 5m when unset.
 	ChatWindow *durationpb.Duration `protobuf:"bytes,6,opt,name=chat_window,json=chatWindow,proto3" json:"chat_window,omitempty"`
+	// Public search queries allowed per client IP inside search_window.
+	// Defaults to 60 when unset.
+	SearchAttempts int64 `protobuf:"varint,9,opt,name=search_attempts,json=searchAttempts,proto3" json:"search_attempts,omitempty"`
+	// Fixed window size for the search counter. Defaults to 1m when unset.
+	SearchWindow *durationpb.Duration `protobuf:"bytes,10,opt,name=search_window,json=searchWindow,proto3" json:"search_window,omitempty"`
 	// Account registrations allowed per client IP inside register_window.
 	// Defaults to 10 when unset.
 	RegisterAttempts int64 `protobuf:"varint,7,opt,name=register_attempts,json=registerAttempts,proto3" json:"register_attempts,omitempty"`
@@ -1007,6 +1012,20 @@ func (x *Auth_RateLimit) GetChatWindow() *durationpb.Duration {
 	return nil
 }
 
+func (x *Auth_RateLimit) GetSearchAttempts() int64 {
+	if x != nil {
+		return x.SearchAttempts
+	}
+	return 0
+}
+
+func (x *Auth_RateLimit) GetSearchWindow() *durationpb.Duration {
+	if x != nil {
+		return x.SearchWindow
+	}
+	return nil
+}
+
 func (x *Auth_RateLimit) GetRegisterAttempts() int64 {
 	if x != nil {
 		return x.RegisterAttempts
@@ -1082,7 +1101,7 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
 	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xc6\x05\n" +
+	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xaf\x06\n" +
 	"\x04Auth\x12&\n" +
 	"\x03jwt\x18\x01 \x01(\v2\x14.kratos.api.Auth.JWTR\x03jwt\x12E\n" +
 	"\x11refresh_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0frefreshTokenTtl\x129\n" +
@@ -1090,7 +1109,7 @@ const file_conf_conf_proto_rawDesc = "" +
 	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x1ab\n" +
 	"\x03JWT\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12C\n" +
-	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\xaf\x03\n" +
+	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\x98\x04\n" +
 	"\tRateLimit\x12%\n" +
 	"\x0elogin_attempts\x18\x01 \x01(\x03R\rloginAttempts\x12<\n" +
 	"\flogin_window\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\vloginWindow\x12)\n" +
@@ -1098,7 +1117,10 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x0ecomment_window\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\rcommentWindow\x12#\n" +
 	"\rchat_attempts\x18\x05 \x01(\x03R\fchatAttempts\x12:\n" +
 	"\vchat_window\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\n" +
-	"chatWindow\x12+\n" +
+	"chatWindow\x12'\n" +
+	"\x0fsearch_attempts\x18\t \x01(\x03R\x0esearchAttempts\x12>\n" +
+	"\rsearch_window\x18\n" +
+	" \x01(\v2\x19.google.protobuf.DurationR\fsearchWindow\x12+\n" +
 	"\x11register_attempts\x18\a \x01(\x03R\x10registerAttempts\x12B\n" +
 	"\x0fregister_window\x18\b \x01(\v2\x19.google.protobuf.DurationR\x0eregisterWindowB7Z5github.com/go-kratos/kratos-layout/internal/conf;confb\x06proto3"
 
@@ -1157,12 +1179,13 @@ var file_conf_conf_proto_depIdxs = []int32{
 	14, // 21: kratos.api.Auth.RateLimit.login_window:type_name -> google.protobuf.Duration
 	14, // 22: kratos.api.Auth.RateLimit.comment_window:type_name -> google.protobuf.Duration
 	14, // 23: kratos.api.Auth.RateLimit.chat_window:type_name -> google.protobuf.Duration
-	14, // 24: kratos.api.Auth.RateLimit.register_window:type_name -> google.protobuf.Duration
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	14, // 24: kratos.api.Auth.RateLimit.search_window:type_name -> google.protobuf.Duration
+	14, // 25: kratos.api.Auth.RateLimit.register_window:type_name -> google.protobuf.Duration
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }

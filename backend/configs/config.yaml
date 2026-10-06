@@ -46,6 +46,9 @@ auth:
     # Self-service account registrations. Defaults when unset: 10 per 5m per IP.
     register_attempts: 10
     register_window: 300s # 5m
+    # Public search queries. Defaults when unset: 60 per 1m per IP.
+    search_attempts: 60
+    search_window: 60s # 1m
 
 es:
   addresses:

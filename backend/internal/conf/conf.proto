@@ -142,6 +142,11 @@ message Auth {
     int64 chat_attempts = 5;
     // Fixed window size for the chat counter. Defaults to 5m when unset.
     google.protobuf.Duration chat_window = 6;
+    // Public search queries allowed per client IP inside search_window.
+    // Defaults to 60 when unset.
+    int64 search_attempts = 9;
+    // Fixed window size for the search counter. Defaults to 1m when unset.
+    google.protobuf.Duration search_window = 10;
     // Account registrations allowed per client IP inside register_window.
     // Defaults to 10 when unset.
     int64 register_attempts = 7;
