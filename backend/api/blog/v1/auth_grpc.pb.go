@@ -26,6 +26,8 @@ const (
 	AuthService_Logout_FullMethodName         = "/blog.v1.AuthService/Logout"
 	AuthService_GetMe_FullMethodName          = "/blog.v1.AuthService/GetMe"
 	AuthService_UpdatePassword_FullMethodName = "/blog.v1.AuthService/UpdatePassword"
+	AuthService_WechatLogin_FullMethodName    = "/blog.v1.AuthService/WechatLogin"
+	AuthService_BindWechat_FullMethodName     = "/blog.v1.AuthService/BindWechat"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -80,6 +82,27 @@ type AuthServiceClient interface {
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
 	UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// WechatLogin signs a mini-program user in with a wx.login code. The code
+	// is exchanged (code2session) for the caller's openid; an account already
+	// bound to that openid receives the same token pair Login returns, with
+	// the refresh cookie set. An unbound openid receives status
+	// BINDING_REQUIRED plus a single-use binding ticket (10 minutes): the
+	// client collects the reader's existing email and password and calls
+	// BindWechat. Accounts are never created here — binding requires an
+	// existing READER/ADMIN account.
+	// Returns UNAUTHORIZED when WeChat rejects the code (invalid, expired, or
+	// replayed), and FAILED_PRECONDITION when the server has no WeChat
+	// credentials configured. Rate limited per client IP on the login budget.
+	WechatLogin(ctx context.Context, in *WechatLoginRequest, opts ...grpc.CallOption) (*WechatLoginReply, error)
+	// BindWechat attaches the openid behind a WechatLogin binding ticket to
+	// the account authenticated by email and password, then signs the caller
+	// in with the standard token pair and refresh cookie. The ticket is
+	// consumed atomically: a failed bind (wrong password) burns it, and the
+	// client must run wx.login again.
+	// Returns UNAUTHORIZED for an unknown/expired/replayed ticket or wrong
+	// credentials, CONFLICT when another account already holds the openid.
+	// Rate limited per client IP on the login budget.
+	BindWechat(ctx context.Context, in *BindWechatRequest, opts ...grpc.CallOption) (*LoginReply, error)
 }
 
 type authServiceClient struct {
@@ -150,6 +173,26 @@ func (c *authServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswo
 	return out, nil
 }
 
+func (c *authServiceClient) WechatLogin(ctx context.Context, in *WechatLoginRequest, opts ...grpc.CallOption) (*WechatLoginReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WechatLoginReply)
+	err := c.cc.Invoke(ctx, AuthService_WechatLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) BindWechat(ctx context.Context, in *BindWechatRequest, opts ...grpc.CallOption) (*LoginReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginReply)
+	err := c.cc.Invoke(ctx, AuthService_BindWechat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -202,6 +245,27 @@ type AuthServiceServer interface {
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
 	UpdatePassword(context.Context, *UpdatePasswordRequest) (*emptypb.Empty, error)
+	// WechatLogin signs a mini-program user in with a wx.login code. The code
+	// is exchanged (code2session) for the caller's openid; an account already
+	// bound to that openid receives the same token pair Login returns, with
+	// the refresh cookie set. An unbound openid receives status
+	// BINDING_REQUIRED plus a single-use binding ticket (10 minutes): the
+	// client collects the reader's existing email and password and calls
+	// BindWechat. Accounts are never created here — binding requires an
+	// existing READER/ADMIN account.
+	// Returns UNAUTHORIZED when WeChat rejects the code (invalid, expired, or
+	// replayed), and FAILED_PRECONDITION when the server has no WeChat
+	// credentials configured. Rate limited per client IP on the login budget.
+	WechatLogin(context.Context, *WechatLoginRequest) (*WechatLoginReply, error)
+	// BindWechat attaches the openid behind a WechatLogin binding ticket to
+	// the account authenticated by email and password, then signs the caller
+	// in with the standard token pair and refresh cookie. The ticket is
+	// consumed atomically: a failed bind (wrong password) burns it, and the
+	// client must run wx.login again.
+	// Returns UNAUTHORIZED for an unknown/expired/replayed ticket or wrong
+	// credentials, CONFLICT when another account already holds the openid.
+	// Rate limited per client IP on the login budget.
+	BindWechat(context.Context, *BindWechatRequest) (*LoginReply, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -229,6 +293,12 @@ func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*Us
 }
 func (UnimplementedAuthServiceServer) UpdatePassword(context.Context, *UpdatePasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePassword not implemented")
+}
+func (UnimplementedAuthServiceServer) WechatLogin(context.Context, *WechatLoginRequest) (*WechatLoginReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method WechatLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) BindWechat(context.Context, *BindWechatRequest) (*LoginReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindWechat not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -359,6 +429,42 @@ func _AuthService_UpdatePassword_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_WechatLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WechatLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).WechatLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_WechatLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).WechatLogin(ctx, req.(*WechatLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_BindWechat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindWechatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).BindWechat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_BindWechat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).BindWechat(ctx, req.(*BindWechatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -389,6 +495,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePassword",
 			Handler:    _AuthService_UpdatePassword_Handler,
+		},
+		{
+			MethodName: "WechatLogin",
+			Handler:    _AuthService_WechatLogin_Handler,
+		},
+		{
+			MethodName: "BindWechat",
+			Handler:    _AuthService_BindWechat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

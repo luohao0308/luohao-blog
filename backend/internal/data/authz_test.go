@@ -31,6 +31,8 @@ func TestPolicyMatrix(t *testing.T) {
 		{"public list", "public", "/v1/articles/list", "GET", true},
 		{"public get", "public", "/v1/articles/{slug}", "GET", true},
 		{"public login", "public", "/v1/auth/login", "POST", true},
+		{"public wechat login", "public", "/v1/auth/wechat", "POST", true},
+		{"public wechat bind", "public", "/v1/auth/wechat/bind", "POST", true},
 		{"public refresh", "public", "/v1/auth/refresh", "POST", true},
 		{"public logout", "public", "/v1/auth/logout", "POST", true},
 		// Writes are closed to the public, including by method mismatch.
