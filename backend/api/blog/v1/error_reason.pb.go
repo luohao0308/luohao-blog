@@ -49,6 +49,7 @@ const (
 	ErrorReason_SUBSCRIBER_INVALID_ARGUMENT  ErrorReason = 22
 	ErrorReason_SUBSCRIBER_NOT_FOUND         ErrorReason = 23
 	ErrorReason_SUBSCRIBER_TOO_MANY_ATTEMPTS ErrorReason = 24
+	ErrorReason_SEARCH_TOO_MANY_ATTEMPTS     ErrorReason = 25
 )
 
 // Enum value maps for ErrorReason.
@@ -79,6 +80,7 @@ var (
 		22: "SUBSCRIBER_INVALID_ARGUMENT",
 		23: "SUBSCRIBER_NOT_FOUND",
 		24: "SUBSCRIBER_TOO_MANY_ATTEMPTS",
+		25: "SEARCH_TOO_MANY_ATTEMPTS",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":          0,
@@ -106,6 +108,7 @@ var (
 		"SUBSCRIBER_INVALID_ARGUMENT":  22,
 		"SUBSCRIBER_NOT_FOUND":         23,
 		"SUBSCRIBER_TOO_MANY_ATTEMPTS": 24,
+		"SEARCH_TOO_MANY_ATTEMPTS":     25,
 	}
 )
 
@@ -140,7 +143,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xac\x05\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xca\x05\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -167,7 +170,8 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x16CATEGORY_SLUG_CONFLICT\x10\x15\x12\x1f\n" +
 	"\x1bSUBSCRIBER_INVALID_ARGUMENT\x10\x16\x12\x18\n" +
 	"\x14SUBSCRIBER_NOT_FOUND\x10\x17\x12 \n" +
-	"\x1cSUBSCRIBER_TOO_MANY_ATTEMPTS\x10\x18BQ\n" +
+	"\x1cSUBSCRIBER_TOO_MANY_ATTEMPTS\x10\x18\x12\x1c\n" +
+	"\x18SEARCH_TOO_MANY_ATTEMPTS\x10\x19BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

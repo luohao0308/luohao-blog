@@ -35,6 +35,9 @@ auth:
     comment_window: 300s
     chat_attempts: 10
     chat_window: 300s
+    # Public search queries. Defaults when unset: 60 per 1m per IP.
+    search_attempts: 60
+    search_window: 60s # 1m
 es:
   addresses:
     - http://es:9200
