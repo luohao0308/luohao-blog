@@ -28,3 +28,172 @@
 .retry-btn {
   margin-top: 24rpx;
 }
+
+/* --- 互动条 --- */
+
+.action-bar {
+  display: flex;
+  margin-top: 40rpx;
+  border-top: 1rpx solid #e2e8f0;
+  padding-top: 24rpx;
+  gap: 24rpx;
+}
+
+.action {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 26rpx;
+}
+
+.action-active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.action-icon {
+  margin-right: 8rpx;
+}
+
+/* --- 评论区 --- */
+
+.comments {
+  margin-top: 48rpx;
+}
+
+.comments-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 20rpx;
+}
+
+.comments-empty {
+  color: #94a3b8;
+  font-size: 26rpx;
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+.comment {
+  display: flex;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.comment-avatar {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+
+.comment-avatar-fallback {
+  background: #3c5d85;
+  color: #fff;
+  font-size: 28rpx;
+  text-align: center;
+  line-height: 68rpx;
+}
+
+.comment-body {
+  flex: 1;
+  margin-left: 20rpx;
+  min-width: 0;
+}
+
+.comment-head {
+  display: flex;
+  align-items: center;
+}
+
+.comment-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.comment-pending {
+  margin-left: 12rpx;
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 20rpx;
+}
+
+.comment-date {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.comment-content {
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  color: #334155;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.comments-more {
+  text-align: center;
+  color: #2563eb;
+  font-size: 26rpx;
+  padding: 24rpx 0 8rpx;
+}
+
+/* --- 底部评论输入栏 --- */
+
+.composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 1rpx solid #e2e8f0;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+}
+
+.composer-input {
+  flex: 1;
+  background: #f1f5f9;
+  border-radius: 999rpx;
+  padding: 14rpx 28rpx;
+  font-size: 28rpx;
+}
+
+.composer-placeholder {
+  color: #94a3b8;
+}
+
+.composer-send {
+  margin-left: 16rpx;
+  background: #2563eb;
+  color: #fff;
+  font-size: 26rpx;
+}
+
+.composer-send[disabled] {
+  background: #93c5fd;
+  color: #fff;
+}
+
+.composer-login {
+  flex: 1;
+  text-align: center;
+  color: #2563eb;
+  font-size: 28rpx;
+  padding: 14rpx 0;
+}
+
+/* 有固定底栏时给正文留出呼吸空间 */
+.page {
+  padding-bottom: 140rpx;
+}

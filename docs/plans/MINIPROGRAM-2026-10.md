@@ -20,7 +20,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 |---|---|---|---|---|---|---|
 | S1 | 原生 TS 骨架 + 文章列表/详情只读浏览 + 阅读量上报 + 分享 | `miniprogram/`（纯新增） | 无 | `tsc --noEmit` + DevTools 打开编译 + 模拟器访问生产 API 实测列表/详情 | 删除目录 | completed |
 | S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | completed |
-| S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | pending |
+| S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | completed |
 
 ## 3. 原则与决策
 
@@ -58,5 +58,13 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 未验证项：真实 wx.login→code2session 链路需生产部署后端（带 wechat secrets）后在模拟器/真机冒烟；部署时服务器 secrets 文件需补 `wechat:` 段
 - 打磨交付：[PR #71](https://github.com/luohao0308/luohao-blog/pull/71) squash 合并 merge `2326c931`（CI 双绿；strict 分支保护下与并行会话的合并竞速，脚本化『更新→CI→抢 CLEAN 窗口』完成）
 - 打磨内容（用户实测反馈 2026-10-07）：绑定失败自动静默换新票据留在表单（不再弹回登录页）；我的页按站点设计语言重做（blue-600 药丸主按钮、slate 灰阶、#3c5d85 品牌头像环、渐变头部卡）
+### S3：互动（点赞/评论/收藏，纯小程序端，后端零改动）
+
+- 状态：completed（2026-10-07）
+- 实现：详情页互动条（点赞 ♥ 本地去重 + 服务端 24h 去重兜底；收藏 ★ 本地存储快照标题）；评论区（分页拉取、头像/首字回退、自己待审评论带「审核中」标识、登录态输入栏 401 自动刷新重试、未登录引导跳「我的」）；收藏页（新路由 /pages/favorites/favorites，快照列表 + 移除）；我的页新增「我的收藏」菜单行 + 真实头像展示
+- 验证：`tsc --noEmit` 全绿；契约对齐（POST /v1/comments 需 JWT、GET /v1/articles/{slug}/comments 公开、PENDING=1/APPROVED=2）
+- 未验证项：模拟器/真机实操（点赞计数、评论先审后显流转）待用户实测
+- 回退点：单 PR revert
+
 - 回退点：单 PR revert；迁移 down.sql
 - 回退点：删除 `miniprogram/` 目录，单 PR revert
