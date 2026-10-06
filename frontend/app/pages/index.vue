@@ -14,7 +14,7 @@ useHead({ title: '首页' })
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/luohao0308' },
-  { label: 'Email', href: 'mailto:hello@example.com' },
+  { label: 'Email', href: 'mailto:2429260713@qq.com' },
 ]
 
 const { data: allArticles } = await usePublishedArticles()

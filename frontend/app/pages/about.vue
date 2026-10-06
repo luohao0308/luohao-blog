@@ -15,7 +15,7 @@ const timeline = [
 
 const contacts = [
   { label: 'GitHub', href: 'https://github.com/luohao0308', text: 'github.com/luohao0308' },
-  { label: '邮箱', href: 'mailto:hello@example.com', text: 'hello@example.com' },
+  { label: '邮箱', href: 'mailto:2429260713@qq.com', text: '2429260713@qq.com' },
 ]
 </script>
 
