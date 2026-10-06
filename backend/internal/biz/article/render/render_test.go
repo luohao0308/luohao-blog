@@ -77,3 +77,57 @@ func TestHTMLEmptySource(t *testing.T) {
 		t.Fatalf("HTML(empty) = %q, want empty fragment", out)
 	}
 }
+
+// Raw HTML in the Markdown source must not pass through: content_html is
+// embedded as-is by the frontend (v-html), so the renderer is the XSS
+// boundary for everything an author (or a compromised author account) can
+// put into an article. Goldmark's safe default omits raw HTML entirely.
+func TestHTMLRawHTMLOmitted(t *testing.T) {
+	out, err := HTML("前文\n\n<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n<a href=\"javascript:alert(1)\">链接</a>\n")
+	if err != nil {
+		t.Fatalf("HTML() error = %v", err)
+	}
+	for _, danger := range []string{"<script>", "<img", "<a href=\"javascript:"} {
+		if strings.Contains(out, danger) {
+			t.Fatalf("HTML() = %q, want raw HTML tag %q omitted", out, danger)
+		}
+	}
+	if !strings.Contains(out, "raw HTML omitted") {
+		t.Fatalf("HTML() = %q, want goldmark's raw-HTML omission comment", out)
+	}
+	if !strings.Contains(out, "链接") {
+		t.Fatalf("HTML() = %q, want raw-HTML anchor text to survive as text", out)
+	}
+}
+
+// Markdown's own link/image syntax must not smuggle executable schemes past
+// the renderer: unsafe destinations are unwrapped to their text, while
+// allowlisted schemes and relative URLs render normally.
+func TestHTMLUnsafeDestinationsUnwrapped(t *testing.T) {
+	out, err := HTML(
+		"[点我](javascript:alert(1))\n\n"+
+			"[数据](data:text/html;base64,AAAA)\n\n"+
+			"[正常](https://example.com)\n\n"+
+			"[相对](/posts/other)\n\n"+
+			"[锚点](#section)\n\n"+
+			"![图](javascript:alert(2))\n",
+	)
+	if err != nil {
+		t.Fatalf("HTML() error = %v", err)
+	}
+	if strings.Contains(out, "javascript:") || strings.Contains(out, "data:text") {
+		t.Fatalf("HTML() = %q, want unsafe destinations stripped", out)
+	}
+	if strings.Contains(out, "<img") {
+		t.Fatalf("HTML() = %q, want unsafe image unwrapped", out)
+	}
+	// Unwrapping keeps the link text as content.
+	if !strings.Contains(out, "点我") || !strings.Contains(out, "数据") || !strings.Contains(out, "图") {
+		t.Fatalf("HTML() = %q, want unwrapped link text to survive", out)
+	}
+	for _, want := range []string{`href="https://example.com"`, `href="/posts/other"`, `href="#section"`} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("HTML() = %q, want %q to render", out, want)
+		}
+	}
+}
