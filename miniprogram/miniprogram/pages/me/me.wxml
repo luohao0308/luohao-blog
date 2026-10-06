@@ -1,0 +1,7 @@
+<view class="page">
+  <view class="me-card">
+    <view class="me-avatar"></view>
+    <view class="me-name">未登录</view>
+    <view class="me-tip">微信登录将在后续版本开放，敬请期待</view>
+  </view>
+</view>

@@ -1,0 +1,44 @@
+# 小程序端 T-011：原生 TypeScript 阅读端
+
+_创建：2026-10-07 ｜ 状态：S1 in_progress_
+
+## 1. 目标与范围
+
+为博客提供微信小程序阅读端：文章浏览（列表/详情）、微信登录绑定现有 reader 账号、互动（点赞/评论/收藏/分享）。**非目标**：管理后台功能（后台只保留 Web 端）、小程序内支付。
+
+- AppID：`wx58089476f518fd3f`（个人主体，已注册 2026-10-07）
+- 目录：仓库根新增 `miniprogram/`，不影响 backend/frontend 既有部署
+- 前置依赖：无（开发期 DevTools 关闭合法域名校验，直连生产 IP 的 BFF）；正式发布前依赖 makerhao.cn 备案通过（T-008）
+
+## 2. 规模判定与用户确认
+
+- 规模：large（新增独立端 + 后端契约变更 + 多个有序切片）
+- 确认状态：**approved（概括批准）**。2026-10-07 用户指示「微信开发者工具给你登录了 你开始开发小程序吧 别的不用管」，选型确认为**原生 + TypeScript**。
+- 边界说明：S1 为纯新增目录、零后端/契约改动，按用户指示直接执行；**S2 涉及后端契约与 secrets 变更，动工前按确认门单独向用户展示契约变化后再动手**。
+
+| 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
+|---|---|---|---|---|---|---|
+| S1 | 原生 TS 骨架 + 文章列表/详情只读浏览 + 阅读量上报 + 分享 | `miniprogram/`（纯新增） | 无 | `tsc --noEmit` + DevTools 打开编译 + 模拟器访问生产 API 实测列表/详情 | 删除目录 | in_progress |
+| S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | pending |
+| S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | pending |
+
+## 3. 原则与决策
+
+| 决策 | 选择 | 理由 | 代价 |
+|---|---|---|---|
+| 技术栈 | 原生小程序 + TypeScript | 阅读端功能面窄，避免第三方框架工具链；用户已拍板 | 多端复用放弃（当前无需求） |
+| API 入口 | 走 BFF 同源路径 `/api/v1`，单点配置 `utils/config.ts` | 与 Web 端同一条公开入口；备案后仅改一行切 `https://makerhao.cn/api/v1` | 开发期依赖「不校验合法域名」（`project.config.json` 已置 `urlCheck:false`） |
+| 详情渲染 | 复用后端 `content_html` + `rich-text`，对 img/pre/code/table 补内联样式 | 服务端已渲染（M1/S3），零 markdown 库依赖；rich-text 不解析 class，只认内联 style | 复杂排版/代码高亮后续再增强 |
+| wire 格式 | snake_case 字段 + 枚举数字 + RFC3339 时间 | 与 `frontend/app/composables/useArticles.ts` 声明一致（Kratos HTTP codec 行为） | 无 |
+| 列表分页 | `order_by=published_at desc` + `next_page_token` 触底翻页，客户端兜底过滤 `status===2` | 与 `usePublishedArticles` 行为一致 | 无 |
+| tabBar | 文本 tabBar（文章/我的），暂不带图标 | 避免二进制资源进库；图标后续补 | 视觉朴素（可接受） |
+| 阅读量上报 | 详情加载后 fire-and-forget `POST /articles/{slug}/view` | 与 Web 端阅读量口径一致（24h 去重在服务端） | 无 |
+
+## 4. S1 实施与验收
+
+- 结构：`miniprogram/{project.config.json,tsconfig.json,package.json,.gitignore}` + `miniprogram/miniprogram/{app.*,sitemap.json,pages/{index,post,me},utils/{config,request,types,api,format,html}.ts}`
+- 验收清单：
+  - [ ] `npm run typecheck`（tsc --noEmit）通过
+  - [ ] DevTools CLI 能打开项目并编译通过（`cli open --project`）
+  - [ ] 模拟器内列表可见生产文章、下拉刷新/触底翻页生效、详情 rich-text 渲染正常、阅读量 +1、分享卡片标题正确
+- 回退点：删除 `miniprogram/` 目录，单 PR revert

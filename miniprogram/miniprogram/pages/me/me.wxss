@@ -1,0 +1,26 @@
+.me-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 64rpx 32rpx;
+  text-align: center;
+}
+
+.me-avatar {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: #e5e7eb;
+  margin: 0 auto;
+}
+
+.me-name {
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.me-tip {
+  margin-top: 12rpx;
+  color: #9ca3af;
+  font-size: 26rpx;
+}

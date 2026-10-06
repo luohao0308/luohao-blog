@@ -1,0 +1,33 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state">加载中…</view>
+
+  <view wx:elif="{{error}}" class="state">
+    <view>{{error}}</view>
+    <button class="retry-btn" size="mini" bindtap="loadFirst">重试</button>
+  </view>
+
+  <block wx:else>
+    <view
+      wx:for="{{articles}}"
+      wx:key="slug"
+      class="card"
+      bindtap="openPost"
+      data-slug="{{item.slug}}"
+    >
+      <view class="card-title">{{item.title}}</view>
+      <view wx:if="{{item.summary}}" class="card-summary">{{item.summary}}</view>
+      <view class="card-meta">
+        <text class="meta-item">{{item.dateText}}</text>
+        <text wx:if="{{item.categoryName}}" class="meta-item">{{item.categoryName}}</text>
+        <text class="meta-item">阅读 {{item.viewCount}}</text>
+      </view>
+      <view wx:if="{{item.tags.length}}" class="card-tags">
+        <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="chip">{{tag}}</text>
+      </view>
+    </view>
+
+    <view class="state">
+      {{finished ? (articles.length ? '— 到底啦 —' : '还没有文章') : (loadingMore ? '加载中…' : '上拉加载更多')}}
+    </view>
+  </block>
+</view>
