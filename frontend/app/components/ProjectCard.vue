@@ -5,7 +5,7 @@ defineProps<{ project: Project }>()
 </script>
 
 <template>
-  <article class="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+  <article class="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
     <div class="flex min-h-40 items-center justify-between bg-[#e8eef7] px-6 py-6 transition-colors group-hover:bg-[#e5def1] dark:bg-slate-900 dark:group-hover:bg-slate-800">
       <span class="text-5xl" aria-hidden="true">{{ project.emoji }}</span>
       <span class="font-mono text-xs text-slate-500 dark:text-slate-400">{{ project.year }}</span>

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// Site skeleton: sticky translucent nav with the consolidated sitemap (the
-// content-taxonomy pages collapse under the 文章 dropdown) and the identity
-// area (theme toggle + login/avatar). The theme class is applied before
-// hydration by the inline script registered in app.vue; the login session is
-// restored client-side by ensureSession, so SSR renders logged-out and the
-// header swaps to the avatar after hydration.
+// Site skeleton: sticky translucent nav with a flat sitemap (no dropdowns —
+// 分类/标签/归档 are reachable from the 文章 page) and the identity area
+// (theme toggle + login/avatar). The theme class is applied before hydration
+// by the inline script registered in app.vue; the login session is restored
+// client-side by ensureSession, so SSR renders logged-out and the header
+// swaps to the avatar after hydration.
 const { init } = useTheme()
 const { ensureSession } = useAuth()
 
@@ -15,18 +15,16 @@ onMounted(() => {
   ensureSession()
 })
 
-// Pages can opt into a wider container via definePageMeta({ wide: true });
-// the homepage uses it for its two-column layout.
+// Pages can opt into a wider container via definePageMeta({ wide: true }).
 const route = useRoute()
 const wide = computed(() => route.meta.wide === true)
 
-// Desktop keeps five top-level entries; mobile stays a flat list so no
-// hamburger menu is needed.
-const primaryLinks = [
+// Flat top-level nav; 收藏 lives in the footer (it is a local-browser
+// feature, not a primary destination). Mobile keeps the taxonomy pages as a
+// flat wrap list so no hamburger menu is needed.
+const navLinks = [
   { to: '/', label: '首页' },
-]
-const tailLinks = [
-  { to: '/collections', label: '收藏' },
+  { to: '/posts', label: '文章' },
   { to: '/projects', label: '作品集' },
   { to: '/about', label: '关于' },
 ]
@@ -36,10 +34,15 @@ const mobileLinks = [
   { to: '/categories', label: '分类' },
   { to: '/tags', label: '标签' },
   { to: '/archives', label: '归档' },
-  { to: '/collections', label: '收藏' },
   { to: '/projects', label: '作品集' },
   { to: '/about', label: '关于' },
 ]
+
+function isActive(to: string) {
+  if (to === '/')
+    return route.path === '/'
+  return route.path === to || route.path.startsWith(`${to}/`)
+}
 </script>
 
 <template>
@@ -51,19 +54,14 @@ const mobileLinks = [
         </NuxtLink>
         <nav class="hidden items-center gap-6 text-sm sm:flex">
           <NuxtLink
-            v-for="link in primaryLinks"
+            v-for="link in navLinks"
             :key="link.to"
             :to="link.to"
-            class="text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-          >
-            {{ link.label }}
-          </NuxtLink>
-          <NavDropdown />
-          <NuxtLink
-            v-for="link in tailLinks"
-            :key="link.to"
-            :to="link.to"
-            class="text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            class="rounded-full px-3 py-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/70"
+            :class="isActive(link.to)
+              ? 'font-medium text-slate-900 dark:text-slate-100'
+              : 'text-slate-600 dark:text-slate-400'"
+            :aria-current="isActive(link.to) ? 'page' : undefined"
           >
             {{ link.label }}
           </NuxtLink>
@@ -79,7 +77,11 @@ const mobileLinks = [
           v-for="link in mobileLinks"
           :key="link.to"
           :to="link.to"
-          class="text-slate-600 dark:text-slate-400"
+          class="transition-colors"
+          :class="isActive(link.to)
+            ? 'font-medium text-slate-900 dark:text-slate-100'
+            : 'text-slate-600 dark:text-slate-400'"
+          :aria-current="isActive(link.to) ? 'page' : undefined"
         >
           {{ link.label }}
         </NuxtLink>
@@ -91,16 +93,17 @@ const mobileLinks = [
     </main>
 
     <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
-      <p>
-        © luohao ·
+      <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
+        <NuxtLink to="/collections" class="transition-colors hover:text-slate-700 dark:hover:text-slate-300">收藏</NuxtLink>
+        <a href="/rss.xml" class="transition-colors hover:text-slate-700 dark:hover:text-slate-300">RSS</a>
         <a
           href="https://github.com/luohao0308/luohao-blog"
-          class="hover:text-slate-700 dark:hover:text-slate-300"
+          class="transition-colors hover:text-slate-700 dark:hover:text-slate-300"
           target="_blank"
           rel="noopener"
-        >luohao-blog</a>
-        · Go &amp; Nuxt 驱动
-      </p>
+        >GitHub</a>
+      </nav>
+      <p>© luohao · Go &amp; Nuxt 驱动</p>
     </footer>
   </div>
 </template>

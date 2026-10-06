@@ -23,7 +23,7 @@ useHead({ title: '作品集' })
         :key="stack"
         type="button"
         :aria-pressed="selectedStack === stack"
-        class="shrink-0 rounded-md px-3 py-2 text-xs transition-colors"
+        class="shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors"
         :class="selectedStack === stack ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-[#e5def1] dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'"
         @click="selectedStack = stack"
       >

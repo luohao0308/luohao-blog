@@ -42,7 +42,7 @@ function isDraft(status: number): boolean {
             {{ a.title }}
             <span
               v-if="isDraft(a.status)"
-              class="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
+              class="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"
             >草稿</span>
           </NuxtLink>
           <time class="shrink-0 text-xs text-slate-500">{{ formatDate(a.published_at || a.created_at) }}</time>

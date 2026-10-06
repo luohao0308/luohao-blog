@@ -37,7 +37,7 @@ async function signOut() {
   <NuxtLink
     v-if="!user"
     to="/login"
-    class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
+    class="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
   >
     登录
   </NuxtLink>
@@ -66,7 +66,7 @@ async function signOut() {
     <div
       v-if="menuOpen"
       role="menu"
-      class="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+      class="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
     >
       <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <p class="truncate text-sm font-medium">{{ user.display_name }}</p>

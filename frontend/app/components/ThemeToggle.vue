@@ -13,7 +13,7 @@ const isDark = computed(() => {
 <template>
   <button
     type="button"
-    class="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+    class="rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
     :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
     @click="toggle()"
   >

@@ -47,12 +47,12 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
   <section class="space-y-6" aria-label="文章列表" :aria-busy="status === 'pending'">
     <div class="flex flex-col gap-5 border-y border-slate-200 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
       <nav aria-label="文章标签" class="flex min-w-0 flex-wrap gap-2 text-xs">
-        <NuxtLink to="/posts" :aria-current="!tag ? 'page' : undefined" class="rounded-md px-3 py-2" :class="!tag ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'">全部</NuxtLink>
-        <NuxtLink v-for="item in tags" :key="item" :to="`/tags/${encodeURIComponent(item)}`" :aria-current="tag === item ? 'page' : undefined" class="max-w-full break-words rounded-md px-3 py-2" :class="tag === item ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-[#e5def1] dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'">{{ item }}</NuxtLink>
+        <NuxtLink to="/posts" :aria-current="!tag ? 'page' : undefined" class="rounded-full px-3.5 py-1.5" :class="!tag ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'">全部</NuxtLink>
+        <NuxtLink v-for="item in tags" :key="item" :to="`/tags/${encodeURIComponent(item)}`" :aria-current="tag === item ? 'page' : undefined" class="max-w-full break-words rounded-full px-3.5 py-1.5" :class="tag === item ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-[#e5def1] dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'">{{ item }}</NuxtLink>
       </nav>
       <div class="w-full shrink-0 sm:w-56">
         <label for="article-search" class="sr-only">搜索文章</label>
-        <input id="article-search" v-model="query" type="search" placeholder="搜索文章" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+        <input id="article-search" v-model="query" type="search" placeholder="搜索文章" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
       </div>
     </div>
     <div v-if="error" role="alert" class="space-y-3 py-12 text-center">

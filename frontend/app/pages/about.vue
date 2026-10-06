@@ -34,7 +34,7 @@ const contacts = [
           <span
             v-for="item in g.items"
             :key="item"
-            class="rounded-md border border-slate-200 px-2 py-0.5 text-sm dark:border-slate-700"
+            class="rounded-full border border-slate-200 px-2.5 py-0.5 text-sm dark:border-slate-700"
           >{{ item }}</span>
         </div>
       </div>

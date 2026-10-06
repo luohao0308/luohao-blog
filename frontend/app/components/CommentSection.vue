@@ -126,27 +126,27 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
       <li
         v-for="(entry, index) in pending"
         :key="index"
-        class="space-y-1 rounded-md border border-dashed border-slate-300 p-3 dark:border-slate-700"
+        class="space-y-1 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700"
       >
         <div class="flex items-baseline gap-3 text-sm">
           <span class="font-medium text-slate-600 dark:text-slate-300">{{ entry.name }}</span>
-          <span class="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">等待审核</span>
+          <span class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">等待审核</span>
         </div>
         <p class="break-words text-sm leading-7 text-slate-500 dark:text-slate-400">{{ entry.body }}</p>
       </li>
     </ul>
 
     <!-- 登录引导：评论要求登录身份 -->
-    <div v-if="!sessionReady" class="h-24 animate-pulse rounded-md bg-slate-50 dark:bg-slate-800/60" aria-hidden="true" />
-    <div v-else-if="!user" class="flex flex-col items-start gap-3 rounded-md border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+    <div v-if="!sessionReady" class="h-24 animate-pulse rounded-xl bg-slate-50 dark:bg-slate-800/60" aria-hidden="true" />
+    <div v-else-if="!user" class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-slate-600 dark:text-slate-300">
         登录后即可发表评论（评论先审后显），昵称与头像随账号走。
       </p>
       <div class="flex shrink-0 gap-2">
-        <NuxtLink :to="loginLink" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+        <NuxtLink :to="loginLink" class="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
           登录
         </NuxtLink>
-        <NuxtLink :to="registerLink" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300">
+        <NuxtLink :to="registerLink" class="rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300">
           注册
         </NuxtLink>
       </div>
@@ -168,7 +168,7 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
         rows="3"
         maxlength="1000"
         placeholder="写下你的评论（审核后展示）"
-        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
       />
       <p class="text-right text-xs text-slate-400 dark:text-slate-500">
         {{ content.length }} / {{ COMMENT_CONTENT_MAX }}
@@ -179,7 +179,7 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
       <button
         type="submit"
         :disabled="submitting"
-        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        class="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
         {{ submitting ? '提交中…' : '发表评论' }}
       </button>
