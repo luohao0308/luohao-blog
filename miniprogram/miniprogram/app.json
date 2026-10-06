@@ -2,7 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/post/post",
-    "pages/me/me"
+    "pages/me/me",
+    "pages/favorites/favorites"
   ],
   "window": {
     "navigationBarBackgroundColor": "#fafafa",

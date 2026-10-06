@@ -17,5 +17,58 @@
       <text wx:for="{{tags}}" wx:key="*this" class="chip">{{item}}</text>
     </view>
     <rich-text class="post-content" nodes="{{html}}"></rich-text>
+
+    <!-- 互动条：点赞 / 收藏 -->
+    <view class="action-bar">
+      <view class="action {{liked ? 'action-active' : ''}}" bindtap="toggleLike">
+        <text class="action-icon">{{liked ? '♥' : '♡'}}</text>
+        <text>点赞 {{likeCount}}</text>
+      </view>
+      <view class="action {{favorited ? 'action-active' : ''}}" bindtap="toggleFavorite">
+        <text class="action-icon">{{favorited ? '★' : '☆'}}</text>
+        <text>{{favorited ? '已收藏' : '收藏'}}</text>
+      </view>
+    </view>
+
+    <!-- 评论区 -->
+    <view class="comments">
+      <view class="comments-title">评论（{{commentCount}}）</view>
+
+      <view wx:if="{{!comments.length}}" class="comments-empty">还没有评论，来抢沙发</view>
+
+      <view wx:for="{{comments}}" wx:key="id" class="comment">
+        <image wx:if="{{item.avatarUrl}}" class="comment-avatar" src="{{item.avatarUrl}}" mode="aspectFill" />
+        <view wx:else class="comment-avatar comment-avatar-fallback">{{item.initial}}</view>
+        <view class="comment-body">
+          <view class="comment-head">
+            <text class="comment-name">{{item.name}}</text>
+            <text wx:if="{{item.pending}}" class="comment-pending">审核中</text>
+            <text class="comment-date">{{item.dateText}}</text>
+          </view>
+          <view class="comment-content">{{item.content}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{!commentsFinished}}" class="comments-more" bindtap="fetchComments">加载更多评论</view>
+    </view>
+  </view>
+
+  <!-- 底部评论输入栏 -->
+  <view class="composer" wx:if="{{!loading && !error}}">
+    <block wx:if="{{canComment}}">
+      <input
+        class="composer-input"
+        placeholder="写下你的评论…"
+        placeholder-class="composer-placeholder"
+        value="{{commentInput}}"
+        confirm-type="send"
+        bindinput="onCommentInput"
+        bindconfirm="submitComment"
+      />
+      <button class="composer-send" size="mini" loading="{{commentBusy}}" disabled="{{commentBusy || !commentInput}}" bindtap="submitComment">发送</button>
+    </block>
+    <view wx:else class="composer-login" bindtap="goLogin">
+      登录后参与讨论 →
+    </view>
   </view>
 </view>

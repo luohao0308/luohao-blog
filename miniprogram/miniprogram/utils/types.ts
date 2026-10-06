@@ -57,3 +57,25 @@ export interface WechatLoginReply {
 
 export const WECHAT_STATUS_OK = 1
 export const WECHAT_STATUS_BINDING_REQUIRED = 2
+
+// --- 评论 wire 类型 ---
+
+export interface Comment {
+  id: string
+  article_slug: string
+  display_name: string
+  content: string
+  // CommentStatus：1 = PENDING（待审），2 = APPROVED（已过审）
+  status: number
+  created_at?: string
+  user_id?: string
+  avatar_url?: string
+}
+
+export interface CommentSet {
+  comments: Comment[]
+  next_page_token?: string
+}
+
+export const COMMENT_STATUS_PENDING = 1
+export const COMMENT_STATUS_APPROVED = 2

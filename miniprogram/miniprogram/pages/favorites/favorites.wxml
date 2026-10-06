@@ -1,0 +1,11 @@
+<view class="page">
+  <view wx:if="{{!items.length}}" class="state">还没有收藏，去文章页点 ☆ 收藏喜欢的文章</view>
+
+  <view wx:for="{{items}}" wx:key="slug" class="fav-card" bindtap="openPost" data-slug="{{item.slug}}">
+    <view class="fav-title">{{item.title}}</view>
+    <view class="fav-meta">
+      <text>收藏于 {{item.dateText}}</text>
+      <text class="fav-remove" catchtap="removeOne" data-slug="{{item.slug}}">移除</text>
+    </view>
+  </view>
+</view>
