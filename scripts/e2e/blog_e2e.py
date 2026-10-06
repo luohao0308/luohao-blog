@@ -11,6 +11,9 @@
     BLOG_E2E_BASE_URL   默认 http://127.0.0.1:8080
     BLOG_ADMIN_EMAIL    默认 author@example.com（本地 seed 示例账号，仅本地栈）
     BLOG_ADMIN_PASSWORD 默认 longenough1
+    BLOG_E2E_CLEAR_RATELIMIT 设 1 时套件启动前清空本地栈限流键（登录限流
+                        10 次/5min/IP，一轮全套加前置验证即触顶，连跑必挂）
+    BLOG_E2E_REDIS_CONTAINER 限流键所在 Redis 容器名，默认 blog-redis-prod
 
 说明：
 - 截图输出到 gui-test-screenshots/e2e-py/。
@@ -20,6 +23,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import time
 import traceback
@@ -376,9 +380,35 @@ def t16(page, ctx):
 
 # ---------------------------------------------------------------- 入口
 
+def clear_rate_limit() -> str:
+    """BLOG_E2E_CLEAR_RATELIMIT=1 时清空本地栈限流键，返回状态描述。
+
+    走 docker exec 是黑盒之外的运维通道，仅面向本地 docker 栈；对生产或
+    非 docker 环境不可用。清理失败仅告警不阻断——限流器本身 fail-open，
+    大不了拉开用例间隔重跑。
+    """
+    if os.environ.get("BLOG_E2E_CLEAR_RATELIMIT") != "1":
+        return "skipped"
+    container = os.environ.get("BLOG_E2E_REDIS_CONTAINER", "blog-redis-prod")
+    cmd = [
+        "docker", "exec", container, "sh", "-c",
+        "redis-cli --scan --pattern 'blog:ratelimit:*' | xargs -r redis-cli del",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"⚠️ 限流键清理失败（继续）: {exc}")
+        return "failed"
+    if proc.returncode != 0:
+        print(f"⚠️ 限流键清理异常（继续）: {proc.stderr.strip()[:120]}")
+        return "failed"
+    return f"cleared({proc.stdout.strip() or '0 keys'})"
+
+
 def main() -> int:
     # 支持子集重跑：python blog_e2e.py t14 t15
     only = set(sys.argv[1:])
+    print(f"限流键清理: {clear_rate_limit()}")
     from playwright.sync_api import sync_playwright as _sp  # noqa: PLC0415
 
     with _sp() as p:

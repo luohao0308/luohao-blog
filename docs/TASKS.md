@@ -24,7 +24,7 @@ _last-updated: 2026-10-06_
 - [x] 生产 E2E（2026-10-06，用户"对生产跑"授权）：公开用例 **12/12 全绿**（首页/列表/标签/详情×2/归档/作品集/关于/搜索/404/AI 问答真实 LLM/错误密码拒绝）；t05 修复为按环境动态选文章（原硬编码 dev 栈 seed slug `m5-prod-smoke`，生产不存在）；**t13–t16（后台列表/发文/评论审核闭环/登出守卫）需管理员凭据，未跑**——生产管理员密码属用户私密，不进对话
 - [x] 服务器部署验证：迁移 v9 生效、`backend-uploads` 卷挂载、backup.sh 实跑产出 uploads tar
 - [x] 前台 UI 走查（生产，探针账号）：登录→头像下拉（昵称邮箱/个人设置/退出，READER 无后台入口✓）→ /settings 三卡片（头像回显/昵称/改密，未修改时保存禁用✓）→ 文章页「以 部署探针 的身份发表」→ 提交成功→待审核块展示；**探针留言一条在待审区**（`部署验证：登录身份评论链路 OK`），用户可在后台通过或删除
-- [x] t13–t16 补跑（2026-10-06，本地生产栈）：镜像从 main 重建（T-010 四切片在镜像内）后 **全套 16/16 全绿**（t01–t16，含 AI 问答真实 LLM）；t13 列表/t14 发文发布/t15 评论审核闭环/t16 登出守卫全部通过。补跑发现并修复 t15 用例两处失真：① 未登录引导断言用 `ctx.new_page()` 模拟访客，但同一 context 共享 cookie，登录后必假——改为登录前在主页面断言；② 提交后断言"未展示"与 S4 语义冲突（作者的待审评论在「待审核」块可见）——改为断言待审块展示 + 已发布列表不出现，审核通过后进入已发布列表；清理断言仅在提交成功后生效。限流自撞现场复现（连跑触顶 t16 登录 429），跑前清 Redis `blog:ratelimit:*`，长期修法见技术债。t15 修复待 PR
+- [x] t13–t16 补跑（2026-10-06，本地生产栈）：镜像从 main 重建（T-010 四切片在镜像内）后 **全套 16/16 全绿**（t01–t16，含 AI 问答真实 LLM）；t13 列表/t14 发文发布/t15 评论审核闭环/t16 登出守卫全部通过。补跑发现并修复 t15 用例两处失真：① 未登录引导断言用 `ctx.new_page()` 模拟访客，但同一 context 共享 cookie，登录后必假——改为登录前在主页面断言；② 提交后断言"未展示"与 S4 语义冲突（作者的待审评论在「待审核」块可见）——改为断言待审块展示 + 已发布列表不出现，审核通过后进入已发布列表；清理断言仅在提交成功后生效。限流自撞现场复现（连跑触顶 t16 登录 429），跑前清 Redis `blog:ratelimit:*`（已落地为套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1`，见技术债销账）。t15 修复已随 [#58](https://github.com/luohao0308/luohao-blog/pull/58) 合并（merge `d13bcb9`）
 
 - [x] T-010 前台账号体系与头部改版（四切片全部交付）：**S1** 后端账号基座（开放注册 READER+自动登录+独立限流、User.avatar_url、UserService UpdateProfile/UploadAvatar/GetAvatar（HttpBody+immutable 缓存）、本地磁盘存储+compose `backend-uploads` 卷+备份/恢复、迁移 000008，[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) merge `c59fa80`）；**S2** 前台头部改版（导航 8→5 项+文章▾ 下拉、UserMenu 登录/头像下拉（超管进后台）、公开布局会话恢复、/login /register，[PR #53](https://github.com/luohao0308/luohao-blog/pull/53) merge `e72b6fa`）；**S3** /settings 个人设置（头像 canvas 压缩上传/昵称/改密、客户端登录守卫，[PR #54](https://github.com/luohao0308/luohao-blog/pull/54) merge `0a86e72`）；**S4** 评论登录门禁（CreateComment 需 JWT、身份取自 token、user_id 落库兼容旧匿名行、头像批量附加、评论区登录引导，迁移 000009，[PR #55](https://github.com/luohao0308/luohao-blog/pull/55) merge `c7ef251`）；各片 go build/vet/test 与 pnpm lint/typecheck/build 全绿，required CI 双绿，guard 全程 consume allow（2026-10-05/06）；交付中一次 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI 红（教训：ignore 锚定 `/data/`）；计划与执行记录 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`；真实栈补测清单见上方待办
 
@@ -93,15 +93,15 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | ~~release.yml 镜像发布门禁~~ | 已修复 | `ci-gate` 复用 CI 工作流并作为镜像任务前置依赖；保留 concurrency 与 30 分钟超时 |
 | ~~backup.sh 空库假成功~~ | 已修复 | 临时文件 + EXIT 清理，gzip 完整性与 dump 头校验通过后原子重命名 |
 | ~~限流器 Incr+Expire 异常路径~~ | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
-| ~~E2E known_issue 失效~~ | 已修复 | #29 摘除过期标注；2026-10-06 复核套件内无 known_issue=True。**限流自撞仍开放**（见下行） |
-| E2E 限流自撞 | 中 | 登录限流 10 次/5min/IP，一轮全套 + 前置验证即触顶（2026-10-06 本地复现：t16 登录被 429）；连跑前需清 Redis `blog:ratelimit:*`，长期修法：套件启动时清键或 E2E 专用限流豁免 |
-| Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 中 | 可观测性与恢复安全三件 |
+| ~~E2E known_issue 失效~~ | 已修复 | #29 摘除过期标注；2026-10-06 复核套件内无 known_issue=True。限流自撞亦已修复（见下行） |
+| ~~E2E 限流自撞~~ | 已修复 | 套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1` 启动前清限流键（默认关，docker exec 通道仅限本地栈；2026-10-06 实测：打满 10 次/5min 限流器后 cleared(1) → t12 立即通过；对生产跑不开启） |
+| Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 部分修复 | Caddy 访问日志已启用（`log` → stdout console，docker logs 可查，2026-10-06 容器重建后实弹验证）；**残留**：restore 边服务边恢复、容器日志轮转（daemon.json max-size，需服务器操作单独授权） |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
 | v-html + WithUnsafe XSS 面 | 中 | 信任边界=仅 admin 可写；引入第二作者前必须 sanitize |
 | frontend healthcheck 用整页 SSR 探针 | 中 | 数据层抖动即 unhealthy 并绑架 caddy 启动；建议 Nitro /health |
 | demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
-| dev compose 端口发布 0.0.0.0 | 低 | MySQL/Redis/ES/MinIO 对局域网暴露，建议 `127.0.0.1:` 前缀 |
-| CI 杂项 | 低 | ci.yml 第三方 action 未 pin SHA、无 permissions 块、无 paths 过滤；backup.sh 清理按空白分词 |
+| ~~dev compose 端口发布 0.0.0.0~~ | 已修复 | 六端口（mysql/redis/es/minio）全部绑 `127.0.0.1`（compose config 渲染核验，2026-10-06） |
+| ~~CI 杂项~~ | 已修复 | ci.yml 6 个 action 全部 pin 官方 SHA + `permissions: contents: read`（workflow_call 兼容）；backup.sh 轮转改 glob 展开免 ls 空白分词（实跑 KEEP=2 轮转核验）；paths 过滤评估后**不做**——workflow 级 paths 会把 required check 留在 Pending 卡死文档型 PR（官方文档），public 仓库 Actions 免费无收益；**残留**：release.yml 4 个 action 未 pin（下次发布窗口一并处理） |
 | 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
 | P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 1000 篇/串行、seed 不回填索引、软删占坑 slug、chat 无缓存、prompt 无定界符、LLM body 无上限、密码无上限——全量见 REVIEW-ROUND2 文档 |
 | ent selector 错误扁平化 | 已规避 | data 层返回错误码必须在查询构建前校验（`data.validateStatusFilter` 模式） |

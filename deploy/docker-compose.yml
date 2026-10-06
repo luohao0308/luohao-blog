@@ -13,7 +13,7 @@ services:
       MYSQL_DATABASE: blog
       TZ: Asia/Shanghai
     ports:
-      - "3307:3306" # 宿主机 3306 已被本机已有 MySQL 占用，容器映射到 3307
+      - "127.0.0.1:3307:3306" # 宿主机 3306 已被本机已有 MySQL 占用，容器映射到 3307；仅绑回环不对局域网暴露
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -26,7 +26,7 @@ services:
     image: redis:7.4-alpine
     container_name: blog-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -43,8 +43,8 @@ services:
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9300:9300"
     volumes:
       - es-data:/usr/share/elasticsearch/data
     healthcheck:
@@ -61,8 +61,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio-data:/data
     healthcheck:
