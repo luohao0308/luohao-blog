@@ -324,23 +324,28 @@ def t14(page, ctx):
 @run("t15_comment_moderation", "登录评论（身份取自账号）→ 后台审核通过 → 前台可见（闭环）")
 def t15(page, ctx):
     marker = f"e2e评论{int(time.time())}"
+    submitted = False  # 提交成功才要求清理命中，避免前置断言失败被清理报错掩盖
     try:
-        # 评论要求登录：先用管理员会话在文章页提交（身份取自账号，无昵称输入框）
+        # 未登录访客应看到登录引导而非评论表单（S4 门禁）。必须在登录前做：
+        # 同一 context 的所有页面共享 cookie，登录后无法再模拟访客。
+        page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
+        page.wait_for_selector('text=登录后即可发表评论', timeout=10_000)
+        assert page.locator('textarea[placeholder*="写下你的评论"]').count() == 0, "未登录不应出现评论输入框"
+
+        # 评论要求登录：登录后在文章页提交（身份取自账号，无昵称输入框）
         login_admin(page)
         page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
-        # 未登录访客应看到登录引导而非评论表单（S4 门禁）
-        logged_out = ctx.new_page()
-        logged_out.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
-        logged_out.wait_for_selector('text=登录后即可发表评论', timeout=10_000)
-        assert logged_out.locator('textarea[placeholder*="写下你的评论"]').count() == 0, "未登录不应出现评论输入框"
-        logged_out.close()
-
         assert page.locator('input[placeholder="昵称"]').count() == 0, "登录后不应再有昵称输入框"
         fill_hydrated(page.locator('textarea[placeholder*="写下你的评论"]'), f"{marker} 内容待审核验证。")
         page.click('button:has-text("发表评论")')
+        submitted = True
         notice = page.wait_for_selector('[role="status"]', timeout=10_000)
         assert "通过审核后展示" in notice.inner_text(), f"提交反馈异常: {notice.inner_text()}"
-        assert page.get_by_text(marker).count() == 0, "未审核评论不应直接展示"
+        # S4 语义：作者的待审评论在「待审核」块对自己可见，但不进已发布列表
+        pending_block = page.locator('[aria-label="我的待审核评论"]')
+        assert pending_block.get_by_text(marker).count() >= 1, "提交后未在待审核块展示"
+        assert page.locator('section[aria-label="评论区"] ul.space-y-5').get_by_text(marker).count() == 0, \
+            "未审核评论不应进入已发布列表"
 
         page.goto(f"{BASE_URL}/admin/comments", wait_until="networkidle")
         row = page.locator(f".n-data-table tr:has-text('{marker}')")
@@ -349,11 +354,13 @@ def t15(page, ctx):
         page.wait_for_selector('.n-message:has-text("已通过")', timeout=10_000)
         # 前台可见（登录态页面：审核通过的评论带账号身份展示）
         page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
-        assert page.get_by_text(marker).count() >= 1, "审核通过后前台仍未展示"
+        published_list = page.locator('section[aria-label="评论区"] ul.space-y-5')
+        published_list.get_by_text(marker).wait_for(timeout=10_000)
     finally:
         # 清理走 API：UI 删除按钮的 popconfirm 在无头环境不稳定，且与用例断言无关
         removed = api_cleanup_comments(ctx, marker)
-        assert removed >= 1, f"清理失败：标记评论未删除（{marker}）"
+        if submitted:
+            assert removed >= 1, f"清理失败：标记评论未删除（{marker}）"
 
 
 @run("t16_logout_guard", "退出登录后访问受保护页被重定向回登录页")
