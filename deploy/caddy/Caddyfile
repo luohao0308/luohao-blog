@@ -12,5 +12,11 @@
 		output stdout
 		format console
 	}
+	# 请求体外层兜底：Kratos 解码器会在限流/校验之前把整个 body 读进内存，
+	# 这里在公网入口统一封顶（后端另有 1MiB 默认/头像路由 4MiB 的精确上限，
+	# 8MB 为头像 base64 ~2.7MB 留出余量）。
+	request_body {
+		max_size 8MB
+	}
 	reverse_proxy frontend:3000
 }

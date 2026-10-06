@@ -1,6 +1,8 @@
 package server
 
 import (
+	nethttp "net/http"
+
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
@@ -31,6 +33,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 			}),
 		),
 	}
+	opts = append(opts, http.RequestDecoder(limitedBodyDecoder))
 	if c.Http.Network != "" {
 		opts = append(opts, http.Network(c.Http.Network))
 	}
@@ -53,4 +56,34 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 		return nil, err
 	}
 	return srv, nil
+}
+
+// Request body caps. The Kratos default decoder buffers the entire request
+// body in memory before any validation or rate limiting runs, so without a
+// cap every endpoint is an unauthenticated memory-amplification vector: a
+// single oversized POST is read in full no matter how large. The 1 MiB
+// default covers every JSON payload the API defines (comments cap at 1000
+// runes, chat questions at 500, article markdown stays far below); the avatar
+// upload is the one large payload — base64 of the 2 MiB image cap is ~2.7 MiB
+// — so its route gets 4 MiB.
+const (
+	defaultBodyLimit int64 = 1 << 20
+	avatarBodyLimit  int64 = 4 << 20
+)
+
+// avatarBodyPath is the single route permitted the larger body cap; it must
+// match the proto HTTP binding of UserService.UploadAvatar.
+const avatarBodyPath = "/v1/user/avatar"
+
+// limitedBodyDecoder wraps the default Kratos decoder with a hard cap on how
+// much of the request body is buffered. A nil ResponseWriter is safe: it only
+// skips the stdlib's close-connection hint on overflow, which is the edge
+// proxy's job here anyway.
+func limitedBodyDecoder(r *nethttp.Request, v any) error {
+	limit := defaultBodyLimit
+	if r.URL.Path == avatarBodyPath {
+		limit = avatarBodyLimit
+	}
+	r.Body = nethttp.MaxBytesReader(nil, r.Body, limit)
+	return http.DefaultRequestDecoder(r, v)
 }
