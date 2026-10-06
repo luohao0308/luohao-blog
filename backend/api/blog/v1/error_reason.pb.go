@@ -56,7 +56,8 @@ const (
 	// consumed — the client must run wx.login again to get a fresh one.
 	ErrorReason_AUTH_WECHAT_TICKET_INVALID ErrorReason = 26
 	// Another account already holds the WeChat openid being bound.
-	ErrorReason_USER_WECHAT_CONFLICT ErrorReason = 27
+	ErrorReason_USER_WECHAT_CONFLICT     ErrorReason = 27
+	ErrorReason_SEARCH_TOO_MANY_ATTEMPTS ErrorReason = 28
 )
 
 // Enum value maps for ErrorReason.
@@ -90,6 +91,7 @@ var (
 		25: "AUTH_WECHAT_CODE_INVALID",
 		26: "AUTH_WECHAT_TICKET_INVALID",
 		27: "USER_WECHAT_CONFLICT",
+		28: "SEARCH_TOO_MANY_ATTEMPTS",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":          0,
@@ -120,6 +122,7 @@ var (
 		"AUTH_WECHAT_CODE_INVALID":     25,
 		"AUTH_WECHAT_TICKET_INVALID":   26,
 		"USER_WECHAT_CONFLICT":         27,
+		"SEARCH_TOO_MANY_ATTEMPTS":     28,
 	}
 )
 
@@ -154,7 +157,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\x84\x06\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xa2\x06\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -184,7 +187,8 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x1cSUBSCRIBER_TOO_MANY_ATTEMPTS\x10\x18\x12\x1c\n" +
 	"\x18AUTH_WECHAT_CODE_INVALID\x10\x19\x12\x1e\n" +
 	"\x1aAUTH_WECHAT_TICKET_INVALID\x10\x1a\x12\x18\n" +
-	"\x14USER_WECHAT_CONFLICT\x10\x1bBQ\n" +
+	"\x14USER_WECHAT_CONFLICT\x10\x1b\x12\x1c\n" +
+	"\x18SEARCH_TOO_MANY_ATTEMPTS\x10\x1cBQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

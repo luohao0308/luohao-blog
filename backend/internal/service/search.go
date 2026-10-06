@@ -6,27 +6,50 @@ import (
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 
+	"errors"
+
 	"go.einride.tech/aip/pagination"
 )
+
+// errSearchQueryTooLong is a plain error mapped to INVALID_ARGUMENT by
+// invalidListArgument, same treatment as the other list-bound sentinels.
+var errSearchQueryTooLong = errors.New("search query beyond the length limit")
 
 // ArticleSearchService is the full-text search service.
 type ArticleSearchService struct {
 	v1.UnimplementedArticleSearchServiceServer
 
-	uc *biz.ArticleUsecase
+	uc      *biz.ArticleUsecase
+	limiter biz.SearchRateLimiter
 }
 
 // NewArticleSearchService new an article search service.
-func NewArticleSearchService(uc *biz.ArticleUsecase) *ArticleSearchService {
-	return &ArticleSearchService{uc: uc}
+func NewArticleSearchService(uc *biz.ArticleUsecase, limiter biz.SearchRateLimiter) *ArticleSearchService {
+	return &ArticleSearchService{uc: uc, limiter: limiter}
 }
 
-// SearchArticles full-text searches published articles. Search backend
-// absence or failure degrades to an empty page (the usecase handles that);
-// only the query validation surfaces as an error.
+// SearchArticles full-text searches published articles. The public boundary
+// validates the query shape (non-empty, bounded length) and throttles per
+// client IP — this is the only search entry that spends the visitor's budget:
+// the chat usecase retrieves through the same usecase method but answers under
+// its own throttle. Search backend absence or failure degrades to an empty
+// page (the usecase handles that); validation and throttling surface as
+// errors. The limiter fails open like the other throttlers: an outage in the
+// counter must not take search down.
 func (s *ArticleSearchService) SearchArticles(ctx context.Context, req *v1.SearchArticlesRequest) (*v1.ArticleSet, error) {
 	if req.GetQuery() == "" {
 		return nil, biz.ErrArticleInvalidArgument
+	}
+	if runes := []rune(req.GetQuery()); len(runes) > biz.SearchQueryMaxRunes {
+		return nil, invalidListArgument(errSearchQueryTooLong)
+	}
+	if s.limiter != nil {
+		ok, err := s.limiter.Allow(ctx, "search:"+clientIP(ctx))
+		if err != nil {
+			// limiter failure fails open, mirroring login/comment/chat.
+		} else if !ok {
+			return nil, biz.ErrSearchTooManyAttempts
+		}
 	}
 	pageToken, err := pagination.ParsePageToken(req)
 	if err != nil {

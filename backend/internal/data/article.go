@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
@@ -545,4 +546,20 @@ func (r *articleRepo) IncrementLike(ctx context.Context, slug, clientKey string)
 		return 0, false, err
 	}
 	return po.LikeCount, true, nil
+}
+
+// NewSearchRateLimiter builds the public-search throttler from the auth
+// config, applying the same defaults pattern as the other limiters. Search
+// gets a generous budget (browsing readers never hit it) because the goal is
+// bounding scripted ES hammering, not gating normal use.
+func NewSearchRateLimiter(rdb redis.UniversalClient, a *conf.Auth) biz.SearchRateLimiter {
+	attempts := a.GetRateLimit().GetSearchAttempts()
+	if attempts <= 0 {
+		attempts = biz.DefaultSearchAttempts
+	}
+	window := a.GetRateLimit().GetSearchWindow().AsDuration()
+	if window <= 0 {
+		window = biz.DefaultSearchWindow
+	}
+	return &rateLimiter{rdb: rdb, attempts: attempts, window: window}
 }

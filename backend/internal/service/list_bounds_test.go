@@ -46,7 +46,7 @@ func TestListPageSizeClamped(t *testing.T) {
 	})
 	t.Run("search", func(t *testing.T) {
 		idx := &stubSearchIndex{slugs: []string{"a"}}
-		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, idx))
+		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, idx), nil)
 		if _, err := svc.SearchArticles(ctx, &v1.SearchArticlesRequest{Query: "go", PageSize: 100000}); err != nil {
 			t.Fatalf("SearchArticles error = %v", err)
 		}
@@ -61,7 +61,7 @@ func TestListPageSizeClamped(t *testing.T) {
 func TestListPageTokenInvalidArgument(t *testing.T) {
 	ctx := context.Background()
 	t.Run("search", func(t *testing.T) {
-		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}))
+		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}), nil)
 		_, err := svc.SearchArticles(ctx, &v1.SearchArticlesRequest{Query: "go", PageToken: "bogus-token"})
 		if !kratoserrors.IsBadRequest(err) {
 			t.Fatalf("search bad token error = %v, want bad request", err)
@@ -93,14 +93,14 @@ func synthToken(t *testing.T, req pagination.Request, offset int64) string {
 func TestListPageOffsetBeyondWindow(t *testing.T) {
 	ctx := context.Background()
 	t.Run("search", func(t *testing.T) {
-		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}))
+		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}), nil)
 		req := &v1.SearchArticlesRequest{Query: "go", PageToken: synthToken(t, &v1.SearchArticlesRequest{Query: "go"}, 20000)}
 		if _, err := svc.SearchArticles(ctx, req); !kratoserrors.IsBadRequest(err) {
 			t.Fatalf("huge offset error = %v, want bad request", err)
 		}
 	})
 	t.Run("negative offset", func(t *testing.T) {
-		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}))
+		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}), nil)
 		req := &v1.SearchArticlesRequest{Query: "go", PageToken: synthToken(t, &v1.SearchArticlesRequest{Query: "go"}, -5)}
 		if _, err := svc.SearchArticles(ctx, req); !kratoserrors.IsBadRequest(err) {
 			t.Fatalf("negative offset error = %v, want bad request", err)
@@ -121,7 +121,7 @@ func TestListPageOffsetBeyondWindow(t *testing.T) {
 		}
 	})
 	t.Run("offset at window edge is accepted", func(t *testing.T) {
-		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}))
+		svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, &stubSearchIndex{}), nil)
 		req := &v1.SearchArticlesRequest{Query: "go", PageToken: synthToken(t, &v1.SearchArticlesRequest{Query: "go"}, 9900)}
 		if _, err := svc.SearchArticles(ctx, req); err != nil {
 			t.Fatalf("edge offset should be accepted, got %v", err)
