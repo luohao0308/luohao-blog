@@ -8,5 +8,9 @@
 
 {$SITE_ADDRESS::80} {
 	encode gzip
+	log {
+		output stdout
+		format console
+	}
 	reverse_proxy frontend:3000
 }
