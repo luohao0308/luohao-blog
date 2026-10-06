@@ -43,6 +43,19 @@ mv -- "$tmp" "$file"
 gzip -t -- "$utmp"
 mv -- "$utmp" "$uploads"
 
-ls -1t backups/blog-*.sql.gz | tail -n +$((KEEP + 1)) | xargs -r rm --
-ls -1t backups/uploads-*.tar.gz | tail -n +$((KEEP + 1)) | xargs -r rm --
+# 轮转删除超出 KEEP 的最旧备份。文件名由本脚本生成（时间戳命名，字典序即
+# 时间序）；glob 展开不经过空白分词，替代此前的 ls | xargs 管道。
+rotate() {
+	local pattern=$1 keep=$2
+	shopt -s nullglob
+	local files=($pattern)
+	shopt -u nullglob
+	local excess=$((${#files[@]} - keep))
+	local i
+	for ((i = 0; i < excess; i++)); do
+		rm -- "${files[i]}"
+	done
+}
+rotate 'backups/blog-*.sql.gz' "$KEEP"
+rotate 'backups/uploads-*.tar.gz' "$KEEP"
 echo "backup written: $file, $uploads"
