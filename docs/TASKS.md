@@ -95,7 +95,7 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | ~~限流器 Incr+Expire 异常路径~~ | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
 | ~~E2E known_issue 失效~~ | 已修复 | #29 摘除过期标注；2026-10-06 复核套件内无 known_issue=True。限流自撞亦已修复（见下行） |
 | ~~E2E 限流自撞~~ | 已修复 | 套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1` 启动前清限流键（默认关，docker exec 通道仅限本地栈；2026-10-06 实测：打满 10 次/5min 限流器后 cleared(1) → t12 立即通过；对生产跑不开启） |
-| Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转 | 部分修复 | Caddy 访问日志 + 容器日志轮转均已修复（2026-10-06：compose 六服务声明 json-file 10MB×3，配置入库、随 `up -d` 滚动重建生效不走 daemon.json；本地栈六容器 HostConfig.LogConfig 实查 + 服务器部署核验）；**残留**：restore 边服务边恢复 |
+| ~~Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转~~ | 已修复 | 三件全部清账（2026-10-06）：Caddy 访问日志启用；容器日志轮转 compose 六服务 json-file 10MB×3；restore.sh 改为「坏包停服前拒收 → uploads 先行 → 停 backend 灌库 → 回启等健康 → 提示 reindex」，本地栈完整 DR 演练（含灌库失败回启路径） |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
 | v-html + WithUnsafe XSS 面 | 中 | 信任边界=仅 admin 可写；引入第二作者前必须 sanitize |
 | ~~frontend healthcheck 用整页 SSR 探针~~ | 已修复 | Nitro 新增 /health（不触数据层）+ compose 探针改打 /health（2026-10-06 本地栈实弹：frontend ~20s 转 healthy，/health 200，首页/E2E t01–t02 无回归）；backend 探针打 /v1/articles/list 属数据层语义，有意保留 |
