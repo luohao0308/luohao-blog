@@ -31,7 +31,8 @@ func (t *safeLinkTransformer) Transform(node *ast.Document, reader text.Reader, 
 	// Collect first, mutate after: unwrapping nodes while Walk is inside
 	// their subtree would confuse the traversal.
 	var unsafe []ast.Node
-	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	// The callback never returns an error; the assignment satisfies errcheck.
+	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
