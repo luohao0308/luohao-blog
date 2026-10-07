@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -72,6 +73,9 @@ type chatCompletionsResponse struct {
 	} `json:"choices"`
 }
 
+// Bound the complete provider response, including ignored fields and padding.
+const maxChatResponseBytes = 1 << 20
+
 // Generate returns the assistant reply for one system/user exchange.
 func (c *chatLLM) Generate(ctx context.Context, system, user string) (string, error) {
 	body, err := json.Marshal(chatCompletionsRequest{
@@ -102,7 +106,14 @@ func (c *chatLLM) Generate(ctx context.Context, system, user string) (string, er
 		return "", fmt.Errorf("chat completions: status %d", res.StatusCode)
 	}
 	var out chatCompletionsResponse
-	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+	response, err := io.ReadAll(io.LimitReader(res.Body, maxChatResponseBytes+1))
+	if err != nil {
+		return "", err
+	}
+	if len(response) > maxChatResponseBytes {
+		return "", fmt.Errorf("chat completions: response exceeds %d bytes", maxChatResponseBytes)
+	}
+	if err := json.Unmarshal(response, &out); err != nil {
 		return "", err
 	}
 	if len(out.Choices) == 0 || out.Choices[0].Message.Content == "" {

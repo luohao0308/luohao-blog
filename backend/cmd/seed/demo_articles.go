@@ -152,6 +152,12 @@ func seedDemoArticles(ctx context.Context, uc *biz.ArticleUsecase, reset bool) e
 		case biz.ErrArticleNotFound.Is(err):
 			verb = "created"
 			err = createDemoArticle(ctx, uc, a)
+			// Deleted rows retain the unique slug. Never resurrect them, even
+			// under -reset; a concurrent creator can also occupy the slug.
+			if biz.ErrArticleSlugConflict.Is(err) {
+				fmt.Printf("seed: article %s slug occupied, skipped (deleted articles stay deleted)\n", a.Slug)
+				continue
+			}
 		}
 		if err != nil {
 			return fmt.Errorf("seed: article %s: %w", a.Slug, err)

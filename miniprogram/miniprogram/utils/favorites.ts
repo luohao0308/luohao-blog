@@ -60,3 +60,10 @@ export function markLiked(slug: string) {
     wx.setStorageSync(LIKE_PREFIX + slug, true)
   } catch { /* ignore */ }
 }
+
+// 失败的点赞不能保留去重标记，否则离开详情再回来就无法重试。
+export function unmarkLiked(slug: string) {
+  try {
+    wx.removeStorageSync(LIKE_PREFIX + slug)
+  } catch { /* ignore */ }
+}

@@ -180,7 +180,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: mysql/redis/elasticsearch exporter 报 up==0 持续 3m。docker ps 看容器，docker logs 看对应服务。
+          summary: mysql/redis/elasticsearch exporter 或数据层自身不可用/指标缺失持续 3m。docker ps 看容器，docker logs 看对应服务。
         data:
           - refId: A
             relativeTimeRange:
@@ -192,7 +192,60 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: 'up{job=~"mysql|redis|elasticsearch"} == 0'
+              expr: '(1 - (min(up{job=~"mysql|redis|elasticsearch"}) or vector(0))) + (1 - (min(mysql_up) or vector(0))) + (1 - (min(redis_up) or vector(0))) + (1 - (min(elasticsearch_clusterinfo_up) or vector(0)))'
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: C
+              type: threshold
+
+      - uid: blog-backup-sync
+        title: Offsite backup failed or stale
+        condition: C
+        for: 3m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 异地备份失败、指标缺失或距最近成功超过 26h。检查 blog-backup-push.log 与 cron；本地备份由 Kuma 独立监控。
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: '(1 - (min(blog_backup_sync_success) or vector(0))) + (time() - (min(blog_backup_sync_last_success_timestamp_seconds) or vector(0)) > bool 93600) + (absent(blog_backup_sync_last_success_timestamp_seconds) or vector(0))'
               instant: true
               intervalMs: 1000
               legendFormat: __auto

@@ -1,6 +1,6 @@
 # 开发与交付入口
 
-_状态：M0 已初始化 | 更新：2026-09-29_
+_状态：M0–M5 已交付 | 更新：2026-10-08_
 
 本页把项目真实可执行的开发命令、Git 策略、服务边界和变更影响集中到一个入口。命令必须来自仓库脚本、配置或 CI，不凭经验猜测。
 
@@ -24,7 +24,7 @@ _状态：M0 已初始化 | 更新：2026-09-29_
 | 构建（前端） | `pnpm build` | `frontend/` | Nuxt SSR 产物 `.output/` |
 | 构建（后端） | `go build ./...` | `backend/` | Kratos 单二进制 `cmd/server` |
 | proto 生成 | `make api`（api/）/ `make config`（conf） | `backend/` | buf 插件走 `go run` 固定版本；禁止手改生成物 |
-| 创建作者账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <显示名>` | `backend/` | 注册关闭，seed 是唯一建号入口；会先幂等执行迁移 |
+| 创建作者账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <显示名>` | `backend/` | ADMIN 由 seed 创建，READER 可公开注册；会先幂等执行迁移 |
 | 演示文章 seed | `go run ./cmd/seed -conf ./configs -demo-articles`（`-reset` 覆写已有） | `backend/` | 内容内嵌 `cmd/seed/demoarticles/*.md`；默认仅补缺，不覆盖后台改动 |
 | 重建搜索索引 | `go run ./cmd/reindex -conf ./configs` | `backend/` | 删建 ES 索引（含 dense_vector）+ 重灌已发布文章；配 `KRATOS_EMBEDDING_*` 后运行可生成向量 |
 | embedding 配置 | 密钥写 `backend/configs/secrets.local.yaml`（Git 忽略；模板见同目录 example），或环境变量 `KRATOS_EMBEDDING_BASE_URL / _API_KEY / _MODEL / _DIMENSIONS` | `backend/` | OpenAI 兼容接口；不配置则索引 BM25-only（自动降级），配置后跑一次 reindex。优先级：secrets 文件 > 环境变量 > 默认值 |
@@ -32,23 +32,26 @@ _状态：M0 已初始化 | 更新：2026-09-29_
 | JWT 密钥 | 也可写入 secrets 文件 `auth.jwt.secret`（如 `openssl rand -hex 32` 生成），设置后启动无需 `KRATOS_JWT_SECRET` 环境变量 | `backend/` | 空密钥仍 fail-fast；env 注入方式继续有效（secrets 文件优先） |
 | 认证冒烟 | `./scripts/smoke-auth.sh` | `backend/` | 需依赖服务已起 + jq；先 `export KRATOS_JWT_SECRET=$(openssl rand -hex 32)` |
 | 数据迁移 | 启动时自动幂等 up（golang-migrate，嵌入 `backend/migrations/`） | `backend/` | 无需手动命令；迁移文件进 Git 评审 |
-| CI | `.github/workflows/ci.yml` | 仓库根 | backend：lint+build+test；frontend：lint+typecheck+build |
+| 小程序验证 | `npm run typecheck && npm test` | `miniprogram/` | 无依赖 mocked wx 回归覆盖认证重放、收藏、点赞回滚、待审评论、搜索/问答引用；不替代 DevTools/真机点验 |
+| CI | `.github/workflows/ci.yml` | 仓库根 | backend：lint+build+test；frontend：lint+typecheck+build；miniprogram：typecheck+logic tests |
 | 后端启动 | `KRATOS_JWT_SECRET=<密钥> go run ./cmd/server -conf ./configs` | `backend/` | 空密钥启动即 panic（fail-fast）；2026-09-30 认证冒烟 30/30 通过 |
 
 ## Git 与隔离策略
+
+reindex 按稳定 ID 排序分页读取已发布文章。重建期间保持文章集合稳定（暂停发布/删除），避免 offset 在并发写入时遗漏或重复；失败后修复原因重新执行完整重建。seed 对已占用 slug 跳过，`-reset` 也不恢复软删记录。LLM 客户端对完整响应（含忽略字段和尾部数据）设 1MiB 上限，超限拒绝而不返回部分回答。
 
 - Worktree 模式：`disabled`（单人项目，目录即工作区；需要并行实验时临时建 worktree 再改回）
 - 分支决策：仅为有意进入 Git 的共享交付创建；本机记忆、临时上下文和只读任务不建分支。
 - 分支命名：`feat/*`、`fix/*`、`docs/*`、`chore/*`；本机临时分支 `codex/*`（禁止 push）
 - 提交格式：Conventional Commits（`feat|fix|docs|chore|ci|refactor|test: 描述`，英文）
 - 集成策略：PR → required CI → squash/merge 到 `main`；独立 Review 仅在 manifest 明确要求时作为门禁
-- Git 交付策略：以 `.dev-workflow/manifest.json` 的 `gitPolicy` 为当前机器的执行权限权威；当前为 `manual + user`，push/PR/远端 merge 均需用户逐次确认，AI 执行前跑 `python3 scripts/delivery_guard.py check`。
+- Git 交付策略：以 `.dev-workflow/manifest.json` 的 `gitPolicy` 为当前机器权限权威；本机核验为 `manual + ai`（2026-10-08），push/PR/远端 merge 绑定用户逐次授权，AI 执行前跑 `python3 scripts/delivery_guard.py check`。新 clone 或其他机器不得从本页推导权限。
 - 本地流程文件：以 `info/exclude` 的实际 `git check-ignore` 结果为准；已跟踪或被项目规则重新放行的路径必须在交付前处理。
-- 流程要求：feature/bug/security/跨模块工作关联 Issue（当前阶段以 TASKS.md 编号代替 GitHub Issue，branch protection 生效后切换为真 Issue）；交付经过 PR 和 required CI，独立 Review 按 manifest 策略执行。
+- 流程要求：feature/bug/security/跨模块工作关联追踪记录（现有 TASKS.md 编号与 PR）；Issue 写入另需授权；交付经过 PR 和 required CI，独立 Review 按 manifest 策略执行。
 - 自动允许：本地可逆操作（构建、测试、lint、本地分支与提交）。
-- 需要确认：push、PR 创建/更新、远端 PR merge（manual + user）。
-- 一次性授权：不适用（未启用 auto 模式）；如启用，文件放 `.dev-workflow/authorizations/`。
-- 远端强制门：branch protection 未配置（TASKS.md T-002，用户操作）；配置前质量门靠本页约定与人工 Review。
+- 需要确认：push、PR 创建/更新、远端 PR merge（按当前 manifest 的 actor/mode）；持久权限策略变更单独确认。
+- 一次性授权：AI 执行时放 `.dev-workflow/authorizations/`，绑定 exact SHA/ref/operation/expiry/maxUses；最终 guard `--consume`，不复用已消耗授权。
+- 远端强制门：main 已配置 required backend/frontend CI、conversation resolution，禁止 force push/删除并要求管理员遵守；适用 review 与当前保护规则在每次交付前重新读取。
 - 高权限操作：`privilegedOperationsDefault=deny`；发布、部署、迁移、回滚、流量、仓库设置、凭据和删除按明确目标另行授权。
 
 AI 执行远端操作前先运行 Core 自带、零第三方依赖的 `python3 scripts/delivery_guard.py check ...`。`actor=user` 时 guard 固定拒绝为 AI 放行；`actor=ai` 时必须提供 `.dev-workflow/authorizations/` 下、权限不宽于 `0600` 的一次性授权 JSON。真正执行前使用 `--consume` 原子记录消耗次数。每类操作都必须提供五分钟内从托管平台读取、并绑定当前仓库/remote/ref/SHA 的 provider 证据；push 证据还要证明非删除、非 force、fast-forward 且目标分支未受保护，merge 证据还要覆盖 PR、CI、独立人工 Review 和分支保护。guard 不读取 Token，也拒绝带凭据、query 或 fragment 的 remote URL。

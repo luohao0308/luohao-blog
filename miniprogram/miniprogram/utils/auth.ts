@@ -99,12 +99,7 @@ export function refreshSession(): Promise<boolean> {
 // registerAuthBridge 把刷新能力接进请求层：401 → 刷新 → 重放一次。
 export function registerAuthBridge() {
   setAccessToken(loadAccessToken())
-  setUnauthorizedHandler(async (retry) => {
-    const ok = await refreshSession()
-    if (!ok) return false
-    await retry()
-    return true
-  })
+  setUnauthorizedHandler(refreshSession)
 }
 
 // wechatLogin 用 wx.login 的 code 走后端登录；返回账号或绑定票据。

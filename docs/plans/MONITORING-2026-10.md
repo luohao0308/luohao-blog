@@ -6,7 +6,7 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 
 - 目标结果：全站（caddy→frontend→backend→mysql/redis/es）可用性拨测、每接口 QPS/延迟/错误率指标、资源水位与"备份静默失败"死信开关；异常经钉钉主动通知。
 - 可验收成功标准：① 手动停 backend 容器能收到钉钉告警；② Grafana 能看到每个 API 的 QPS/p95/5xx；③ 备份脚本成功后 Kuma push 监控变绿，超过 24h 不 ping 触发告警；④ 监控端口全部不暴露公网。
-- 完成后停止条件：S1+S2 验收通过即停止；S3（日志聚合/DB exporter/公开状态页）为可选项，用户提出再做。
+- 完成后停止条件：S1–S3 已交付并验收；状态页公网接入依赖 T-008 域名，不阻塞内部监控完成。
 
 ## 2. 范围与非范围
 
@@ -17,10 +17,10 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 - `deploy/backup.sh`（成功后 ping Kuma push 监控；URL 读 Git 外的 `.env.prod`）
 - `backend/internal/server/`（metrics 中间件 + `/metrics` 挂载，HTTP+gRPC 共用）
 - `docs/operations/OBSERVABILITY.md`、`docs/operations/runbooks/RUNBOOK-monitoring.md`、`deploy/README.md`
+- S3 已按用户追加批准纳入：Loki 日志聚合、mysqld/redis/es exporter、内部状态页及外部拨测。
 
 ### 非范围
 
-- Loki 日志聚合、mysqld/redis/es 专属 exporter、公开状态页（S3 可选项）
 - 追踪后端（Tempo/Jaeger）；暂不引入 Alertmanager（Grafana 统一告警承担）
 - 域名/HTTPS（T-008 备案流程独立推进）
 
@@ -30,7 +30,7 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 - 测试/CI：新增 `metrics_test.go`（成功/错误码/空 transport 三用例）；全量 `go test ./...` 绿
 - 契约/数据：无 API 契约变化、无迁移；`/metrics` 仅 compose 内网可达（backend 不发布端口）
 - 运行事实（2026-10-07 服务器摸底）：2C4G，可用内存 1.9G（ES ~750M），磁盘清理后 29%（释放 25G 构建缓存+journal）；Docker Hub 经腾讯 mirror 可拉，gcr.io 不可达
-- Unknown：钉钉机器人 webhook（需用户在钉钉群创建后提供）；生产 backend `/metrics` 待 PR 合并+发布流水线出镜像后在服务器 pull 生效
+- 基线已更新：钉钉通道打通，生产 `/metrics` 生效，S3 exporter 六 target 全 up（下方历史验收）；webhook 仅保存在服务器/UI，不入 Git。资源数值为当时快照，部署前重新核验。
 
 ## 4. 规模判定与用户确认
 
@@ -44,7 +44,7 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
 | S1 | Uptime Kuma 拨测（全链路 4 项+ES）+ 备份 push 死信开关 | `compose.monitoring.yml`、`backup.sh`、服务器部署 | 无 | 停 backend 容器收到通知；push 监控变绿 | `compose down`（监控独立栈，不影响生产） | completed |
-| S2 | 后端 `/metrics` + Prometheus/Grafana 栈 + 看板与告警规则 | `backend/internal/server/`、`deploy/prometheus|grafana/` | S1（通知渠道就绪） | Grafana 看到 API QPS/p95/5xx；演练触发一条告警 | 分支回退 / `compose down`；backend 镜像按 runbook 回滚 | in_progress |
+| S2 | 后端 `/metrics` + Prometheus/Grafana 栈 + 看板与告警规则 | `backend/internal/server/`、`deploy/prometheus|grafana/` | S1（通知渠道就绪） | Grafana 看到 API QPS/p95/5xx；演练触发一条告警 | 分支回退 / `compose down`；backend 镜像按 runbook 回滚 | completed |
 | S3（可选） | Loki 日志聚合、DB/ES exporter、外部拨测兜底、状态页 | deploy 配置扩展 + CI workflow | S2 | 日志可查、exporter targets up、Actions 拨测跑通、状态页可访问 | 分支回退 / `compose up -d --force-recreate` | completed |
 
 ## 5. 原则与决策
@@ -68,7 +68,7 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 
 ### S2：API 指标 + Prometheus/Grafana
 
-- 状态：in_progress（代码与配置就绪；生产生效依赖 PR 合并→ghcr 镜像→服务器 pull）
+- 状态：completed（PR #79 merge `a657752`；生产指标与钉钉停容器演练通过）
 - 实现：见 §3/§5
 
 ### S3：日志聚合 + 数据层 exporter + 外部拨测 + 状态页
@@ -83,4 +83,5 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 - 2026-10-07 服务器：监控栈 4 容器 Up（kuma healthy）；Prometheus 抓取 node-exporter/prometheus up、backend down（旧镜像无 /metrics，预期）；Grafana 数据源/看板（7 面板）/告警规则（4 条，Provisioned）加载成功；主机面板实数据核验（CPU 均值 15.5%、可用内存 1.28GiB、根分区 34.8%）；Kuma 6 监控项全绿 + push ping 200；Grafana 管理员口令经 CLI 对齐 env 文件（首次初始化时序问题）
 - 2026-10-07 发布收口：PR #79 squash merge `a657752`（CI 双绿，guard push/PR/merge 三次 consume allow）；服务器 git pull 至 a657752（pull 前 `backup-push.sh` 与仓库版 diff 一致后删除）；ghcr pull 受限复现（T-008 已知），按 runbook 走 `compose build backend` 本地构建回退；backend 新镜像 healthy，`/metrics` 输出 17 行 `blog_api_*`，**Prometheus 三 target 全 up，`sum(rate(blog_api_requests_total[2m]))` 实测 0.089 QPS**，公网 `/api/v1/articles/list` 200
 - 2026-10-07 钉钉通知打通：机器人安全设置为 IP 白名单（193.112.128.245，Kuma/Grafana 均免加签直发）；Kuma DingDing 通知（占位密钥 + IP 白名单模式，"Sent Successfully"）应用到全部 6 监控项+默认开启；Grafana DingDing contact point（"Test alert sent"）+ 默认通知策略切至钉钉；**验收演练通过：23:16 停 backend 容器 → 23:20 Kuma 判 DOWN（EHOSTUNREACH）发钉钉告警 → 23:21 重启 → 23:22 恢复 200 OK（恢复通知同步发出）**。S2 全部验收完成
-- S3（Loki/DB exporter/公开状态页/外部拨测兜底）：可选项，用户提出再排期
+- S3 已由 PR #81 合并（`1ed6611`）；external-probe 手动运行 `37652842115` 成功验证首页/API，定时 workflow 已启用。公网状态页接入留待域名。
+- 2026-10-08 非域名收尾追加异地备份指标与失败/26h 超期告警，本地脚本及 PromQL 回归通过；服务器生效与验收按 `NON-DOMAIN-CLOSEOUT-2026-10.md` S4 推进。

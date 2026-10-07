@@ -77,16 +77,10 @@ func main() {
 	}
 
 	articles := biz.NewArticleUsecase(data.NewArticleRepo(store, nil), nil)
-	published, err := articles.ListArticles(ctx, biz.ListPublic(), biz.ListLimit(1000))
+	count, err := reindexArticles(ctx, articles.ListArticles, indexer.IndexArticle)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "reindex: list published articles: %v\n", err)
+		fmt.Fprintf(os.Stderr, "reindex: %v\n", err)
 		os.Exit(1)
-	}
-	for _, a := range published {
-		if err := indexer.IndexArticle(ctx, a); err != nil {
-			fmt.Fprintf(os.Stderr, "reindex: index %s: %v\n", a.Slug, err)
-			os.Exit(1)
-		}
 	}
 	// The write path indexes with refresh=false; a rebuild must stay visible.
 	if r, ok := indexer.(interface{ Refresh(context.Context) error }); ok {
@@ -95,5 +89,27 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	fmt.Printf("reindex: rebuilt index with %d published articles\n", len(published))
+	fmt.Printf("reindex: rebuilt index with %d published articles\n", count)
+}
+
+// Repository lists have a stable ID tie-breaker; page until exhausted rather
+// than silently truncating the rebuild at the first thousand articles.
+func reindexArticles(ctx context.Context, list func(context.Context, ...biz.ListOption) ([]*biz.Article, error), index func(context.Context, *biz.Article) error) (int, error) {
+	const pageSize = 1000
+	count := 0
+	for offset := 0; ; offset += pageSize {
+		page, err := list(ctx, biz.ListPublic(), biz.ListLimit(pageSize), biz.ListOffset(offset))
+		if err != nil {
+			return count, fmt.Errorf("list published articles: %w", err)
+		}
+		for _, a := range page {
+			if err := index(ctx, a); err != nil {
+				return count, fmt.Errorf("index %s: %w", a.Slug, err)
+			}
+			count++
+		}
+		if len(page) < pageSize {
+			return count, nil
+		}
+	}
 }

@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-07_
+_last-updated: 2026-10-08_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -16,9 +16,22 @@ _last-updated: 2026-10-07_
 |---|---|---|---|---|
 | T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待备案 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密已销项（2026-10-05）；#28 服务器部署已完成并公网 E2E 验收（2026-10-04）；**剩余仅 HTTPS：域名 makerhao.cn 已购（2026-10-07，腾讯云），ICP 备案进行中（约 1–2 周），通过后接解析+Caddy HTTPS+Secure cookie** |
 | T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（依赖备案 T-008：合法域名+业务域名配置） |
-| T-013 | 站点监控：**全部交付**（计划状态 completed）。S1：Kuma 6 拨测项+备份 push 死信开关；S2：PR #79 merge `a657752`，生产 `/metrics` 入库，Prometheus/Grafana 看板+4 告警规则；钉钉通知双通道打通（IP 白名单模式），停容器演练 23:20 告警/23:22 恢复实测通过；S3：Loki+Promtail 日志聚合（7d 保留）、mysqld/redis/es exporter+数据层告警+看板面板、GitHub Actions 外部拨测兜底、Kuma 状态页 `/status/blog` | backend + deploy + docs + CI | 计划 `docs/plans/MONITORING-2026-10.md`，Runbook `docs/operations/runbooks/RUNBOOK-monitoring.md` | 状态页公网暴露等域名/HTTPS（T-008）；Loki 计量 error 噪音（不影响摄入，runbook 已记）；S3 PR 待 push/merge 授权 |
 
 ## 待办 (Todo)
+
+- [ ] refresh cookie `Secure` 属性：随 HTTPS/域名（T-008 ICP 备案）落地。
+- [ ] 非域名收尾：六项技术债代码与小程序可执行验收，按 `docs/plans/NON-DOMAIN-CLOSEOUT-2026-10.md` 推进；服务器部署及线上验收待 S4。
+
+## 未授权或未立项 (Do Not Start)
+
+- M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
+- 本轮收尾 PR/CI 与准确版本生产更新已获用户确认；其他 tag/Release、迁移、仓库设置等操作仍不在授权范围。
+- 订阅发信（SMTP 真发）/注册邮箱验证：未立项——发信域名 SPF/DKIM 依赖备案域名，备案通过后立项（DirectMail 每日 200 封免费方案已选定）
+- 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
+
+## 已完成 (Done)
+
+- [x] T-013 监控 S1–S3：PR #79/#81 已合并，Loki、三个 exporter、外部拨测和内部状态页已交付；状态页公网接入随 T-008。本轮核实 MySQL exporter 账号缺失，target up 不代表 mysql_up；原数据层告警表达式漏报，修正与账号补齐纳入非域名收尾 S4。
 
 ### T-010 遗留补测清单（2026-10-06 生产部署 + 生产 E2E 后基本完成）
 
@@ -28,9 +41,8 @@ _last-updated: 2026-10-07_
 - [x] 前台 UI 走查（生产，探针账号）：登录→头像下拉（昵称邮箱/个人设置/退出，READER 无后台入口✓）→ /settings 三卡片（头像回显/昵称/改密，未修改时保存禁用✓）→ 文章页「以 部署探针 的身份发表」→ 提交成功→待审核块展示；**探针留言一条在待审区**（`部署验证：登录身份评论链路 OK`），用户可在后台通过或删除
 - [x] t13–t16 补跑（2026-10-06，本地生产栈）：镜像从 main 重建（T-010 四切片在镜像内）后 **全套 16/16 全绿**（t01–t16，含 AI 问答真实 LLM）；t13 列表/t14 发文发布/t15 评论审核闭环/t16 登出守卫全部通过。补跑发现并修复 t15 用例两处失真：① 未登录引导断言用 `ctx.new_page()` 模拟访客，但同一 context 共享 cookie，登录后必假——改为登录前在主页面断言；② 提交后断言"未展示"与 S4 语义冲突（作者的待审评论在「待审核」块可见）——改为断言待审块展示 + 已发布列表不出现，审核通过后进入已发布列表；清理断言仅在提交成功后生效。限流自撞现场复现（连跑触顶 t16 登录 429），跑前清 Redis `blog:ratelimit:*`（已落地为套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1`，见技术债销账）。t15 修复已随 [#58](https://github.com/luohao0308/luohao-blog/pull/58) 合并（merge `d13bcb9`）
 
-- [x] T-010 前台账号体系与头部改版（四切片全部交付）：**S1** 后端账号基座（开放注册 READER+自动登录+独立限流、User.avatar_url、UserService UpdateProfile/UploadAvatar/GetAvatar（HttpBody+immutable 缓存）、本地磁盘存储+compose `backend-uploads` 卷+备份/恢复、迁移 000008，[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) merge `c59fa80`）；**S2** 前台头部改版（导航 8→5 项+文章▾ 下拉、UserMenu 登录/头像下拉（超管进后台）、公开布局会话恢复、/login /register，[PR #53](https://github.com/luohao0308/luohao-blog/pull/53) merge `e72b6fa`）；**S3** /settings 个人设置（头像 canvas 压缩上传/昵称/改密、客户端登录守卫，[PR #54](https://github.com/luohao0308/luohao-blog/pull/54) merge `0a86e72`）；**S4** 评论登录门禁（CreateComment 需 JWT、身份取自 token、user_id 落库兼容旧匿名行、头像批量附加、评论区登录引导，迁移 000009，[PR #55](https://github.com/luohao0308/luohao-blog/pull/55) merge `c7ef251`）；各片 go build/vet/test 与 pnpm lint/typecheck/build 全绿，required CI 双绿，guard 全程 consume allow（2026-10-05/06）；交付中一次 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI 红（教训：ignore 锚定 `/data/`）；计划与执行记录 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`；真实栈补测清单见上方待办
+- [x] T-010 前台账号体系与头部改版（四切片全部交付）：**S1** 后端账号基座（开放注册 READER+自动登录+独立限流、User.avatar_url、UserService UpdateProfile/UploadAvatar/GetAvatar（HttpBody+immutable 缓存）、本地磁盘存储+compose `backend-uploads` 卷+备份/恢复、迁移 000008，[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) merge `c59fa80`）；**S2** 前台头部改版（导航 8→5 项+文章▾ 下拉、UserMenu 登录/头像下拉（超管进后台）、公开布局会话恢复、/login /register，[PR #53](https://github.com/luohao0308/luohao-blog/pull/53) merge `e72b6fa`）；**S3** /settings 个人设置（头像 canvas 压缩上传/昵称/改密、客户端登录守卫，[PR #54](https://github.com/luohao0308/luohao-blog/pull/54) merge `0a86e72`）；**S4** 评论登录门禁（CreateComment 需 JWT、身份取自 token、user_id 落库兼容旧匿名行、头像批量附加、评论区登录引导，迁移 000009，[PR #55](https://github.com/luohao0308/luohao-blog/pull/55) merge `c7ef251`）；各片 go build/vet/test 与 pnpm lint/typecheck/build 全绿，required CI 双绿，guard 全程 consume allow（2026-10-05/06）；交付中一次 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI 红（教训：ignore 锚定 `/data/`）；计划与执行记录 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`；真实栈补测清单见本章节
 
-- [x] T-010/S1 后端账号基座：开放注册（Register API→READER+自动登录，独立 IP 限流 fail-open）、User.avatar_url 契约、UserService（UpdateProfile/UploadAvatar base64 2MiB 魔数校验/GetAvatar HttpBody+immutable 缓存）、本地磁盘存储+compose 命名卷+备份/恢复脚本、迁移 000008、policy 8 行+全路由覆盖测试；go build/vet/test 全绿；交付中 gitignore `data/` 吞掉 internal/data/avatar.go 致 CI typecheck 红（教训：ignore 模式锚定 `/data/`），修复后重授权推送；[PR #52](https://github.com/luohao0308/luohao-blog/pull/52) squash 合并（head `95c5cf7`，merge `c59fa80`，required CI 两项通过，guard push×2/PR×1/merge×1 consume 全 allow，2026-10-05）；计划 `docs/plans/READER-ACCOUNTS-HEADER-2026-10.md`
 ### T-012 安全扫描修复（已交付）+ 服务器落地（已完成）
 
 - [x] **P1 请求体上限**（[PR #66](https://github.com/luohao0308/luohao-blog/pull/66)，merge `72d0738`）：后端 `RequestDecoder` 包 `MaxBytesReader`（默认 1MiB、头像路由 4MiB）+ Caddy `request_body max_size 8MB` 兜底；真实栈冒烟（2MB 登录体→400 too large、正常解码不受影响、头像路由 2MB→401 证明路由上限生效）
@@ -38,7 +50,6 @@ _last-updated: 2026-10-07_
 - [x] **P3 搜索限流**（[PR #69](https://github.com/luohao0308/luohao-blog/pull/69)，merge `b5c2246`）：每 IP 60 次/分钟（fail-open）+ 查询 200 字上限 + `SEARCH_TOO_MANY_ATTEMPTS` 429 枚举 + conf `search_attempts/search_window`；上限在搜索 service 层以不误伤 chat 内部检索
 - [x] **P3 Redis requirepass**（[PR #70](https://github.com/luohao0308/luohao-blog/pull/70)，merge `2d235a2`）：生产 compose 强制 `--requirepass`（缺 `REDIS_PASSWORD` 拒绝启动）、后端经 `KRATOS_REDIS_PASSWORD` 注入、healthcheck 带认证；开发 compose 保持无密码（仅绑 127.0.0.1）
 - [x] **服务器落地（2026-10-07 用户授权 AI SSH）**：`/opt/luohao-blog/app` pull 至 `2d235a2` → `.env.prod` 生成并写入 `REDIS_PASSWORD` → `up -d --build redis backend`；验证：无密码 ping→NOAUTH / 带密码→PONG、后端 healthy、API/搜索 200、注册→刷新→登出→401 全链路；Caddy 重载时发现单文件 bind mount 的 inode 陷阱（旧配置仍在容器内），`--force-recreate` 后 12MB 探针 413、站点 200；三个已合并分支经 MERGED 核验后删除
-- [ ] refresh cookie `Secure` 属性：随 HTTPS/域名（T-008 ICP 备案）落地时补，纯 HTTP 下开启会破坏刷新
 
 四个 PR 均 squash 合并、required CI 双绿、guard 全程 consume allow（2026-10-07）；教训两则：① golangci-lint 必须进本地验证链（CI errcheck 抓到 ast.Walk 未检查返回值，本地已装 v2.14.0 与 CI 一致）；② 服务器单文件 bind mount 在 git pull 后必须 force-recreate 才能吃到新内容
 
@@ -75,17 +86,9 @@ _last-updated: 2026-10-07_
 - [x] M3 内容推荐体系：相关文章推荐（分类加权+标签重叠，回退最新）+ 文章列表热门阅读位（PR #38 squash 合并 merge `fc7be0d`）（2026-10-05）
 - [x] M3 用户互动能力：点赞（后端 like_count+去重 PR #36 merge `f70ff20`；前端按钮 PR #37 merge `524badc`，content-type 修复 #40 merge `301de3f`）、收藏（localStorage 本地方案 + /collections 页）、评论体验（待审块/昵称记忆/字数统计/重试，PR #39 merge `07d582c`）；生产已部署验收（2026-10-05）
 
-- [x] 备份异地副本（2026-10-07，用户"开始做"授权）：GitHub 私仓 `luohao-blog-backups` + 服务器 ed25519 deploy key（仅该仓写权限）+ `deploy/backup-push.sh`（单 commit force-push 最新镜像，恒定大小）；cron 03:40 每日推送，首推 13 个备份文件验证落库。**告警（cron 静默失败）待 SMTP 立项后补**
+- [x] 备份异地副本（2026-10-07，用户"开始做"授权）：GitHub 私仓 `luohao-blog-backups` + 服务器 ed25519 deploy key（仅该仓写权限）+ `deploy/backup-push.sh`（单 commit force-push 最新镜像，恒定大小）；cron 03:40 每日推送，首推 13 个备份文件验证落库。本地备份已有 Kuma 心跳；异地同步 textfile 指标与 Grafana 告警在本轮完成代码验证，服务器生效待 S4
 - [x] 远端分支清理（2026-10-07，用户"继续推进"授权）：删除 21 个已核验远端分支（本任务 4 个特性分支 + ci-probe 探针 + 16 个历史交付分支，逐个经 merged-PR 或 main-祖先核验）；保留 `docs/page-layout-record`、`docs/t012-close` 两个无合并记录分支，远端仅剩 main + 待合并记录分支
 
-## 未授权或未立项 (Do Not Start)
-
-- M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
-- tag/Release、镜像发布、部署、迁移、仓库设置类操作：未授权，按 manifest `privilegedOperationsDefault=deny` 逐次申请
-- 订阅发信（SMTP 真发）/注册邮箱验证：未立项——发信域名 SPF/DKIM 依赖备案域名，备案通过后立项（DirectMail 每日 200 封免费方案已选定）
-- 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
-
-## 已完成 (Done)
 
 - [x] 线上更新 #63+#64（2026-10-06）：服务器 193.112.128.245 `git pull` → **仅重建 frontend**（ghcr 拉取受限走服务器本地构建回退；backend 自上次部署无代码变更，不动以缩小变更面/规避 apt 网络抖动）→ `up -d frontend`；六容器 healthy，公开页全 200，首页/关于页 SSR 已含新邮箱与新 UI，公开 E2E（t01–t11，不含后台登录类）11/11 全绿
 - [x] 前台 UI 走查整改：首页改为开屏式介绍落地页（居中 hero + 一行站点数据 + 最新文章/精选项目/订阅，搜索/热门/标签云归位到 /posts、/ranking、/tags 专属页）；顶部导航扁平化（移除「文章」下拉与「收藏」入口，分类/标签/归档改为 /posts 页内浏览入口，收藏/RSS/GitHub 移入页脚导航，导航加当前页高亮，logo 本就回首页）；/settings 昵称行「保存」按钮被挤成竖排的对齐修复；全站按钮统一胶囊形、输入框/卡片 rounded-xl、后台 naive-ui borderRadius 10px + 对话框宽度统一 26rem；E2E t11 气泡选择器改为类名无关（rounded-lg→xl 改版牵连）；frontend lint/typecheck/build 全绿，本地生产栈重建（frontend 镜像从本分支构建）视觉走查亮/暗/移动三态通过，E2E 16/16 全绿（过程数据：本地栈遗留探针账号 ui-visual-probe@luohao.blog 无害留存）；[PR #63](https://github.com/luohao0308/luohao-blog/pull/63) squash 合并（merge `4a9cc73`，required CI 双绿，guard push/PR/merge 三次 consume 全 allow，2026-10-06）
@@ -96,7 +99,6 @@ _last-updated: 2026-10-07_
 - [x] T-000 仓库初始化与 dev-workflow 接入：`luohao-blog` 建仓并推送 GitHub（Public）；dev-workflow 0.5.0 九包安装；项目画像完成，onboarding ready（证据：`docs/WORKFLOW-ADOPTION.md` 审计记录）
 - [x] T-001 M0 脚手架：backend/frontend/deploy/CI 空壳全绿，5+2 提交经 PR #1 合并（merge `13349f6`）
 - [x] T-003 M1 内容核心：S1 契约（PR #2，`8d1f8d6`）→ S2 存储与用例（PR #3，`859a8be`）→ S3 Markdown 渲染（PR #4，`a4fe24c`）→ S4 前端 SSR（PR #5，`52a2fb7`），四片全部验收合并；全栈冒烟通过（SSR 页面含渲染 HTML）
-- [x] T-001 M0 脚手架：backend（Kratos v3 layout，go build/test/golangci-lint 全过，`GET /v1/todos/list` 冒烟 `{}`）、frontend（Nuxt 4.5，lint/typecheck/build 全过）、deploy（compose config 校验 + mysql/redis 容器 healthy）、CI 工作流；5 个提交在 `feat/m0-scaffold`（ce2c948..09d0143）（证据：docs/development/README.md 命令矩阵）
 
 ## 技术债 (Technical Debt)
 
@@ -105,11 +107,11 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | 项目 | 风险 | 说明 |
 |---|---|---|
 | ~~useAuth 登出与 in-flight 刷新竞态~~ | 已修复 | #29：logout 先 await 在途 refreshOnce 再撤销会话（`useAuth.ts` logout）；2026-10-06 复核代码在位 |
-| ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；**残留**：cron 静默失败无告警——待 SMTP 立项后接邮件通知 |
+| ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；本地备份心跳已有 Kuma；异地同步失败/超过 26h 未成功的告警配置本轮验证通过，服务器生效待 S4 |
 | ~~LLM 120s vs HTTP server 60s 超时错配~~ | 已修复 | #29：HTTP deadline 提至 150s 并文档化与 llm.timeout 的耦合 |
 | ~~page_token 合法大 offset 未钳~~ | 已修复 | #29：offset 限 [0, 9900]（页大小上限内不出 ES max_result_window），越界映射 400，负值同拦 |
 | ~~errors.Error 实际走 protojson~~ | 已修复 | #28：codec.go 注释更正（proto 走 protojson、kratos errors 等 non-proto 保持 stdlib 形状）+ TestJSONCodecMarshalKratosError 钉死错误体编码路径；metadata/非法 UTF-8 维持 stdlib 现状（已文档化，不再当缺陷追踪） |
-| ~~es.go 零测试 / schema 双源~~ | 部分修复 | #30 补 es_test.go 3 例（索引配置/embedding 输入/维度）；**残留**：查询路径无覆盖、ent 注释 vs 手写 SQL 漂移未收口 |
+| ~~es.go 零测试 / schema 双源~~ | 部分修复 | #30 补 es_test.go 3 例（索引配置/embedding 输入/维度）；本轮补查询 HTTP 边界（BM25/混合查询/降级/错误响应）回归通过；残留 ent 注释 vs 手写 SQL 漂移 |
 | ~~release.yml 镜像发布门禁~~ | 已修复 | `ci-gate` 复用 CI 工作流并作为镜像任务前置依赖；保留 concurrency 与 30 分钟超时 |
 | ~~backup.sh 空库假成功~~ | 已修复 | 临时文件 + EXIT 清理，gzip 完整性与 dump 头校验通过后原子重命名 |
 | ~~限流器 Incr+Expire 异常路径~~ | 已修复 | `TxPipeline` + `ExpireNX` 保持窗口不延长，并补 Redis 故障回归测试 |
@@ -119,11 +121,11 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
 | ~~v-html + WithUnsafe XSS 面~~ | 基本修复 | #68 移除 goldmark WithUnsafe（原始 HTML 整体省略）+ 链接/图片协议白名单——服务端 content_html 即消毒后的安全源；前端 v-html 消费该输出，残留风险低（引入第二作者时复核一次即可销账） |
 | ~~frontend healthcheck 用整页 SSR 探针~~ | 已修复 | Nitro 新增 /health（不触数据层）+ compose 探针改打 /health（2026-10-06 本地栈实弹：frontend ~20s 转 healthy，/health 200，首页/E2E t01–t02 无回归）；backend 探针打 /v1/articles/list 属数据层语义，有意保留 |
-| demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
+| ~~demo 文章软删后 seed 冲突~~ | 代码已修复 | seed 对占用 slug 跳过，`-reset` 也不恢复软删；SQLite+seed 回归通过，服务器待 S4 |
 | ~~dev compose 端口发布 0.0.0.0~~ | 已修复 | 六端口（mysql/redis/es/minio）全部绑 `127.0.0.1`（compose config 渲染核验，2026-10-06） |
-| ~~CI 杂项~~ | 已修复 | ci.yml 6 个 action 全部 pin 官方 SHA + `permissions: contents: read`（workflow_call 兼容）；backup.sh 轮转改 glob 展开免 ls 空白分词（实跑 KEEP=2 轮转核验）；paths 过滤评估后**不做**——workflow 级 paths 会把 required check 留在 Pending 卡死文档型 PR（官方文档），public 仓库 Actions 免费无收益；**残留**：release.yml 4 个 action 未 pin（下次发布窗口一并处理） |
+| ~~CI 杂项~~ | 已修复 | ci.yml 6 个 action 全部 pin 官方 SHA + `permissions: contents: read`（workflow_call 兼容）；backup.sh 轮转改 glob 展开免 ls 空白分词（实跑 KEEP=2 轮转核验）；paths 过滤评估后**不做**——workflow 级 paths 会把 required check 留在 Pending 卡死文档型 PR（官方文档），public 仓库 Actions 免费无收益；release.yml 四个 action 本轮固定官方 SHA（不改变发布行为），服务器版本待 S4 |
 | 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
-| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 1000 篇/串行、seed 不回填索引、软删占坑 slug、chat 无缓存、prompt 无定界符、LLM body 无上限、密码无上限——全量见 REVIEW-ROUND2 文档 |
+| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 串行（本轮已补分页，不再截断 1000 篇）、seed 不回填索引、chat 无缓存、prompt 无定界符（本轮已补 LLM 完整响应 1MiB 上限）、密码无上限——全量见 REVIEW-ROUND2 文档 |
 | ent selector 错误扁平化 | 已规避 | data 层返回错误码必须在查询构建前校验（`data.validateStatusFilter` 模式） |
 | MinIO 拉取 denied / 宿主 3306 被占 | 低 | 环境类备忘 |
 

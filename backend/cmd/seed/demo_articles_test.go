@@ -1,12 +1,49 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 )
+
+type tombstoneSeedRepo struct {
+	biz.ArticleRepo
+	creates int
+	updates int
+}
+
+func (*tombstoneSeedRepo) FindBySlug(context.Context, string) (*biz.Article, error) {
+	return nil, biz.ErrArticleNotFound
+}
+
+func (r *tombstoneSeedRepo) CreateArticle(context.Context, *biz.Article) (*biz.Article, error) {
+	r.creates++
+	return nil, biz.ErrArticleSlugConflict
+}
+
+func (r *tombstoneSeedRepo) UpdateArticle(context.Context, *biz.Article) (*biz.Article, error) {
+	r.updates++
+	return nil, biz.ErrArticleNotFound
+}
+
+func TestSeedPreservesDeletedSlugs(t *testing.T) {
+	articles, err := loadDemoArticles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, reset := range []bool{false, true} {
+		r := &tombstoneSeedRepo{}
+		if err := seedDemoArticles(context.Background(), biz.NewArticleUsecase(r, nil), reset); err != nil {
+			t.Fatalf("reset=%v: %v", reset, err)
+		}
+		if r.creates != len(articles) || r.updates != 0 {
+			t.Fatalf("reset=%v creates=%d updates=%d", reset, r.creates, r.updates)
+		}
+	}
+}
 
 // The bundled demo files must parse and satisfy the same invariants the biz
 // layer enforces, otherwise a content edit would only fail at seed time
@@ -61,13 +98,13 @@ func TestParseDemoArticle(t *testing.T) {
 	}
 
 	for name, tc := range map[string]string{
-		"no frontmatter":       "# 正文\n",
-		"unclosed frontmatter": "---\nslug: x\nstatus: draft\n# 正文\n",
-		"bad frontmatter line": "---\nslug\n---\nbody\n",
-		"unknown status":       "---\nslug: x\ntitle: t\nstatus: archived\n---\nbody\n",
+		"no frontmatter":          "# 正文\n",
+		"unclosed frontmatter":    "---\nslug: x\nstatus: draft\n# 正文\n",
+		"bad frontmatter line":    "---\nslug\n---\nbody\n",
+		"unknown status":          "---\nslug: x\ntitle: t\nstatus: archived\n---\nbody\n",
 		"published missing stamp": "---\nslug: x\ntitle: t\nstatus: published\n---\nbody\n",
-		"draft with stamp":     "---\nslug: x\ntitle: t\nstatus: draft\npublished_at: " + stamp + "\n---\nbody\n",
-		"bad stamp":            "---\nslug: x\ntitle: t\nstatus: published\npublished_at: 2026-13-40\n---\nbody\n",
+		"draft with stamp":        "---\nslug: x\ntitle: t\nstatus: draft\npublished_at: " + stamp + "\n---\nbody\n",
+		"bad stamp":               "---\nslug: x\ntitle: t\nstatus: published\npublished_at: 2026-13-40\n---\nbody\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := parseDemoArticle("bad.md", []byte(tc)); err == nil {

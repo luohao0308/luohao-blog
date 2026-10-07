@@ -1,0 +1,9 @@
+groups:
+  - name: closeout
+    rules:
+      - alert: DataLayerDown
+        expr: (1 - (min(up{job=~"mysql|redis|elasticsearch"}) or vector(0))) + (1 - (min(mysql_up) or vector(0))) + (1 - (min(redis_up) or vector(0))) + (1 - (min(elasticsearch_clusterinfo_up) or vector(0))) > 0
+        for: 3m
+      - alert: OffsiteBackupFailed
+        expr: (1 - (min(blog_backup_sync_success) or vector(0))) + (time() - (min(blog_backup_sync_last_success_timestamp_seconds) or vector(0)) > bool 93600) + (absent(blog_backup_sync_last_success_timestamp_seconds) or vector(0)) > 0
+        for: 3m

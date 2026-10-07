@@ -39,6 +39,33 @@ func newTestArticleRepo(t *testing.T) (biz.ArticleRepo, *ent.Client) {
 	return NewArticleRepo(&Data{db: client}, rdb), client
 }
 
+// Seed must distinguish an absent slug from a retained tombstone: management
+// reads intentionally hide it, while the unique slug still rejects creation.
+func TestDeletedArticleRetainsSlug(t *testing.T) {
+	ctx := context.Background()
+	repo, db := newTestArticleRepo(t)
+	created, err := repo.CreateArticle(ctx, &biz.Article{Slug: "deleted-demo", Title: "original", ContentMD: "body"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.DeleteArticle(ctx, created.Slug); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.FindBySlug(ctx, created.Slug); !biz.ErrArticleNotFound.Is(err) {
+		t.Fatalf("read tombstone: %v", err)
+	}
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: created.Slug, Title: "replacement", ContentMD: "body"}); !biz.ErrArticleSlugConflict.Is(err) {
+		t.Fatalf("create occupied slug: %v", err)
+	}
+	row, err := db.Article.Query().Where(article.SlugEQ(created.Slug)).Only(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row.Status != biz.ArticleStatusDeleted || row.Title != "original" {
+		t.Fatalf("tombstone changed: %+v", row)
+	}
+}
+
 // orderByCreatedAt keeps list assertions deterministic.
 func orderByCreatedAt() biz.ListOption {
 	return biz.ListOrderBy(ordering.OrderBy{

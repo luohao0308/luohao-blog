@@ -22,4 +22,4 @@ docker compose -f deploy/docker-compose.yml ps   # 等待全部 healthy
 
 ## Caddy（生产反代，M5 启用）
 
-`caddy/Caddyfile` 目前是注释模板：`/api/*` → Kratos 后端（HTTP :8000），其余 → Nuxt（:3000）。M5 部署时启用并配置域名，Caddy 自动签发 HTTPS。
+`caddy/Caddyfile` 已启用：所有请求先到 Nuxt（:3000），由 Nuxt BFF 把 `/api/v1/*` 代理至 Kratos（:8000），同时处理 refresh cookie 路径。当前公网入口为 HTTP IP；域名备案完成后配置 `SITE_ADDRESS` 启用 Caddy HTTPS，并同步 Secure cookie。

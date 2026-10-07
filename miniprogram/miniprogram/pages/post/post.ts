@@ -2,7 +2,7 @@ import { getArticle, listComments, createComment, likeArticle, reportArticleView
 import { toMessage } from '../../utils/request'
 import { formatDate } from '../../utils/format'
 import { decorateArticleHtml } from '../../utils/html'
-import { isFavorite, toggleFavorite, isLiked, markLiked } from '../../utils/favorites'
+import { isFavorite, toggleFavorite, isLiked, markLiked, unmarkLiked } from '../../utils/favorites'
 import { isLoggedIn } from '../../utils/auth'
 import { assetUrl } from '../../utils/config'
 import { COMMENT_STATUS_PENDING, type Comment } from '../../utils/types'
@@ -114,6 +114,7 @@ Page({
       await likeArticle(slug)
     } catch (error) {
       // 后端失败就回滚本地态（24h 去重失败极少见，多数是网络）。
+      unmarkLiked(slug)
       this.setData({ liked: false, likeCount })
       wx.showToast({ title: toMessage(error), icon: 'none' })
     }
