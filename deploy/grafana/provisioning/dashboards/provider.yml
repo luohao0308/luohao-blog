@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: blog-dashboards
+    orgId: 1
+    folder: Blog
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

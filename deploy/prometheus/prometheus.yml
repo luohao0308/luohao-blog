@@ -1,0 +1,20 @@
+# Prometheus 抓取配置：小规模单机，30s 间隔足够。
+# backend 任务在 /metrics 上线前会一直 down（up==0）——相关告警规则
+# 用 noDataState=OK 静默，指标出现后自动开始生效（见 grafana/provisioning/alerting）。
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: backend
+    # Kratos HTTP 服务（业务端口，同时挂 /metrics，见 backend/internal/server/metrics.go）
+    static_configs:
+      - targets: ["backend:8000"]

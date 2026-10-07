@@ -1,5 +1,9 @@
 # luohao-blog 本地基础设施
 
+> 生产栈与监控栈见本目录 `compose.prod.yml` / `compose.monitoring.yml`：
+> 监控（Kuma 拨测 + Prometheus/Grafana）的启停、访问隧道和告警配置见
+> `docs/operations/runbooks/RUNBOOK-monitoring.md`；本文件其余部分讲本地开发依赖。
+
 ## 启动
 
 ```bash
