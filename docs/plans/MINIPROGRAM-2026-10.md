@@ -70,6 +70,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 状态：completed（2026-10-07，用户多选"全都要"批准）
 - 实现：首页搜索入口 + 搜索页（`GET /v1/search/articles` 混合检索）；首页分类/标签筛选 chips（category/tag filter 参数；分类列表生产暂空、建了自动出现）；AI 问答页（`POST /v1/chat` 60s 长超时，气泡对话 + 引用文章可跳转详情；首页"问一问"浮窗入口）
 - 验证：`tsc --noEmit` 全绿；搜索/分类契约经生产 curl 实测（search 命中 1 篇、categories 空集形状确认）
+- 交付：[PR #76](https://github.com/luohao0308/luohao-blog/pull/76) squash 合并 merge `a1273044`（CI 双绿，竞速循环一次过）
 - 未验证项：模拟器内搜索与问答实操待用户点验
 - 回退点：单 PR revert
 
