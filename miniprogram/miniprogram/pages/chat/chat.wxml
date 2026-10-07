@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="thread">
+    <view
+      wx:for="{{messages}}"
+      wx:key="index"
+      class="msg {{item.role === 'user' ? 'msg-user' : 'msg-bot'}}"
+    >
+      <view class="bubble {{item.role === 'user' ? 'bubble-user' : ''}} {{item.error ? 'bubble-error' : ''}}">
+        <text>{{item.text}}</text>
+      </view>
+      <view wx:if="{{item.citations.length}}" class="citations">
+        <view class="citations-title">来源文章：</view>
+        <view
+          wx:for="{{item.citations}}"
+          wx:for-item="cite"
+          wx:key="slug"
+          class="citation"
+          bindtap="openCitation"
+          data-slug="{{cite.slug}}"
+        >
+          {{cite.title}} ›
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{busy}}" class="typing">正在检索文章并作答…</view>
+  </view>
+
+  <view class="composer">
+    <input
+      class="composer-input"
+      placeholder="问点和文章相关的问题…"
+      placeholder-class="composer-placeholder"
+      value="{{input}}"
+      confirm-type="send"
+      bindinput="onInput"
+      bindconfirm="send"
+    />
+    <button class="composer-send" size="mini" loading="{{busy}}" disabled="{{busy || !input}}" bindtap="send">发送</button>
+  </view>
+</view>

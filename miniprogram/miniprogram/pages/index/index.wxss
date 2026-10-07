@@ -27,3 +27,79 @@
 .retry-btn {
   margin-top: 24rpx;
 }
+
+/* --- 搜索入口 --- */
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 999rpx;
+  padding: 18rpx 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  color: #94a3b8;
+  margin-right: 14rpx;
+}
+
+.search-hint {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+
+/* --- 筛选 chips --- */
+
+.chip-row {
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+}
+
+.chip-cell {
+  display: inline-block;
+  margin-right: 12rpx;
+}
+
+.pill {
+  display: inline-block;
+  padding: 8rpx 26rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  color: #475569;
+  font-size: 24rpx;
+}
+
+.pill-active {
+  background: #3c5d85;
+  border-color: #3c5d85;
+  color: #fff;
+}
+
+/* --- AI 问答浮窗 --- */
+
+.chat-fab {
+  position: fixed;
+  right: 28rpx;
+  bottom: 60rpx;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 999rpx;
+  padding: 18rpx 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(37, 99, 235, 0.35);
+  display: flex;
+  align-items: center;
+}
+
+.chat-fab-icon {
+  font-weight: 700;
+  font-size: 26rpx;
+  margin-right: 8rpx;
+}
+
+.chat-fab-text {
+  font-size: 26rpx;
+}

@@ -36,7 +36,7 @@ function errorMessage(statusCode: number, data: unknown): string {
 // UnauthorizedError 标记 401 响应，触发一次刷新重试。
 export class UnauthorizedError extends Error {}
 
-function rawRequest<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown, extraHeaders?: HeaderBag): Promise<{ res: WechatMiniprogram.RequestSuccessCallbackResult, data: T }> {
+function rawRequest<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown, extraHeaders?: HeaderBag, timeoutMs?: number): Promise<{ res: WechatMiniprogram.RequestSuccessCallbackResult, data: T }> {
   return new Promise((resolve, reject) => {
     const header: HeaderBag = { 'content-type': 'application/json' }
     if (accessToken) {
@@ -52,7 +52,7 @@ function rawRequest<T>(method: 'GET' | 'POST', path: string, query?: Query, data
       method,
       header,
       data: data as string | AnyObject | undefined,
-      timeout: 15000,
+      timeout: timeoutMs ?? 15000,
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve({ res, data: res.data as T })
@@ -71,18 +71,18 @@ function rawRequest<T>(method: 'GET' | 'POST', path: string, query?: Query, data
   })
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown): Promise<T> {
+async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown, timeoutMs?: number): Promise<T> {
   try {
-    const { data: body } = await rawRequest<T>(method, path, query, data)
+    const { data: body } = await rawRequest<T>(method, path, query, data, undefined, timeoutMs)
     return body
   } catch (error) {
     if (error instanceof UnauthorizedError && unauthorizedHandler) {
       // 刷新成功后重放原请求一次；仍 401 则把错误抛给调用方。
       const retried = await unauthorizedHandler(async () => {
-        await rawRequest(method, path, query, data)
+        await rawRequest(method, path, query, data, undefined, timeoutMs)
       })
       if (retried) {
-        const { data: body } = await rawRequest<T>(method, path, query, data)
+        const { data: body } = await rawRequest<T>(method, path, query, data, undefined, timeoutMs)
         return body
       }
     }
@@ -100,6 +100,10 @@ export const http = {
   // postRaw 暴露完整响应（refresh token 经 Set-Cookie 下发）。
   postRaw<T>(path: string, data?: unknown, extraHeaders?: HeaderBag): Promise<{ res: WechatMiniprogram.RequestSuccessCallbackResult, data: T }> {
     return rawRequest<T>('POST', path, undefined, data, extraHeaders)
+  },
+  // postTimeout 长超时 POST（AI 问答这类慢端点用；其余请求保持 15s 默认）。
+  postTimeout<T>(path: string, data?: unknown, timeoutMs?: number): Promise<T> {
+    return request<T>('POST', path, undefined, data, timeoutMs)
   },
 }
 

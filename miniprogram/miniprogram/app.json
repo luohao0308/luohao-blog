@@ -3,7 +3,9 @@
     "pages/index/index",
     "pages/post/post",
     "pages/me/me",
-    "pages/favorites/favorites"
+    "pages/favorites/favorites",
+    "pages/search/search",
+    "pages/chat/chat"
   ],
   "window": {
     "navigationBarBackgroundColor": "#fafafa",

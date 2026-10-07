@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="search-row">
+    <input
+      class="search-input"
+      placeholder="输入关键词，回车搜索"
+      placeholder-class="hint"
+      value="{{query}}"
+      focus
+      confirm-type="search"
+      bindinput="onInput"
+      bindconfirm="doSearch"
+    />
+    <button class="search-btn" size="mini" loading="{{loading}}" bindtap="doSearch">搜索</button>
+  </view>
+
+  <view wx:if="{{error}}" class="state">{{error}}</view>
+
+  <block wx:elif="{{searched}}">
+    <view wx:if="{{!results.length && !loading}}" class="state">没有找到相关文章，换个词试试</view>
+
+    <view
+      wx:for="{{results}}"
+      wx:key="slug"
+      class="result-card"
+      bindtap="openPost"
+      data-slug="{{item.slug}}"
+    >
+      <view class="result-title">{{item.title}}</view>
+      <view wx:if="{{item.summary}}" class="result-summary">{{item.summary}}</view>
+      <view class="result-meta">
+        <text>{{item.dateText}}</text>
+        <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="result-tag">{{tag}}</text>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="state">输入关键词，支持标题、摘要、正文与标签的混合检索</view>
+</view>
