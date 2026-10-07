@@ -1,6 +1,6 @@
 # 站点监控（拨测 + 指标 + 告警）实施计划
 
-_状态：in_progress | 更新：2026-10-07 | 关联任务：T-013 | 关联设计：`docs/operations/OBSERVABILITY.md`_
+_状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计：`docs/operations/OBSERVABILITY.md`_
 
 ## 1. 目标、成功标准与停止条件
 
@@ -79,4 +79,6 @@ _状态：in_progress | 更新：2026-10-07 | 关联任务：T-013 | 关联设�
 
 - 2026-10-07 本地：`go build ./... && go test ./... && golangci-lint run` 全绿；本地栈实跑 `curl :8000/metrics` 确认三个 `blog_api_*` 指标族与 go runtime 指标（counter `code="200"` 正确计数）
 - 2026-10-07 服务器：监控栈 4 容器 Up（kuma healthy）；Prometheus 抓取 node-exporter/prometheus up、backend down（旧镜像无 /metrics，预期）；Grafana 数据源/看板（7 面板）/告警规则（4 条，Provisioned）加载成功；主机面板实数据核验（CPU 均值 15.5%、可用内存 1.28GiB、根分区 34.8%）；Kuma 6 监控项全绿 + push ping 200；Grafana 管理员口令经 CLI 对齐 env 文件（首次初始化时序问题）
-- 待验证（S2 收口）：钉钉 webhook（用户提供）配置 Kuma 通知 + Grafana contact point；PR 合并后服务器 `git pull && compose pull && up -d backend` → Prometheus 抓到 backend job up==1 → Grafana API 面板有数据 → 演练：停 backend 容器，钉钉收到告警
+- 2026-10-07 发布收口：PR #79 squash merge `a657752`（CI 双绿，guard push/PR/merge 三次 consume allow）；服务器 git pull 至 a657752（pull 前 `backup-push.sh` 与仓库版 diff 一致后删除）；ghcr pull 受限复现（T-008 已知），按 runbook 走 `compose build backend` 本地构建回退；backend 新镜像 healthy，`/metrics` 输出 17 行 `blog_api_*`，**Prometheus 三 target 全 up，`sum(rate(blog_api_requests_total[2m]))` 实测 0.089 QPS**，公网 `/api/v1/articles/list` 200
+- 2026-10-07 钉钉通知打通：机器人安全设置为 IP 白名单（193.112.128.245，Kuma/Grafana 均免加签直发）；Kuma DingDing 通知（占位密钥 + IP 白名单模式，"Sent Successfully"）应用到全部 6 监控项+默认开启；Grafana DingDing contact point（"Test alert sent"）+ 默认通知策略切至钉钉；**验收演练通过：23:16 停 backend 容器 → 23:20 Kuma 判 DOWN（EHOSTUNREACH）发钉钉告警 → 23:21 重启 → 23:22 恢复 200 OK（恢复通知同步发出）**。S2 全部验收完成
+- S3（Loki/DB exporter/公开状态页/外部拨测兜底）：可选项，用户提出再排期
