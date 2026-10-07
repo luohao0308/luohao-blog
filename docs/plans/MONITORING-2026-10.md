@@ -45,7 +45,7 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 |---|---|---|---|---|---|---|
 | S1 | Uptime Kuma 拨测（全链路 4 项+ES）+ 备份 push 死信开关 | `compose.monitoring.yml`、`backup.sh`、服务器部署 | 无 | 停 backend 容器收到通知；push 监控变绿 | `compose down`（监控独立栈，不影响生产） | completed |
 | S2 | 后端 `/metrics` + Prometheus/Grafana 栈 + 看板与告警规则 | `backend/internal/server/`、`deploy/prometheus|grafana/` | S1（通知渠道就绪） | Grafana 看到 API QPS/p95/5xx；演练触发一条告警 | 分支回退 / `compose down`；backend 镜像按 runbook 回滚 | in_progress |
-| S3（可选） | Loki 日志聚合、DB/ES exporter、公开状态页 | deploy 配置扩展 | S2 | 用户另行确认后定义 | — | pending |
+| S3（可选） | Loki 日志聚合、DB/ES exporter、外部拨测兜底、状态页 | deploy 配置扩展 + CI workflow | S2 | 日志可查、exporter targets up、Actions 拨测跑通、状态页可访问 | 分支回退 / `compose up -d --force-recreate` | completed |
 
 ## 5. 原则与决策
 
@@ -71,9 +71,11 @@ _状态：completed | 更新：2026-10-07 | 关联任务：T-013 | 关联设计�
 - 状态：in_progress（代码与配置就绪；生产生效依赖 PR 合并→ghcr 镜像→服务器 pull）
 - 实现：见 §3/§5
 
-### S3（可选）：暂缓
+### S3：日志聚合 + 数据层 exporter + 外部拨测 + 状态页
 
-- 状态：pending（用户未确认，不启动）
+- 状态：completed（2026-10-07 深夜，用户确认追加）
+- 实现：Loki(3.5)+Promtail（容器日志 + 宿主机脚本日志，7d 保留）；mysqld/redis/elasticsearch exporter（MySQL 最小权限 exporter 账号）+ 数据层可用性/ES 堆面板 + Data layer down 告警；GitHub Actions 每 5 分钟外部探测公网入口（失败邮件兜底宿主机失联盲区）；Kuma 状态页 `/status/blog` 已建（公网暴露等域名后接 Caddy）
+- 验证：Prometheus 六 target 全 up；Loki 可查 `{container="blog-backend"}` 实时日志；内存余量 1.2GiB。已知噪音：Loki 3.x 对旧式 push 的计量 error 刷屏（不影响摄入，runbook 记录）
 
 ## 7. 验证与证据
 

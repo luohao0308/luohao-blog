@@ -1,0 +1,23 @@
+# 外部拨测兜底：Kuma 与博客同机，宿主机整机失联（宕机/断网/被封端口）时
+# 同机监控集体沉默。本 workflow 从 GitHub 侧每 5 分钟探测一次公网入口，
+# 失败时 run 直接失败——GitHub 会向仓库所有者发送失败邮件通知（Actions
+# 默认设置），运行历史即排障记录。不依赖任何第三方账号与钉钉
+# （钉钉机器人是 IP 白名单模式，GitHub 出口 IP 不固定，无法直发）。
+name: External probe
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe homepage
+        run: curl -fsS --max-time 15 -o /dev/null http://193.112.128.245/
+      - name: Probe core API
+        run: curl -fsS --max-time 15 -o /dev/null "http://193.112.128.245/api/v1/articles/list?page_size=1"
