@@ -65,6 +65,14 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 实现：详情页互动条（点赞 ♥ 本地去重 + 服务端 24h 去重兜底；收藏 ★ 本地存储快照标题）；评论区（分页拉取、头像/首字回退、自己待审评论带「审核中」标识、登录态输入栏 401 自动刷新重试、未登录引导跳「我的」）；收藏页（新路由 /pages/favorites/favorites，快照列表 + 移除）；我的页新增「我的收藏」菜单行 + 真实头像展示
 - 验证：`tsc --noEmit` 全绿；契约对齐（POST /v1/comments 需 JWT、GET /v1/articles/{slug}/comments 公开、PENDING=1/APPROVED=2）
 - 未验证项：模拟器/真机实操（点赞计数、评论先审后显流转）待用户实测
+### S4：发现能力（搜索/筛选/AI 问答，纯小程序端，后端零改动）
+
+- 状态：completed（2026-10-07，用户多选"全都要"批准）
+- 实现：首页搜索入口 + 搜索页（`GET /v1/search/articles` 混合检索）；首页分类/标签筛选 chips（category/tag filter 参数；分类列表生产暂空、建了自动出现）；AI 问答页（`POST /v1/chat` 60s 长超时，气泡对话 + 引用文章可跳转详情；首页"问一问"浮窗入口）
+- 验证：`tsc --noEmit` 全绿；搜索/分类契约经生产 curl 实测（search 命中 1 篇、categories 空集形状确认）
+- 未验证项：模拟器内搜索与问答实操待用户点验
+- 回退点：单 PR revert
+
 - 回退点：单 PR revert
 
 - 回退点：单 PR revert；迁移 down.sql

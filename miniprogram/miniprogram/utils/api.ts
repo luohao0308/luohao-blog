@@ -1,12 +1,14 @@
 import { http } from './request'
-import type { Article, ArticleSet, CommentSet, WechatLoginReply } from './types'
+import type { Article, ArticleSet, CommentSet, WechatLoginReply, ChatReply } from './types'
 
 // listArticles 按发布时间倒序取公开文章分页；与 Web 端 usePublishedArticles 同参。
-export function listArticles(pageToken: string, pageSize = 20): Promise<ArticleSet> {
+// filter 为可选的列表过滤器，如 tag:"go"、category:"engineering"。
+export function listArticles(pageToken: string, pageSize = 20, filter = ''): Promise<ArticleSet> {
   return http.get<ArticleSet>('/articles/list', {
     page_size: pageSize,
     page_token: pageToken || undefined,
     order_by: 'published_at desc',
+    filter: filter || undefined,
   })
 }
 
@@ -45,4 +47,23 @@ export function listComments(slug: string, pageToken = ''): Promise<CommentSet> 
 // createComment 发表评论（需登录态；先审后显）。
 export function createComment(slug: string, content: string): Promise<void> {
   return http.post<void>('/comments', { article_slug: slug, content })
+}
+
+// searchArticles 走 ES 混合搜索（关键词 + 语义）。
+export function searchArticles(query: string, pageToken = ''): Promise<ArticleSet> {
+  return http.get<ArticleSet>('/search/articles', {
+    query,
+    page_size: 20,
+    page_token: pageToken || undefined,
+  })
+}
+
+// listCategories 分类列表（生产暂无数据，建了分类即自动出现）。
+export function listCategories(): Promise<{ categories: Array<{ slug: string, name: string }> }> {
+  return http.get('/categories/list')
+}
+
+// chatAsk RAG 问答：从已发布文章里检索作答；LLM 生成可达数十秒，用长超时。
+export function chatAsk(query: string): Promise<ChatReply> {
+  return http.postTimeout('/chat', { query }, 60_000)
 }

@@ -1,4 +1,30 @@
 <view class="page">
+  <!-- 搜索入口 -->
+  <view class="search-bar" bindtap="openSearch">
+    <text class="search-icon">⌕</text>
+    <text class="search-hint">搜索文章（关键词 + 语义）</text>
+  </view>
+
+  <!-- 分类筛选（后台建了分类才出现） -->
+  <scroll-view wx:if="{{categories.length}}" scroll-x class="chip-row">
+    <view class="chip-cell">
+      <text class="pill {{activeCategory === '' ? 'pill-active' : ''}}" bindtap="setCategory" data-slug="">全部</text>
+    </view>
+    <view class="chip-cell" wx:for="{{categories}}" wx:key="slug">
+      <text class="pill {{activeCategory === item.slug ? 'pill-active' : ''}}" bindtap="setCategory" data-slug="{{item.slug}}">{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 标签筛选（从已加载文章收集） -->
+  <scroll-view wx:if="{{tags.length}}" scroll-x class="chip-row">
+    <view class="chip-cell">
+      <text class="pill {{activeTag === '' && !activeCategory ? 'pill-active' : ''}}" bindtap="setTag" data-tag="">全部</text>
+    </view>
+    <view class="chip-cell" wx:for="{{tags}}" wx:key="*this">
+      <text class="pill {{activeTag === item ? 'pill-active' : ''}}" bindtap="setTag" data-tag="{{item}}">{{item}}</text>
+    </view>
+  </scroll-view>
+
   <view wx:if="{{loading}}" class="state">加载中…</view>
 
   <view wx:elif="{{error}}" class="state">
@@ -30,4 +56,10 @@
       {{finished ? (articles.length ? '— 到底啦 —' : '还没有文章') : (loadingMore ? '加载中…' : '上拉加载更多')}}
     </view>
   </block>
+
+  <!-- AI 问答浮窗 -->
+  <view class="chat-fab" bindtap="openChat">
+    <text class="chat-fab-icon">AI</text>
+    <text class="chat-fab-text">问一问</text>
+  </view>
 </view>

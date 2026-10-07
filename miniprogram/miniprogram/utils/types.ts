@@ -79,3 +79,16 @@ export interface CommentSet {
 
 export const COMMENT_STATUS_PENDING = 1
 export const COMMENT_STATUS_APPROVED = 2
+
+// --- 搜索 / AI 问答 wire 类型 ---
+
+export interface CitedArticle {
+  slug: string
+  title: string
+  summary: string
+}
+
+export interface ChatReply {
+  answer: string
+  citations: CitedArticle[]
+}
