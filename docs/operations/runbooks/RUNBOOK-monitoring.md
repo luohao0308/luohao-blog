@@ -46,9 +46,28 @@ ssh -N root@193.112.128.245 \
 | Host memory low | 可用内存 < 400MB | 5m |
 | API 5xx rate high | 5xx 占比 > 5% | 5m |
 | API p95 latency high | 全站 p95 > 2s | 10m |
-| Data layer down | mysql/redis/elasticsearch 任一 exporter 报 up==0 | 3m |
+| Data layer down | exporter up、mysql_up、redis_up、elasticsearch_clusterinfo_up 任一不可用或数据层指标缺失 | 3m |
+| Offsite backup failed or stale | 异地同步失败、指标缺失或最近成功距今 > 26h | 3m |
 
-> 后端指标在 `/metrics` 镜像发布前无数据，`noDataState=OK` 使其静默，指标出现后自动生效。
+异地同步指标由 `deploy/backup-push.sh` 的 EXIT trap 写入
+`/var/lib/blog-node-metrics/backup-sync.prom`（可由 `BACKUP_METRICS_DIR` 覆盖），node-exporter textfile collector 读取。
+文件原子替换（临时文件扩展名 `.tmp`），目录 755、文件 644，只含状态与时间戳，不含凭据：
+
+- `blog_backup_sync_success`：最近尝试成功为 1，失败为 0。
+- `blog_backup_sync_last_success_timestamp_seconds`：最后成功时间，失败保留原值。
+- `blog_backup_sync_last_attempt_timestamp_seconds`：最近尝试时间。
+
+指标发布失败只警告，保留备份脚本原退出码；缺失/超过 26h 未成功仍触发 Grafana 告警。
+本地备份的 Kuma Push 心跳与异地同步告警分别覆盖两个任务。首次上线应验证指标抓取与告警 provisioning，不能仅凭脚本存在判断已生效。
+
+本地回归（不访问备份私仓，不执行真实 force-push）：
+
+```bash
+bash deploy/tests/backup-push-test.sh
+docker run --rm --entrypoint promtool -v "$PWD/deploy/tests:/tests:ro" prom/prometheus:v3.5.0 test rules /tests/closeout-rules-test.yml
+```
+
+PromQL fixture 覆盖同步失败、超期、指标缺失及数据层 target 消失；修改告警表达式时同时保持 fixture 与 provisioning 一致。
 
 ### 日志（Loki + Promtail）
 
@@ -91,4 +110,5 @@ ssh -N root@193.112.128.245 \
 - cAdvisor 未部署（服务器 gcr.io 不可达、Docker Hub 无 tag）：容器级 CPU/内存暂用 `docker stats` 手查；后续可达时可把 `cadvisor` 服务加回 `compose.monitoring.yml` 并恢复 prometheus 抓取 job（历史版本在 Git 记录中）。
 - 公开状态页：Kuma 内已建 `/status/blog`（含全部监控项），公网暴露等域名/HTTPS（T-008）落地后经 Caddy 子域接入，不要裸 IP 暴露 Kuma 登录入口。
 - Loki 3.x 对旧式 push 有 "negative structured metadata bytes received" 的 error 刷屏：已确认不影响摄入与查询（实测日志可查），属已知计量噪音；后续若升级 Alloy 可消除。
-- MySQL exporter 账号 `exporter@%` 为最小权限（PROCESS/REPLICATION CLIENT/SELECT + MAX_USER_CONNECTIONS 3），密码在服务器 `deploy/.env.monitoring`。
+- MySQL exporter 专用账号 `exporter@%` 需 PROCESS/REPLICATION CLIENT/SELECT + MAX_USER_CONNECTIONS 3，密码仅在服务器 `deploy/.env.monitoring`。账号不存在时先 CREATE USER，再 GRANT；口令由服务器现有配置在进程内部读取，禁止输出到日志/命令行。必须查询 `mysql_up == 1`，不能仅凭 Prometheus target up 判定数据库连接成功。
+- 异地备份指标首次接入仅可用已核实的远端备份提交时间初始化，不能将部署时间冒充备份成功。确认 backups 本地 HEAD 与备份私仓 latest 一致后使用该提交的时间；后续由 cron 脚本维护。

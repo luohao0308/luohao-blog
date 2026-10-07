@@ -1,7 +1,7 @@
 # 项目摘要（AI 快速参考）
 
 _来源：仓库实际内容与最近验证命令输出（build/test/lint/compose/认证冒烟）_
-_状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完成，修复见 PR #28 起 | 更新：2026-10-04_
+_状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-08_
 
 > 本文件只保存稳定的项目事实和路径速查，不记录实时任务、临时验证、交接过程或历史证据。当前任务状态以 `TASKS.md` 为准，短期上下文以 `WORKING-CONTEXT.md` 为准。
 
@@ -13,7 +13,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 
 | 路径 | 类型 | 责任/用途 | 独立 Git 仓库 | 变更边界 |
 |---|---|---|---|---|
-| `backend/` | Go 服务 | Kratos v2 单体，proto 契约源，模块 `github.com/luohao0308/luohao-blog/backend` | 否 | 分层契约见 `backend/AGENTS.md` |
+| `backend/` | Go 服务 | Kratos v3 单体，proto 契约源，模块 `github.com/luohao0308/luohao-blog/backend` | 否 | 分层契约见 `backend/AGENTS.md` |
 | `frontend/` | Nuxt 应用 | Vue 3 + Nuxt 4，SSR/SSG，pnpm 11 | 否 | 前端目录内自洽 |
 | `deploy/` | 基础设施 | 本地依赖编排（compose）+ 生产反代模板（Caddy，M5 启用） | 否 | 端口/卷变更需同步文档 |
 | `.github/` | CI | backend lint+build+test / frontend lint+typecheck+build | 否 | 质量门，慎重修改 |
@@ -30,7 +30,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
 | 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号，无邮箱验证）；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
-| 数据（未接入代码） | MySQL 8.4 · Redis 7.4 · ES 8.17.4 · MinIO（compose 提供本地实例） | ES 未来一件两用：BM25 + kNN；compose 账号密码为本地占位 |
+| 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
 | 本地运行 | `go run ./cmd/server -conf ./configs`（backend/）；`pnpm dev`（frontend/） | server 默认 conf 路径 `../../configs` 仅适用 cmd/server 目录 cwd |
 
@@ -67,19 +67,19 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；两轮全量 review 完
 
 - 对外契约权威源：`backend/api/**/*.proto`（buf 生成 HTTP + gRPC + openapi.yaml）
 - 生成物与人工指南：`make api` / `make config`；禁止手改 `*.pb.go` 与 `wire_gen.go`
-- Schema/数据变更门禁：M1 引入 golang-migrate 后回填（规划：版本化迁移 + 前向兼容）
-- 发布与运行边界：部署目标未定（Unknown）；Caddy 模板在 `deploy/caddy/`
+- Schema/数据变更门禁：版本化 SQL 在 `backend/migrations/`，golang-migrate 启动时幂等执行 up；兼容、备份与回滚需按具体迁移核验。
+- 发布与运行边界：腾讯云 Ubuntu 24.04 2C4G（193.112.128.245），仓库 `/opt/luohao-blog/app`；生产 `deploy/compose.prod.yml`，Caddy→Nuxt BFF→backend；监控独立 compose。ghcr 拉取受限时走服务器本地构建回退（Runbook）。
 - 敏感信息边界：凭据、Token、私钥永不入库；`.env*` 已被根 .gitignore 忽略；compose 占位口令不得用于任何真实环境
 
 ## 7. 技术决策
 
 | 决策 | 当前方案 | 原因/证据 | 影响范围 | 状态 |
 |---|---|---|---|---|
-| 后端语言/框架 | Go + Kratos v2 | M0 验证：layout 可构建、proto 工具链齐 | 全部后端 | active |
+| 后端语言/框架 | Go + Kratos v3 | go.mod 与编译验证 | 全部后端 | active |
 | 前端框架 | Vue 3 + Nuxt 4.5 + Tailwind 4 | M0 验证：SSR 构建通过、typecheck 通过 | 全部前端 | active |
 | 架构风格 | 模块化单体 | 个人项目维护成本 | 全部 | active |
-| 向量检索 | ES 8 kNN（不引入独立向量库） | M4 落地时验证 | Agent 模块 | planned |
-| 内容管道 | MySQL 存储 + 发布事件异步建索引/embedding | M1/M4 落地时验证 | 文章/Agent 模块 | planned |
+| 向量检索 | ES 8 BM25+kNN（不引入独立向量库） | M4 已交付；映射缺向量或 embedding 失败降级 BM25 | 文章/Agent 模块 | active |
+| 内容管道 | MySQL 存储 + 写入后同步 best-effort 建索引/embedding | `ArticleUsecase.syncIndex`；失败日志告警，不回滚文章写入；reindex 修复派生索引 | 文章/Agent 模块 | active |
 | proto 生成 | buf（多模块根 api/internal）+ go run 固定插件版本 | M0 验证：两处生成均通过 | backend | active |
 | 认证 token 模型 | access JWT（HS256，15min，无状态）+ refresh token（不透明随机串，Redis 会话，httpOnly cookie，7d 滑动旋转，GETDEL 防重放） | M2/S2 冒烟与单测验证；刷新可撤销、登录可限流 | backend auth/S3 RBAC/S4 前端 | active |
 | RBAC | casbin（enforcer 挂 HTTP/gRPC 中间件） | S3 已实现；公开文章仅列已发布内容，admin 可管理草稿 | backend auth/article | active |

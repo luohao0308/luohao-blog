@@ -127,6 +127,7 @@ services:
       - "--path.rootfs=/host"
       - "--collector.systemd"
       - "--collector.processes"
+      - "--collector.textfile.directory=/host/var/lib/blog-node-metrics"
     pid: host
     volumes:
       - "/:/host:ro,rslave"

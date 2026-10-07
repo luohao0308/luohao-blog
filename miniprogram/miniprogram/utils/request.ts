@@ -11,10 +11,9 @@ export function setAccessToken(token: string) {
 }
 
 // unauthorizedHandler 由 auth 模块注册：401 → 刷新 → 重放原请求一次。
-type RetryRequest = () => Promise<void>
-let unauthorizedHandler: ((retry: RetryRequest) => Promise<boolean>) | null = null
+let unauthorizedHandler: (() => Promise<boolean>) | null = null
 
-export function setUnauthorizedHandler(handler: (retry: RetryRequest) => Promise<boolean>) {
+export function setUnauthorizedHandler(handler: () => Promise<boolean>) {
   unauthorizedHandler = handler
 }
 
@@ -78,9 +77,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, d
   } catch (error) {
     if (error instanceof UnauthorizedError && unauthorizedHandler) {
       // 刷新成功后重放原请求一次；仍 401 则把错误抛给调用方。
-      const retried = await unauthorizedHandler(async () => {
-        await rawRequest(method, path, query, data, undefined, timeoutMs)
-      })
+      const retried = await unauthorizedHandler()
       if (retried) {
         const { data: body } = await rawRequest<T>(method, path, query, data, undefined, timeoutMs)
         return body

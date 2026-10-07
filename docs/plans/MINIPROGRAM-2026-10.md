@@ -1,6 +1,6 @@
 # 小程序端 T-011：原生 TypeScript 阅读端
 
-_创建：2026-10-07 ｜ 状态：S1 in_progress_
+_创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合并；S3/S4 UI 实操及正式发布待验_
 
 ## 1. 目标与范围
 
@@ -21,6 +21,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 | S1 | 原生 TS 骨架 + 文章列表/详情只读浏览 + 阅读量上报 + 分享 | `miniprogram/`（纯新增） | 无 | `tsc --noEmit` + DevTools 打开编译 + 模拟器访问生产 API 实测列表/详情 | 删除目录 | completed |
 | S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | completed |
 | S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | completed |
+| S4 | 搜索/分类标签筛选/AI 问答 | miniprogram 复用公开 API | S3 | 类型检查/API 与 mocked wx 回归；UI 点验待补 | 单 PR revert | completed（代码） |
 
 ## 3. 原则与决策
 
@@ -45,7 +46,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 
 ### S2：微信登录（后端 + 小程序）
 
-- 状态：completed（代码与测试交付；真实 code2session 冒烟待生产部署后在模拟器/真机补）
+- 状态：completed（代码、测试与生产部署完成；2026-10-07 用户实测微信绑定登录通过）
 - 契约（auth 域内新增，2026-10-07 用户以提供 AppSecret 视为确认）：
   - `POST /v1/auth/wechat`（body: `{code}`）→ `WechatLoginReply{status, login?, binding_ticket?}`：openid 已绑 → status OK + 标准 LoginReply（refresh cookie 同 Login）；未绑 → status BINDING_REQUIRED + 一次性票据（10 分钟，Redis GETDEL 原子消费）
   - `POST /v1/auth/wechat/bind`（body: `{binding_ticket, email, password}`）→ `LoginReply`：票据换 openid + 邮箱密码认证后绑定并登录；**绑定只面向已有账号，不静默注册**；失败烧票（需重新 wx.login）
@@ -55,7 +56,7 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 后端：conf 新增 `wechat.app_id/app_secret`（secret 只进 git-ignored secrets 文件）；`data/wechat.go` code2session 客户端（5s 超时，session_key 不落日志）+ 票据存取；casbin 公开放行两路由
 - 小程序：`utils/auth.ts` 会话存取（access+refresh+过期戳，401 → X-Refresh-Token 单飞刷新 → 重放一次）；我的页登录/绑定/已登录三态 UI
 - 验证：`go build/vet/test` + golangci-lint 全绿（新增 biz 流程测试 9 例、code2session httptest 3 例、authz 路由用例）；小程序 `tsc --noEmit` 全绿
-- 未验证项：真实 wx.login→code2session 链路需生产部署后端（带 wechat secrets）后在模拟器/真机冒烟；部署时服务器 secrets 文件需补 `wechat:` 段
+- 真实链路：用户已实测 wx.login→code2session→绑定登录通过；本轮自动验收仅覆盖类型检查、请求/认证回归和 API 契约，不替代 S3/S4 模拟器/真机 UI 点验。
 - 打磨交付：[PR #71](https://github.com/luohao0308/luohao-blog/pull/71) squash 合并 merge `2326c931`（CI 双绿；strict 分支保护下与并行会话的合并竞速，脚本化『更新→CI→抢 CLEAN 窗口』完成）
 - 打磨内容（用户实测反馈 2026-10-07）：绑定失败自动静默换新票据留在表单（不再弹回登录页）；我的页按站点设计语言重做（blue-600 药丸主按钮、slate 灰阶、#3c5d85 品牌头像环、渐变头部卡）
 ### S3：互动（点赞/评论/收藏，纯小程序端，后端零改动）
@@ -72,9 +73,10 @@ _创建：2026-10-07 ｜ 状态：S1 in_progress_
 - 验证：`tsc --noEmit` 全绿；搜索/分类契约经生产 curl 实测（search 命中 1 篇、categories 空集形状确认）
 - 交付：[PR #76](https://github.com/luohao0308/luohao-blog/pull/76) squash 合并 merge `a1273044`（CI 双绿，竞速循环一次过）
 - 未验证项：模拟器内搜索与问答实操待用户点验
-- 回退点：单 PR revert
+- 回退点：单 PR revert；S2 Schema 变更另按迁移恢复流程处理。
 
-- 回退点：单 PR revert
+## 5. 非域名收尾可执行验收（2026-10-08）
 
-- 回退点：单 PR revert；迁移 down.sql
-- 回退点：删除 `miniprogram/` 目录，单 PR revert
+- `npm run typecheck && npm test` 通过；`scripts/verify.cjs` 使用 mocked wx（不读取真实凭据）覆盖 401 单次 POST 重放/重复 401、收藏、点赞失败回滚、待审评论、搜索和问答引用跳转。
+- 验收发现并修复：401 POST 被重复重放；点赞失败仍保留本机去重标记。公开生产 API 的只读契约检查与模拟行为分开记录。
+- S3/S4 DevTools/真机 UI 操作仍待验，正式提审依赖域名；本轮不将自动检查冒称人工点验通过。

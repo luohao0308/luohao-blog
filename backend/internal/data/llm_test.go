@@ -5,10 +5,25 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 )
+
+func TestChatLLMRejectsOversizeResponse(t *testing.T) {
+	for _, body := range []string{
+		`{"choices":[{"message":{"content":"` + strings.Repeat("x", 1<<20) + `"}}]}`,
+		`{"choices":[{"message":{"content":"ok"}}]}` + strings.Repeat(" ", 1<<20),
+	} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(body)) }))
+		_, err := NewChatLLM(chatTestBootstrap(srv.URL)).Generate(context.Background(), "s", "u")
+		srv.Close()
+		if err == nil || !strings.Contains(err.Error(), "response exceeds") {
+			t.Fatalf("got %v, want size error", err)
+		}
+	}
+}
 
 func chatTestBootstrap(url string) *conf.Bootstrap {
 	return &conf.Bootstrap{Llm: &conf.Llm{BaseUrl: url, ApiKey: "test-key", Model: "test-model"}}

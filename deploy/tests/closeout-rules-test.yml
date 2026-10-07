@@ -1,0 +1,192 @@
+rule_files:
+  - closeout-rules.yml
+evaluation_interval: 1m
+tests:
+  - name: healthy
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts: []
+  - name: mysql auth failure despite target up
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '0+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts: []
+  - name: exporter down
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '0+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts: []
+  - name: ES signal absent
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts: []
+  - name: backup failed
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '0+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '0+60x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
+  - name: backup metrics missing
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
+  - name: backup stale
+    interval: 1m
+    input_series:
+      - series: 'up{job="mysql"}'
+        values: '1+0x10'
+      - series: 'up{job="redis"}'
+        values: '1+0x10'
+      - series: 'up{job="elasticsearch"}'
+        values: '1+0x10'
+      - series: 'mysql_up'
+        values: '1+0x10'
+      - series: 'redis_up'
+        values: '1+0x10'
+      - series: 'elasticsearch_clusterinfo_up'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_success'
+        values: '1+0x10'
+      - series: 'blog_backup_sync_last_success_timestamp_seconds'
+        values: '-100000+0x10'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: DataLayerDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: OffsiteBackupFailed
+        exp_alerts:
+          - exp_labels: {}
+            exp_annotations: {}
