@@ -16,7 +16,7 @@ _last-updated: 2026-10-07_
 |---|---|---|---|---|
 | T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待备案 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密已销项（2026-10-05）；#28 服务器部署已完成并公网 E2E 验收（2026-10-04）；**剩余仅 HTTPS：域名 makerhao.cn 已购（2026-10-07，腾讯云），ICP 备案进行中（约 1–2 周），通过后接解析+Caddy HTTPS+Secure cookie** |
 | T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（依赖备案 T-008：合法域名+业务域名配置） |
-| T-013 | 站点监控：**全部交付**（计划状态 completed）。S1：Kuma 6 拨测项+备份 push 死信开关；S2：PR #79 merge `a657752`，生产 `/metrics` 入库，Prometheus/Grafana 看板+4 告警规则；钉钉通知双通道打通（Kuma+Grafana，IP 白名单模式），停容器演练 23:20 告警/23:22 恢复实测通过 | backend + deploy + docs | 计划 `docs/plans/MONITORING-2026-10.md`，Runbook `docs/operations/runbooks/RUNBOOK-monitoring.md` | 无阻塞。可选项（S3：Loki/DB exporter/外部拨测兜底/公开状态页）待用户提出；一笔 docs 提交待 push/PR 授权 |
+| T-013 | 站点监控：**全部交付**（计划状态 completed）。S1：Kuma 6 拨测项+备份 push 死信开关；S2：PR #79 merge `a657752`，生产 `/metrics` 入库，Prometheus/Grafana 看板+4 告警规则；钉钉通知双通道打通（IP 白名单模式），停容器演练 23:20 告警/23:22 恢复实测通过；S3：Loki+Promtail 日志聚合（7d 保留）、mysqld/redis/es exporter+数据层告警+看板面板、GitHub Actions 外部拨测兜底、Kuma 状态页 `/status/blog` | backend + deploy + docs + CI | 计划 `docs/plans/MONITORING-2026-10.md`，Runbook `docs/operations/runbooks/RUNBOOK-monitoring.md` | 状态页公网暴露等域名/HTTPS（T-008）；Loki 计量 error 噪音（不影响摄入，runbook 已记）；S3 PR 待 push/merge 授权 |
 
 ## 待办 (Todo)
 

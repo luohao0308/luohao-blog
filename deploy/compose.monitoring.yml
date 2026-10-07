@@ -33,8 +33,77 @@ volumes:
   kuma-data:
   prom-data:
   grafana-data:
+  loki-data:
 
 services:
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: blog-loki
+    restart: unless-stopped
+    logging: *default-logging
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    networks:
+      - monitoring
+    mem_limit: 256m
+
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: blog-promtail
+    restart: unless-stopped
+    logging: *default-logging
+    # docker SD 需要访问 socket；读取容器 json-file 日志与宿主机脚本日志
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/log:/var/log/host:ro
+    networks:
+      - monitoring
+    mem_limit: 96m
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.16.0
+    container_name: blog-mysqld-exporter
+    restart: unless-stopped
+    logging: *default-logging
+    # 专用最小权限账号 exporter（见 RUNBOOK-monitoring.md），密码来自 .env.monitoring
+    command:
+      - --mysqld.address=mysql:3306
+      - --mysqld.username=exporter
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQLD_EXPORTER_PASSWORD:?MYSQLD_EXPORTER_PASSWORD required in deploy/.env.monitoring}
+    networks:
+      - blog
+    mem_limit: 48m
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: blog-redis-exporter
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required in deploy/.env.monitoring}
+    networks:
+      - blog
+    mem_limit: 32m
+
+  elasticsearch-exporter:
+    image: prometheuscommunity/elasticsearch-exporter:v1.8.0
+    container_name: blog-es-exporter
+    restart: unless-stopped
+    logging: *default-logging
+    command:
+      - --es.uri=http://es:9200
+      - --es.all
+      - --es.indices
+    networks:
+      - blog
+    mem_limit: 48m
+
   uptime-kuma:
     image: louislam/uptime-kuma:1
     container_name: blog-kuma
