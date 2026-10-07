@@ -15,7 +15,7 @@ _last-updated: 2026-10-07_
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
 | T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待备案 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密已销项（2026-10-05）；#28 服务器部署已完成并公网 E2E 验收（2026-10-04）；**剩余仅 HTTPS：域名 makerhao.cn 已购（2026-10-07，腾讯云），ICP 备案进行中（约 1–2 周），通过后接解析+Caddy HTTPS+Secure cookie** |
-| T-011 | 微信小程序阅读端（原生 TypeScript，AppID `wx58089476f518fd3f`）：S1 骨架+文章列表/详情只读浏览+阅读上报+分享（**已合并 [PR #65](https://github.com/luohao0308/luohao-blog/pull/65) merge `758f90e3`，CI 双绿，模拟器实跑验收**）；S2 微信登录绑定 reader 账号（**已合并 [PR #67](https://github.com/luohao0308/luohao-blog/pull/67) merge `ee060425`，CI 双绿；真实链路冒烟待部署后模拟器实测**）；S3 互动 | `miniprogram/`（新增目录）+ backend（S2 起） | 计划 `docs/plans/MINIPROGRAM-2026-10.md`（2026-10-07 用户指示"开始开发小程序"，概括批准） | 无阻塞：开发期 DevTools 关合法域名校验直连生产 BFF；正式发布依赖 makerhao.cn 备案（T-008）；AppSecret 待 S2 前生成且只进后端 secrets |
+| T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（依赖备案 T-008：合法域名+业务域名配置） |
 
 ## 待办 (Todo)
 
@@ -80,6 +80,8 @@ _last-updated: 2026-10-07_
 
 - M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
 - tag/Release、镜像发布、部署、迁移、仓库设置类操作：未授权，按 manifest `privilegedOperationsDefault=deny` 逐次申请
+- 订阅发信（SMTP 真发）/注册邮箱验证：未立项——发信域名 SPF/DKIM 依赖备案域名，备案通过后立项（DirectMail 每日 200 封免费方案已选定）
+- 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
 
 ## 已完成 (Done)
 
@@ -113,7 +115,7 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | ~~E2E 限流自撞~~ | 已修复 | 套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1` 启动前清限流键（默认关，docker exec 通道仅限本地栈；2026-10-06 实测：打满 10 次/5min 限流器后 cleared(1) → t12 立即通过；对生产跑不开启） |
 | ~~Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转~~ | 已修复 | 三件全部清账（2026-10-06）：Caddy 访问日志启用；容器日志轮转 compose 六服务 json-file 10MB×3；restore.sh 改为「坏包停服前拒收 → uploads 先行 → 停 backend 灌库 → 回启等健康 → 提示 reindex」，本地栈完整 DR 演练（含灌库失败回启路径） |
 | Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
-| v-html + WithUnsafe XSS 面 | 中 | 信任边界=仅 admin 可写；引入第二作者前必须 sanitize |
+| ~~v-html + WithUnsafe XSS 面~~ | 基本修复 | #68 移除 goldmark WithUnsafe（原始 HTML 整体省略）+ 链接/图片协议白名单——服务端 content_html 即消毒后的安全源；前端 v-html 消费该输出，残留风险低（引入第二作者时复核一次即可销账） |
 | ~~frontend healthcheck 用整页 SSR 探针~~ | 已修复 | Nitro 新增 /health（不触数据层）+ compose 探针改打 /health（2026-10-06 本地栈实弹：frontend ~20s 转 healthy，/health 200，首页/E2E t01–t02 无回归）；backend 探针打 /v1/articles/list 属数据层语义，有意保留 |
 | demo 文章软删后 seed 冲突 | 低 | `cmd/seed/demo_articles.go:146` 存在性判断应含 DELETED |
 | ~~dev compose 端口发布 0.0.0.0~~ | 已修复 | 六端口（mysql/redis/es/minio）全部绑 `127.0.0.1`（compose config 渲染核验，2026-10-06） |
