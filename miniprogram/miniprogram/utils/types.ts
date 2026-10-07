@@ -20,8 +20,9 @@ export interface Article {
   published_at?: string
   created_at?: string
   updated_at?: string
-  view_count?: number
-  like_count?: number
+  // protojson 规则：uint64 在 JSON 里编码为十进制字符串，用时必须 Number() 转换。
+  view_count?: number | string
+  like_count?: number | string
 }
 
 export interface ArticleSet {
@@ -44,7 +45,8 @@ export interface Account {
 export interface LoginReply {
   access_token: string
   token_type: string
-  expires_in: number
+  // uint64 同样以字符串下发。
+  expires_in: number | string
   user: Account
 }
 

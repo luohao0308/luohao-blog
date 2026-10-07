@@ -41,7 +41,7 @@ function saveSession(reply: LoginReply, refreshToken?: string) {
   setAccessToken(reply.access_token)
   try {
     wx.setStorageSync(ACCESS_KEY, reply.access_token)
-    wx.setStorageSync(EXPIRE_KEY, Date.now() + reply.expires_in * 1000)
+    wx.setStorageSync(EXPIRE_KEY, Date.now() + Number(reply.expires_in) * 1000)
     if (refreshToken) {
       wx.setStorageSync(REFRESH_KEY, refreshToken)
     }

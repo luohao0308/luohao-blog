@@ -147,7 +147,7 @@ function toListItem(article: Article): PostListItem {
     summary: article.summary,
     tags: article.tags ?? [],
     dateText: formatDate(article.published_at),
-    viewCount: article.view_count ?? 0,
+    viewCount: Number(article.view_count ?? 0),
     categoryName: article.category?.name ?? '',
   }
 }
