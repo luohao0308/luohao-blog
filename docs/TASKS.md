@@ -74,6 +74,7 @@ _last-updated: 2026-10-07_
 - [x] M3 内容推荐体系：相关文章推荐（分类加权+标签重叠，回退最新）+ 文章列表热门阅读位（PR #38 squash 合并 merge `fc7be0d`）（2026-10-05）
 - [x] M3 用户互动能力：点赞（后端 like_count+去重 PR #36 merge `f70ff20`；前端按钮 PR #37 merge `524badc`，content-type 修复 #40 merge `301de3f`）、收藏（localStorage 本地方案 + /collections 页）、评论体验（待审块/昵称记忆/字数统计/重试，PR #39 merge `07d582c`）；生产已部署验收（2026-10-05）
 
+- [x] 备份异地副本（2026-10-07，用户"开始做"授权）：GitHub 私仓 `luohao-blog-backups` + 服务器 ed25519 deploy key（仅该仓写权限）+ `deploy/backup-push.sh`（单 commit force-push 最新镜像，恒定大小）；cron 03:40 每日推送，首推 13 个备份文件验证落库。**告警（cron 静默失败）待 SMTP 立项后补**
 - [x] 远端分支清理（2026-10-07，用户"继续推进"授权）：删除 21 个已核验远端分支（本任务 4 个特性分支 + ci-probe 探针 + 16 个历史交付分支，逐个经 merged-PR 或 main-祖先核验）；保留 `docs/page-layout-record`、`docs/t012-close` 两个无合并记录分支，远端仅剩 main + 待合并记录分支
 
 ## 未授权或未立项 (Do Not Start)
@@ -103,7 +104,7 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | 项目 | 风险 | 说明 |
 |---|---|---|
 | ~~useAuth 登出与 in-flight 刷新竞态~~ | 已修复 | #29：logout 先 await 在途 refreshOnce 再撤销会话（`useAuth.ts` logout）；2026-10-06 复核代码在位 |
-| ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；**残留**：备份仍单机无异地副本、cron 静默失败无告警 |
+| ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；**残留**：cron 静默失败无告警——待 SMTP 立项后接邮件通知 |
 | ~~LLM 120s vs HTTP server 60s 超时错配~~ | 已修复 | #29：HTTP deadline 提至 150s 并文档化与 llm.timeout 的耦合 |
 | ~~page_token 合法大 offset 未钳~~ | 已修复 | #29：offset 限 [0, 9900]（页大小上限内不出 ES max_result_window），越界映射 400，负值同拦 |
 | ~~errors.Error 实际走 protojson~~ | 已修复 | #28：codec.go 注释更正（proto 走 protojson、kratos errors 等 non-proto 保持 stdlib 形状）+ TestJSONCodecMarshalKratosError 钉死错误体编码路径；metadata/非法 UTF-8 维持 stdlib 现状（已文档化，不再当缺陷追踪） |
