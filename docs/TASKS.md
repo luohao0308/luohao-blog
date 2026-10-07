@@ -20,7 +20,7 @@ _last-updated: 2026-10-08_
 ## 待办 (Todo)
 
 - [ ] refresh cookie `Secure` 属性：随 HTTPS/域名（T-008 ICP 备案）落地。
-- [ ] 非域名收尾：六项技术债代码与小程序可执行验收，按 `docs/plans/NON-DOMAIN-CLOSEOUT-2026-10.md` 推进；服务器部署及线上验收待 S4。
+- [x] 非域名收尾：六项技术债代码、小程序可执行验收及服务器线上更新已完成；PR #82 merge `7ffd5ed`，required CI/release 全绿，线上六 target、三项数据层信号和公开入口已核验。DevTools/真机 UI 点验仍保留为人工事项，域名/HTTPS 不在本项范围。
 
 ## 未授权或未立项 (Do Not Start)
 
