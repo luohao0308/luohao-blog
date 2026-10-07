@@ -1,0 +1,109 @@
+# 监控栈（M5/S3）：Uptime Kuma 拨测 + Prometheus/Grafana 指标 + node-exporter/cAdvisor。
+# 与生产 compose（compose.prod.yml）解耦：生产栈更新/回滚不影响监控。
+#
+# 网络模型：
+#   - kuma / prometheus 挂到生产的 luohao-blog-prod_default 网络：拨测走容器内网
+#     （caddy→frontend→backend 全链路），并抓取 backend:8000/metrics；
+#   - 全部端口只绑定 127.0.0.1，公网不可达；访问走 SSH 隧道，
+#     见 docs/operations/runbooks/RUNBOOK-monitoring.md。
+#
+# 内存约束：单机 4G，ES 已占 ~750M。每个监控服务都有 mem_limit 硬上限，
+# Prometheus 保留 15d / 2GB 封顶，防止监控把业务容器挤进 swap。
+#
+# 用法（服务器上，首次）：
+#   cd /opt/luohao-blog/app
+#   docker compose -f deploy/compose.monitoring.yml --env-file deploy/.env.monitoring up -d
+#   docker compose -f deploy/compose.monitoring.yml ps
+
+name: luohao-blog-monitoring
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  blog:
+    external: true
+    name: luohao-blog-prod_default
+  monitoring:
+
+volumes:
+  kuma-data:
+  prom-data:
+  grafana-data:
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: blog-kuma
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - kuma-data:/app/data
+    networks:
+      - blog
+    mem_limit: 256m
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: blog-node-exporter
+    restart: unless-stopped
+    logging: *default-logging
+    # rootfs 只读挂载 + host pid：抓主机 /proc /sys 指标（磁盘/CPU/内存）。
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.systemd"
+      - "--collector.processes"
+    pid: host
+    volumes:
+      - "/:/host:ro,rslave"
+    networks:
+      - monitoring
+    mem_limit: 64m
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: blog-prometheus
+    restart: unless-stopped
+    logging: *default-logging
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # 单机小规模：15 天 / 2GB 封顶，内存上限由 mem_limit 兜底。
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom-data:/prometheus
+    networks:
+      - blog
+      - monitoring
+    mem_limit: 400m
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: blog-grafana
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      # 管理员口令在 deploy/.env.monitoring（Git 忽略，模板 .env.monitoring.example）。
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required in deploy/.env.monitoring}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:3002:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+    mem_limit: 300m

@@ -31,3 +31,4 @@ docs/project-memory/
 
 # .env.* 默认全部忽略，这里放行需要随仓库分发的 example 模板
 !deploy/.env.prod.example
+!deploy/.env.monitoring.example

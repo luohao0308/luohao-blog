@@ -14,6 +14,7 @@ import (
 func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
+			Metrics(),
 			recovery.Recovery(),
 			AuthJWT(issuer),
 			Authorize(authz),

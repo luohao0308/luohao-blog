@@ -20,6 +20,7 @@ import (
 func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, user *service.UserService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
+			Metrics(),
 			recovery.Recovery(),
 			AuthJWT(issuer),
 			Authorize(authz),
@@ -44,6 +45,9 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
 	}
 	srv := http.NewServer(opts...)
+	// Prometheus scrape endpoint: compose-internal only, bypasses API
+	// middleware (see metrics.go).
+	srv.Handle("/metrics", metricsHandler())
 	v1.RegisterArticleServiceHTTPServer(srv, article)
 	v1.RegisterCategoryServiceHTTPServer(srv, category)
 	v1.RegisterSubscriberServiceHTTPServer(srv, subscriber)

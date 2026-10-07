@@ -59,3 +59,15 @@ rotate() {
 rotate 'backups/blog-*.sql.gz' "$KEEP"
 rotate 'backups/uploads-*.tar.gz' "$KEEP"
 echo "backup written: $file, $uploads"
+
+# 死信开关：成功后 ping Uptime Kuma 的 push 监控（监控栈 24h+ 收不到
+# ping 即告警，兜住"备份静默失败"）。URL 从 deploy/.env.prod 读（Git 外），
+# 未配置时静默跳过，不影响本地开发与无监控环境。
+if [ -f deploy/.env.prod ]; then
+	push_url=$(grep '^BACKUP_PUSH_URL=' deploy/.env.prod | cut -d= -f2-)
+	if [ -n "$push_url" ]; then
+		# ping 失败只告警不判备份失败：数据此时已落盘成功
+		curl -fsS --max-time 10 "${push_url}&msg=ok" >/dev/null \
+			|| echo "warn: backup push ping failed (backup itself is fine)" >&2
+	fi
+fi
