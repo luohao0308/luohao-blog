@@ -43,7 +43,7 @@ _状态：in_progress | 更新：2026-10-07 | 关联任务：T-013 | 关联设�
 
 | 切片 | 目标结果 | 修改范围 | 依赖 | 验收方式 | 回退点 | 状态 |
 |---|---|---|---|---|---|---|
-| S1 | Uptime Kuma 拨测（全链路 4 项+ES）+ 备份 push 死信开关 | `compose.monitoring.yml`、`backup.sh`、服务器部署 | 无 | 停 backend 容器收到通知；push 监控变绿 | `compose down`（监控独立栈，不影响生产） | in_progress |
+| S1 | Uptime Kuma 拨测（全链路 4 项+ES）+ 备份 push 死信开关 | `compose.monitoring.yml`、`backup.sh`、服务器部署 | 无 | 停 backend 容器收到通知；push 监控变绿 | `compose down`（监控独立栈，不影响生产） | completed |
 | S2 | 后端 `/metrics` + Prometheus/Grafana 栈 + 看板与告警规则 | `backend/internal/server/`、`deploy/prometheus|grafana/` | S1（通知渠道就绪） | Grafana 看到 API QPS/p95/5xx；演练触发一条告警 | 分支回退 / `compose down`；backend 镜像按 runbook 回滚 | in_progress |
 | S3（可选） | Loki 日志聚合、DB/ES exporter、公开状态页 | deploy 配置扩展 | S2 | 用户另行确认后定义 | — | pending |
 
@@ -62,9 +62,9 @@ _状态：in_progress | 更新：2026-10-07 | 关联任务：T-013 | 关联设�
 
 ### S1：Uptime Kuma 拨测 + 备份死信开关
 
-- 状态：in_progress（2026-10-07；配置就绪，服务器部署与 Kuma 配置进行中）
-- 实现：`deploy/compose.monitoring.yml`（kuma 绑 127.0.0.1:3001，挂生产网络）；监控项 6 个（首页/API 全链路/frontend /health/backend 直探/ES 集群健康/备份 push）；`backup.sh` 末尾按 `BACKUP_PUSH_URL` ping push 监控
-- 验证：见 §7 证据
+- 状态：completed（2026-10-07）
+- 实现：`deploy/compose.monitoring.yml`（kuma 绑 127.0.0.1:3001，挂生产网络）；监控项 6 个（首页/API 全链路/frontend /health/backend 直探/ES 关键字探活/备份 push）；`backup.sh` 末尾按 `BACKUP_PUSH_URL` ping push 监控
+- 验证：6 个监控项全部 Up（100%）；服务器侧 push ping 实测 200；管理员凭据记录于服务器 `deploy/.env.monitoring`（Git 外）。钉钉通知通道在 S2 验收演练中一并打通（共用 webhook）
 
 ### S2：API 指标 + Prometheus/Grafana
 
@@ -78,5 +78,5 @@ _状态：in_progress | 更新：2026-10-07 | 关联任务：T-013 | 关联设�
 ## 7. 验证与证据
 
 - 2026-10-07 本地：`go build ./... && go test ./... && golangci-lint run` 全绿；本地栈实跑 `curl :8000/metrics` 确认三个 `blog_api_*` 指标族与 go runtime 指标（counter `code="200"` 正确计数）
-- 2026-10-07 服务器：监控栈 `docker compose config` 校验通过；prom/grafana/node-exporter/kuma 镜像实拉成功（腾讯 mirror）；`bash -n backup.sh` 语法通过
-- 待验证：服务器监控栈 up、Kuma 拨测项配置全绿、停 backend 容器收通知、钉钉链路（等待用户提供机器人 webhook）
+- 2026-10-07 服务器：监控栈 4 容器 Up（kuma healthy）；Prometheus 抓取 node-exporter/prometheus up、backend down（旧镜像无 /metrics，预期）；Grafana 数据源/看板（7 面板）/告警规则（4 条，Provisioned）加载成功；主机面板实数据核验（CPU 均值 15.5%、可用内存 1.28GiB、根分区 34.8%）；Kuma 6 监控项全绿 + push ping 200；Grafana 管理员口令经 CLI 对齐 env 文件（首次初始化时序问题）
+- 待验证（S2 收口）：钉钉 webhook（用户提供）配置 Kuma 通知 + Grafana contact point；PR 合并后服务器 `git pull && compose pull && up -d backend` → Prometheus 抓到 backend job up==1 → Grafana API 面板有数据 → 演练：停 backend 容器，钉钉收到告警
