@@ -93,9 +93,9 @@ HTTPS 证书由 Caddy 自动向 Let's Encrypt 申请；若 443 无响应，检�
 
 | 操作 | 命令 |
 |---|---|
-| 更新部署（流水线） | main 合并后 Actions 自动构建推 ghcr；服务器执行 `cd /opt/luohao-blog/app && git pull && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod pull backend frontend && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d backend frontend` |
+| 更新部署（流水线） | main 合并后 Actions 自动构建推 ghcr；建议在 `deploy/.env.prod` 设置 `IMAGE_TAG=<commit-sha>` 后执行 `cd /opt/luohao-blog/app && git pull && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod pull backend frontend && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d backend frontend` |
 | 更新部署（无网络构建回退） | `docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d --build`（compose 内 build 段保留） |
-| 应用回滚 | `docker pull ghcr.io/luohao0308/luohao-blog-backend:<旧sha>` 后把 compose 的 image tag 固定为该 sha 再 `up -d`；数据回滚用 restore.sh |
+| 应用回滚 | 将 `deploy/.env.prod` 的 `IMAGE_TAG` 改为目标旧 SHA 后执行 `docker compose ... pull backend frontend && docker compose ... up -d backend frontend`；数据回滚用 restore.sh |
 | 备份 | `deploy/backup.sh`（cron 安装见 §5.1） |
 | 恢复 | `deploy/restore.sh backups/blog-<时间戳>.sql.gz [uploads-<时间戳>.tar.gz]`——脚本自动停/启 backend（写方离线防竞态），坏包在停服前拒收；完成后按末尾提示跑 reindex 对齐 ES |
 | 日志 | `docker logs blog-backend --tail 100` / `blog-frontend` / `blog-caddy`；json-file 轮转 10MB×3 已在 compose 六服务的 `logging` 声明（改配置经 `up -d` 滚动重建生效，无需动 daemon.json） |
