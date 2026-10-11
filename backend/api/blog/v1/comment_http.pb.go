@@ -30,11 +30,12 @@ type CommentServiceHTTPServer interface {
 	// Returns NOT_FOUND when the comment does not exist.
 	ApproveComment(context.Context, *ApproveCommentRequest) (*Comment, error)
 	// CreateComment CreateComment submits a comment authored by the calling account. The
-	// comment enters PENDING and is not publicly visible until approved. The
+	// returned status determines visibility: APPROVED is public immediately;
+	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
 	// target article must exist and be PUBLISHED. The display name is the
 	// account's current profile name; the payload carries no identity fields.
 	// Authorization: any authenticated account (Authorization: Bearer);
-	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// anonymous calls return UNAUTHORIZED. Rate limited per IP and account; excess
 	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
 	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
@@ -44,7 +45,8 @@ type CommentServiceHTTPServer interface {
 	// NOT_FOUND when the comment does not exist.
 	DeleteComment(context.Context, *DeleteCommentRequest) (*emptypb.Empty, error)
 	// ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
-	// newest first. Authorization: public.
+	// newest first. Non-public/missing articles return an empty list; pending
+	// comments are never included, even for their authors. Authorization: public.
 	ListArticleComments(context.Context, *ListArticleCommentsRequest) (*CommentSet, error)
 	// ListComments ListComments returns a page of comments in any moderation state, for the
 	// admin panel. Use the standard list filter; supported field: `status` as
@@ -172,11 +174,12 @@ type CommentServiceHTTPClient interface {
 	// Returns NOT_FOUND when the comment does not exist.
 	ApproveComment(ctx context.Context, req *ApproveCommentRequest, opts ...http.CallOption) (rsp *Comment, err error)
 	// CreateComment CreateComment submits a comment authored by the calling account. The
-	// comment enters PENDING and is not publicly visible until approved. The
+	// returned status determines visibility: APPROVED is public immediately;
+	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
 	// target article must exist and be PUBLISHED. The display name is the
 	// account's current profile name; the payload carries no identity fields.
 	// Authorization: any authenticated account (Authorization: Bearer);
-	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// anonymous calls return UNAUTHORIZED. Rate limited per IP and account; excess
 	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
 	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
@@ -186,7 +189,8 @@ type CommentServiceHTTPClient interface {
 	// NOT_FOUND when the comment does not exist.
 	DeleteComment(ctx context.Context, req *DeleteCommentRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 	// ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
-	// newest first. Authorization: public.
+	// newest first. Non-public/missing articles return an empty list; pending
+	// comments are never included, even for their authors. Authorization: public.
 	ListArticleComments(ctx context.Context, req *ListArticleCommentsRequest, opts ...http.CallOption) (rsp *CommentSet, err error)
 	// ListComments ListComments returns a page of comments in any moderation state, for the
 	// admin panel. Use the standard list filter; supported field: `status` as
@@ -224,11 +228,12 @@ func (c *CommentServiceHTTPClientImpl) ApproveComment(ctx context.Context, in *A
 }
 
 // CreateComment CreateComment submits a comment authored by the calling account. The
-// comment enters PENDING and is not publicly visible until approved. The
+// returned status determines visibility: APPROVED is public immediately;
+// PENDING waits for admin review. Rate-limiter outages also hold for review. The
 // target article must exist and be PUBLISHED. The display name is the
 // account's current profile name; the payload carries no identity fields.
 // Authorization: any authenticated account (Authorization: Bearer);
-// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+// anonymous calls return UNAUTHORIZED. Rate limited per IP and account; excess
 // attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
 // fail validation and NOT_FOUND when the article is missing or not
 // published.
@@ -269,7 +274,8 @@ func (c *CommentServiceHTTPClientImpl) DeleteComment(ctx context.Context, in *De
 }
 
 // ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
-// newest first. Authorization: public.
+// newest first. Non-public/missing articles return an empty list; pending
+// comments are never included, even for their authors. Authorization: public.
 func (c *CommentServiceHTTPClientImpl) ListArticleComments(ctx context.Context, in *ListArticleCommentsRequest, opts ...http.CallOption) (*CommentSet, error) {
 	var out CommentSet
 	pattern := "/v1/articles/{slug}/comments"

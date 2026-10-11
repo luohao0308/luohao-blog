@@ -4,6 +4,7 @@ import (
 	"context"
 	stdsql "database/sql"
 	"testing"
+	"time"
 
 	entgo "entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -112,5 +113,38 @@ func TestCommentRepoUserIDRoundTrip(t *testing.T) {
 	}
 	if got.DisplayName != "历史访客" {
 		t.Fatalf("FindByID(legacy) name = %q, want the stored name", got.DisplayName)
+	}
+}
+
+// MySQL stores created_at with second precision; IDs make paging deterministic
+// when several comments share the same timestamp.
+func TestCommentPaginationBreaksTimestampTies(t *testing.T) {
+	repo, db := newTestCommentRepo(t)
+	ctx := context.Background()
+	timestamp := time.Date(2026, 10, 11, 0, 0, 0, 0, time.UTC)
+	for _, raw := range []string{
+		"00000000-0000-7000-8000-000000000001",
+		"00000000-0000-7000-8000-000000000003",
+		"00000000-0000-7000-8000-000000000002",
+	} {
+		_, err := db.Comment.Create().SetID(uuid.MustParse(raw)).SetCreatedAt(timestamp).SetArticleSlug("post").SetDisplayName("reader").SetContent("comment").SetStatus(biz.CommentStatusApproved).Save(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for offset := 0; offset < 3; offset++ {
+		want := uuid.MustParse([]string{
+			"00000000-0000-7000-8000-000000000003",
+			"00000000-0000-7000-8000-000000000002",
+			"00000000-0000-7000-8000-000000000001",
+		}[offset])
+		public, err := repo.ListApprovedBySlug(ctx, "post", 1, offset)
+		if err != nil || len(public) != 1 || public[0].ID != want {
+			t.Fatalf("public page %d = %v, %v", offset, public, err)
+		}
+		admin, err := repo.List(ctx, biz.CommentLimit(1), biz.CommentOffset(offset))
+		if err != nil || len(admin) != 1 || admin[0].ID != want {
+			t.Fatalf("admin page %d = %v, %v", offset, admin, err)
+		}
 	}
 }

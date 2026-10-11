@@ -92,7 +92,7 @@ func newCommentTestUsecase(t *testing.T, limiter CommentRateLimiter) (*CommentUs
 		t.Fatalf("CreateAuthor() error = %v", err)
 	}
 	claims := &Claims{UserID: author.ID, Role: author.Role}
-	uc := NewCommentUsecase(newFakeCommentRepo(), articles, users, limiter)
+	uc := NewCommentUsecase(newFakeCommentRepo(), articles, users, limiter, CommentModerationPolicy{})
 	return uc, articles, author, claims
 }
 
@@ -131,8 +131,8 @@ func TestCommentUsecaseSubmitRequiresIdentity(t *testing.T) {
 	if submitted.DisplayName != author.DisplayName {
 		t.Fatalf("Submit() display name = %q, want the profile name %q", submitted.DisplayName, author.DisplayName)
 	}
-	if submitted.Status != CommentStatusPending {
-		t.Fatalf("Submit status = %v, want pending", submitted.Status)
+	if submitted.Status != CommentStatusApproved {
+		t.Fatalf("Submit status = %v, want approved", submitted.Status)
 	}
 }
 
@@ -202,8 +202,8 @@ func TestCommentUsecaseSubmitRateLimited(t *testing.T) {
 	limiter := &denyAllLimiter{}
 	uc, _, _, claims := newCommentTestUsecase(t, limiter)
 
-	// The budget is checked before anything else, matching the login flow.
-	_, err := uc.Submit(context.Background(), &Comment{ArticleSlug: "any", Content: "c"}, claims, "1.2.3.4")
+	publishCommentableArticle(t, uc.articles)
+	_, err := uc.Submit(context.Background(), &Comment{ArticleSlug: "commentable", Content: "c"}, claims, "1.2.3.4")
 	if !kratoserrors.IsTooManyRequests(err) {
 		t.Fatalf("Submit(denied) error = %v, want too many requests", err)
 	}

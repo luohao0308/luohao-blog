@@ -147,9 +147,13 @@
   padding: 24rpx 0 8rpx;
 }
 
+.comments-more-disabled {
+  color: #94a3b8;
+}
+
 /* --- 底部评论输入栏 --- */
 
-.composer {
+.composer-shell {
   position: fixed;
   left: 0;
   right: 0;
@@ -157,8 +161,17 @@
   background: #fff;
   border-top: 1rpx solid #e2e8f0;
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+}
+
+.composer {
   display: flex;
   align-items: center;
+}
+
+.composer-error {
+  margin-bottom: 8rpx;
+  color: #dc2626;
+  font-size: 22rpx;
 }
 
 .composer-input {
@@ -167,6 +180,17 @@
   border-radius: 999rpx;
   padding: 14rpx 28rpx;
   font-size: 28rpx;
+}
+
+.composer-count {
+  margin-left: 12rpx;
+  color: #94a3b8;
+  font-size: 20rpx;
+  white-space: nowrap;
+}
+
+.composer-count-error {
+  color: #dc2626;
 }
 
 .composer-placeholder {

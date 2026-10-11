@@ -3,9 +3,9 @@ import { toMessage } from '../../utils/request'
 import { formatDate } from '../../utils/format'
 import { decorateArticleHtml } from '../../utils/html'
 import { isFavorite, toggleFavorite, isLiked, markLiked, unmarkLiked } from '../../utils/favorites'
-import { isLoggedIn } from '../../utils/auth'
+import { currentAccount, isLoggedIn } from '../../utils/auth'
 import { assetUrl } from '../../utils/config'
-import { COMMENT_STATUS_PENDING, type Comment } from '../../utils/types'
+import { COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, type Comment } from '../../utils/types'
 
 interface CommentItem {
   id: string
@@ -19,15 +19,25 @@ interface CommentItem {
 
 // toCommentItem 把 wire 评论转成视图模型；无名评论回退「访客」。
 function toCommentItem(c: Comment): CommentItem {
+  const displayName = c.display_name || '访客'
   return {
     id: c.id,
-    name: c.display_name || '访客',
+    name: displayName,
     dateText: formatDate(c.created_at),
     content: c.content,
     avatarUrl: assetUrl(c.avatar_url),
-    initial: (c.display_name || '访')[0],
+    initial: Array.from(displayName)[0] || '访',
     pending: c.status === COMMENT_STATUS_PENDING,
   }
+}
+
+function uniqueComments(comments: CommentItem[]): CommentItem[] {
+  const ids = new Set<string>()
+  return comments.filter((comment) => {
+    if (ids.has(comment.id)) return false
+    ids.add(comment.id)
+    return true
+  })
 }
 
 Page({
@@ -45,10 +55,17 @@ Page({
     liked: false,
     favorited: false,
     comments: [] as CommentItem[],
+    publicComments: [] as CommentItem[],
+    sessionComments: [] as CommentItem[],
     commentToken: '',
     commentsFinished: false,
     commentCount: 0,
+    commentLoading: false,
+    commentRevision: 0,
+    commentSubmitRevision: 0,
+    commentAccountId: '',
     commentInput: '',
+    commentLength: 0,
     commentBusy: false,
     commentError: '',
     canComment: false,
@@ -72,7 +89,25 @@ Page({
   },
 
   refreshComposer() {
-    this.setData({ canComment: isLoggedIn() })
+    const accountId = currentAccount()?.id ?? ''
+    const accountChanged = this.data.commentAccountId !== '' && this.data.commentAccountId !== accountId
+    if (accountChanged) {
+      const comments = uniqueComments(this.data.publicComments)
+      this.setData({
+        canComment: isLoggedIn(),
+        commentAccountId: accountId,
+        commentSubmitRevision: this.data.commentSubmitRevision + 1,
+        sessionComments: [],
+        comments,
+        commentCount: comments.length,
+        commentInput: '',
+        commentLength: 0,
+        commentBusy: false,
+        commentError: '',
+      })
+      return
+    }
+    this.setData({ canComment: isLoggedIn(), commentAccountId: accountId })
   },
 
   async fetch() {
@@ -127,25 +162,61 @@ Page({
     wx.showToast({ title: next ? '已收藏' : '已取消收藏', icon: 'none' })
   },
 
-  async fetchComments() {
-    const { slug, commentToken, comments } = this.data
+  async fetchComments(reset = false) {
+    if (!reset && (this.data.commentLoading || this.data.commentsFinished)) return
+
+    let revision = this.data.commentRevision
+    if (reset) {
+      revision += 1
+      this.setData({ commentRevision: revision })
+    }
+
+    const { slug } = this.data
+    const commentToken = reset ? '' : this.data.commentToken
+    const publicComments = reset ? [] : this.data.publicComments
+    this.setData({ commentLoading: true })
     try {
       const set = await listComments(slug, commentToken)
-      const more = (set.comments ?? []).map(toCommentItem)
+      if (revision !== this.data.commentRevision) return
+      const more = (set.comments ?? [])
+        .filter((comment) => comment.status === COMMENT_STATUS_APPROVED)
+        .map(toCommentItem)
+      const nextPublic = uniqueComments(publicComments.concat(more))
+      const publicIds = new Set(nextPublic.map((comment) => comment.id))
+      const sessionComments = this.data.sessionComments.filter((comment) => !publicIds.has(comment.id))
+      const comments = uniqueComments(sessionComments.concat(nextPublic))
       const nextToken = set.next_page_token ?? ''
       this.setData({
-        comments: comments.concat(more),
+        publicComments: nextPublic,
+        sessionComments,
+        comments,
         commentToken: nextToken,
         commentsFinished: nextToken === '',
-        commentCount: comments.concat(more).filter((c) => !c.pending).length,
+        commentCount: comments.filter((comment) => !comment.pending).length,
       })
     } catch (error) {
-      wx.showToast({ title: toMessage(error), icon: 'none' })
+      if (revision === this.data.commentRevision) {
+        wx.showToast({ title: toMessage(error), icon: 'none' })
+      }
+    } finally {
+      if (revision === this.data.commentRevision) {
+        this.setData({ commentLoading: false })
+      }
     }
   },
 
+  loadMoreComments() {
+    return this.fetchComments()
+  },
+
   onCommentInput(event: WechatMiniprogram.Input) {
-    this.setData({ commentInput: event.detail.value })
+    const commentInput = event.detail.value
+    const commentLength = Array.from(commentInput).length
+    this.setData({
+      commentInput,
+      commentLength,
+      commentError: commentLength > 1000 ? '评论不能超过 1000 个字' : '',
+    })
   },
 
   async submitComment() {
@@ -153,16 +224,43 @@ Page({
     const { slug, commentInput } = this.data
     const content = commentInput.trim()
     if (!content) return
-    this.setData({ commentBusy: true, commentError: '' })
+    if (Array.from(content).length > 1000) {
+      this.setData({ commentError: '评论不能超过 1000 个字' })
+      return
+    }
+    const submitAccountId = currentAccount()?.id ?? ''
+    const submitRevision = this.data.commentSubmitRevision + 1
+    this.setData({ commentBusy: true, commentError: '', commentSubmitRevision: submitRevision })
     try {
-      await createComment(slug, content)
-      this.setData({ commentInput: '', commentBusy: false })
-      wx.showToast({ title: '已提交，审核通过后展示', icon: 'none' })
-      // 重新拉取：登录态下列表会带回自己的待审评论（带「审核中」标识）。
-      this.setData({ comments: [], commentToken: '', commentsFinished: false })
-      await this.fetchComments()
+      const createdComment = await createComment(slug, content)
+      const currentAccountId = currentAccount()?.id ?? ''
+      if (submitRevision !== this.data.commentSubmitRevision || currentAccountId !== submitAccountId) return
+      if (createdComment.user_id && createdComment.user_id !== submitAccountId) {
+        this.setData({ commentBusy: false, commentError: '评论账号信息异常，请重试' })
+        return
+      }
+      const created = toCommentItem(createdComment)
+      const sessionComments = uniqueComments([created].concat(this.data.sessionComments))
+      const comments = uniqueComments(sessionComments.concat(this.data.publicComments))
+      this.setData({
+        sessionComments,
+        comments,
+        commentCount: comments.filter((comment) => !comment.pending).length,
+        commentInput: '',
+        commentLength: 0,
+        commentBusy: false,
+      })
+      if (created.pending) {
+        wx.showToast({ title: '评论审核中，仅你当前可见', icon: 'none' })
+      } else {
+        wx.showToast({ title: '评论已发布', icon: 'success' })
+        await this.fetchComments(true)
+      }
     } catch (error) {
-      this.setData({ commentBusy: false, commentError: toMessage(error) })
+      const currentAccountId = currentAccount()?.id ?? ''
+      if (submitRevision === this.data.commentSubmitRevision && currentAccountId === submitAccountId) {
+        this.setData({ commentBusy: false, commentError: toMessage(error) })
+      }
     }
   },
 

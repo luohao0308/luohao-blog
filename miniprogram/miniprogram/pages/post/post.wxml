@@ -32,7 +32,7 @@
 
     <!-- 评论区 -->
     <view class="comments">
-      <view class="comments-title">评论（{{commentCount}}）</view>
+      <view class="comments-title">已加载公开评论（{{commentCount}}）</view>
 
       <view wx:if="{{!comments.length}}" class="comments-empty">还没有评论，来抢沙发</view>
 
@@ -49,26 +49,33 @@
         </view>
       </view>
 
-      <view wx:if="{{!commentsFinished}}" class="comments-more" bindtap="fetchComments">加载更多评论</view>
+      <view wx:if="{{!commentsFinished}}" class="comments-more {{commentLoading ? 'comments-more-disabled' : ''}}" bindtap="loadMoreComments">
+        {{commentLoading ? '加载中…' : '加载更多评论'}}
+      </view>
     </view>
   </view>
 
   <!-- 底部评论输入栏 -->
-  <view class="composer" wx:if="{{!loading && !error}}">
-    <block wx:if="{{canComment}}">
-      <input
-        class="composer-input"
-        placeholder="写下你的评论…"
-        placeholder-class="composer-placeholder"
-        value="{{commentInput}}"
-        confirm-type="send"
-        bindinput="onCommentInput"
-        bindconfirm="submitComment"
-      />
-      <button class="composer-send" size="mini" loading="{{commentBusy}}" disabled="{{commentBusy || !commentInput}}" bindtap="submitComment">发送</button>
-    </block>
-    <view wx:else class="composer-login" bindtap="goLogin">
-      登录后参与讨论 →
+  <view class="composer-shell" wx:if="{{!loading && !error}}">
+    <view wx:if="{{commentError}}" class="composer-error">{{commentError}}</view>
+    <view class="composer">
+      <block wx:if="{{canComment}}">
+        <input
+          class="composer-input"
+          placeholder="写下你的评论…"
+          placeholder-class="composer-placeholder"
+          value="{{commentInput}}"
+          confirm-type="send"
+          maxlength="2002"
+          bindinput="onCommentInput"
+          bindconfirm="submitComment"
+        />
+        <text class="composer-count {{commentLength > 1000 ? 'composer-count-error' : ''}}">{{commentLength}}/1000</text>
+        <button class="composer-send" size="mini" loading="{{commentBusy}}" disabled="{{commentBusy || !commentInput || commentLength > 1000}}" bindtap="submitComment">发送</button>
+      </block>
+      <view wx:else class="composer-login" bindtap="goLogin">
+        登录后参与讨论 →
+      </view>
     </view>
   </view>
 </view>

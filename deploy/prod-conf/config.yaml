@@ -29,6 +29,11 @@ auth:
     secret: ${JWT_SECRET:}
     access_token_ttl: 900s
   refresh_token_ttl: 604800s
+  # smart: ordinary comments publish immediately; suspicious ones stay pending.
+  # Set manual to return to full manual review. No external API is called.
+  comment_moderation:
+    mode: smart
+    review_keywords: []
   rate_limit:
     login_attempts: 10
     login_window: 300s

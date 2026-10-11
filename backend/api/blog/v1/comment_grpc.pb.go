@@ -34,24 +34,27 @@ const (
 // CommentService handles article comments. Commenters are authenticated
 // accounts: readers register openly through the auth service, and every new
 // comment is authored by the caller's account (identity comes from the
-// access token, never from the payload). Every new comment starts PENDING
-// and becomes publicly visible only after an admin approves it. Legacy rows
+// access token, never from the payload). In smart mode ordinary comments
+// are APPROVED immediately; local spam signals hold comments as PENDING.
+// Manual mode holds all submissions for admin review. Legacy rows
 // from the closed-registration era have no user and keep their stored
 // display name. Admin operations require the ADMIN role; public reads stay
-// open and submissions are rate limited per client IP.
+// open and submissions are rate limited per client IP and account.
 type CommentServiceClient interface {
 	// CreateComment submits a comment authored by the calling account. The
-	// comment enters PENDING and is not publicly visible until approved. The
+	// returned status determines visibility: APPROVED is public immediately;
+	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
 	// target article must exist and be PUBLISHED. The display name is the
 	// account's current profile name; the payload carries no identity fields.
 	// Authorization: any authenticated account (Authorization: Bearer);
-	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// anonymous calls return UNAUTHORIZED. Rate limited per IP and account; excess
 	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
 	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*Comment, error)
 	// ListArticleComments returns a page of APPROVED comments for an article,
-	// newest first. Authorization: public.
+	// newest first. Non-public/missing articles return an empty list; pending
+	// comments are never included, even for their authors. Authorization: public.
 	ListArticleComments(ctx context.Context, in *ListArticleCommentsRequest, opts ...grpc.CallOption) (*CommentSet, error)
 	// ListComments returns a page of comments in any moderation state, for the
 	// admin panel. Use the standard list filter; supported field: `status` as
@@ -133,24 +136,27 @@ func (c *commentServiceClient) DeleteComment(ctx context.Context, in *DeleteComm
 // CommentService handles article comments. Commenters are authenticated
 // accounts: readers register openly through the auth service, and every new
 // comment is authored by the caller's account (identity comes from the
-// access token, never from the payload). Every new comment starts PENDING
-// and becomes publicly visible only after an admin approves it. Legacy rows
+// access token, never from the payload). In smart mode ordinary comments
+// are APPROVED immediately; local spam signals hold comments as PENDING.
+// Manual mode holds all submissions for admin review. Legacy rows
 // from the closed-registration era have no user and keep their stored
 // display name. Admin operations require the ADMIN role; public reads stay
-// open and submissions are rate limited per client IP.
+// open and submissions are rate limited per client IP and account.
 type CommentServiceServer interface {
 	// CreateComment submits a comment authored by the calling account. The
-	// comment enters PENDING and is not publicly visible until approved. The
+	// returned status determines visibility: APPROVED is public immediately;
+	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
 	// target article must exist and be PUBLISHED. The display name is the
 	// account's current profile name; the payload carries no identity fields.
 	// Authorization: any authenticated account (Authorization: Bearer);
-	// anonymous calls return UNAUTHORIZED. Rate limited per client IP; excess
+	// anonymous calls return UNAUTHORIZED. Rate limited per IP and account; excess
 	// attempts return TOO_MANY_REQUESTS. Returns INVALID_ARGUMENT when fields
 	// fail validation and NOT_FOUND when the article is missing or not
 	// published.
 	CreateComment(context.Context, *CreateCommentRequest) (*Comment, error)
 	// ListArticleComments returns a page of APPROVED comments for an article,
-	// newest first. Authorization: public.
+	// newest first. Non-public/missing articles return an empty list; pending
+	// comments are never included, even for their authors. Authorization: public.
 	ListArticleComments(context.Context, *ListArticleCommentsRequest) (*CommentSet, error)
 	// ListComments returns a page of comments in any moderation state, for the
 	// admin panel. Use the standard list filter; supported field: `status` as

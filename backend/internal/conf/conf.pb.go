@@ -526,9 +526,10 @@ type Auth struct {
 	// Defaults to 168h (7 days) when unset.
 	RefreshTokenTtl *durationpb.Duration `protobuf:"bytes,2,opt,name=refresh_token_ttl,json=refreshTokenTtl,proto3" json:"refresh_token_ttl,omitempty"`
 	// Login brute-force protection.
-	RateLimit     *Auth_RateLimit `protobuf:"bytes,3,opt,name=rate_limit,json=rateLimit,proto3" json:"rate_limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RateLimit         *Auth_RateLimit         `protobuf:"bytes,3,opt,name=rate_limit,json=rateLimit,proto3" json:"rate_limit,omitempty"`
+	CommentModeration *Auth_CommentModeration `protobuf:"bytes,4,opt,name=comment_moderation,json=commentModeration,proto3" json:"comment_moderation,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Auth) Reset() {
@@ -578,6 +579,13 @@ func (x *Auth) GetRefreshTokenTtl() *durationpb.Duration {
 func (x *Auth) GetRateLimit() *Auth_RateLimit {
 	if x != nil {
 		return x.RateLimit
+	}
+	return nil
+}
+
+func (x *Auth) GetCommentModeration() *Auth_CommentModeration {
+	if x != nil {
+		return x.CommentModeration
 	}
 	return nil
 }
@@ -853,6 +861,61 @@ func (x *Data_Redis) GetPassword() string {
 	return ""
 }
 
+type Auth_CommentModeration struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty or smart: publish ordinary comments, hold local spam signals.
+	// manual (and unknown modes): hold every comment for an admin.
+	Mode string `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
+	// Additional substrings to hold for review (case/width/space normalized).
+	ReviewKeywords []string `protobuf:"bytes,2,rep,name=review_keywords,json=reviewKeywords,proto3" json:"review_keywords,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Auth_CommentModeration) Reset() {
+	*x = Auth_CommentModeration{}
+	mi := &file_conf_conf_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Auth_CommentModeration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Auth_CommentModeration) ProtoMessage() {}
+
+func (x *Auth_CommentModeration) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_conf_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Auth_CommentModeration.ProtoReflect.Descriptor instead.
+func (*Auth_CommentModeration) Descriptor() ([]byte, []int) {
+	return file_conf_conf_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *Auth_CommentModeration) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *Auth_CommentModeration) GetReviewKeywords() []string {
+	if x != nil {
+		return x.ReviewKeywords
+	}
+	return nil
+}
+
 type Auth_JWT struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HMAC-SHA256 signing key for access tokens. Required: the server refuses
@@ -866,7 +929,7 @@ type Auth_JWT struct {
 
 func (x *Auth_JWT) Reset() {
 	*x = Auth_JWT{}
-	mi := &file_conf_conf_proto_msgTypes[12]
+	mi := &file_conf_conf_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +941,7 @@ func (x *Auth_JWT) String() string {
 func (*Auth_JWT) ProtoMessage() {}
 
 func (x *Auth_JWT) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[12]
+	mi := &file_conf_conf_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +954,7 @@ func (x *Auth_JWT) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Auth_JWT.ProtoReflect.Descriptor instead.
 func (*Auth_JWT) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{7, 0}
+	return file_conf_conf_proto_rawDescGZIP(), []int{7, 1}
 }
 
 func (x *Auth_JWT) GetSecret() string {
@@ -915,7 +978,7 @@ type Auth_RateLimit struct {
 	LoginAttempts int64 `protobuf:"varint,1,opt,name=login_attempts,json=loginAttempts,proto3" json:"login_attempts,omitempty"`
 	// Fixed window size for the login counter. Defaults to 5m when unset.
 	LoginWindow *durationpb.Duration `protobuf:"bytes,2,opt,name=login_window,json=loginWindow,proto3" json:"login_window,omitempty"`
-	// Comment submissions allowed per client IP inside comment_window.
+	// Comment submissions allowed per client IP and per account inside comment_window.
 	// Defaults to 20 when unset.
 	CommentAttempts int64 `protobuf:"varint,3,opt,name=comment_attempts,json=commentAttempts,proto3" json:"comment_attempts,omitempty"`
 	// Fixed window size for the comment counter. Defaults to 5m when unset.
@@ -942,7 +1005,7 @@ type Auth_RateLimit struct {
 
 func (x *Auth_RateLimit) Reset() {
 	*x = Auth_RateLimit{}
-	mi := &file_conf_conf_proto_msgTypes[13]
+	mi := &file_conf_conf_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +1017,7 @@ func (x *Auth_RateLimit) String() string {
 func (*Auth_RateLimit) ProtoMessage() {}
 
 func (x *Auth_RateLimit) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_conf_proto_msgTypes[13]
+	mi := &file_conf_conf_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +1030,7 @@ func (x *Auth_RateLimit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Auth_RateLimit.ProtoReflect.Descriptor instead.
 func (*Auth_RateLimit) Descriptor() ([]byte, []int) {
-	return file_conf_conf_proto_rawDescGZIP(), []int{7, 1}
+	return file_conf_conf_proto_rawDescGZIP(), []int{7, 2}
 }
 
 func (x *Auth_RateLimit) GetLoginAttempts() int64 {
@@ -1101,12 +1164,16 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
 	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xaf\x06\n" +
+	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xd4\a\n" +
 	"\x04Auth\x12&\n" +
 	"\x03jwt\x18\x01 \x01(\v2\x14.kratos.api.Auth.JWTR\x03jwt\x12E\n" +
 	"\x11refresh_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0frefreshTokenTtl\x129\n" +
 	"\n" +
-	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x1ab\n" +
+	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x12Q\n" +
+	"\x12comment_moderation\x18\x04 \x01(\v2\".kratos.api.Auth.CommentModerationR\x11commentModeration\x1aP\n" +
+	"\x11CommentModeration\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\x12'\n" +
+	"\x0freview_keywords\x18\x02 \x03(\tR\x0ereviewKeywords\x1ab\n" +
 	"\x03JWT\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12C\n" +
 	"\x10access_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0eaccessTokenTtl\x1a\x98\x04\n" +
@@ -1136,23 +1203,24 @@ func file_conf_conf_proto_rawDescGZIP() []byte {
 	return file_conf_conf_proto_rawDescData
 }
 
-var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_conf_conf_proto_goTypes = []any{
-	(*Bootstrap)(nil),           // 0: kratos.api.Bootstrap
-	(*Wechat)(nil),              // 1: kratos.api.Wechat
-	(*Llm)(nil),                 // 2: kratos.api.Llm
-	(*Es)(nil),                  // 3: kratos.api.Es
-	(*Embedding)(nil),           // 4: kratos.api.Embedding
-	(*Server)(nil),              // 5: kratos.api.Server
-	(*Data)(nil),                // 6: kratos.api.Data
-	(*Auth)(nil),                // 7: kratos.api.Auth
-	(*Server_HTTP)(nil),         // 8: kratos.api.Server.HTTP
-	(*Server_GRPC)(nil),         // 9: kratos.api.Server.GRPC
-	(*Data_Database)(nil),       // 10: kratos.api.Data.Database
-	(*Data_Redis)(nil),          // 11: kratos.api.Data.Redis
-	(*Auth_JWT)(nil),            // 12: kratos.api.Auth.JWT
-	(*Auth_RateLimit)(nil),      // 13: kratos.api.Auth.RateLimit
-	(*durationpb.Duration)(nil), // 14: google.protobuf.Duration
+	(*Bootstrap)(nil),              // 0: kratos.api.Bootstrap
+	(*Wechat)(nil),                 // 1: kratos.api.Wechat
+	(*Llm)(nil),                    // 2: kratos.api.Llm
+	(*Es)(nil),                     // 3: kratos.api.Es
+	(*Embedding)(nil),              // 4: kratos.api.Embedding
+	(*Server)(nil),                 // 5: kratos.api.Server
+	(*Data)(nil),                   // 6: kratos.api.Data
+	(*Auth)(nil),                   // 7: kratos.api.Auth
+	(*Server_HTTP)(nil),            // 8: kratos.api.Server.HTTP
+	(*Server_GRPC)(nil),            // 9: kratos.api.Server.GRPC
+	(*Data_Database)(nil),          // 10: kratos.api.Data.Database
+	(*Data_Redis)(nil),             // 11: kratos.api.Data.Redis
+	(*Auth_CommentModeration)(nil), // 12: kratos.api.Auth.CommentModeration
+	(*Auth_JWT)(nil),               // 13: kratos.api.Auth.JWT
+	(*Auth_RateLimit)(nil),         // 14: kratos.api.Auth.RateLimit
+	(*durationpb.Duration)(nil),    // 15: google.protobuf.Duration
 }
 var file_conf_conf_proto_depIdxs = []int32{
 	5,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
@@ -1162,30 +1230,31 @@ var file_conf_conf_proto_depIdxs = []int32{
 	4,  // 4: kratos.api.Bootstrap.embedding:type_name -> kratos.api.Embedding
 	2,  // 5: kratos.api.Bootstrap.llm:type_name -> kratos.api.Llm
 	1,  // 6: kratos.api.Bootstrap.wechat:type_name -> kratos.api.Wechat
-	14, // 7: kratos.api.Llm.timeout:type_name -> google.protobuf.Duration
-	14, // 8: kratos.api.Embedding.timeout:type_name -> google.protobuf.Duration
+	15, // 7: kratos.api.Llm.timeout:type_name -> google.protobuf.Duration
+	15, // 8: kratos.api.Embedding.timeout:type_name -> google.protobuf.Duration
 	8,  // 9: kratos.api.Server.http:type_name -> kratos.api.Server.HTTP
 	9,  // 10: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
 	10, // 11: kratos.api.Data.database:type_name -> kratos.api.Data.Database
 	11, // 12: kratos.api.Data.redis:type_name -> kratos.api.Data.Redis
-	12, // 13: kratos.api.Auth.jwt:type_name -> kratos.api.Auth.JWT
-	14, // 14: kratos.api.Auth.refresh_token_ttl:type_name -> google.protobuf.Duration
-	13, // 15: kratos.api.Auth.rate_limit:type_name -> kratos.api.Auth.RateLimit
-	14, // 16: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	14, // 17: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	14, // 18: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	14, // 19: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	14, // 20: kratos.api.Auth.JWT.access_token_ttl:type_name -> google.protobuf.Duration
-	14, // 21: kratos.api.Auth.RateLimit.login_window:type_name -> google.protobuf.Duration
-	14, // 22: kratos.api.Auth.RateLimit.comment_window:type_name -> google.protobuf.Duration
-	14, // 23: kratos.api.Auth.RateLimit.chat_window:type_name -> google.protobuf.Duration
-	14, // 24: kratos.api.Auth.RateLimit.search_window:type_name -> google.protobuf.Duration
-	14, // 25: kratos.api.Auth.RateLimit.register_window:type_name -> google.protobuf.Duration
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	13, // 13: kratos.api.Auth.jwt:type_name -> kratos.api.Auth.JWT
+	15, // 14: kratos.api.Auth.refresh_token_ttl:type_name -> google.protobuf.Duration
+	14, // 15: kratos.api.Auth.rate_limit:type_name -> kratos.api.Auth.RateLimit
+	12, // 16: kratos.api.Auth.comment_moderation:type_name -> kratos.api.Auth.CommentModeration
+	15, // 17: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	15, // 18: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	15, // 19: kratos.api.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
+	15, // 20: kratos.api.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
+	15, // 21: kratos.api.Auth.JWT.access_token_ttl:type_name -> google.protobuf.Duration
+	15, // 22: kratos.api.Auth.RateLimit.login_window:type_name -> google.protobuf.Duration
+	15, // 23: kratos.api.Auth.RateLimit.comment_window:type_name -> google.protobuf.Duration
+	15, // 24: kratos.api.Auth.RateLimit.chat_window:type_name -> google.protobuf.Duration
+	15, // 25: kratos.api.Auth.RateLimit.search_window:type_name -> google.protobuf.Duration
+	15, // 26: kratos.api.Auth.RateLimit.register_window:type_name -> google.protobuf.Duration
+	27, // [27:27] is the sub-list for method output_type
+	27, // [27:27] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_conf_conf_proto_init() }
@@ -1199,7 +1268,7 @@ func file_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_conf_proto_rawDesc), len(file_conf_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
