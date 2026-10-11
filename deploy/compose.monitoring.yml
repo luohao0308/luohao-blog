@@ -34,6 +34,7 @@ volumes:
   prom-data:
   grafana-data:
   loki-data:
+  promtail-positions:
 
 services:
   loki:
@@ -54,9 +55,11 @@ services:
     container_name: blog-promtail
     restart: unless-stopped
     logging: *default-logging
-    # docker SD 需要访问 socket；读取容器 json-file 日志与宿主机脚本日志
+    # docker SD 需要访问 socket；读取容器 json-file 日志与宿主机脚本日志。
+    # positions 单独持久化，监控容器重启不会从头重复采集日志。
     volumes:
       - ./promtail/config.yml:/etc/promtail/config.yml:ro
+      - promtail-positions:/var/lib/promtail
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/log:/var/log/host:ro

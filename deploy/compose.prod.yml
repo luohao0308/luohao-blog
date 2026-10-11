@@ -40,9 +40,9 @@ services:
   frontend:
     build:
       context: ../frontend
-    # 发布流水线（.github/workflows/release.yml）推 ghcr 镜像；服务器
-    # docker compose pull 即更新。build 段保留作为无镜像环境的本机构建回退。
-    image: ghcr.io/luohao0308/luohao-blog-frontend:latest
+    # 发布流水线（.github/workflows/release.yml）同时推 latest 和提交 SHA。
+    # 生产可用 IMAGE_TAG 固定到 SHA，默认 latest 保持本地冒烟和旧环境兼容。
+    image: ghcr.io/luohao0308/luohao-blog-frontend:${IMAGE_TAG:-latest}
     container_name: blog-frontend
     restart: unless-stopped
     logging: *default-logging
@@ -64,7 +64,7 @@ services:
       context: ../backend
       args:
         APT_MIRROR: mirrors.cloud.tencent.com
-    image: ghcr.io/luohao0308/luohao-blog-backend:latest
+    image: ghcr.io/luohao0308/luohao-blog-backend:${IMAGE_TAG:-latest}
     container_name: blog-backend
     restart: unless-stopped
     logging: *default-logging

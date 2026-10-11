@@ -48,11 +48,21 @@ echo "restored: $file"
 
 echo "==> starting backend"
 "${COMPOSE[@]}" start backend
+healthy=0
 for _ in $(seq 1 24); do
 	health=$("${COMPOSE[@]}" ps --format '{{.Name}} {{.Health}}' | awk '$1 == "blog-backend" {print $2}')
-	[ "$health" = "healthy" ] && { echo "backend healthy"; break; }
+	if [ "$health" = "healthy" ]; then
+		echo "backend healthy"
+		healthy=1
+		break
+	fi
 	sleep 5
 done
+
+if [ "$healthy" -ne 1 ]; then
+	echo "!! backend did not become healthy within 120s" >&2
+	exit 1
+fi
 
 echo "==> 下一步：重建派生的 ES 索引"
 echo "    ${COMPOSE[*]} exec backend /app/reindex -conf /data/conf"

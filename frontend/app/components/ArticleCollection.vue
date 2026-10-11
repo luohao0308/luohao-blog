@@ -8,29 +8,41 @@ const searchResults = ref<Article[] | null>(null)
 const searchPending = ref(false)
 const searchError = ref(false)
 let searchRequest = 0
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
-watch(query, async (value) => {
+watch(query, (value) => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = undefined
+  }
   const normalized = value.trim()
   if (!normalized) {
+    searchRequest++
     searchResults.value = null
     searchError.value = false
+    searchPending.value = false
     return
   }
   const request = ++searchRequest
   searchPending.value = true
   searchError.value = false
-  try {
-    const results = await searchPublishedArticles(normalized)
-    if (request === searchRequest) searchResults.value = results
-  } catch {
-    // Keep the collection usable when ES is unavailable or the API is down.
-    if (request === searchRequest) {
-      searchError.value = true
-      searchResults.value = null
+  searchTimer = setTimeout(async () => {
+    try {
+      const results = await searchPublishedArticles(normalized)
+      if (request === searchRequest) searchResults.value = results
+    } catch {
+      // Keep the collection usable when ES is unavailable or the API is down.
+      if (request === searchRequest) {
+        searchError.value = true
+        searchResults.value = null
+      }
+    } finally {
+      if (request === searchRequest) searchPending.value = false
     }
-  } finally {
-    if (request === searchRequest) searchPending.value = false
-  }
+  }, 300)
+})
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags ?? []))].sort())
 const articles = computed(() => (searchResults.value ?? data.value ?? []).filter(article => {
