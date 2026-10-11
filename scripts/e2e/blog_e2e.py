@@ -342,11 +342,11 @@ def t15(page, ctx):
         login_admin(page)
         page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
         assert page.locator('input[placeholder="昵称"]').count() == 0, "登录后不应再有昵称输入框"
-        fill_hydrated(page.locator('textarea[placeholder*="写下你的评论"]'), f"{marker} 内容待审核验证。")
+        fill_hydrated(page.locator('textarea[placeholder*="写下你的评论"]'), f"{marker} 参考 https://example.com/review-fixture")
         page.click('button:has-text("发表评论")')
         submitted = True
         notice = page.wait_for_selector('[role="status"]', timeout=10_000)
-        assert "通过审核后展示" in notice.inner_text(), f"提交反馈异常: {notice.inner_text()}"
+        assert "需要人工复核" in notice.inner_text(), f"提交反馈异常: {notice.inner_text()}"
         # S4 语义：作者的待审评论在「待审核」块对自己可见，但不进已发布列表
         pending_block = page.locator('[aria-label="我的待审核评论"]')
         assert pending_block.get_by_text(marker).count() >= 1, "提交后未在待审核块展示"

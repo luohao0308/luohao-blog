@@ -32,7 +32,7 @@ const (
 	CommentStatus_COMMENT_STATUS_UNSPECIFIED CommentStatus = 0
 	// The comment awaits moderation and is not publicly visible.
 	CommentStatus_COMMENT_STATUS_PENDING CommentStatus = 1
-	// The comment was approved by an admin and is publicly visible.
+	// The comment was approved automatically or by an admin; publicly visible.
 	CommentStatus_COMMENT_STATUS_APPROVED CommentStatus = 2
 )
 

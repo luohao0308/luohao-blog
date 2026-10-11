@@ -1,23 +1,14 @@
 <script setup lang="ts">
-// Article comment section: the approved list is fetched server-side with the
-// page; submissions require a signed-in account (identity comes from the
-// access token), so the form waits for the client-side session restore and
-// shows a login prompt for anonymous visitors. Submissions enter
-// moderation, so the UI confirms with "等待审核" and keeps the pending
-// comment visible (in memory only) until a reload picks up the approved
-// list.
-import { COMMENT_CONTENT_MAX, type Comment } from '~/composables/useComments'
+import { COMMENT_CONTENT_MAX, COMMENT_STATUS, type Comment, type CommentSet } from '~/composables/useComments'
 
 const props = defineProps<{ slug: string }>()
-
 const route = useRoute()
 const { user, ensureSession, authFetch } = useAuth()
-
-const { data, error, refresh } = await useArticleComments(props.slug)
-const comments = computed<Comment[]>(() => data.value?.comments ?? [])
-
-// The form needs the session state, which only exists client-side; render a
-// neutral placeholder until the restore settles.
+const { data, error } = await useArticleComments(props.slug)
+const comments = ref<Comment[]>(data.value?.comments ?? [])
+const nextPageToken = ref(data.value?.next_page_token ?? '')
+const listBusy = ref(false)
+const listError = ref('')
 const sessionReady = ref(false)
 onMounted(async () => {
   await ensureSession()
@@ -25,46 +16,87 @@ onMounted(async () => {
 })
 
 const content = ref('')
+const contentCount = computed(() => Array.from(content.value).length)
 const submitting = ref(false)
 const notice = ref('')
 const noticeKind = ref<'ok' | 'err'>('ok')
-const pending = ref<Array<{ name: string, body: string }>>([])
-
+// Only the current author's creation replies appear here. Public reads never
+// include pending comments; these previews intentionally expire on reload.
+const pending = ref<Comment[]>([])
+watch(() => user.value?.id, () => {
+  pending.value = []
+  notice.value = ''
+})
 const loginLink = computed(() => `/login?redirect=${encodeURIComponent(route.path)}`)
 const registerLink = computed(() => `/register?redirect=${encodeURIComponent(route.path)}`)
 
 function initialOf(name: string): string {
-  return (name || '?').trim().charAt(0).toUpperCase()
+  return Array.from((name || '?').trim())[0]?.toUpperCase() ?? '?'
 }
 
 function avatarSrc(avatarUrl?: string): string {
   return avatarUrl ? assetUrl(avatarUrl) : ''
 }
 
+function mergeComments(items: Comment[]): Comment[] {
+  return [...new Map(items.map(item => [item.id, item])).values()]
+}
+
+async function fetchComments(reset: boolean) {
+  if (listBusy.value || (!reset && (!nextPageToken.value || submitting.value)))
+    return
+  listBusy.value = true
+  listError.value = ''
+  try {
+    const set = await $fetch<CommentSet>(`/api/v1/articles/${encodeURIComponent(props.slug)}/comments`, {
+      query: { page_size: 20, page_token: reset ? undefined : nextPageToken.value },
+    })
+    comments.value = mergeComments(reset ? (set.comments ?? []) : [...comments.value, ...(set.comments ?? [])])
+    nextPageToken.value = set.next_page_token ?? ''
+    pending.value = pending.value.filter(item => !comments.value.some(c => c.id === item.id))
+    error.value = undefined
+  }
+  catch {
+    if (reset)
+      nextPageToken.value = ''
+    listError.value = '评论暂时无法加载，请重试。'
+  }
+  finally {
+    listBusy.value = false
+  }
+}
+
 async function submit() {
+  if (submitting.value || listBusy.value)
+    return
   notice.value = ''
   const body = content.value.trim()
-  if (!body) {
+  if (!body || Array.from(body).length > COMMENT_CONTENT_MAX) {
     noticeKind.value = 'err'
-    notice.value = '请填写评论内容'
-    return
-  }
-  if (body.length > COMMENT_CONTENT_MAX) {
-    noticeKind.value = 'err'
-    notice.value = `评论最多 ${COMMENT_CONTENT_MAX} 字`
+    notice.value = !body ? '请填写评论内容' : `评论最多 ${COMMENT_CONTENT_MAX} 字`
     return
   }
   submitting.value = true
   try {
-    await authFetch('/api/v1/comments', {
+    const created = await authFetch<Comment>('/api/v1/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: { article_slug: props.slug, content: body },
     })
     noticeKind.value = 'ok'
-    notice.value = '评论已提交，通过审核后展示。'
-    pending.value.push({ name: user.value?.display_name ?? '', body })
     content.value = ''
+    if (created.status === COMMENT_STATUS.APPROVED) {
+      notice.value = '评论已发布。'
+      comments.value = mergeComments([created, ...comments.value])
+      // Reconcile the offset token after an insertion. A failed list reload
+      // keeps the successful creation reply and does not ask for a repost.
+      await fetchComments(true)
+    }
+    else {
+      notice.value = '评论已提交，需要人工复核，通过后公开展示。'
+      if (created.user_id === user.value?.id)
+        pending.value = mergeComments([created, ...pending.value])
+    }
   }
   catch (err: unknown) {
     noticeKind.value = 'err'
@@ -91,7 +123,7 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
 <template>
   <section class="space-y-6 border-t border-slate-200 pt-8 dark:border-slate-800" aria-label="评论区">
     <h2 class="text-lg font-medium">
-      评论 <span v-if="comments.length" class="text-sm text-slate-500 dark:text-slate-400">{{ comments.length }}</span>
+      评论 <span v-if="comments.length" class="text-sm text-slate-500 dark:text-slate-400">已加载 {{ comments.length }} 条</span>
     </h2>
 
     <ul v-if="comments.length" class="space-y-5">
@@ -116,31 +148,41 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
         </div>
       </li>
     </ul>
-    <div v-else-if="error" class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-      <span>评论暂时无法加载。</span>
-      <button type="button" class="text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>
+    <div v-if="error || listError" class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+      <span>{{ listError || '评论暂时无法加载。' }}</span>
+      <button type="button" class="text-[#3c5d85] underline dark:text-blue-300" :disabled="listBusy || submitting" @click="fetchComments(true)">重新加载</button>
     </div>
-    <p v-else class="text-sm text-slate-500 dark:text-slate-400">还没有评论，来写第一条吧。</p>
+    <p v-else-if="!comments.length" class="text-sm text-slate-500 dark:text-slate-400">还没有评论，来写第一条吧。</p>
+
+    <button
+      v-if="nextPageToken"
+      type="button"
+      :disabled="listBusy || submitting"
+      class="text-sm text-[#3c5d85] underline disabled:opacity-50 dark:text-blue-300"
+      @click="fetchComments(false)"
+    >{{ listBusy ? '加载中…' : '加载更多评论' }}</button>
 
     <ul v-if="pending.length" class="space-y-3" aria-label="我的待审核评论">
       <li
-        v-for="(entry, index) in pending"
-        :key="index"
+        v-for="entry in pending"
+        :key="entry.id"
         class="space-y-1 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700"
       >
         <div class="flex items-baseline gap-3 text-sm">
-          <span class="font-medium text-slate-600 dark:text-slate-300">{{ entry.name }}</span>
-          <span class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">等待审核</span>
+          <span class="font-medium text-slate-600 dark:text-slate-300">{{ entry.display_name }}</span>
+          <span class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">等待复核</span>
         </div>
-        <p class="break-words text-sm leading-7 text-slate-500 dark:text-slate-400">{{ entry.body }}</p>
+        <p class="break-words text-sm leading-7 text-slate-500 dark:text-slate-400">{{ entry.content }}</p>
       </li>
     </ul>
+
+    <p v-if="pending.length" class="text-xs text-slate-500 dark:text-slate-400">以上待复核评论仅供你在当前页面查看，尚未公开，刷新后不保留此预览。</p>
 
     <!-- 登录引导：评论要求登录身份 -->
     <div v-if="!sessionReady" class="h-24 animate-pulse rounded-xl bg-slate-50 dark:bg-slate-800/60" aria-hidden="true" />
     <div v-else-if="!user" class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-slate-600 dark:text-slate-300">
-        登录后即可发表评论（评论先审后显），昵称与头像随账号走。
+        登录后即可发表评论，昵称与头像随账号走。
       </p>
       <div class="flex shrink-0 gap-2">
         <NuxtLink :to="loginLink" class="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
@@ -166,19 +208,19 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
       <textarea
         v-model="content"
         rows="3"
-        maxlength="1000"
-        placeholder="写下你的评论（审核后展示）"
+        maxlength="2000"
+        placeholder="写下你的评论"
         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
       />
       <p class="text-right text-xs text-slate-400 dark:text-slate-500">
-        {{ content.length }} / {{ COMMENT_CONTENT_MAX }}
+        {{ contentCount }} / {{ COMMENT_CONTENT_MAX }}
       </p>
       <p v-if="notice" :class="noticeKind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'" class="text-sm" role="status">
         {{ notice }}
       </p>
       <button
         type="submit"
-        :disabled="submitting"
+        :disabled="submitting || listBusy || !content.trim()"
         class="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
       >
         {{ submitting ? '提交中…' : '发表评论' }}

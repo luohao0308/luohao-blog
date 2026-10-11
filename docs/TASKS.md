@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-08_
+_last-updated: 2026-10-11_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -30,6 +30,8 @@ _last-updated: 2026-10-08_
 - 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
 
 ## 已完成 (Done)
+
+- [x] T-014 评论审核与交互优化（本地完成，尚未远端交付/部署）：默认本地 smart 自动通过普通评论，可疑内容和限流异常待审；manual 回退；下架评论隐藏；Web/后台分页、小程序状态回显、跨账号/分页竞态和 Unicode 长度修复。Go 全量 test/build/vet/lint、frontend lint/typecheck/build、小程序 typecheck/test 与真实 HTTP 本地浏览器闭环通过。计划与复现命令见 `docs/plans/COMMENT-MODERATION-2026-10.md`、`scripts/e2e/README.md`。
 
 - [x] T-013 监控 S1–S3：PR #79/#81 已合并，Loki、三个 exporter、外部拨测和内部状态页已交付；状态页公网接入随 T-008。本轮核实 MySQL exporter 账号缺失，target up 不代表 mysql_up；原数据层告警表达式漏报，修正与账号补齐纳入非域名收尾 S4。
 

@@ -2,7 +2,9 @@ package biz
 
 import (
 	"context"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"go.einride.tech/aip/filtering"
 
@@ -20,7 +22,7 @@ const (
 	// CommentStatusPending marks a comment awaiting moderation; it is not
 	// publicly visible.
 	CommentStatusPending CommentStatus = 1
-	// CommentStatusApproved marks a comment an admin has approved; it is
+	// CommentStatusApproved marks a comment approved automatically or by an admin; it is
 	// publicly visible.
 	CommentStatusApproved CommentStatus = 2
 )
@@ -119,52 +121,67 @@ type CommentRateLimiter interface {
 
 // CommentUsecase is a Comment usecase.
 type CommentUsecase struct {
-	repo     CommentRepo
-	articles *ArticleUsecase
-	users    *UserUsecase
-	limiter  CommentRateLimiter
+	repo       CommentRepo
+	articles   *ArticleUsecase
+	users      *UserUsecase
+	limiter    CommentRateLimiter
+	moderation CommentModerationPolicy
 }
 
 // NewCommentUsecase new a Comment usecase.
-func NewCommentUsecase(repo CommentRepo, articles *ArticleUsecase, users *UserUsecase, limiter CommentRateLimiter) *CommentUsecase {
-	return &CommentUsecase{repo: repo, articles: articles, users: users, limiter: limiter}
+func NewCommentUsecase(repo CommentRepo, articles *ArticleUsecase, users *UserUsecase, limiter CommentRateLimiter, moderation CommentModerationPolicy) *CommentUsecase {
+	return &CommentUsecase{repo: repo, articles: articles, users: users, limiter: limiter, moderation: moderation}
 }
 
-// Submit stores a comment authored by the authenticated caller as pending.
-// The identity comes from the verified access token claims: the account must
-// still exist (a token for a deleted account is refused), and the stored
-// display name is the account's current profile name — never a payload
-// field. The target article must be publicly readable, and submissions are
-// throttled per client IP; the limiter fails open like the login throttler.
+// Submit assigns identity from the account and moderates before persisting.
+// IP and account budgets are independent. A limiter outage saves the comment
+// for review instead of publishing without spam protection.
 func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims, clientIP string) (*Comment, error) {
-	if uc.limiter != nil {
-		ok, err := uc.limiter.Allow(ctx, "comment:"+clientIP)
-		if err != nil {
-			log.Warn("comment: rate limiter unavailable, failing open", "err", err)
-		} else if !ok {
-			return nil, ErrCommentTooManyAttempts
-		}
-	}
 	if claims == nil {
 		return nil, ErrAuthUnauthorized
 	}
+	if c == nil {
+		return nil, ErrCommentInvalidArgument
+	}
 	author, err := uc.users.ByID(ctx, claims.UserID)
 	if err != nil {
-		// A valid token for a since-deleted account must not resurrect as a
-		// comment author.
 		return nil, ErrAuthUnauthorized
 	}
-	c.ID = uuid.Nil // repo assigns a fresh UUIDv7
-	c.Status = CommentStatusPending
+	c.ID = uuid.Nil
 	c.UserID = &author.ID
 	c.DisplayName = author.DisplayName
+	c.Content = strings.TrimSpace(c.Content)
 	if err := validateComment(c); err != nil {
 		return nil, err
 	}
 	if _, err := uc.articles.GetPublicArticle(ctx, c.ArticleSlug); err != nil {
-		return nil, ErrCommentArticleNotPublic
+		if errors.IsNotFound(err) {
+			return nil, ErrCommentArticleNotPublic
+		}
+		return nil, err
 	}
-	return uc.repo.Create(ctx, c)
+	c.Status = uc.moderation.status(c.DisplayName, c.Content)
+	if uc.limiter != nil {
+		keys := []string{"comment:user:" + author.ID.String()}
+		if clientIP != "" {
+			keys = append(keys, "comment:"+clientIP)
+		}
+		for _, key := range keys {
+			ok, err := uc.limiter.Allow(ctx, key)
+			if err != nil {
+				log.Warn("comment: rate limiter unavailable, holding for review", "err", err)
+				c.Status = CommentStatusPending
+			} else if !ok {
+				return nil, ErrCommentTooManyAttempts
+			}
+		}
+	}
+	c, err = uc.repo.Create(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	c.AvatarURL = author.AvatarURL
+	return c, nil
 }
 
 // ListPublic returns approved comments of an article, newest first, with the
@@ -174,6 +191,12 @@ func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims
 func (uc *CommentUsecase) ListPublic(ctx context.Context, slug string, limit, offset int) ([]*Comment, error) {
 	if !ValidSlug(slug) {
 		return nil, ErrCommentInvalidArgument
+	}
+	if _, err := uc.articles.GetPublicArticle(ctx, slug); err != nil {
+		if errors.IsNotFound(err) {
+			return []*Comment{}, nil
+		}
+		return nil, err
 	}
 	comments, err := uc.repo.ListApprovedBySlug(ctx, slug, limit, offset)
 	if err != nil {
@@ -259,7 +282,7 @@ func validateComment(c *Comment) error {
 		return ErrCommentInvalidArgument
 	}
 	content := len([]rune(c.Content))
-	if content == 0 || content > CommentContentMaxRunes {
+	if content == 0 || content > CommentContentMaxRunes || !utf8.ValidString(c.Content) {
 		return ErrCommentInvalidArgument
 	}
 	return nil

@@ -1,7 +1,7 @@
 # 项目摘要（AI 快速参考）
 
 _来源：仓库实际内容与最近验证命令输出（build/test/lint/compose/认证冒烟）_
-_状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-08_
+_状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-11_
 
 > 本文件只保存稳定的项目事实和路径速查，不记录实时任务、临时验证、交接过程或历史证据。当前任务状态以 `TASKS.md` 为准，短期上下文以 `WORKING-CONTEXT.md` 为准。
 
@@ -85,8 +85,9 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署�
 | RBAC | casbin（enforcer 挂 HTTP/gRPC 中间件） | S3 已实现；公开文章仅列已发布内容，admin 可管理草稿 | backend auth/article | active |
 | 管理后台编辑器 | Milkdown Crepe（所见即所得 Markdown） | S4 冒烟验证：`#`/`**` 实时渲染、markdownUpdated 回传 source；SSR 受阻时降级路径为 Tiptap+tiptap-markdown（未触发） | frontend admin | active |
 | BFF refresh cookie | `cookiePathRewrite {'/v1/auth': '/api/v1/auth'}` | S4 冒烟验证：后端契约不变，浏览器经 `/api/v1/auth/*` 自动携带 httpOnly cookie | frontend server/api | active |
-| 开放注册 | READER 自助注册（无邮箱验证），独立 IP 限流 fail-open；垃圾评论由先审后显兜底 | T-010/S1（PR #52）；SMTP 未接前不做邮箱验证 | auth/评论 | active |
+| 开放注册 | READER 自助注册（无邮箱验证），独立 IP 限流 fail-open；评论由本地风险筛查与人工复核兜底（可切 manual 全量待审） | T-010/S1（PR #52）；SMTP 未接前不做邮箱验证 | auth/评论 | active |
 | 头像存储 | 后端本地磁盘卷（`data.uploads_dir`，JSON base64 上传，魔数 sniff，2MiB） | 生产拓扑无 MinIO、2C4G 不再加服务；文件名 UUIDv4 随机，GetAvatar 以 HttpBody 返回 + immutable 缓存 | 用户头像/评论头像 | active |
+| 评论审核 | 默认 smart：普通评论自动 APPROVED；链接/联系方式、导流词、连续重复字符和限流异常留 PENDING；manual/未知模式全部待审 | `auth.comment_moderation`；可追加 `review_keywords`，无外部调用费，无旧数据回填；本地反垃圾不能覆盖全部违规语义 | 评论后端 + Web/小程序 | active |
 | 评论身份模型 | CreateComment 需认证，身份取自 token；`comments.user_id` 可空兼容旧匿名行 | T-010/S4（PR #55）契约测试 + SQLite 回归 | 评论（破坏性契约变更） | active |
 
 ## 8. 已知风险与技术债

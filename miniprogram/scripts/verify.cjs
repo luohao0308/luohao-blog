@@ -17,12 +17,20 @@ function loadPage(name) {
   instance.setData = patch => Object.assign(instance.data, patch)
   return instance
 }
+function deferred() {
+  let resolve
+  const promise = new Promise(done => { resolve = done })
+  return { promise, resolve }
+}
 global.Page = options => { page = options }
 global.wx = {
   getStorageSync: key => storage.get(key),
   setStorageSync: (key, value) => storage.set(key, structuredClone(value)),
   removeStorageSync: key => storage.delete(key),
-  request: options => { calls.push(options); queueMicrotask(() => options.success(respond(options))) },
+  request: options => {
+    calls.push(options)
+    queueMicrotask(() => Promise.resolve(respond(options)).then(options.success, options.fail))
+  },
   showToast() {}, setNavigationBarTitle() {}, pageScrollTo() {},
   navigateTo: options => { navigation = options.url },
 }
@@ -41,7 +49,8 @@ async function main() {
     mutations++
     return { statusCode: mutations === 1 ? 401 : 200, header: {}, data: { id: 'comment-fixture' } }
   }
-  await api.createComment('fixture', 'one comment')
+  const replayedComment = await api.createComment('fixture', 'one comment')
+  assert.equal(replayedComment.id, 'comment-fixture')
   assert.equal(mutations, 2, '401 refresh must replay a POST exactly once')
   assert.equal(calls.filter(x => x.url.endsWith('/auth/refresh')).length, 1)
   assert.equal(calls.at(-1).header.Authorization, 'Bearer fresh-fixture')
@@ -68,12 +77,162 @@ async function main() {
   await post.toggleLike()
   assert.equal(post.data.likeCount, 10)
   assert.equal(favorites.isLiked('fixture'), true)
-  respond = () => ({ statusCode: 200, header: {}, data: { comments: [
-    { id: 'pending', content: 'pending', status: 1 }, { id: 'approved', content: 'approved', status: 2 },
-  ] } })
-  await post.fetchComments()
-  assert.equal(post.data.comments[0].pending, true)
+  storage.set('auth:account', { id: 'account-a', displayName: 'A' })
+  storage.set('auth:expireAt', Date.now() + 60_000)
+  post.refreshComposer()
+  assert.equal(post.data.canComment, true)
+
+  // Public GET contains approved comments only. Duplicate page taps must share one request,
+  // and repeated IDs across token boundaries must not duplicate rendered comments.
+  calls = []
+  const firstPage = deferred()
+  respond = options => options.url.includes('/comments?')
+    ? firstPage.promise
+    : ({ statusCode: 200, header: {}, data: {} })
+  const firstLoad = post.fetchComments()
+  const duplicateLoad = post.fetchComments()
+  assert.equal(calls.filter(x => x.method === 'GET' && x.url.includes('/comments?')).length, 1)
+  firstPage.resolve({ statusCode: 200, header: {}, data: {
+    comments: [{ id: 'approved-1', content: 'approved one', status: 2 }],
+    next_page_token: 'page-2',
+  } })
+  await Promise.all([firstLoad, duplicateLoad])
+  assert.equal(post.data.commentLoading, false)
   assert.equal(post.data.commentCount, 1)
+  respond = () => ({ statusCode: 200, header: {}, data: {
+    comments: [
+      { id: 'approved-1', content: 'approved one', status: 2 },
+      { id: 'approved-2', content: 'approved two', status: 2 },
+    ],
+  } })
+  await post.fetchComments()
+  assert.deepEqual(post.data.comments.map(x => x.id), ['approved-1', 'approved-2'])
+  assert.equal(post.data.commentCount, 2, 'count is the number of loaded public comments')
+
+  // An approved create response is rendered immediately, then reconciled with a fresh
+  // first page. A stale in-flight page must not overwrite the reset list.
+  const stalePage = deferred()
+  let commentGets = 0
+  respond = options => options.method === 'GET'
+    ? (++commentGets === 1
+        ? stalePage.promise
+        : ({ statusCode: 200, header: {}, data: { comments: [
+            { id: 'approved-created', content: 'ordinary comment', status: 2 },
+          ] } }))
+    : ({ statusCode: 200, header: {}, data: {
+        id: 'approved-created', article_slug: 'fixture', display_name: 'A',
+        content: 'ordinary comment', status: 2, created_at: '2026-01-01T00:00:00Z',
+      } })
+  post.data.commentToken = 'stale-token'
+  post.data.commentsFinished = false
+  const staleLoad = post.fetchComments()
+  post.data.commentInput = 'ordinary comment'
+  const approvedSubmit = post.submitComment()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(post.data.comments.some(x => x.id === 'approved-created'), true)
+  assert.equal(post.data.commentInput, '')
+  stalePage.resolve({ statusCode: 200, header: {}, data: {
+    comments: [{ id: 'stale', content: 'stale page', status: 2 }],
+  } })
+  await Promise.all([staleLoad, approvedSubmit])
+  assert.equal(post.data.comments.some(x => x.id === 'stale'), false)
+  assert.equal(post.data.comments.filter(x => x.id === 'approved-created').length, 1)
+
+  // A failed first-page refresh keeps the last good public list. A later pending
+  // submission must merge with that retained list instead of erasing it.
+  respond = () => ({ statusCode: 503, header: {}, data: { message: 'refresh unavailable' } })
+  await post.fetchComments(true)
+  assert.equal(post.data.comments.some(x => x.id === 'approved-created'), true)
+
+  // A pending response remains visible only as this account's session-local item;
+  // the following public GET intentionally does not include it.
+  let requestKind = 'create-pending'
+  respond = options => {
+    if (options.method === 'POST' && requestKind === 'create-pending') return {
+      statusCode: 200, header: {}, data: {
+        id: 'pending-created', article_slug: 'fixture', display_name: '😀作者', user_id: 'account-a',
+        content: 'suspicious comment', status: 1, created_at: '2026-01-01T00:00:00Z',
+      },
+    }
+    return { statusCode: 200, header: {}, data: { comments: [
+      { id: 'approved-created', content: 'ordinary comment', status: 2 },
+    ] } }
+  }
+  post.data.commentInput = 'suspicious comment'
+  await post.submitComment()
+  assert.equal(post.data.comments.some(x => x.id === 'approved-created'), true)
+  assert.equal(post.data.comments.some(x => x.id === 'pending-created'), true)
+  requestKind = 'public'
+  await post.fetchComments(true)
+  assert.equal(post.data.comments.find(x => x.id === 'pending-created').pending, true)
+  assert.equal(post.data.comments.find(x => x.id === 'pending-created').initial, '😀')
+  assert.equal(post.data.commentCount, 1)
+
+  // Once moderation publishes the same ID, the public version replaces the local pending
+  // version instead of being hidden behind it.
+  respond = () => ({ statusCode: 200, header: {}, data: { comments: [
+    { id: 'pending-created', content: 'suspicious comment', status: 2 },
+  ] } })
+  await post.fetchComments(true)
+  assert.equal(post.data.comments.filter(x => x.id === 'pending-created').length, 1)
+  assert.equal(post.data.comments.find(x => x.id === 'pending-created').pending, false)
+  const callsAtFinishedPage = calls.length
+  await post.loadMoreComments()
+  assert.equal(calls.length, callsAtFinishedPage, 'finished pagination must not restart from page one')
+
+  // A POST started by account A must not insert its pending result after account B takes
+  // over the page. Account changes also clear private draft and error state.
+  const oldAccountCreate = deferred()
+  respond = options => options.method === 'POST'
+    ? oldAccountCreate.promise
+    : ({ statusCode: 200, header: {}, data: { comments: [] } })
+  post.data.commentInput = 'account A private draft'
+  post.data.commentLength = Array.from(post.data.commentInput).length
+  const oldAccountSubmit = post.submitComment()
+  post.data.commentError = 'account A private error'
+  storage.set('auth:account', { id: 'account-b', displayName: 'B' })
+  post.refreshComposer()
+  assert.equal(post.data.commentInput, '')
+  assert.equal(post.data.commentError, '')
+  oldAccountCreate.resolve({ statusCode: 200, header: {}, data: {
+    id: 'old-account-pending', article_slug: 'fixture', display_name: 'A', user_id: 'account-a',
+    content: 'account A private draft', status: 1,
+  } })
+  await oldAccountSubmit
+  assert.equal(post.data.comments.some(x => x.id === 'old-account-pending'), false)
+
+  // Even without a concurrent switch, a mismatched response author cannot become a
+  // session-local pending item for the current account.
+  post.data.commentInput = 'mismatched author'
+  respond = () => ({ statusCode: 200, header: {}, data: {
+    id: 'wrong-author-pending', article_slug: 'fixture', display_name: 'A', user_id: 'account-a',
+    content: 'mismatched author', status: 1,
+  } })
+  await post.submitComment()
+  assert.equal(post.data.comments.some(x => x.id === 'wrong-author-pending'), false)
+
+  // Failed sends retain the draft and expose the inline error.
+  post.data.commentInput = 'keep this draft'
+  respond = () => ({ statusCode: 503, header: {}, data: { message: 'unavailable' } })
+  await post.submitComment()
+  assert.equal(post.data.commentInput, 'keep this draft')
+  assert.match(post.data.commentError, /unavailable/)
+
+  // Comment length is measured in Unicode code points: 1000 emoji pass, 1001 fail.
+  const emoji = '😀'
+  post.onCommentInput({ detail: { value: emoji.repeat(1000) } })
+  assert.equal(post.data.commentLength, 1000)
+  respond = () => ({ statusCode: 200, header: {}, data: {
+    id: 'emoji-ok', article_slug: 'fixture', content: emoji.repeat(1000), status: 2,
+  } })
+  await post.submitComment()
+  assert.equal(post.data.commentError, '')
+  const callsAfter1000 = calls.length
+  post.onCommentInput({ detail: { value: emoji.repeat(1001) } })
+  assert.equal(post.data.commentLength, 1001)
+  await post.submitComment()
+  assert.equal(calls.length, callsAfter1000, '1001 code points must fail before transport')
+  assert.match(post.data.commentError, /1000/)
   const search = loadPage('search')
   search.data.query = '  Ent & Go  '
   respond = () => ({ statusCode: 200, header: {}, data: { articles: [
@@ -91,6 +250,6 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
-  console.log('Mini logic PASS: single POST replay, repeated 401, favorites, like rollback, pending comments, search, chat citations')
+  console.log('Mini logic PASS: auth replay, comment status/rendering, paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))

@@ -119,6 +119,13 @@ message Data {
 }
 
 message Auth {
+  message CommentModeration {
+    // Empty or smart: publish ordinary comments, hold local spam signals.
+    // manual (and unknown modes): hold every comment for an admin.
+    string mode = 1;
+    // Additional substrings to hold for review (case/width/space normalized).
+    repeated string review_keywords = 2;
+  }
   message JWT {
     // HMAC-SHA256 signing key for access tokens. Required: the server refuses
     // to start when empty. Provide it via environment, not source control.
@@ -132,7 +139,7 @@ message Auth {
     int64 login_attempts = 1;
     // Fixed window size for the login counter. Defaults to 5m when unset.
     google.protobuf.Duration login_window = 2;
-    // Comment submissions allowed per client IP inside comment_window.
+    // Comment submissions allowed per client IP and per account inside comment_window.
     // Defaults to 20 when unset.
     int64 comment_attempts = 3;
     // Fixed window size for the comment counter. Defaults to 5m when unset.
@@ -161,4 +168,5 @@ message Auth {
   google.protobuf.Duration refresh_token_ttl = 2;
   // Login brute-force protection.
   RateLimit rate_limit = 3;
+  CommentModeration comment_moderation = 4;
 }

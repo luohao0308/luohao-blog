@@ -43,7 +43,7 @@ func (s *stubCommentRepo) Delete(context.Context, uuid.UUID) error {
 func TestListCommentsFilterHandling(t *testing.T) {
 	ctx := context.Background()
 	repo := &stubCommentRepo{}
-	svc := NewCommentService(biz.NewCommentUsecase(repo, nil, nil, nil))
+	svc := NewCommentService(biz.NewCommentUsecase(repo, nil, nil, nil, biz.CommentModerationPolicy{}))
 
 	t.Run("documented status filter reaches the repo", func(t *testing.T) {
 		repo.listOpts = nil
@@ -91,7 +91,7 @@ func TestListCommentsFilterHandling(t *testing.T) {
 func TestCreateCommentRequiresIdentity(t *testing.T) {
 	ctx := context.Background()
 	repo := &stubCommentRepo{}
-	svc := NewCommentService(biz.NewCommentUsecase(repo, nil, nil, nil))
+	svc := NewCommentService(biz.NewCommentUsecase(repo, nil, nil, nil, biz.CommentModerationPolicy{}))
 
 	t.Run("no claims is unauthorized", func(t *testing.T) {
 		_, err := svc.CreateComment(ctx, &v1.CreateCommentRequest{ArticleSlug: "post", Content: "c"})
@@ -106,7 +106,7 @@ func TestCreateCommentRequiresIdentity(t *testing.T) {
 		author := &biz.User{ID: uuid.Must(uuid.NewV7()), Email: "author@example.com", DisplayName: "罗豪", Role: biz.UserRoleAdmin}
 		users := biz.NewUserUsecase(newStubUserRepo(author))
 		articles := biz.NewArticleUsecase(gateArticleRepo{}, nil)
-		authedSvc := NewCommentService(biz.NewCommentUsecase(repo, articles, users, nil))
+		authedSvc := NewCommentService(biz.NewCommentUsecase(repo, articles, users, nil, biz.CommentModerationPolicy{}))
 		authed := biz.NewAuthContext(ctx, &biz.Claims{UserID: author.ID, Role: author.Role})
 		_, err := authedSvc.CreateComment(authed, &v1.CreateCommentRequest{ArticleSlug: "post", Content: "c"})
 		if kratoserrors.IsUnauthorized(err) {

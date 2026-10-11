@@ -37,10 +37,15 @@ auth:
     access_token_ttl: 900s # 15m
   # Sliding: recreated on every refresh. 604800s = 7d.
   refresh_token_ttl: 604800s
+  # smart: ordinary comments publish immediately; suspicious ones stay pending.
+  # Set manual to return to full manual review. No external API is called.
+  comment_moderation:
+    mode: smart
+    review_keywords: []
   rate_limit:
     login_attempts: 10
     login_window: 300s # 5m
-    # Anonymous comment submissions. Defaults when unset: 20 per 5m per IP.
+    # Comment submissions: 20 per 5m per IP and per account when unset.
     comment_attempts: 20
     comment_window: 300s # 5m
     # Self-service account registrations. Defaults when unset: 10 per 5m per IP.

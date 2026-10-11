@@ -1,5 +1,5 @@
 import { http } from './request'
-import type { Article, ArticleSet, CommentSet, WechatLoginReply, ChatReply } from './types'
+import type { Article, ArticleSet, Comment, CommentSet, WechatLoginReply, ChatReply } from './types'
 
 // listArticles 按发布时间倒序取公开文章分页；与 Web 端 usePublishedArticles 同参。
 // filter 为可选的列表过滤器，如 tag:"go"、category:"engineering"。
@@ -36,7 +36,7 @@ export function likeArticle(slug: string): Promise<void> {
   return http.post<void>(`/articles/${encodeURIComponent(slug)}/like`, {})
 }
 
-// listComments 拉取文章评论（公开；登录态下会附带自己的待审评论）。
+// listComments 拉取文章已通过审核的公开评论。
 export function listComments(slug: string, pageToken = ''): Promise<CommentSet> {
   return http.get<CommentSet>(`/articles/${encodeURIComponent(slug)}/comments`, {
     page_size: 20,
@@ -44,9 +44,9 @@ export function listComments(slug: string, pageToken = ''): Promise<CommentSet> 
   })
 }
 
-// createComment 发表评论（需登录态；先审后显）。
-export function createComment(slug: string, content: string): Promise<void> {
-  return http.post<void>('/comments', { article_slug: slug, content })
+// createComment 发表评论（需登录态）；返回状态决定立即公开或仅本会话显示待审。
+export function createComment(slug: string, content: string): Promise<Comment> {
+  return http.post<Comment>('/comments', { article_slug: slug, content })
 }
 
 // searchArticles 走 ES 混合搜索（关键词 + 语义）。

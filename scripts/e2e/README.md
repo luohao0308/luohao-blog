@@ -24,3 +24,37 @@ python3 -m venv /tmp/pw-venv
 - 用例自清理：创建的文章/评论在用例内删除；连续多轮运行可能触发登录限流
   （10 次/5min/IP），可清 Redis `blog:ratelimit:*` 或等 5 分钟。
 - 退出码：存在「意外失败」时为 1；仅「已知缺陷复现」（known_issue 标注）不算失败。
+
+
+## 评论专项本地测试
+
+`comments_e2e.cjs` 验证分页、普通评论即时公开、待审预览、Unicode 长度、管理员翻页失败后重试和审核通过。它只允许 localhost/127.0.0.1，使用独立内存 SQLite + miniredis 测试服务，不依赖 Docker 或生产配置。
+
+1. 后端目录启动 fixture（保持这个终端运行；URL 写入文件，不包含凭据）：
+
+   ```bash
+   BLOG_COMMENT_BROWSER_FIXTURE=/tmp/blog-comment-fixture.url go test ./internal/data -run TestCommentHTTPModerationLifecycle -count=1 -v
+   ```
+
+2. 前端目录构建并启动本地生产产物（fixture 启动后才能读取 URL）：
+
+   ```bash
+   pnpm build
+   NUXT_BACKEND_BASE="$(cat /tmp/blog-comment-fixture.url)" NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs
+   ```
+
+3. 根目录运行专项脚本，复用已安装的 Playwright（不增加项目依赖）：
+
+   ```bash
+   NODE_PATH=<已有 Playwright 包目录> BLOG_E2E_BASE_URL=http://127.0.0.1:13000 node scripts/e2e/comments_e2e.cjs
+   ```
+
+   如已有浏览器版本与包版本不同，可设置 `BLOG_E2E_CHROMIUM=<现有 chromium 可执行文件>`；截图路径由 `BLOG_COMMENT_SCREENSHOT` 指定。fixture 账号仅为本地测试示例 `reader@example.com` / `author@example.com`，密码同为 `longenough1`。
+
+4. 完成后停止本任务的前端服务，并通知 fixture 退出：
+
+   ```bash
+   curl -X POST "$(cat /tmp/blog-comment-fixture.url)/fixture/stop"
+   ```
+
+fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不启动长期服务，只执行真实 HTTP 契约回归。生产 MySQL 分页精度差异另由相同时间戳分页回归覆盖，小程序测试不替代 DevTools/真机点验。

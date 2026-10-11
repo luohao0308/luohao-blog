@@ -81,7 +81,7 @@ func (r *commentRepo) ListApprovedBySlug(ctx context.Context, slug string, limit
 			comment.ArticleSlugEQ(slug),
 			comment.StatusEQ(biz.CommentStatusApproved),
 		).
-		Order(ent.Desc(comment.FieldCreatedAt)).
+		Order(ent.Desc(comment.FieldCreatedAt), ent.Desc(comment.FieldID)).
 		Limit(limit).
 		Offset(offset).
 		All(ctx)
@@ -105,7 +105,7 @@ func (r *commentRepo) List(ctx context.Context, opts ...biz.CommentListOption) (
 	}
 	pos, err := r.data.db.Comment.Query().
 		Where(ents.ApplyFilter(o.Filter.Filter)).
-		Order(ent.Desc(comment.FieldCreatedAt)).
+		Order(ent.Desc(comment.FieldCreatedAt), ent.Desc(comment.FieldID)).
 		Limit(o.Limit).
 		Offset(o.Offset).
 		All(ctx)
@@ -153,7 +153,7 @@ func (r *commentRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// NewCommentRateLimiter builds the anonymous-comment throttler from the auth
+// NewCommentRateLimiter builds the account-comment throttler from the auth
 // config, applying the same defaults pattern as the login throttler.
 func NewCommentRateLimiter(rdb redis.UniversalClient, a *conf.Auth) biz.CommentRateLimiter {
 	attempts := a.GetRateLimit().GetCommentAttempts()
@@ -165,4 +165,9 @@ func NewCommentRateLimiter(rdb redis.UniversalClient, a *conf.Auth) biz.CommentR
 		window = biz.DefaultCommentWindow
 	}
 	return &rateLimiter{rdb: rdb, attempts: attempts, window: window}
+}
+
+// NewCommentModerationPolicy maps runtime settings into the domain policy.
+func NewCommentModerationPolicy(a *conf.Auth) biz.CommentModerationPolicy {
+	return biz.CommentModerationPolicy{Mode: a.GetCommentModeration().GetMode(), ReviewKeywords: a.GetCommentModeration().GetReviewKeywords()}
 }
