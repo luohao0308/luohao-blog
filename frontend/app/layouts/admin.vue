@@ -108,8 +108,8 @@ async function onLogout() {
       <NDialogProvider>
         <div class="flex min-h-screen flex-col bg-white text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
           <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-              <div class="flex items-center gap-6">
+            <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+              <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <NuxtLink to="/" class="text-lg font-bold tracking-tight">
                   luohao<span class="text-blue-600 dark:text-blue-400">.blog</span>
                 </NuxtLink>
@@ -123,11 +123,16 @@ async function onLogout() {
                 <NuxtLink to="/admin/comments" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
                   评论管理
                 </NuxtLink>
+                <NuxtLink to="/admin/wechat-sync" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">公众号同步</NuxtLink>
                 <NuxtLink to="/admin/subscribers" class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
                   订阅管理
                 </NuxtLink>
               </div>
-              <div class="flex items-center gap-3 text-sm">
+              <div class="flex flex-wrap items-center gap-3 text-sm">
+                <NuxtLink to="/settings" class="flex items-center gap-2 text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-300">
+                  <img v-if="user?.avatar_url" :src="assetUrl(user.avatar_url)" alt="账号头像" class="h-8 w-8 rounded-full object-cover">
+                  <span>头像与个人设置</span>
+                </NuxtLink>
                 <span v-if="user" class="text-slate-600 dark:text-slate-300">{{ user.display_name }}</span>
                 <NButton size="small" quaternary @click="pwModalVisible = true">
                   修改密码

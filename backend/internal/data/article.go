@@ -67,6 +67,12 @@ func NewArticleRepo(data *Data, rdb redis.UniversalClient) biz.ArticleRepo {
 	return &articleRepo{data: data, rdb: rdb}
 }
 
+// NewArticlePublicationRepo exposes the atomic article + outgoing-task write
+// boundary without widening ArticleRepo's existing contract.
+func NewArticlePublicationRepo(data *Data, rdb redis.UniversalClient) biz.ArticlePublicationRepo {
+	return &articleRepo{data: data, rdb: rdb}
+}
+
 // tagNamesOf collects the names of eagerly loaded tag rows.
 func tagNamesOf(po *ent.Article) []string {
 	names := make([]string, 0, len(po.Edges.Tags))
@@ -88,17 +94,17 @@ func tagNamesOfRows(tags []*ent.Tag) []string {
 
 // ensureTags resolves tag names to rows, creating the ones that do not exist
 // yet. Names are stored verbatim; callers validate emptiness upstream.
-func (r *articleRepo) ensureTags(ctx context.Context, names []string) ([]*ent.Tag, error) {
+func ensureTags(ctx context.Context, client *ent.Client, names []string) ([]*ent.Tag, error) {
 	if len(names) == 0 {
 		return nil, nil
 	}
 	tags := make([]*ent.Tag, 0, len(names))
 	for _, name := range names {
-		po, err := r.data.db.Tag.Query().
+		po, err := client.Tag.Query().
 			Where(tag.NameEQ(name)).
 			Only(ctx)
 		if ent.IsNotFound(err) {
-			if po, err = r.data.db.Tag.Create().SetName(name).Save(ctx); err != nil {
+			if po, err = client.Tag.Create().SetName(name).Save(ctx); err != nil {
 				return nil, err
 			}
 		} else if err != nil {
@@ -112,11 +118,11 @@ func (r *articleRepo) ensureTags(ctx context.Context, names []string) ([]*ent.Ta
 // ensureCategory resolves a category slug to its row. An empty slug means
 // uncategorized; an unknown slug is a client-facing NOT_FOUND so a bad
 // category reference never silently drops.
-func (r *articleRepo) ensureCategory(ctx context.Context, slug string) (*ent.Category, error) {
+func ensureCategory(ctx context.Context, client *ent.Client, slug string) (*ent.Category, error) {
 	if slug == "" {
 		return nil, nil
 	}
-	po, err := r.data.db.Category.Query().
+	po, err := client.Category.Query().
 		Where(category.SlugEQ(slug)).
 		Only(ctx)
 	if err != nil {
@@ -373,11 +379,11 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 }
 
 func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.Article, error) {
-	tags, err := r.ensureTags(ctx, a.Tags)
+	tags, err := ensureTags(ctx, r.data.db, a.Tags)
 	if err != nil {
 		return nil, err
 	}
-	cat, err := r.ensureCategory(ctx, a.CategorySlug)
+	cat, err := ensureCategory(ctx, r.data.db, a.CategorySlug)
 	if err != nil {
 		return nil, err
 	}
@@ -405,9 +411,15 @@ func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.A
 }
 
 func (r *articleRepo) UpdateArticle(ctx context.Context, a *biz.Article) (*biz.Article, error) {
+	return updateArticle(ctx, r.data.db, a)
+}
+
+// updateArticle is shared by the ordinary write and the atomic publication
+// boundary, ensuring they apply identical article, tag and category changes.
+func updateArticle(ctx context.Context, client *ent.Client, a *biz.Article) (*biz.Article, error) {
 	// status moves through this path (draft <-> published); DELETED only
 	// happens through DeleteArticle, and every path hides deleted rows.
-	current, err := r.data.db.Article.Query().
+	current, err := client.Article.Query().
 		Where(article.SlugEQ(a.Slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
 		Only(ctx)
 	if err != nil {
@@ -416,15 +428,15 @@ func (r *articleRepo) UpdateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		}
 		return nil, err
 	}
-	tags, err := r.ensureTags(ctx, a.Tags)
+	tags, err := ensureTags(ctx, client, a.Tags)
 	if err != nil {
 		return nil, err
 	}
-	cat, err := r.ensureCategory(ctx, a.CategorySlug)
+	cat, err := ensureCategory(ctx, client, a.CategorySlug)
 	if err != nil {
 		return nil, err
 	}
-	updater := r.data.db.Article.UpdateOneID(current.ID).
+	updater := client.Article.UpdateOneID(current.ID).
 		SetTitle(a.Title).
 		SetSummary(a.Summary).
 		SetContentMd(a.ContentMD).
@@ -451,6 +463,29 @@ func (r *articleRepo) UpdateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		return nil, err
 	}
 	return toBiz(po, tagNamesOfRows(tags), cat), nil
+}
+
+// UpdateArticleAndEnqueue commits the source article and its immutable WeChat
+// snapshot in one database transaction. A task validation/insert failure rolls
+// the article write back, so publication intent cannot be lost.
+func (r *articleRepo) UpdateArticleAndEnqueue(ctx context.Context, a *biz.Article, task *biz.WechatSyncTask) (*biz.Article, error) {
+	tx, err := r.data.db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	updated, err := updateArticle(ctx, tx.Client(), a)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err := enqueueWechatSyncTask(ctx, tx.Client(), task); err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 // DeleteArticle soft-deletes an article by flipping its status to deleted.

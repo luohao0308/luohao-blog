@@ -14,6 +14,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -214,4 +215,143 @@ func init() {
 	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	wechatsynctaskMixin := schema.WechatSyncTask{}.Mixin()
+	wechatsynctaskMixinFields0 := wechatsynctaskMixin[0].Fields()
+	_ = wechatsynctaskMixinFields0
+	wechatsynctaskMixinFields1 := wechatsynctaskMixin[1].Fields()
+	_ = wechatsynctaskMixinFields1
+	wechatsynctaskFields := schema.WechatSyncTask{}.Fields()
+	_ = wechatsynctaskFields
+	// wechatsynctaskDescCreatedAt is the schema descriptor for created_at field.
+	wechatsynctaskDescCreatedAt := wechatsynctaskMixinFields1[0].Descriptor()
+	// wechatsynctask.DefaultCreatedAt holds the default value on creation for the created_at field.
+	wechatsynctask.DefaultCreatedAt = wechatsynctaskDescCreatedAt.Default.(func() time.Time)
+	// wechatsynctaskDescUpdatedAt is the schema descriptor for updated_at field.
+	wechatsynctaskDescUpdatedAt := wechatsynctaskMixinFields1[1].Descriptor()
+	// wechatsynctask.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	wechatsynctask.DefaultUpdatedAt = wechatsynctaskDescUpdatedAt.Default.(func() time.Time)
+	// wechatsynctask.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	wechatsynctask.UpdateDefaultUpdatedAt = wechatsynctaskDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// wechatsynctaskDescSlug is the schema descriptor for slug field.
+	wechatsynctaskDescSlug := wechatsynctaskFields[0].Descriptor()
+	// wechatsynctask.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	wechatsynctask.SlugValidator = func() func(string) error {
+		validators := wechatsynctaskDescSlug.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(slug string) error {
+			for _, fn := range fns {
+				if err := fn(slug); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatsynctaskDescContentHash is the schema descriptor for content_hash field.
+	wechatsynctaskDescContentHash := wechatsynctaskFields[1].Descriptor()
+	// wechatsynctask.ContentHashValidator is a validator for the "content_hash" field. It is called by the builders before save.
+	wechatsynctask.ContentHashValidator = func() func(string) error {
+		validators := wechatsynctaskDescContentHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(content_hash string) error {
+			for _, fn := range fns {
+				if err := fn(content_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatsynctaskDescMode is the schema descriptor for mode field.
+	wechatsynctaskDescMode := wechatsynctaskFields[2].Descriptor()
+	// wechatsynctask.ModeValidator is a validator for the "mode" field. It is called by the builders before save.
+	wechatsynctask.ModeValidator = func() func(string) error {
+		validators := wechatsynctaskDescMode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(mode string) error {
+			for _, fn := range fns {
+				if err := fn(mode); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatsynctaskDescAccountFingerprint is the schema descriptor for account_fingerprint field.
+	wechatsynctaskDescAccountFingerprint := wechatsynctaskFields[3].Descriptor()
+	// wechatsynctask.DefaultAccountFingerprint holds the default value on creation for the account_fingerprint field.
+	wechatsynctask.DefaultAccountFingerprint = wechatsynctaskDescAccountFingerprint.Default.(string)
+	// wechatsynctask.AccountFingerprintValidator is a validator for the "account_fingerprint" field. It is called by the builders before save.
+	wechatsynctask.AccountFingerprintValidator = wechatsynctaskDescAccountFingerprint.Validators[0].(func(string) error)
+	// wechatsynctaskDescState is the schema descriptor for state field.
+	wechatsynctaskDescState := wechatsynctaskFields[4].Descriptor()
+	// wechatsynctask.StateValidator is a validator for the "state" field. It is called by the builders before save.
+	wechatsynctask.StateValidator = func() func(string) error {
+		validators := wechatsynctaskDescState.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(state string) error {
+			for _, fn := range fns {
+				if err := fn(state); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatsynctaskDescArticleAuthor is the schema descriptor for article_author field.
+	wechatsynctaskDescArticleAuthor := wechatsynctaskFields[9].Descriptor()
+	// wechatsynctask.ArticleAuthorValidator is a validator for the "article_author" field. It is called by the builders before save.
+	wechatsynctask.ArticleAuthorValidator = wechatsynctaskDescArticleAuthor.Validators[0].(func(string) error)
+	// wechatsynctaskDescArticleThumbMediaID is the schema descriptor for article_thumb_media_id field.
+	wechatsynctaskDescArticleThumbMediaID := wechatsynctaskFields[10].Descriptor()
+	// wechatsynctask.ArticleThumbMediaIDValidator is a validator for the "article_thumb_media_id" field. It is called by the builders before save.
+	wechatsynctask.ArticleThumbMediaIDValidator = wechatsynctaskDescArticleThumbMediaID.Validators[0].(func(string) error)
+	// wechatsynctaskDescDraftID is the schema descriptor for draft_id field.
+	wechatsynctaskDescDraftID := wechatsynctaskFields[11].Descriptor()
+	// wechatsynctask.DraftIDValidator is a validator for the "draft_id" field. It is called by the builders before save.
+	wechatsynctask.DraftIDValidator = wechatsynctaskDescDraftID.Validators[0].(func(string) error)
+	// wechatsynctaskDescRemoteID is the schema descriptor for remote_id field.
+	wechatsynctaskDescRemoteID := wechatsynctaskFields[12].Descriptor()
+	// wechatsynctask.RemoteIDValidator is a validator for the "remote_id" field. It is called by the builders before save.
+	wechatsynctask.RemoteIDValidator = wechatsynctaskDescRemoteID.Validators[0].(func(string) error)
+	// wechatsynctaskDescLastError is the schema descriptor for last_error field.
+	wechatsynctaskDescLastError := wechatsynctaskFields[14].Descriptor()
+	// wechatsynctask.LastErrorValidator is a validator for the "last_error" field. It is called by the builders before save.
+	wechatsynctask.LastErrorValidator = func() func(string) error {
+		validators := wechatsynctaskDescLastError.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(last_error string) error {
+			for _, fn := range fns {
+				if err := fn(last_error); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatsynctaskDescAttempts is the schema descriptor for attempts field.
+	wechatsynctaskDescAttempts := wechatsynctaskFields[15].Descriptor()
+	// wechatsynctask.DefaultAttempts holds the default value on creation for the attempts field.
+	wechatsynctask.DefaultAttempts = wechatsynctaskDescAttempts.Default.(int)
+	// wechatsynctask.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
+	wechatsynctask.AttemptsValidator = wechatsynctaskDescAttempts.Validators[0].(func(int) error)
+	// wechatsynctaskDescID is the schema descriptor for id field.
+	wechatsynctaskDescID := wechatsynctaskMixinFields0[0].Descriptor()
+	// wechatsynctask.DefaultID holds the default value on creation for the id field.
+	wechatsynctask.DefaultID = wechatsynctaskDescID.Default.(func() uuid.UUID)
 }

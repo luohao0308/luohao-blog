@@ -83,3 +83,14 @@ wechat:
   # endpoints with FAILED_PRECONDITION.
   app_id: ${WECHAT_APP_ID:}
   app_secret: ${WECHAT_APP_SECRET:}
+
+# Official account delivery is independent of mini-program login.
+# Keep disabled until credentials, public origin and permanent cover are set.
+official_account:
+  enabled: false
+  mode: draft
+  account_name: makerhao
+  account_id: makerhao1
+  author: luohao
+  site_url: ""
+  default_thumb_media_id: ""

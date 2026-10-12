@@ -45,6 +45,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署�
 | 配置 | `backend/internal/conf/` `backend/configs/` | 配置 proto 与 yaml | 无凭据入库 | `make config` 生成 |
 | API 契约 | `backend/api/<domain>/<version>/` | proto 源 + 生成物 | 唯一对外契约 | M1 起按领域新增 |
 | 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 文章搜索、标签筛选、相邻文章；项目技术栈筛选；前台头部 5 项导航（文章▾ 下拉）+ 登录/头像菜单（`components/UserMenu.vue`） |
+| 公众号同步（默认关闭） | biz/official_account.go、data/official_account_client/repo、admin/wechat-sync.vue | 文章发布原子入队、版本/账号幂等，草稿/公开发表/群发三模式，状态查询与持久退避 | 独立official_account配置，MySQL任务表v11，admin-only状态/重试/显式同步；真实启用见Runbook | 与小程序wechat登录配置独立；不存凭据、不盲重试未知写操作 |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
 | 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
 

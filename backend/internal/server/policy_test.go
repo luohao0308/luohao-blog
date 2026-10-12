@@ -70,6 +70,7 @@ func registerAllRoutes(t *testing.T) *kratoshttp.Server {
 	v1.RegisterCommentServiceHTTPServer(srv, service.NewCommentService(nil))
 	v1.RegisterArticleSearchServiceHTTPServer(srv, service.NewArticleSearchService(nil, nil))
 	v1.RegisterChatServiceHTTPServer(srv, service.NewChatService(nil))
+	v1.RegisterOfficialAccountServiceHTTPServer(srv, service.NewOfficialAccountService(nil))
 	return srv
 }
 

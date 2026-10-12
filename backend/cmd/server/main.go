@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 
 	"github.com/go-kratos/kratos/contrib/otel/v3/tracing"
@@ -35,7 +36,7 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger *slog.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
+func newApp(logger *slog.Logger, gs *grpc.Server, hs *http.Server, sync *biz.WechatSyncUsecase) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -45,6 +46,7 @@ func newApp(logger *slog.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
 		kratos.Server(
 			gs,
 			hs,
+			sync,
 		),
 	)
 }

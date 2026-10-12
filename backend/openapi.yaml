@@ -6,6 +6,90 @@ info:
     title: ""
     version: 0.0.1
 paths:
+    /v1/admin/wechat-sync/articles/{slug}:
+        post:
+            tags:
+                - OfficialAccountService
+            description: Explicitly queues an existing published article; version deduplication applies.
+            operationId: OfficialAccountService_SyncArticleToWechat
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.SyncArticleToWechatRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.WechatSyncTask'
+    /v1/admin/wechat-sync/settings:
+        get:
+            tags:
+                - OfficialAccountService
+            operationId: OfficialAccountService_GetWechatSyncSettings
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.WechatSyncSettings'
+    /v1/admin/wechat-sync/tasks:
+        get:
+            tags:
+                - OfficialAccountService
+            operationId: OfficialAccountService_ListWechatSyncTasks
+            parameters:
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.WechatSyncTaskSet'
+    /v1/admin/wechat-sync/tasks/{id}/retry:
+        post:
+            tags:
+                - OfficialAccountService
+            description: Retries only definitive failures before submission; ambiguous writes cannot retry.
+            operationId: OfficialAccountService_RetryWechatSyncTask
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RetryWechatSyncTaskRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.WechatSyncTask'
     /v1/articles/create:
         post:
             tags:
@@ -1271,6 +1355,13 @@ components:
             description: |-
                 RegisterRequest is the input for AuthService.Register. The new account is
                  always a READER; ADMIN accounts exist only through the seed command.
+        blog.v1.RetryWechatSyncTaskRequest:
+            required:
+                - id
+            type: object
+            properties:
+                id:
+                    type: string
         blog.v1.SubscribeRequest:
             required:
                 - email
@@ -1312,6 +1403,13 @@ components:
                         Token used to retrieve the next page via
                          ListSubscribersRequest.page_token. Empty when there are no more results.
             description: SubscriberSet is a paginated collection of subscribers.
+        blog.v1.SyncArticleToWechatRequest:
+            required:
+                - slug
+            type: object
+            properties:
+                slug:
+                    type: string
         blog.v1.UpdatePasswordRequest:
             required:
                 - oldPassword
@@ -1414,6 +1512,63 @@ components:
                         Temporary login code from wx.login in the mini program. Single-use and
                          short-lived on WeChat's side; the server exchanges it immediately.
             description: WechatLoginRequest is the input for AuthService.WechatLogin.
+        blog.v1.WechatSyncSettings:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                configured:
+                    type: boolean
+                mode:
+                    type: string
+                accountName:
+                    type: string
+                accountId:
+                    type: string
+        blog.v1.WechatSyncTask:
+            type: object
+            properties:
+                id:
+                    type: string
+                slug:
+                    type: string
+                title:
+                    type: string
+                mode:
+                    type: string
+                state:
+                    type: string
+                draftId:
+                    type: string
+                remoteId:
+                    type: string
+                articleUrl:
+                    type: string
+                lastError:
+                    type: string
+                attempts:
+                    type: integer
+                    format: int32
+                created_at:
+                    type: string
+                    format: date-time
+                updated_at:
+                    type: string
+                    format: date-time
+                canRetry:
+                    type: boolean
+                nextAttemptAt:
+                    type: string
+                    format: date-time
+        blog.v1.WechatSyncTaskSet:
+            type: object
+            properties:
+                tasks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.WechatSyncTask'
+                next_page_token:
+                    type: string
 tags:
     - name: ArticleSearchService
       description: |-
@@ -1466,6 +1621,8 @@ tags:
          from the closed-registration era have no user and keep their stored
          display name. Admin operations require the ADMIN role; public reads stay
          open and submissions are rate limited per client IP and account.
+    - name: OfficialAccountService
+      description: Administrative delivery status only; no account credentials are exposed.
     - name: SubscriberService
       description: |-
         SubscriberService registers emails for future article notifications. Actual

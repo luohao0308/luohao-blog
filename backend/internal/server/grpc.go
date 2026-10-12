@@ -11,7 +11,7 @@ import (
 )
 
 // NewGRPCServer new an gRPC server.
-func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService) *grpc.Server {
+func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService, official *service.OfficialAccountService) *grpc.Server {
 	var opts = []grpc.ServerOption{
 		grpc.Middleware(
 			Metrics(),
@@ -37,5 +37,6 @@ func NewGRPCServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	v1.RegisterCommentServiceServer(srv, comment)
 	v1.RegisterArticleSearchServiceServer(srv, search)
 	v1.RegisterChatServiceServer(srv, chat)
+	v1.RegisterOfficialAccountServiceServer(srv, official)
 	return srv
 }

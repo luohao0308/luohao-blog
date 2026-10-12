@@ -95,3 +95,13 @@ p, admin, /v1/comments/{id}, DELETE
 p, admin, /blog.v1.CommentService/ListComments, *
 p, admin, /blog.v1.CommentService/ApproveComment, *
 p, admin, /blog.v1.CommentService/DeleteComment, *
+
+# --- admin: official account delivery status and explicit retries ---
+p, admin, /v1/admin/wechat-sync/settings, GET
+p, admin, /v1/admin/wechat-sync/tasks, GET
+p, admin, /v1/admin/wechat-sync/tasks/{id}/retry, POST
+p, admin, /v1/admin/wechat-sync/articles/{slug}, POST
+p, admin, /blog.v1.OfficialAccountService/GetWechatSyncSettings, *
+p, admin, /blog.v1.OfficialAccountService/ListWechatSyncTasks, *
+p, admin, /blog.v1.OfficialAccountService/RetryWechatSyncTask, *
+p, admin, /blog.v1.OfficialAccountService/SyncArticleToWechat, *
