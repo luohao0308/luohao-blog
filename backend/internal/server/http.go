@@ -17,7 +17,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, user *service.UserService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService) (*http.Server, error) {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, user *service.UserService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService, official *service.OfficialAccountService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			Metrics(),
@@ -56,6 +56,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	v1.RegisterCommentServiceHTTPServer(srv, comment)
 	v1.RegisterArticleSearchServiceHTTPServer(srv, search)
 	v1.RegisterChatServiceHTTPServer(srv, chat)
+	v1.RegisterOfficialAccountServiceHTTPServer(srv, official)
 	if err := validatePolicyCoverage(srv, authz); err != nil {
 		return nil, err
 	}

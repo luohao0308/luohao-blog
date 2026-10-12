@@ -95,7 +95,6 @@ function isActive(to: string) {
     <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
       <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
         <NuxtLink to="/collections" class="transition-colors hover:text-slate-700 dark:hover:text-slate-300">收藏</NuxtLink>
-        <a href="/rss.xml" class="transition-colors hover:text-slate-700 dark:hover:text-slate-300">RSS</a>
         <a
           href="https://github.com/luohao0308/luohao-blog"
           class="transition-colors hover:text-slate-700 dark:hover:text-slate-300"

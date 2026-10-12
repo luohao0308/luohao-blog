@@ -62,3 +62,14 @@ llm:
   model: ${LLM_MODEL:}
   timeout: 120s
   reasoning_effort: ${LLM_REASONING_EFFORT:}
+
+# Official account delivery is independent of mini-program login.
+# Keep disabled until credentials, public origin and permanent cover are set.
+official_account:
+  enabled: false
+  mode: draft
+  account_name: makerhao
+  account_id: makerhao1
+  author: luohao
+  site_url: ""
+  default_thumb_media_id: ""

@@ -18,6 +18,8 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 |---|---|---|---|---|---|---|
 | ArticleService（文章 CRUD，HTTP+gRPC+OpenAPI） | HTTP/gRPC | backend Kratos `ArticleService`（internal/service/article.go） | Nuxt 前端（`/api` 代理，S4）、站点读者 | `backend/api/blog/v1/article.proto`（唯一源） | `make api`；生成物 `*.pb.go`、`openapi.yaml`，`go build ./...` 兜底 | M1 无外部消费者，可自由演进；S1 登记后变更走 CHANGE-CHECKLIST |
 
+| OfficialAccountService（同步配置状态、任务分页、重试、显式同步） | HTTP/gRPC | backend OfficialAccountService | Nuxt admin/wechat-sync | `backend/api/blog/v1/official_account.proto` | `make api`；HTTP 权限/流程测试 `TestOfficialAccountHTTPLifecycle` | 新增管理员接口，未配置时不产生远端调用 |
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

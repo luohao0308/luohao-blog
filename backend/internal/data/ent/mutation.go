@@ -20,6 +20,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
 const (
@@ -31,12 +32,13 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeArticle    = "Article"
-	TypeCategory   = "Category"
-	TypeComment    = "Comment"
-	TypeSubscriber = "Subscriber"
-	TypeTag        = "Tag"
-	TypeUser       = "User"
+	TypeArticle        = "Article"
+	TypeCategory       = "Category"
+	TypeComment        = "Comment"
+	TypeSubscriber     = "Subscriber"
+	TypeTag            = "Tag"
+	TypeUser           = "User"
+	TypeWechatSyncTask = "WechatSyncTask"
 )
 
 // ArticleMutation represents an operation that mutates the Article nodes in the graph.
@@ -4412,4 +4414,1442 @@ func (m *UserMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// WechatSyncTaskMutation represents an operation that mutates the WechatSyncTask nodes in the graph.
+type WechatSyncTaskMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	created_at             *time.Time
+	updated_at             *time.Time
+	slug                   *string
+	content_hash           *string
+	mode                   *string
+	account_fingerprint    *string
+	state                  *string
+	article_title          *string
+	article_summary        *string
+	article_content_html   *string
+	article_source_url     *string
+	article_author         *string
+	article_thumb_media_id *string
+	draft_id               *string
+	remote_id              *string
+	article_url            *string
+	last_error             *string
+	attempts               *int
+	addattempts            *int
+	next_attempt_at        *time.Time
+	clearedFields          map[string]struct{}
+	done                   bool
+	oldValue               func(context.Context) (*WechatSyncTask, error)
+	predicates             []predicate.WechatSyncTask
+}
+
+var _ ent.Mutation = (*WechatSyncTaskMutation)(nil)
+
+// wechatsynctaskOption allows management of the mutation configuration using functional options.
+type wechatsynctaskOption func(*WechatSyncTaskMutation)
+
+// newWechatSyncTaskMutation creates new mutation for the WechatSyncTask entity.
+func newWechatSyncTaskMutation(c config, op Op, opts ...wechatsynctaskOption) *WechatSyncTaskMutation {
+	m := &WechatSyncTaskMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWechatSyncTask,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWechatSyncTaskID sets the ID field of the mutation.
+func withWechatSyncTaskID(id uuid.UUID) wechatsynctaskOption {
+	return func(m *WechatSyncTaskMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WechatSyncTask
+		)
+		m.oldValue = func(ctx context.Context) (*WechatSyncTask, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WechatSyncTask.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWechatSyncTask sets the old WechatSyncTask of the mutation.
+func withWechatSyncTask(node *WechatSyncTask) wechatsynctaskOption {
+	return func(m *WechatSyncTaskMutation) {
+		m.oldValue = func(context.Context) (*WechatSyncTask, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WechatSyncTaskMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WechatSyncTaskMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of WechatSyncTask entities.
+func (m *WechatSyncTaskMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WechatSyncTaskMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WechatSyncTaskMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WechatSyncTask.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WechatSyncTaskMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WechatSyncTaskMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WechatSyncTaskMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *WechatSyncTaskMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *WechatSyncTaskMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *WechatSyncTaskMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetSlug sets the "slug" field.
+func (m *WechatSyncTaskMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *WechatSyncTaskMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *WechatSyncTaskMutation) ResetSlug() {
+	m.slug = nil
+}
+
+// SetContentHash sets the "content_hash" field.
+func (m *WechatSyncTaskMutation) SetContentHash(s string) {
+	m.content_hash = &s
+}
+
+// ContentHash returns the value of the "content_hash" field in the mutation.
+func (m *WechatSyncTaskMutation) ContentHash() (r string, exists bool) {
+	v := m.content_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentHash returns the old "content_hash" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldContentHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentHash: %w", err)
+	}
+	return oldValue.ContentHash, nil
+}
+
+// ResetContentHash resets all changes to the "content_hash" field.
+func (m *WechatSyncTaskMutation) ResetContentHash() {
+	m.content_hash = nil
+}
+
+// SetMode sets the "mode" field.
+func (m *WechatSyncTaskMutation) SetMode(s string) {
+	m.mode = &s
+}
+
+// Mode returns the value of the "mode" field in the mutation.
+func (m *WechatSyncTaskMutation) Mode() (r string, exists bool) {
+	v := m.mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMode returns the old "mode" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldMode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMode: %w", err)
+	}
+	return oldValue.Mode, nil
+}
+
+// ResetMode resets all changes to the "mode" field.
+func (m *WechatSyncTaskMutation) ResetMode() {
+	m.mode = nil
+}
+
+// SetAccountFingerprint sets the "account_fingerprint" field.
+func (m *WechatSyncTaskMutation) SetAccountFingerprint(s string) {
+	m.account_fingerprint = &s
+}
+
+// AccountFingerprint returns the value of the "account_fingerprint" field in the mutation.
+func (m *WechatSyncTaskMutation) AccountFingerprint() (r string, exists bool) {
+	v := m.account_fingerprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountFingerprint returns the old "account_fingerprint" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldAccountFingerprint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountFingerprint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountFingerprint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountFingerprint: %w", err)
+	}
+	return oldValue.AccountFingerprint, nil
+}
+
+// ResetAccountFingerprint resets all changes to the "account_fingerprint" field.
+func (m *WechatSyncTaskMutation) ResetAccountFingerprint() {
+	m.account_fingerprint = nil
+}
+
+// SetState sets the "state" field.
+func (m *WechatSyncTaskMutation) SetState(s string) {
+	m.state = &s
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *WechatSyncTaskMutation) State() (r string, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *WechatSyncTaskMutation) ResetState() {
+	m.state = nil
+}
+
+// SetArticleTitle sets the "article_title" field.
+func (m *WechatSyncTaskMutation) SetArticleTitle(s string) {
+	m.article_title = &s
+}
+
+// ArticleTitle returns the value of the "article_title" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleTitle() (r string, exists bool) {
+	v := m.article_title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleTitle returns the old "article_title" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleTitle: %w", err)
+	}
+	return oldValue.ArticleTitle, nil
+}
+
+// ResetArticleTitle resets all changes to the "article_title" field.
+func (m *WechatSyncTaskMutation) ResetArticleTitle() {
+	m.article_title = nil
+}
+
+// SetArticleSummary sets the "article_summary" field.
+func (m *WechatSyncTaskMutation) SetArticleSummary(s string) {
+	m.article_summary = &s
+}
+
+// ArticleSummary returns the value of the "article_summary" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleSummary() (r string, exists bool) {
+	v := m.article_summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleSummary returns the old "article_summary" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleSummary(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleSummary: %w", err)
+	}
+	return oldValue.ArticleSummary, nil
+}
+
+// ResetArticleSummary resets all changes to the "article_summary" field.
+func (m *WechatSyncTaskMutation) ResetArticleSummary() {
+	m.article_summary = nil
+}
+
+// SetArticleContentHTML sets the "article_content_html" field.
+func (m *WechatSyncTaskMutation) SetArticleContentHTML(s string) {
+	m.article_content_html = &s
+}
+
+// ArticleContentHTML returns the value of the "article_content_html" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleContentHTML() (r string, exists bool) {
+	v := m.article_content_html
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleContentHTML returns the old "article_content_html" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleContentHTML(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleContentHTML is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleContentHTML requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleContentHTML: %w", err)
+	}
+	return oldValue.ArticleContentHTML, nil
+}
+
+// ResetArticleContentHTML resets all changes to the "article_content_html" field.
+func (m *WechatSyncTaskMutation) ResetArticleContentHTML() {
+	m.article_content_html = nil
+}
+
+// SetArticleSourceURL sets the "article_source_url" field.
+func (m *WechatSyncTaskMutation) SetArticleSourceURL(s string) {
+	m.article_source_url = &s
+}
+
+// ArticleSourceURL returns the value of the "article_source_url" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleSourceURL() (r string, exists bool) {
+	v := m.article_source_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleSourceURL returns the old "article_source_url" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleSourceURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleSourceURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleSourceURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleSourceURL: %w", err)
+	}
+	return oldValue.ArticleSourceURL, nil
+}
+
+// ResetArticleSourceURL resets all changes to the "article_source_url" field.
+func (m *WechatSyncTaskMutation) ResetArticleSourceURL() {
+	m.article_source_url = nil
+}
+
+// SetArticleAuthor sets the "article_author" field.
+func (m *WechatSyncTaskMutation) SetArticleAuthor(s string) {
+	m.article_author = &s
+}
+
+// ArticleAuthor returns the value of the "article_author" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleAuthor() (r string, exists bool) {
+	v := m.article_author
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleAuthor returns the old "article_author" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleAuthor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleAuthor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleAuthor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleAuthor: %w", err)
+	}
+	return oldValue.ArticleAuthor, nil
+}
+
+// ResetArticleAuthor resets all changes to the "article_author" field.
+func (m *WechatSyncTaskMutation) ResetArticleAuthor() {
+	m.article_author = nil
+}
+
+// SetArticleThumbMediaID sets the "article_thumb_media_id" field.
+func (m *WechatSyncTaskMutation) SetArticleThumbMediaID(s string) {
+	m.article_thumb_media_id = &s
+}
+
+// ArticleThumbMediaID returns the value of the "article_thumb_media_id" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleThumbMediaID() (r string, exists bool) {
+	v := m.article_thumb_media_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleThumbMediaID returns the old "article_thumb_media_id" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleThumbMediaID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleThumbMediaID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleThumbMediaID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleThumbMediaID: %w", err)
+	}
+	return oldValue.ArticleThumbMediaID, nil
+}
+
+// ResetArticleThumbMediaID resets all changes to the "article_thumb_media_id" field.
+func (m *WechatSyncTaskMutation) ResetArticleThumbMediaID() {
+	m.article_thumb_media_id = nil
+}
+
+// SetDraftID sets the "draft_id" field.
+func (m *WechatSyncTaskMutation) SetDraftID(s string) {
+	m.draft_id = &s
+}
+
+// DraftID returns the value of the "draft_id" field in the mutation.
+func (m *WechatSyncTaskMutation) DraftID() (r string, exists bool) {
+	v := m.draft_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDraftID returns the old "draft_id" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldDraftID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDraftID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDraftID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDraftID: %w", err)
+	}
+	return oldValue.DraftID, nil
+}
+
+// ClearDraftID clears the value of the "draft_id" field.
+func (m *WechatSyncTaskMutation) ClearDraftID() {
+	m.draft_id = nil
+	m.clearedFields[wechatsynctask.FieldDraftID] = struct{}{}
+}
+
+// DraftIDCleared returns if the "draft_id" field was cleared in this mutation.
+func (m *WechatSyncTaskMutation) DraftIDCleared() bool {
+	_, ok := m.clearedFields[wechatsynctask.FieldDraftID]
+	return ok
+}
+
+// ResetDraftID resets all changes to the "draft_id" field.
+func (m *WechatSyncTaskMutation) ResetDraftID() {
+	m.draft_id = nil
+	delete(m.clearedFields, wechatsynctask.FieldDraftID)
+}
+
+// SetRemoteID sets the "remote_id" field.
+func (m *WechatSyncTaskMutation) SetRemoteID(s string) {
+	m.remote_id = &s
+}
+
+// RemoteID returns the value of the "remote_id" field in the mutation.
+func (m *WechatSyncTaskMutation) RemoteID() (r string, exists bool) {
+	v := m.remote_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteID returns the old "remote_id" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldRemoteID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteID: %w", err)
+	}
+	return oldValue.RemoteID, nil
+}
+
+// ClearRemoteID clears the value of the "remote_id" field.
+func (m *WechatSyncTaskMutation) ClearRemoteID() {
+	m.remote_id = nil
+	m.clearedFields[wechatsynctask.FieldRemoteID] = struct{}{}
+}
+
+// RemoteIDCleared returns if the "remote_id" field was cleared in this mutation.
+func (m *WechatSyncTaskMutation) RemoteIDCleared() bool {
+	_, ok := m.clearedFields[wechatsynctask.FieldRemoteID]
+	return ok
+}
+
+// ResetRemoteID resets all changes to the "remote_id" field.
+func (m *WechatSyncTaskMutation) ResetRemoteID() {
+	m.remote_id = nil
+	delete(m.clearedFields, wechatsynctask.FieldRemoteID)
+}
+
+// SetArticleURL sets the "article_url" field.
+func (m *WechatSyncTaskMutation) SetArticleURL(s string) {
+	m.article_url = &s
+}
+
+// ArticleURL returns the value of the "article_url" field in the mutation.
+func (m *WechatSyncTaskMutation) ArticleURL() (r string, exists bool) {
+	v := m.article_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleURL returns the old "article_url" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldArticleURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleURL: %w", err)
+	}
+	return oldValue.ArticleURL, nil
+}
+
+// ClearArticleURL clears the value of the "article_url" field.
+func (m *WechatSyncTaskMutation) ClearArticleURL() {
+	m.article_url = nil
+	m.clearedFields[wechatsynctask.FieldArticleURL] = struct{}{}
+}
+
+// ArticleURLCleared returns if the "article_url" field was cleared in this mutation.
+func (m *WechatSyncTaskMutation) ArticleURLCleared() bool {
+	_, ok := m.clearedFields[wechatsynctask.FieldArticleURL]
+	return ok
+}
+
+// ResetArticleURL resets all changes to the "article_url" field.
+func (m *WechatSyncTaskMutation) ResetArticleURL() {
+	m.article_url = nil
+	delete(m.clearedFields, wechatsynctask.FieldArticleURL)
+}
+
+// SetLastError sets the "last_error" field.
+func (m *WechatSyncTaskMutation) SetLastError(s string) {
+	m.last_error = &s
+}
+
+// LastError returns the value of the "last_error" field in the mutation.
+func (m *WechatSyncTaskMutation) LastError() (r string, exists bool) {
+	v := m.last_error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastError returns the old "last_error" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldLastError(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastError: %w", err)
+	}
+	return oldValue.LastError, nil
+}
+
+// ClearLastError clears the value of the "last_error" field.
+func (m *WechatSyncTaskMutation) ClearLastError() {
+	m.last_error = nil
+	m.clearedFields[wechatsynctask.FieldLastError] = struct{}{}
+}
+
+// LastErrorCleared returns if the "last_error" field was cleared in this mutation.
+func (m *WechatSyncTaskMutation) LastErrorCleared() bool {
+	_, ok := m.clearedFields[wechatsynctask.FieldLastError]
+	return ok
+}
+
+// ResetLastError resets all changes to the "last_error" field.
+func (m *WechatSyncTaskMutation) ResetLastError() {
+	m.last_error = nil
+	delete(m.clearedFields, wechatsynctask.FieldLastError)
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *WechatSyncTaskMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *WechatSyncTaskMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *WechatSyncTaskMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *WechatSyncTaskMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *WechatSyncTaskMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (m *WechatSyncTaskMutation) SetNextAttemptAt(t time.Time) {
+	m.next_attempt_at = &t
+}
+
+// NextAttemptAt returns the value of the "next_attempt_at" field in the mutation.
+func (m *WechatSyncTaskMutation) NextAttemptAt() (r time.Time, exists bool) {
+	v := m.next_attempt_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAttemptAt returns the old "next_attempt_at" field's value of the WechatSyncTask entity.
+// If the WechatSyncTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatSyncTaskMutation) OldNextAttemptAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAttemptAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAttemptAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAttemptAt: %w", err)
+	}
+	return oldValue.NextAttemptAt, nil
+}
+
+// ClearNextAttemptAt clears the value of the "next_attempt_at" field.
+func (m *WechatSyncTaskMutation) ClearNextAttemptAt() {
+	m.next_attempt_at = nil
+	m.clearedFields[wechatsynctask.FieldNextAttemptAt] = struct{}{}
+}
+
+// NextAttemptAtCleared returns if the "next_attempt_at" field was cleared in this mutation.
+func (m *WechatSyncTaskMutation) NextAttemptAtCleared() bool {
+	_, ok := m.clearedFields[wechatsynctask.FieldNextAttemptAt]
+	return ok
+}
+
+// ResetNextAttemptAt resets all changes to the "next_attempt_at" field.
+func (m *WechatSyncTaskMutation) ResetNextAttemptAt() {
+	m.next_attempt_at = nil
+	delete(m.clearedFields, wechatsynctask.FieldNextAttemptAt)
+}
+
+// Where appends a list predicates to the WechatSyncTaskMutation builder.
+func (m *WechatSyncTaskMutation) Where(ps ...predicate.WechatSyncTask) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WechatSyncTaskMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WechatSyncTaskMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WechatSyncTask, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WechatSyncTaskMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WechatSyncTaskMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WechatSyncTask).
+func (m *WechatSyncTaskMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WechatSyncTaskMutation) Fields() []string {
+	fields := make([]string, 0, 19)
+	if m.created_at != nil {
+		fields = append(fields, wechatsynctask.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, wechatsynctask.FieldUpdatedAt)
+	}
+	if m.slug != nil {
+		fields = append(fields, wechatsynctask.FieldSlug)
+	}
+	if m.content_hash != nil {
+		fields = append(fields, wechatsynctask.FieldContentHash)
+	}
+	if m.mode != nil {
+		fields = append(fields, wechatsynctask.FieldMode)
+	}
+	if m.account_fingerprint != nil {
+		fields = append(fields, wechatsynctask.FieldAccountFingerprint)
+	}
+	if m.state != nil {
+		fields = append(fields, wechatsynctask.FieldState)
+	}
+	if m.article_title != nil {
+		fields = append(fields, wechatsynctask.FieldArticleTitle)
+	}
+	if m.article_summary != nil {
+		fields = append(fields, wechatsynctask.FieldArticleSummary)
+	}
+	if m.article_content_html != nil {
+		fields = append(fields, wechatsynctask.FieldArticleContentHTML)
+	}
+	if m.article_source_url != nil {
+		fields = append(fields, wechatsynctask.FieldArticleSourceURL)
+	}
+	if m.article_author != nil {
+		fields = append(fields, wechatsynctask.FieldArticleAuthor)
+	}
+	if m.article_thumb_media_id != nil {
+		fields = append(fields, wechatsynctask.FieldArticleThumbMediaID)
+	}
+	if m.draft_id != nil {
+		fields = append(fields, wechatsynctask.FieldDraftID)
+	}
+	if m.remote_id != nil {
+		fields = append(fields, wechatsynctask.FieldRemoteID)
+	}
+	if m.article_url != nil {
+		fields = append(fields, wechatsynctask.FieldArticleURL)
+	}
+	if m.last_error != nil {
+		fields = append(fields, wechatsynctask.FieldLastError)
+	}
+	if m.attempts != nil {
+		fields = append(fields, wechatsynctask.FieldAttempts)
+	}
+	if m.next_attempt_at != nil {
+		fields = append(fields, wechatsynctask.FieldNextAttemptAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WechatSyncTaskMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case wechatsynctask.FieldCreatedAt:
+		return m.CreatedAt()
+	case wechatsynctask.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case wechatsynctask.FieldSlug:
+		return m.Slug()
+	case wechatsynctask.FieldContentHash:
+		return m.ContentHash()
+	case wechatsynctask.FieldMode:
+		return m.Mode()
+	case wechatsynctask.FieldAccountFingerprint:
+		return m.AccountFingerprint()
+	case wechatsynctask.FieldState:
+		return m.State()
+	case wechatsynctask.FieldArticleTitle:
+		return m.ArticleTitle()
+	case wechatsynctask.FieldArticleSummary:
+		return m.ArticleSummary()
+	case wechatsynctask.FieldArticleContentHTML:
+		return m.ArticleContentHTML()
+	case wechatsynctask.FieldArticleSourceURL:
+		return m.ArticleSourceURL()
+	case wechatsynctask.FieldArticleAuthor:
+		return m.ArticleAuthor()
+	case wechatsynctask.FieldArticleThumbMediaID:
+		return m.ArticleThumbMediaID()
+	case wechatsynctask.FieldDraftID:
+		return m.DraftID()
+	case wechatsynctask.FieldRemoteID:
+		return m.RemoteID()
+	case wechatsynctask.FieldArticleURL:
+		return m.ArticleURL()
+	case wechatsynctask.FieldLastError:
+		return m.LastError()
+	case wechatsynctask.FieldAttempts:
+		return m.Attempts()
+	case wechatsynctask.FieldNextAttemptAt:
+		return m.NextAttemptAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WechatSyncTaskMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case wechatsynctask.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case wechatsynctask.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case wechatsynctask.FieldSlug:
+		return m.OldSlug(ctx)
+	case wechatsynctask.FieldContentHash:
+		return m.OldContentHash(ctx)
+	case wechatsynctask.FieldMode:
+		return m.OldMode(ctx)
+	case wechatsynctask.FieldAccountFingerprint:
+		return m.OldAccountFingerprint(ctx)
+	case wechatsynctask.FieldState:
+		return m.OldState(ctx)
+	case wechatsynctask.FieldArticleTitle:
+		return m.OldArticleTitle(ctx)
+	case wechatsynctask.FieldArticleSummary:
+		return m.OldArticleSummary(ctx)
+	case wechatsynctask.FieldArticleContentHTML:
+		return m.OldArticleContentHTML(ctx)
+	case wechatsynctask.FieldArticleSourceURL:
+		return m.OldArticleSourceURL(ctx)
+	case wechatsynctask.FieldArticleAuthor:
+		return m.OldArticleAuthor(ctx)
+	case wechatsynctask.FieldArticleThumbMediaID:
+		return m.OldArticleThumbMediaID(ctx)
+	case wechatsynctask.FieldDraftID:
+		return m.OldDraftID(ctx)
+	case wechatsynctask.FieldRemoteID:
+		return m.OldRemoteID(ctx)
+	case wechatsynctask.FieldArticleURL:
+		return m.OldArticleURL(ctx)
+	case wechatsynctask.FieldLastError:
+		return m.OldLastError(ctx)
+	case wechatsynctask.FieldAttempts:
+		return m.OldAttempts(ctx)
+	case wechatsynctask.FieldNextAttemptAt:
+		return m.OldNextAttemptAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown WechatSyncTask field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatSyncTaskMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case wechatsynctask.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case wechatsynctask.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case wechatsynctask.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
+		return nil
+	case wechatsynctask.FieldContentHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentHash(v)
+		return nil
+	case wechatsynctask.FieldMode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMode(v)
+		return nil
+	case wechatsynctask.FieldAccountFingerprint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountFingerprint(v)
+		return nil
+	case wechatsynctask.FieldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case wechatsynctask.FieldArticleTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleTitle(v)
+		return nil
+	case wechatsynctask.FieldArticleSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleSummary(v)
+		return nil
+	case wechatsynctask.FieldArticleContentHTML:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleContentHTML(v)
+		return nil
+	case wechatsynctask.FieldArticleSourceURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleSourceURL(v)
+		return nil
+	case wechatsynctask.FieldArticleAuthor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleAuthor(v)
+		return nil
+	case wechatsynctask.FieldArticleThumbMediaID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleThumbMediaID(v)
+		return nil
+	case wechatsynctask.FieldDraftID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDraftID(v)
+		return nil
+	case wechatsynctask.FieldRemoteID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteID(v)
+		return nil
+	case wechatsynctask.FieldArticleURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleURL(v)
+		return nil
+	case wechatsynctask.FieldLastError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastError(v)
+		return nil
+	case wechatsynctask.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
+		return nil
+	case wechatsynctask.FieldNextAttemptAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAttemptAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WechatSyncTask field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WechatSyncTaskMutation) AddedFields() []string {
+	var fields []string
+	if m.addattempts != nil {
+		fields = append(fields, wechatsynctask.FieldAttempts)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WechatSyncTaskMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case wechatsynctask.FieldAttempts:
+		return m.AddedAttempts()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatSyncTaskMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case wechatsynctask.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WechatSyncTask numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WechatSyncTaskMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(wechatsynctask.FieldDraftID) {
+		fields = append(fields, wechatsynctask.FieldDraftID)
+	}
+	if m.FieldCleared(wechatsynctask.FieldRemoteID) {
+		fields = append(fields, wechatsynctask.FieldRemoteID)
+	}
+	if m.FieldCleared(wechatsynctask.FieldArticleURL) {
+		fields = append(fields, wechatsynctask.FieldArticleURL)
+	}
+	if m.FieldCleared(wechatsynctask.FieldLastError) {
+		fields = append(fields, wechatsynctask.FieldLastError)
+	}
+	if m.FieldCleared(wechatsynctask.FieldNextAttemptAt) {
+		fields = append(fields, wechatsynctask.FieldNextAttemptAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WechatSyncTaskMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WechatSyncTaskMutation) ClearField(name string) error {
+	switch name {
+	case wechatsynctask.FieldDraftID:
+		m.ClearDraftID()
+		return nil
+	case wechatsynctask.FieldRemoteID:
+		m.ClearRemoteID()
+		return nil
+	case wechatsynctask.FieldArticleURL:
+		m.ClearArticleURL()
+		return nil
+	case wechatsynctask.FieldLastError:
+		m.ClearLastError()
+		return nil
+	case wechatsynctask.FieldNextAttemptAt:
+		m.ClearNextAttemptAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatSyncTask nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WechatSyncTaskMutation) ResetField(name string) error {
+	switch name {
+	case wechatsynctask.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case wechatsynctask.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case wechatsynctask.FieldSlug:
+		m.ResetSlug()
+		return nil
+	case wechatsynctask.FieldContentHash:
+		m.ResetContentHash()
+		return nil
+	case wechatsynctask.FieldMode:
+		m.ResetMode()
+		return nil
+	case wechatsynctask.FieldAccountFingerprint:
+		m.ResetAccountFingerprint()
+		return nil
+	case wechatsynctask.FieldState:
+		m.ResetState()
+		return nil
+	case wechatsynctask.FieldArticleTitle:
+		m.ResetArticleTitle()
+		return nil
+	case wechatsynctask.FieldArticleSummary:
+		m.ResetArticleSummary()
+		return nil
+	case wechatsynctask.FieldArticleContentHTML:
+		m.ResetArticleContentHTML()
+		return nil
+	case wechatsynctask.FieldArticleSourceURL:
+		m.ResetArticleSourceURL()
+		return nil
+	case wechatsynctask.FieldArticleAuthor:
+		m.ResetArticleAuthor()
+		return nil
+	case wechatsynctask.FieldArticleThumbMediaID:
+		m.ResetArticleThumbMediaID()
+		return nil
+	case wechatsynctask.FieldDraftID:
+		m.ResetDraftID()
+		return nil
+	case wechatsynctask.FieldRemoteID:
+		m.ResetRemoteID()
+		return nil
+	case wechatsynctask.FieldArticleURL:
+		m.ResetArticleURL()
+		return nil
+	case wechatsynctask.FieldLastError:
+		m.ResetLastError()
+		return nil
+	case wechatsynctask.FieldAttempts:
+		m.ResetAttempts()
+		return nil
+	case wechatsynctask.FieldNextAttemptAt:
+		m.ResetNextAttemptAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatSyncTask field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WechatSyncTaskMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WechatSyncTaskMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WechatSyncTaskMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WechatSyncTaskMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WechatSyncTaskMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WechatSyncTaskMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WechatSyncTaskMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown WechatSyncTask unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WechatSyncTaskMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown WechatSyncTask edge %s", name)
 }

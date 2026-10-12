@@ -176,6 +176,52 @@ var (
 			},
 		},
 	}
+	// WechatSyncTasksColumns holds the columns for the "wechat_sync_tasks" table.
+	WechatSyncTasksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString, Size: 64},
+		{Name: "content_hash", Type: field.TypeString, Size: 128},
+		{Name: "mode", Type: field.TypeString, Size: 32},
+		{Name: "account_fingerprint", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "state", Type: field.TypeString, Size: 32},
+		{Name: "article_title", Type: field.TypeString, Size: 2147483647},
+		{Name: "article_summary", Type: field.TypeString, Size: 2147483647},
+		{Name: "article_content_html", Type: field.TypeString, Size: 2147483647},
+		{Name: "article_source_url", Type: field.TypeString, Size: 2147483647},
+		{Name: "article_author", Type: field.TypeString, Size: 255},
+		{Name: "article_thumb_media_id", Type: field.TypeString, Size: 255},
+		{Name: "draft_id", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "remote_id", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "article_url", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "last_error", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "next_attempt_at", Type: field.TypeTime, Nullable: true},
+	}
+	// WechatSyncTasksTable holds the schema information for the "wechat_sync_tasks" table.
+	WechatSyncTasksTable = &schema.Table{
+		Name:       "wechat_sync_tasks",
+		Columns:    WechatSyncTasksColumns,
+		PrimaryKey: []*schema.Column{WechatSyncTasksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "wechatsynctask_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{WechatSyncTasksColumns[2]},
+			},
+			{
+				Name:    "wechatsynctask_slug_content_hash_mode",
+				Unique:  false,
+				Columns: []*schema.Column{WechatSyncTasksColumns[3], WechatSyncTasksColumns[4], WechatSyncTasksColumns[5]},
+			},
+			{
+				Name:    "wechatsynctask_state_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{WechatSyncTasksColumns[7], WechatSyncTasksColumns[2]},
+			},
+		},
+	}
 	// ArticleTagsColumns holds the columns for the "article_tags" table.
 	ArticleTagsColumns = []*schema.Column{
 		{Name: "article_id", Type: field.TypeUUID},
@@ -209,6 +255,7 @@ var (
 		SubscribersTable,
 		TagsTable,
 		UsersTable,
+		WechatSyncTasksTable,
 		ArticleTagsTable,
 	}
 )

@@ -1,0 +1,44 @@
+syntax = "proto3";
+package blog.v1;
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+
+// Administrative delivery status only; no account credentials are exposed.
+service OfficialAccountService {
+ rpc GetWechatSyncSettings(GetWechatSyncSettingsRequest) returns (WechatSyncSettings) {
+  option (google.api.http) = { get: "/v1/admin/wechat-sync/settings" };
+ }
+ rpc ListWechatSyncTasks(ListWechatSyncTasksRequest) returns (WechatSyncTaskSet) {
+  option (google.api.http) = { get: "/v1/admin/wechat-sync/tasks" };
+ }
+ // Retries only definitive failures before submission; ambiguous writes cannot retry.
+ rpc RetryWechatSyncTask(RetryWechatSyncTaskRequest) returns (WechatSyncTask) {
+  option (google.api.http) = { post: "/v1/admin/wechat-sync/tasks/{id}/retry" body: "*" };
+ }
+ // Explicitly queues an existing published article; version deduplication applies.
+ rpc SyncArticleToWechat(SyncArticleToWechatRequest) returns (WechatSyncTask) {
+  option (google.api.http) = { post: "/v1/admin/wechat-sync/articles/{slug}" body: "*" };
+ }
+}
+message GetWechatSyncSettingsRequest {}
+message WechatSyncSettings {
+ bool enabled = 1;
+ bool configured = 2;
+ string mode = 3;
+ string account_name = 4;
+ string account_id = 5;
+}
+message ListWechatSyncTasksRequest { int32 page_size = 1; string page_token = 2; }
+message WechatSyncTask {
+ string id = 1; string slug = 2; string title = 3; string mode = 4; string state = 5;
+ string draft_id = 6; string remote_id = 7; string article_url = 8;
+ string last_error = 9; int32 attempts = 10;
+ google.protobuf.Timestamp created_at = 11; google.protobuf.Timestamp updated_at = 12;
+ bool can_retry = 13;
+ google.protobuf.Timestamp next_attempt_at = 14;
+}
+message WechatSyncTaskSet { repeated WechatSyncTask tasks = 1; string next_page_token = 2; }
+message RetryWechatSyncTaskRequest { string id = 1 [(google.api.field_behavior) = REQUIRED]; }
+message SyncArticleToWechatRequest { string slug = 1 [(google.api.field_behavior) = REQUIRED]; }

@@ -5,7 +5,7 @@ import { formatDate, useArticleList, usePublishedArticles } from '~/composables/
 
 // Homepage as an intro landing: a centered full-height greeting (the 开屏
 // screen) with the blog's vital signs in one line, then latest articles,
-// featured projects and the subscribe card below the fold. Search, hot posts
+// featured projects below the fold. Search, hot posts
 // and the tag cloud live on their dedicated pages (/posts, /ranking, /tags).
 
 const { data } = useArticleList({ pageSize: 6 })
@@ -126,9 +126,6 @@ const featuredProjects = projects.filter((p) => p.featured)
       </div>
     </section>
 
-    <!-- subscribe -->
-    <div class="flex justify-center">
-      <SubscribeForm class="w-full" />
-    </div>
+    <WechatFollow />
   </div>
 </template>

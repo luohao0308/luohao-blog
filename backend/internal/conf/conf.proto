@@ -22,6 +22,24 @@ message Bootstrap {
   // WeChat mini-program login (T-011/S2). Absent or incomplete disables the
   // wechat auth endpoints with FAILED_PRECONDITION.
   Wechat wechat = 7;
+  // Official account publishing is separate from mini-program login.
+  OfficialAccount official_account = 8;
+}
+
+message OfficialAccount {
+  bool enabled = 1;
+  string app_id = 2;
+  string app_secret = 3;
+  // Public blog origin used by the Read Original link and image allowlist.
+  string site_url = 4;
+  // A permanent WeChat cover material ID; required for news drafts.
+  string default_thumb_media_id = 5;
+  string author = 6;
+  // draft, publish (public article), or mass (notify followers).
+  string mode = 7;
+  repeated string image_hosts = 8;
+  string account_name = 9;
+  string account_id = 10;
 }
 
 message Wechat {

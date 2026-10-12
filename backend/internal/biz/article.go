@@ -159,12 +159,19 @@ func ValidSlug(s string) bool {
 type ArticleUsecase struct {
 	repo    ArticleRepo
 	indexer ArticleSearchIndex
+	wechat  *WechatSyncUsecase
 }
 
 // NewArticleUsecase new an Article usecase. The indexer is optional: nil
 // disables search indexing (tests, ES-less deployments).
 func NewArticleUsecase(repo ArticleRepo, indexer ArticleSearchIndex) *ArticleUsecase {
 	return &ArticleUsecase{repo: repo, indexer: indexer}
+}
+
+func NewArticleUsecaseWithWechat(repo ArticleRepo, indexer ArticleSearchIndex, sync *WechatSyncUsecase) *ArticleUsecase {
+	uc := NewArticleUsecase(repo, indexer)
+	uc.wechat = sync
+	return uc
 }
 
 // syncIndex mirrors one article into the search index. Failures are logged
@@ -273,6 +280,7 @@ func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Artic
 	if err != nil {
 		return nil, err
 	}
+	a.ID = current.ID
 	if a.Status == ArticleStatusPublished {
 		if a.PublishedAt == nil {
 			if current.Status == ArticleStatusPublished && current.PublishedAt != nil {
@@ -294,7 +302,21 @@ func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Artic
 		return nil, ErrArticleInvalidArgument
 	}
 	a.ContentHTML = html
-	updated, err := uc.repo.UpdateArticle(ctx, a)
+	var updated *Article
+	// A publication transition queues automatically; edits never notify followers again.
+	var task *WechatSyncTask
+	if uc.wechat != nil && current.Status != ArticleStatusPublished {
+		task = uc.wechat.Task(a)
+	}
+	if task != nil {
+		publisher, ok := uc.repo.(ArticlePublicationRepo)
+		if !ok {
+			return nil, ErrWechatSyncInvalid
+		}
+		updated, err = publisher.UpdateArticleAndEnqueue(ctx, a, task)
+	} else {
+		updated, err = uc.repo.UpdateArticle(ctx, a)
+	}
 	if err != nil {
 		return nil, err
 	}

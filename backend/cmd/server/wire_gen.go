@@ -43,7 +43,15 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 		cleanup()
 		return nil, nil, err
 	}
-	articleUsecase := biz.NewArticleUsecase(articleRepo, articleSearchIndex)
+	wechatSyncRepo := data.NewWechatSyncRepo(dataData)
+	wechatPublisher, err := data.NewOfficialAccountPublisher(bootstrap)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	wechatSyncSettings := data.NewWechatSyncSettings(bootstrap)
+	wechatSyncUsecase := biz.NewWechatSyncUsecase(wechatSyncRepo, articleRepo, wechatPublisher, wechatSyncSettings)
+	articleUsecase := biz.NewArticleUsecaseWithWechat(articleRepo, articleSearchIndex, wechatSyncUsecase)
 	articleService := service.NewArticleService(articleUsecase)
 	categoryRepo := data.NewCategoryRepo(dataData)
 	categoryUsecase := biz.NewCategoryUsecase(categoryRepo)
@@ -74,7 +82,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	chatRateLimiter := data.NewChatRateLimiter(universalClient, auth)
 	chatUsecase := biz.NewChatUsecase(articleUsecase, chatLLM, chatRateLimiter)
 	chatService := service.NewChatService(chatUsecase)
-	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, commentService, subscriberService, articleSearchService, chatService)
+	officialAccountService := service.NewOfficialAccountService(wechatSyncUsecase)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	avatarStore, err := data.NewAvatarStore(confData)
 	if err != nil {
 		cleanup()
@@ -82,12 +91,12 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	}
 	avatarUsecase := biz.NewAvatarUsecase(avatarStore, userUsecase)
 	userService := service.NewUserService(userUsecase, avatarUsecase)
-	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, userService, commentService, subscriberService, articleSearchService, chatService)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, userService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	app := newApp(logger, grpcServer, httpServer)
+	app := newApp(logger, grpcServer, httpServer, wechatSyncUsecase)
 	return app, func() {
 		cleanup()
 	}, nil

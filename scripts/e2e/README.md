@@ -30,6 +30,20 @@ python3 -m venv /tmp/pw-venv
 
 `comments_e2e.cjs` 验证分页、普通评论即时公开、待审预览、Unicode 长度、管理员翻页失败后重试和审核通过。它只允许 localhost/127.0.0.1，使用独立内存 SQLite + miniredis 测试服务，不依赖 Docker 或生产配置。
 
+## 头像与 RSS 移除回归
+
+`account_avatar_e2e.cjs` 对本地前端使用模拟账号 API，检查头像单次编码、编码失败回退、上传与刷新回显、非法格式、服务端拒绝、后台设置入口、移动端溢出，以及首页/页脚/发现标签和路由中的 RSS 移除。此用例不创建真实账号、不写入真实头像，不替代后端存储测试。
+
+先在 `frontend/` 执行 `pnpm build`，再执行 `NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs`。使用已有 Playwright 环境运行：
+
+```bash
+NODE_PATH=<playwright所在的node_modules目录> BLOG_E2E_BASE_URL=http://127.0.0.1:13000 node scripts/e2e/account_avatar_e2e.cjs
+```
+
+如需使用本机 Chrome，通过 `BLOG_E2E_CHROMIUM` 指定可执行文件路径。不要同时在同一个前端目录跑 dev 和 build，以免 Nuxt 缓存重建影响浏览器测试。
+
+## 评论 fixture 启动步骤
+
 1. 后端目录启动 fixture（保持这个终端运行；URL 写入文件，不包含凭据）：
 
    ```bash
@@ -58,3 +72,28 @@ python3 -m venv /tmp/pw-venv
    ```
 
 fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不启动长期服务，只执行真实 HTTP 契约回归。生产 MySQL 分页精度差异另由相同时间戳分页回归覆盖，小程序测试不替代 DevTools/真机点验。
+
+## 公众号同步本地验收
+
+`wechat_sync_e2e.cjs` 对真实本地 HTTP 鉴权、SQLite outbox 和模拟微信 API 验证后台同步状态、同版本幂等入队、刷新回读、加载失败恢复、首页关注入口、移动端以及匿名登录守卫。无真实公众号发布/群发。
+
+1. 在 `backend/` 启动独立 fixture：
+
+   ```bash
+   BLOG_WECHAT_BROWSER_FIXTURE=/tmp/blog-wechat-fixture.url go test ./internal/data -run TestOfficialAccountHTTPLifecycle -count=1 -v
+   ```
+
+2. 在 `frontend/` 构建产物，再启动服务（不要同时运行 dev）：
+
+   ```bash
+   pnpm build
+   NUXT_BACKEND_BASE="$(cat /tmp/blog-wechat-fixture.url)" NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs
+   ```
+
+3. 仓库根目录运行（如需本机 Chrome，用 `BLOG_E2E_CHROMIUM` 指定路径）：
+
+   ```bash
+   NODE_PATH=<playwright所在的node_modules目录> node scripts/e2e/wechat_sync_e2e.cjs
+   ```
+
+4. 完成后新建 `/tmp/blog-wechat-fixture.url.stop` 通知 fixture 正常退出，并停止该前端进程。重复验收先移走上一轮这个精确 stop 文件；测试最多保留五分钟，退出后内存数据库与示例账号均消失。

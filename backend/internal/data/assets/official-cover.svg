@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" viewBox="0 0 900 500">
+<rect width="900" height="500" fill="#f4f6f9"/>
+<rect x="0" width="18" height="500" fill="#3c5d85"/>
+<path d="M680 0H900V220" fill="none" stroke="#dce4ed" stroke-width="80"/>
+<text x="70" y="90" font-family="Arial, sans-serif" font-size="18" letter-spacing="5" fill="#60738a">ENGINEERING NOTES</text>
+<text x="66" y="256" font-family="Arial, sans-serif" font-size="82" font-weight="700" letter-spacing="-3" fill="#132033">luohao<tspan fill="#3c5d85">.blog</tspan></text>
+<rect x="70" y="300" width="95" height="5" fill="#3c5d85"/>
+<text x="70" y="367" font-family="Arial, sans-serif" font-size="25" letter-spacing="2" fill="#52657c">FULL STACK / AI AGENT</text>
+<text x="70" y="444" font-family="Arial, sans-serif" font-size="15" letter-spacing="3" fill="#72849a">makerhao</text>
+</svg>

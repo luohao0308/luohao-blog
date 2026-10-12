@@ -31,15 +31,22 @@ const avatarNotice = ref<{ kind: 'ok' | 'err', text: string } | null>(null)
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
 
+onBeforeUnmount(() => {
+  if (previewUrl.value)
+    URL.revokeObjectURL(previewUrl.value)
+})
+
 function onFileChange(event: Event) {
+  if (uploading.value)
+    return
   avatarNotice.value = null
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file)
     return
-  if (!file.type.startsWith('image/')) {
-    avatarNotice.value = { kind: 'err', text: '请选择图片文件' }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    avatarNotice.value = { kind: 'err', text: '请选择 jpg / png / webp 图片' }
     return
   }
   if (previewUrl.value)
@@ -87,15 +94,14 @@ function downscale(file: File, max = 512): Promise<string> {
         reader.onerror = () => reject(new Error('read failed'))
         reader.readAsDataURL(blob)
       }
-      // webp keeps photos small and preserves alpha; the second toBlob call
-      // is a no-op unless the browser cannot encode webp (its callback then
-      // runs with null and the retry encodes in the source format).
-      canvas.toBlob(handleBlob, 'image/webp', 0.85)
-      canvas.toBlob(
-        blob => blob && handleBlob(blob),
-        file.type === 'image/png' ? 'image/png' : 'image/jpeg',
-        0.85,
-      )
+      // Only retry when webp encoding fails; never race two encoders.
+      canvas.toBlob((blob) => {
+        if (blob) {
+          handleBlob(blob)
+          return
+        }
+        canvas.toBlob(handleBlob, file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85)
+      }, 'image/webp', 0.85)
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
@@ -126,8 +132,9 @@ async function uploadAvatar() {
       headers: { 'Content-Type': 'application/json' },
       body: { data },
     })
-    if (updated)
-      setUser(updated)
+    if (!updated?.avatar_url)
+      throw new Error('invalid avatar response')
+    setUser(updated)
     avatarNotice.value = { kind: 'ok', text: '头像已更新' }
     selectedFile.value = null
     if (previewUrl.value) {
@@ -251,7 +258,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
         <h2 class="font-medium">
           头像
         </h2>
-        <div class="flex items-center gap-5">
+        <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
           <img
             v-if="previewUrl || avatarSrc"
             :src="previewUrl || avatarSrc"
@@ -263,8 +270,8 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
             class="flex h-20 w-20 items-center justify-center rounded-full bg-[#3c5d85] text-2xl font-semibold text-white dark:bg-blue-600"
           >{{ (user.display_name || user.email).trim().charAt(0).toUpperCase() }}</span>
           <div class="space-y-2">
-            <div class="flex gap-2">
-              <button type="button" class="shrink-0 whitespace-nowrap rounded-full border border-slate-300 px-5 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300" @click="selectFile">
+            <div class="flex flex-wrap gap-2">
+              <button type="button" :disabled="uploading" class="shrink-0 whitespace-nowrap rounded-full border border-slate-300 px-5 py-2 text-sm text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300" @click="selectFile">
                 选择图片
               </button>
               <button type="button" :disabled="!selectedFile || uploading" :class="primaryButtonClass" @click="uploadAvatar">
@@ -276,7 +283,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
             </p>
           </div>
         </div>
-        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange">
+        <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploading" class="hidden" @change="onFileChange">
         <p v-if="avatarNotice" :class="avatarNotice.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'" class="text-sm" role="status">
           {{ avatarNotice.text }}
         </p>

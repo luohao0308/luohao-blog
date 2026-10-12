@@ -78,7 +78,7 @@ async function signOut() {
         class="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
         @click="menuOpen = false"
       >
-        个人设置
+        个人设置（头像 / 昵称）
       </NuxtLink>
       <NuxtLink
         v-if="isAdmin"
