@@ -1,13 +1,13 @@
 # 项目摘要（AI 快速参考）
 
 _来源：仓库实际内容与最近验证命令输出（build/test/lint/compose/认证冒烟）_
-_状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-11_
+_状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-13_
 
 > 本文件只保存稳定的项目事实和路径速查，不记录实时任务、临时验证、交接过程或历史证据。当前任务状态以 `TASKS.md` 为准，短期上下文以 `WORKING-CONTEXT.md` 为准。
 
 ## 1. 项目概览
 
-个人技术博客，内容方向为全栈开发与 AI Agent。Go（Kratos）后端 + Vue 3（Nuxt）前端的单仓库项目，**已上线 http://193.112.128.245**。M0–M5 全部交付：内容核心、账号后台（JWT+RBAC）、互动统计、ES 混合搜索 + RAG 问答、生产部署（caddy→BFF→backend+mysql/redis/es 六容器）、发布流水线（ghcr）、备份+看门狗；前台账号体系（开放注册、头像、个人设置、评论登录门禁）已交付（T-010，PR #52–#55）。里程碑见根 `README.md`。
+个人技术博客，内容方向为全栈开发与 AI Agent。Go（Kratos）后端 + Vue 3（Nuxt）前端的单仓库项目，**已上线 https://makerhao.cn**。M0–M5 全部交付：内容核心、账号后台（JWT+RBAC）、互动统计、ES 混合搜索 + RAG 问答、生产部署（caddy→BFF→backend+mysql/redis/es 六容器）、发布流水线（ghcr）、备份+看门狗；前台账号体系（开放注册、头像、个人设置、评论登录门禁）已交付（T-010，PR #52–#55）。里程碑见根 `README.md`。
 
 ## 2. 仓库拓扑与所有权
 
@@ -28,7 +28,7 @@ _状态：M0–M5 已交付上线（HTTPS 待域名）；非域名收尾部署�
 | 层/能力 | 当前方案 | 稳定约束 |
 |---|---|---|
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
-| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号，无邮箱验证）；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
+| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号，无邮箱验证）；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |

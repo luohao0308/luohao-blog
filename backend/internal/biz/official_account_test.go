@@ -352,6 +352,100 @@ func TestWechatSyncAccountSwitchNeverUsesNewAccountForOldTasks(t *testing.T) {
 	}
 }
 
+func TestWechatSyncSiteURLSwitchNeverRepublishesOldTasks(t *testing.T) {
+	const (
+		oldSiteURL = "http://193.112.128.245"
+		newSiteURL = "https://makerhao.cn"
+	)
+
+	t.Run("changes task identity and source URL", func(t *testing.T) {
+		uc, _, _, _, a := syncFixture("publish")
+		uc.settings.SiteURL = oldSiteURL
+		oldTask := uc.Task(a)
+		uc.settings.SiteURL = newSiteURL
+		newTask := uc.Task(a)
+		if oldTask.ID == newTask.ID {
+			t.Fatal("site URL switch reused task identity")
+		}
+		if oldTask.Article.SourceURL != oldSiteURL+"/posts/"+a.Slug {
+			t.Fatalf("old source URL: %q", oldTask.Article.SourceURL)
+		}
+		if newTask.Article.SourceURL != newSiteURL+"/posts/"+a.Slug {
+			t.Fatalf("new source URL: %q", newTask.Article.SourceURL)
+		}
+	})
+
+	for _, stage := range []string{"queued", "ready"} {
+		t.Run(stage+" is cancelled before remote write", func(t *testing.T) {
+			uc, repo, pub, _, a := syncFixture("publish")
+			uc.settings.SiteURL = oldSiteURL
+			task, err := uc.SyncArticle(context.Background(), a.Slug)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stage == "ready" {
+				tick(t, uc)
+			}
+			before, err := repo.Get(context.Background(), task.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			drafts, submits := pub.drafts, pub.submits
+			uc.settings.SiteURL = newSiteURL
+			tick(t, uc)
+			got, err := repo.Get(context.Background(), task.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.State != "cancelled" {
+				t.Fatalf("old %s task state: %s", stage, got.State)
+			}
+			if pub.drafts != drafts || pub.submits != submits {
+				t.Fatalf("old %s task performed remote write: drafts=%d submits=%d", stage, pub.drafts, pub.submits)
+			}
+			if got.DraftID != before.DraftID {
+				t.Fatalf("old %s task lost draft ID: before=%q after=%q", stage, before.DraftID, got.DraftID)
+			}
+			if stage == "ready" && got.DraftID == "" {
+				t.Fatal("ready task fixture did not retain its existing draft ID")
+			}
+		})
+	}
+
+	t.Run("failed retry is rejected without mutation", func(t *testing.T) {
+		uc, repo, pub, _, a := syncFixture("publish")
+		uc.settings.SiteURL = oldSiteURL
+		task, err := uc.SyncArticle(context.Background(), a.Slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pub.err = &WechatRemoteError{Code: "45009"}
+		tick(t, uc)
+		before, err := repo.Get(context.Background(), task.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if before.State != "failed" {
+			t.Fatalf("failed fixture state: %s", before.State)
+		}
+		drafts, submits, queries := pub.drafts, pub.submits, pub.queries
+		uc.settings.SiteURL = newSiteURL
+		if _, err := uc.Retry(context.Background(), task.ID); err != ErrWechatSyncConflict {
+			t.Fatalf("retry old failed task: %v", err)
+		}
+		after, err := repo.Get(context.Background(), task.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if after.State != before.State || after.Attempts != before.Attempts || after.LastError != before.LastError {
+			t.Fatalf("rejected retry mutated task: before=%+v after=%+v", before, after)
+		}
+		if pub.drafts != drafts || pub.submits != submits || pub.queries != queries {
+			t.Fatalf("rejected retry called publisher: drafts=%d submits=%d queries=%d", pub.drafts, pub.submits, pub.queries)
+		}
+	})
+}
+
 func (r *syncMemoryRepo) clearDue() {
 	r.mu.Lock()
 	defer r.mu.Unlock()

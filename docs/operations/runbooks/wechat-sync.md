@@ -1,6 +1,6 @@
 # 公众号同步启用与恢复
 
-适用范围：博客后台发布到微信公众号，支持草稿、公开发表、群发三种模式。和小程序登录凭据独立。当前仓库默认关闭，测试使用本地模拟微信接口；真实公众号权限由用户确认，真实凭据联调及生产部署未完成。
+适用范围：博客后台发布到微信公众号，支持草稿、公开发表、群发三种模式。和小程序登录凭据独立。仓库默认关闭，测试使用本地模拟微信接口；生产已启用 draft 模式，具体交付/域名切换状态以 TASKS.md 为准。
 
 ## 前置条件与配置
 
@@ -33,7 +33,7 @@ official_account:
 先在 Git 忽略的 secrets.local.yaml 中保存 `official_account.app_id/app_secret`。在 `backend/` 执行（site-url 应先核实当前公开入口）：
 
 ```bash
-go run ./cmd/wechat-cover -conf ./configs -site-url http://<已验证的公网IP>
+go run ./cmd/wechat-cover -conf ./configs -site-url https://makerhao.cn
 ```
 
 程序只输出成功状态、非密钥素材 ID 和公开地址，不输出 AppSecret、Token 或带鉴权参数的 URL。`-check-config` 仅输出两个字段是否存在，用于诊断是否保存到了正确配置段。
@@ -88,3 +88,15 @@ go run ./cmd/wechat-draft-check -conf ./configs -slug <已发布文章slug>
 可复现验证：`go test ./...`、`go test -race ./internal/biz ./internal/data`、`golangci-lint run`；前端 `pnpm lint && pnpm typecheck && pnpm build`。浏览器 fixture 见 `scripts/e2e/README.md`；它只调用本地微信模拟服务，不消耗真实额度。
 
 官方接口：[新增草稿](https://developers.weixin.qq.com/doc/service/api/draftbox/draftmanage/api_draft_add)、[提交发布](https://developers.weixin.qq.com/doc/service/api/public/api_freepublish_submit)、[查询发布](https://developers.weixin.qq.com/doc/service/api/public/api_freepublish_get)、[群发](https://developers.weixin.qq.com/doc/service/api/notify/message/api_sendall)、[群发结果](https://developers.weixin.qq.com/doc/service/api/notify/message/api_massmsgget)。
+
+## 备案后公开 origin 切换
+
+主站 `https://makerhao.cn` 的 TLS/公开资源验收通过后，使用 `deploy/official-account-domain.example.yaml` 的单字段片段，保存为生产 `deploy/prod-conf/zzzz-domain-origin.local.yaml`（Git 忽略，0600）。模板放在配置目录外，避免 Kratos 自动加载 example。真实 loader 以文件名排序合并；确认没有更晚的覆盖文件重写 site_url。
+
+该片段只设置 `official_account.site_url: https://makerhao.cn`。先备份完整配置，再针对已授权准确版本更新并重启 backend；用同样的 Kratos file+env loader只投影 scheme/host、enabled/draft 状态，不输出 AppSecret/token/封面等配置内容。验证新任务 original URL 为 `https://makerhao.cn/posts/<slug>`、本站图片允许来源与原有外部 image_hosts。
+
+不通过 cover 准备命令变更域名，不重传封面或历史草稿；SiteURL参与任务幂等ID，切换时不批量重建旧任务。现有草稿旧IP原文地址由主站跳转兼容，新发布事件生成HTTPS原文地址。
+
+切换前必须按状态只读统计同步任务。`SiteURL` 包含在任务 ID：旧 `queued/ready` 在处理时会因当前 ID 不同而转为 `cancelled`（ready 的已有草稿 ID 保留，不撤回远端草稿）；旧 `failed` 会因 ID 不一致不能重试；`polling` 正在确认远端结果，不能盲重建或取消。
+
+生产切换门：`queued/ready/drafting/submitting/polling/checking/failed/unknown` 合计必须为0；否则停止配置变更，在当前origin下先完成或逐项审查现有任务。切换窗口内先停止唯一 backend，再复查上述计数仍为0，随后应用配置并重启，避免检查与切换之间写入旧任务；若复查非0，恢复原backend并停止切换。这个统计只是读取，不能为放行修改状态、删journal、批量重试或同步历史文章。每次新建发布事件用HTTPS origin生成新ID；已经drafted/published的历史记录及远端草稿保持原样。

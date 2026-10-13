@@ -48,12 +48,7 @@ DirectMail 域名验证、SPF/DKIM/DMARC 等记录必须由选定账号的实际
 
 ## 进度
 
-- S1：in_progress（代码与本地验证完成；DNS、准确版本远端交付/生产切换、真实 TLS 与账号闭环验收待完成）
-- S2：pending
-- S3：pending
-- 用户于 2026-10-13 确认三个切片；S1 线上切换尚未完成。
-- 已通过：Go build/test/vet/golangci-lint；frontend lint/typecheck/build；SSR runtime origin/ICP/canonical/noindex 与默认 HTTP 配置；Kratos 实际加载及 HTTP Cookie 回归；实际 Nitro BFF Cookie Path 重写（mock backend）；生产/本地 compose config；服务器当前 Caddy 2.11.4 对生产和 HTTP 配置 validate。
-- 隔离 Caddy HTTP 路由实测（关闭证书签发，不改生产入口）：内部 caddy /health 200，IP POST 和主域名 HTTP 308，路径/query 保留。证书签发、www HTTPS 与真实登录刷新未冒充已验收。
-- 浏览器工具 getState 两次与直接 DNS 控制台一次均超时；公开 DNS 查询仍无主站 A，www/status NXDOMAIN。公网 smoke 因连接失败未通过，等待实际 DNS/TLS。
-- S2/S3 依照顺序门等待 S1 验收；原微信/拨测入口未提前改为无法访问的域名。
-- 新鲜完整输出与准确 SHA 存本机 ignored 交付证据；代码进入 PR 后执行 required CI。
+- S1：completed。PR #90/#91；生产 Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3（修复仅检查脚本/测试）。DNS/TLS、ICP/canonical、HTTP/www/IP 308、公开API/多页资源、真实注册/登录/刷新/退出/401、Secure/HttpOnly/Lax/Path、内部健康探针验收通过；任务临时账号与会话已精确清理。
+- S2：in_progress。小程序HTTPS与默认域名校验、公众号公开origin覆盖片段正在本地准备；生产公众号当前仍用旧HTTP IP，尚未修改。微信后台合法域名配置待确认，生产更新待准确版本授权。
+- S3：pending，等待S2验收。
+- 首次验收脚本误将删除Cookie的wire Max-Age=0视为-1，自动回退后已修复，并通过真实Go→Nitro回归与重新授权部署。恢复点、消费记录和动态证据保存在本机ignored artifacts与受控服务器备份目录。

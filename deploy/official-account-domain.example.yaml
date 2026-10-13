@@ -1,0 +1,5 @@
+# Domain-only override: copy to prod-conf/zzzz-domain-origin.local.yaml.
+# Keep outside prod-conf until explicitly applied; Kratos reads every YAML there.
+# This changes only the public origin used for new original links and images.
+official_account:
+  site_url: https://makerhao.cn
