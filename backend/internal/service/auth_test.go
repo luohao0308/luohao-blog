@@ -70,6 +70,10 @@ func TestLogoutCookieUsesConfigAndIgnoresForwardedProto(t *testing.T) {
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200", resp.StatusCode)
 			}
+			// The wire uses Max-Age=0; net/http parses that back to MaxAge=-1.
+			if !strings.Contains(resp.Header.Get("Set-Cookie"), "Max-Age=0") {
+				t.Fatal("logout must send a browser-expiring Max-Age=0 cookie")
+			}
 			cookies := resp.Cookies()
 			if len(cookies) != 1 {
 				t.Fatalf("cookies = %v, want one refresh deletion cookie", cookies)
