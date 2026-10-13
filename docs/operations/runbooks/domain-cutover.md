@@ -49,7 +49,7 @@ python3 scripts/e2e/domain_smoke.py
 
 S1 验收后修改小程序入口与合法域名校验；在微信控制台核实实际使用的网络 API，配置 `https://makerhao.cn` 的 request 及需要的资源域名（不带 `/api/v1`）。微信控制台的合法域名与 web-view 业务域名是独立设置，没有 web-view 的小程序无需新增业务域名。
 
-将公众号实际生效 `official_account.site_url` 改为 `https://makerhao.cn`，保留 enabled/mode、凭据、封面 ID 和 journal。本站 origin 自动成为图片允许来源；外部 CDN 仅按实际需要加入 allowlist，不放宽为任意域名。旧 HTTP IP 图片需逐项核验兼容与公开可达性，不能盲目全量修改文章或重传微信草稿。
+按 [公众号 Runbook](wechat-sync.md#备案后公开-origin-切换) 应用 `deploy/official-account-domain.example.yaml` 的单字段片段，将实际生效 `official_account.site_url` 改为 `https://makerhao.cn`，保留 enabled/mode、凭据、封面 ID 和 journal；先按公众号Runbook确认无非终态/failed/unknown任务，存在时停止变更并逐项审查。本站 origin 自动成为图片允许来源；外部 CDN 仅按实际需要加入 allowlist，不放宽为任意域名。旧 HTTP IP 图片需逐项核验兼容与公开可达性，不能盲目全量修改文章或重传微信草稿。
 
 ## S3 状态页和拨测
 
@@ -61,3 +61,11 @@ S1/S2 验收后为 status 建立解析和最小反代，只暴露 `/status/blog`
 - 恢复旧配置与准确旧镜像，保留 DB、uploads、证书、Kuma/Prometheus 等数据卷；不做数据库迁移/删除。
 - 微信回退只恢复 API/合法域名/site_url，保留已有草稿和任务；不以切换域名为理由重新推送历史文章。
 - 每个切片部署证据保存于受控平台或本机 ignored artifacts，包括准确 SHA、镜像 ID、探针结果、旧配置备份指针及未完成项。
+
+### 微信后台与小程序验收
+
+当前代码只有 `wx.request` 和图片展示。后台服务器域名配置 `request: https://makerhao.cn`，图片主机建议同时登记 `downloadFile: https://makerhao.cn`；没有web-view，因此不增加业务域名。小程序 `API_BASE=https://makerhao.cn/api/v1`，服务器域名字段只填origin，不带API路径或端口。
+
+普通小程序自身access_token不能调用开放平台 `modify_domain`；该接口仅供已授权第三方平台代调用。使用小程序后台“开发设置 → 服务器域名”保存配置，开发者工具确认域名/TLS/证书校验已开启，再验证列表/阅读/图片/登录/评论。`npm run typecheck && npm test`只验证可执行逻辑，不替代控制台与真机验收。
+
+参考：[微信网络说明](https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html)、[开放平台服务器域名接口适用范围](https://developers.weixin.qq.com/doc/oplatform/openApi/miniprogram-management/domain-management/api_modifyserverdomain.html)。图片组件如何对应下载白名单须以实际客户端验证为准，登记本站图片host可避免配置缺口。

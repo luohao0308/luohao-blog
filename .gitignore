@@ -36,3 +36,6 @@ docs/project-memory/
 # Locally generated official-account cover/address setup (no credentials).
 backend/configs/zz-official-account-setup.local.yaml
 deploy/prod-conf/zz-official-account-setup.local.yaml
+
+# Explicit domain-only production runtime overlay.
+deploy/prod-conf/zzzz-domain-origin.local.yaml

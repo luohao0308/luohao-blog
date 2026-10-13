@@ -38,8 +38,13 @@ async function main() {
   execFileSync(path.join(root, 'node_modules/.bin/tsc'), ['--project', root, '--noEmit', 'false', '--outDir', out], { stdio: 'inherit' })
   const api = require(path.join(out, 'utils/api.js'))
   const auth = require(path.join(out, 'utils/auth.js'))
+  const config = require(path.join(out, 'utils/config.js'))
   const favorites = require(path.join(out, 'utils/favorites.js'))
   const request = require(path.join(out, 'utils/request.js'))
+  const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json'), 'utf8'))
+  assert.equal(config.API_BASE, 'https://makerhao.cn/api/v1')
+  assert.equal(config.assetUrl('/v1/assets/avatar/fixture.png'), 'https://makerhao.cn/api/v1/assets/avatar/fixture.png')
+  assert.equal(projectConfig.setting.urlCheck, true, 'production domain validation must be enabled by default')
   storage.set('auth:access', 'expired-fixture')
   storage.set('auth:refresh', 'refresh-fixture')
   auth.registerAuthBridge()
@@ -53,6 +58,7 @@ async function main() {
   assert.equal(replayedComment.id, 'comment-fixture')
   assert.equal(mutations, 2, '401 refresh must replay a POST exactly once')
   assert.equal(calls.filter(x => x.url.endsWith('/auth/refresh')).length, 1)
+  assert.equal(calls.at(-1).url, 'https://makerhao.cn/api/v1/comments')
   assert.equal(calls.at(-1).header.Authorization, 'Bearer fresh-fixture')
   // A second 401 must stop, not enter an unbounded refresh loop.
   calls = []

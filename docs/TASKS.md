@@ -15,12 +15,11 @@ _last-updated: 2026-10-13_
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
 | T-015 | 头像/RSS移除及公众号同步 S1–S3 已本地完成并验证；文章/作品集/关于页优化检查完成、未改版 | frontend + 后续 backend | `docs/plans/ACCOUNT-AVATAR-WECHAT-2026-10.md` | 用户确认接口权限并批准本地实现；公开地址与默认永久封面已真实准备成功，并保存本机/生产目录的ignored覆盖片段；真实服务器私密凭据与出口白名单、正式交付/部署仍待配置或授权。默认关闭；真实草稿联调成功，未公开发表/群发；隔离交付分支准备中 |
-| T-008 | M5 上线基本收官：S1-S4 全部完成（S1 #23；S2 公网 IP 直访；S3 发布流水线 #25+#26+#27——Actions 推 ghcr 实跑绿，服务器更新走本地构建回退（ghcr 国内拉取受限）；S4 备份 cron+看门狗已装）；HTTPS 待备案 | backend + deploy + CI | 计划 `docs/plans/M5-DEPLOY.md` | 生产管理员改密已销项（2026-10-05）；#28 服务器部署已完成并公网 E2E 验收（2026-10-04）；**剩余仅 HTTPS：域名 makerhao.cn 已购（2026-10-07，腾讯云），ICP 备案进行中（约 1–2 周），通过后接解析+Caddy HTTPS+Secure cookie** |
-| T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（依赖备案 T-008：合法域名+业务域名配置） |
+| T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已上线验收（PR #90/#91）；S2 小程序与公众号域名切换准备中；S3 状态页与拨测待推进 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | S2 微信后台 request/downloadFile 合法域名待用户确认；新的准确版本交付和生产配置更新待授权 |
+| T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（合法域名配置与关闭开发绕过校验后的真机验收；当前没有web-view，不需要业务域名） |
 
 ## 待办 (Todo)
 
-- [ ] refresh cookie `Secure` 属性：随 HTTPS/域名（T-008 ICP 备案）落地。
 - [x] 非域名收尾：六项技术债代码、小程序可执行验收及服务器线上更新已完成；PR #82 merge `7ffd5ed`，required CI/release 全绿，线上六 target、三项数据层信号和公开入口已核验。DevTools/真机 UI 点验仍保留为人工事项，域名/HTTPS 不在本项范围。
 
 ## 未授权或未立项 (Do Not Start)
@@ -31,6 +30,8 @@ _last-updated: 2026-10-13_
 - 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
 
 ## 已完成 (Done)
+
+- [x] T-008/S1 主站域名：makerhao.cn/www 解析、可信 HTTPS、308 跳转、备案号渝ICP备2026025040号-1、canonical 与 Secure Cookie 已通过真实生产验收；账号注册/登录/刷新/退出及精确清理通过。Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3；PR #90/#91 CI全绿，继续 S2/S3。
 
 - [x] T-014 评论审核与交互优化（本地完成，尚未远端交付/部署）：默认本地 smart 自动通过普通评论，可疑内容和限流异常待审；manual 回退；下架评论隐藏；Web/后台分页、小程序状态回显、跨账号/分页竞态和 Unicode 长度修复。Go 全量 test/build/vet/lint、frontend lint/typecheck/build、小程序 typecheck/test 与真实 HTTP 本地浏览器闭环通过。计划与复现命令见 `docs/plans/COMMENT-MODERATION-2026-10.md`、`scripts/e2e/README.md`。
 
