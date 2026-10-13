@@ -656,8 +656,12 @@ type Auth struct {
 	// Login brute-force protection.
 	RateLimit         *Auth_RateLimit         `protobuf:"bytes,3,opt,name=rate_limit,json=rateLimit,proto3" json:"rate_limit,omitempty"`
 	CommentModeration *Auth_CommentModeration `protobuf:"bytes,4,opt,name=comment_moderation,json=commentModeration,proto3" json:"comment_moderation,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Mark refresh cookies Secure when the public site is served over HTTPS.
+	// Keep false for local HTTP development. This is an explicit deployment
+	// setting and is never inferred from client-controlled forwarding headers.
+	SecureCookie  bool `protobuf:"varint,5,opt,name=secure_cookie,json=secureCookie,proto3" json:"secure_cookie,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Auth) Reset() {
@@ -716,6 +720,13 @@ func (x *Auth) GetCommentModeration() *Auth_CommentModeration {
 		return x.CommentModeration
 	}
 	return nil
+}
+
+func (x *Auth) GetSecureCookie() bool {
+	if x != nil {
+		return x.SecureCookie
+	}
+	return false
 }
 
 type Server_HTTP struct {
@@ -1308,13 +1319,14 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +
 	"\fread_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vreadTimeout\x12>\n" +
 	"\rwrite_timeout\x18\x04 \x01(\v2\x19.google.protobuf.DurationR\fwriteTimeout\x12\x1a\n" +
-	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xd4\a\n" +
+	"\bpassword\x18\x05 \x01(\tR\bpassword\"\xf9\a\n" +
 	"\x04Auth\x12&\n" +
 	"\x03jwt\x18\x01 \x01(\v2\x14.kratos.api.Auth.JWTR\x03jwt\x12E\n" +
 	"\x11refresh_token_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x0frefreshTokenTtl\x129\n" +
 	"\n" +
 	"rate_limit\x18\x03 \x01(\v2\x1a.kratos.api.Auth.RateLimitR\trateLimit\x12Q\n" +
-	"\x12comment_moderation\x18\x04 \x01(\v2\".kratos.api.Auth.CommentModerationR\x11commentModeration\x1aP\n" +
+	"\x12comment_moderation\x18\x04 \x01(\v2\".kratos.api.Auth.CommentModerationR\x11commentModeration\x12#\n" +
+	"\rsecure_cookie\x18\x05 \x01(\bR\fsecureCookie\x1aP\n" +
 	"\x11CommentModeration\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\x12'\n" +
 	"\x0freview_keywords\x18\x02 \x03(\tR\x0ereviewKeywords\x1ab\n" +

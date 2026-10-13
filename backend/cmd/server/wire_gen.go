@@ -66,7 +66,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	wechatClient := data.NewWechatClient(wechat)
 	wechatBindingStore := data.NewWechatBindingStore(universalClient)
 	wechatUsecase := biz.NewWechatUsecase(userUsecase, authUsecase, wechatClient, wechatBindingStore, rateLimiter)
-	authService := service.NewAuthService(authUsecase, wechatUsecase)
+	authService := service.NewAuthService(authUsecase, wechatUsecase, auth)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
 	commentModerationPolicy := data.NewCommentModerationPolicy(auth)

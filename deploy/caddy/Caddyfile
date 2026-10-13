@@ -6,7 +6,7 @@
 # refresh cookie 的 Path 从 /v1/auth 重写为 /api/v1/auth——若把 /api/* 直接
 # 反代到 Kratos 会绕过该重写，刷新闭环会静默失效（M2/S4 坑五）。
 
-{$SITE_ADDRESS::80} {
+(blog_proxy) {
 	encode gzip
 	log {
 		output stdout
@@ -19,4 +19,8 @@
 		max_size 8MB
 	}
 	reverse_proxy frontend:3000
+}
+
+{$SITE_ADDRESS::80} {
+	import blog_proxy
 }

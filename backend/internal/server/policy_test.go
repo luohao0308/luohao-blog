@@ -5,6 +5,7 @@ import (
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/data"
 	"github.com/luohao0308/luohao-blog/backend/internal/service"
 
@@ -65,7 +66,7 @@ func registerAllRoutes(t *testing.T) *kratoshttp.Server {
 	v1.RegisterArticleServiceHTTPServer(srv, service.NewArticleService(biz.NewArticleUsecase(nil, nil)))
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
-	v1.RegisterAuthServiceHTTPServer(srv, service.NewAuthService(nil, nil))
+	v1.RegisterAuthServiceHTTPServer(srv, service.NewAuthService(nil, nil, &conf.Auth{}))
 	v1.RegisterUserServiceHTTPServer(srv, service.NewUserService(nil, nil))
 	v1.RegisterCommentServiceHTTPServer(srv, service.NewCommentService(nil))
 	v1.RegisterArticleSearchServiceHTTPServer(srv, service.NewArticleSearchService(nil, nil))

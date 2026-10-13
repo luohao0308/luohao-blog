@@ -7,6 +7,7 @@
 // swaps to the avatar after hydration.
 const { init } = useTheme()
 const { ensureSession } = useAuth()
+const { public: publicConfig } = useRuntimeConfig()
 
 onMounted(() => {
   init()
@@ -103,6 +104,13 @@ function isActive(to: string) {
         >GitHub</a>
       </nav>
       <p>© luohao · Go &amp; Nuxt 驱动</p>
+      <a
+        v-if="publicConfig.icpNumber"
+        href="https://beian.miit.gov.cn/"
+        class="mt-2 inline-block transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+        target="_blank"
+        rel="noopener"
+      >{{ publicConfig.icpNumber }}</a>
     </footer>
   </div>
 </template>

@@ -9,6 +9,7 @@ import (
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 
 	"github.com/go-kratos/kratos/v3/transport"
 	kratoshttp "github.com/go-kratos/kratos/v3/transport/http"
@@ -29,13 +30,14 @@ const (
 type AuthService struct {
 	v1.UnimplementedAuthServiceServer
 
-	uc     *biz.AuthUsecase
-	wechat *biz.WechatUsecase
+	uc           *biz.AuthUsecase
+	wechat       *biz.WechatUsecase
+	secureCookie bool
 }
 
 // NewAuthService new an auth service.
-func NewAuthService(uc *biz.AuthUsecase, wechat *biz.WechatUsecase) *AuthService {
-	return &AuthService{uc: uc, wechat: wechat}
+func NewAuthService(uc *biz.AuthUsecase, wechat *biz.WechatUsecase, auth *conf.Auth) *AuthService {
+	return &AuthService{uc: uc, wechat: wechat, secureCookie: auth.GetSecureCookie()}
 }
 
 // Register creates a READER account and issues the token pair, delivering
@@ -46,7 +48,7 @@ func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	if err != nil {
 		return nil, err
 	}
-	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	s.setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
 	return convertLoginReply(u, pair), nil
 }
 
@@ -57,7 +59,7 @@ func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Logi
 	if err != nil {
 		return nil, err
 	}
-	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	s.setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
 	return convertLoginReply(u, pair), nil
 }
 
@@ -72,7 +74,7 @@ func (s *AuthService) Refresh(ctx context.Context, req *v1.RefreshRequest) (*v1.
 	if err != nil {
 		return nil, err
 	}
-	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	s.setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
 	return convertLoginReply(u, pair), nil
 }
 
@@ -84,7 +86,7 @@ func (s *AuthService) Logout(ctx context.Context, req *v1.LogoutRequest) (*empty
 			return nil, err
 		}
 	}
-	clearRefreshCookie(ctx)
+	s.clearRefreshCookie(ctx)
 	return &emptypb.Empty{}, nil
 }
 
@@ -159,38 +161,36 @@ func refreshTokenFrom(ctx context.Context) (string, error) {
 
 // setRefreshCookie delivers the opaque refresh token. The cookie is httpOnly
 // and scoped to /v1/auth so neither scripts nor article endpoints ever see
-// it; SameSite=Lax fits the same-origin Nuxt proxy. Secure stays off until
-// the site ships behind TLS.
-func setRefreshCookie(ctx context.Context, token string, maxAge time.Duration) {
+// it; SameSite=Lax fits the same-origin Nuxt proxy. Secure is controlled only
+// by trusted server configuration, never by client forwarding headers.
+func (s *AuthService) setRefreshCookie(ctx context.Context, token string, maxAge time.Duration) {
 	w, ok := kratoshttp.ResponseWriterFromServerContext(ctx)
 	if !ok {
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, s.refreshCookie(token, maxAge))
+}
+
+func (s *AuthService) refreshCookie(token string, maxAge time.Duration) *http.Cookie {
+	return &http.Cookie{
 		Name:     refreshCookieName,
 		Value:    token,
 		Path:     refreshCookiePath,
 		MaxAge:   int(maxAge.Seconds()),
 		HttpOnly: true,
+		Secure:   s.secureCookie,
 		SameSite: http.SameSiteLaxMode,
-	})
+	}
 }
 
 // clearRefreshCookie expires the refresh cookie in place; the Path must match
 // the one it was set with for browsers to drop it.
-func clearRefreshCookie(ctx context.Context) {
+func (s *AuthService) clearRefreshCookie(ctx context.Context) {
 	w, ok := kratoshttp.ResponseWriterFromServerContext(ctx)
 	if !ok {
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     refreshCookieName,
-		Value:    "",
-		Path:     refreshCookiePath,
-		MaxAge:   -1,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	http.SetCookie(w, s.refreshCookie("", -time.Second))
 }
 
 // clientIP returns the best-effort caller address for rate limiting. Behind
@@ -236,7 +236,7 @@ func (s *AuthService) WechatLogin(ctx context.Context, req *v1.WechatLoginReques
 		return nil, err
 	}
 	if res.Pair != nil {
-		setRefreshCookie(ctx, res.Pair.Refresh.Token, time.Until(res.Pair.Refresh.ExpiresAt))
+		s.setRefreshCookie(ctx, res.Pair.Refresh.Token, time.Until(res.Pair.Refresh.ExpiresAt))
 		return &v1.WechatLoginReply{
 			Status: v1.WechatLoginStatus_WECHAT_LOGIN_STATUS_OK,
 			Login:  convertLoginReply(res.User, res.Pair),
@@ -255,7 +255,7 @@ func (s *AuthService) BindWechat(ctx context.Context, req *v1.BindWechatRequest)
 	if err != nil {
 		return nil, err
 	}
-	setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
+	s.setRefreshCookie(ctx, pair.Refresh.Token, time.Until(pair.Refresh.ExpiresAt))
 	return convertLoginReply(u, pair), nil
 }
 

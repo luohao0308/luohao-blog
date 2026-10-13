@@ -29,8 +29,9 @@ services:
       - "${HTTPS_PORT:-443}:443"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    command: ["caddy", "run", "--config", "/etc/caddy/${CADDY_CONFIG:-Caddyfile}", "--adapter", "caddyfile"]
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
@@ -48,6 +49,8 @@ services:
     logging: *default-logging
     environment:
       NUXT_BACKEND_BASE: http://backend:8000
+      NUXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+      NUXT_PUBLIC_ICP_NUMBER: ${ICP_NUMBER:-}
     depends_on:
       backend:
         condition: service_healthy
@@ -72,6 +75,7 @@ services:
       KRATOS_DATABASE_SOURCE: ${DATABASE_SOURCE}
       KRATOS_JWT_SECRET: ${JWT_SECRET:-}
       KRATOS_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      KRATOS_AUTH_SECURE_COOKIE: ${AUTH_SECURE_COOKIE:-false}
     volumes:
       - ./prod-conf:/data/conf:ro
       # 用户上传（头像）落本地磁盘，命名卷保证容器替换不丢文件；
