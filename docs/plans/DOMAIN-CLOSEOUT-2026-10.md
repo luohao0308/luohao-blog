@@ -49,6 +49,6 @@ DirectMail 域名验证、SPF/DKIM/DMARC 等记录必须由选定账号的实际
 ## 进度
 
 - S1：completed。PR #90/#91；生产 Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3（修复仅检查脚本/测试）。DNS/TLS、ICP/canonical、HTTP/www/IP 308、公开API/多页资源、真实注册/登录/刷新/退出/401、Secure/HttpOnly/Lax/Path、内部健康探针验收通过；任务临时账号与会话已精确清理。
-- S2：in_progress。小程序HTTPS与默认域名校验、公众号公开origin覆盖片段正在本地准备；生产公众号当前仍用旧HTTP IP，尚未修改。微信后台合法域名配置待确认，生产更新待准确版本授权。
-- S3：pending，等待S2验收。
+- S2：代码与生产配置已交付，客户端验收待完成。PR #92（main a3c36bc / source02344ac）CI与独立复核通过；小程序HTTPS与默认域名校验已合并，微信后台request/downloadFile由用户确认保存。重新授权后准确源码检出成功，生产公众号origin为https://makerhao.cn，enabled/draft_mode保留，零同步任务，backend healthy、HTTPS smoke与管理员匿名401通过，看门狗逐字恢复。运行镜像仍为775455a3；未重传封面或重放历史任务。DevTools/真机验证因IDE服务端口关闭未完成。
+- S3：本地配置与检查已准备，尚未远端交付或上线。相同Caddy镜像隔离validate、实际Kuma公开路由42项正负检查及独立复核通过，6监控目标/data信号正常；用户选择稍后添加status CNAME，待DNS与准确版本逐次交付/部署授权。主站入口维持已验收版本。
 - 首次验收脚本误将删除Cookie的wire Max-Age=0视为-1，自动回退后已修复，并通过真实Go→Nitro回归与重新授权部署。恢复点、消费记录和动态证据保存在本机ignored artifacts与受控服务器备份目录。

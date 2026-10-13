@@ -18,6 +18,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Probe homepage
-        run: curl -fsS --max-time 15 -o /dev/null http://193.112.128.245/
+        run: curl -fsS --proto '=https' --tlsv1.2 --max-time 15 -o /dev/null https://makerhao.cn/
       - name: Probe core API
-        run: curl -fsS --max-time 15 -o /dev/null "http://193.112.128.245/api/v1/articles/list?page_size=1"
+        run: curl -fsS --proto '=https' --tlsv1.2 --max-time 15 -o /dev/null "https://makerhao.cn/api/v1/articles/list?page_size=1"
+      - name: Probe public status page
+        run: curl -fsS --proto '=https' --tlsv1.2 --max-time 15 -o /dev/null https://status.makerhao.cn/status/blog
+      - name: Probe public status heartbeat
+        run: |
+          curl -fsS --proto '=https' --tlsv1.2 --max-time 15 https://status.makerhao.cn/api/status-page/heartbeat/blog \
+            | python3 -c 'import json,sys; value=json.load(sys.stdin); assert isinstance(value, dict) and "heartbeatList" in value and "uptimeList" in value'
