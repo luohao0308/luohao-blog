@@ -6,6 +6,30 @@ www.{$SITE_ADDRESS} {
 	redir https://{$SITE_ADDRESS}{uri} 308
 }
 
+# Public Uptime Kuma status page. Keep the allowlist explicit: Kuma's dashboard,
+# authentication, websocket and general API surfaces must remain private.
+status.{$SITE_ADDRESS} {
+	encode gzip
+
+	@status_root {
+		method GET HEAD
+		path /
+	}
+	redir @status_root /status/blog 308
+
+	@status_public {
+		method GET HEAD
+		path /status/blog /api/status-page/blog /api/status-page/heartbeat/blog /api/status-page/blog/manifest.json /assets/* /docker-latest-warning.js /icon.svg /manifest.json /apple-touch-icon.png
+	}
+	handle @status_public {
+		reverse_proxy uptime-kuma:3001
+	}
+
+	handle {
+		respond 404
+	}
+}
+
 # Retain the existing Kuma internal probe without a TLS/Host redirect loop.
 http://caddy {
 	import blog_proxy

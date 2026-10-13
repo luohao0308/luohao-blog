@@ -53,7 +53,31 @@ S1 验收后修改小程序入口与合法域名校验；在微信控制台核�
 
 ## S3 状态页和拨测
 
-S1/S2 验收后为 status 建立解析和最小反代，只暴露 `/status/blog` 所需公开页面/静态资源/状态 API。验收拒绝管理、登录及管理 socket；不公开 Grafana/Prometheus。external-probe 改 HTTPS，并重新验证内部健康探针和数据层信号。
+S1/S2 验收后，为 `status.makerhao.cn` 添加 CNAME 到 `makerhao.cn`，等待权威和公共 DNS 均解析到主站服务器后再部署。Caddy 仅将下列匿名 `GET`/`HEAD` 路径转发至同一 Docker 网络的 `uptime-kuma:3001`：
+
+- `/status/blog`
+- `/api/status-page/blog`
+- `/api/status-page/heartbeat/blog`
+- `/api/status-page/blog/manifest.json`
+- `/assets/*`
+- `/docker-latest-warning.js`、`/icon.svg`、`/manifest.json`、`/apple-touch-icon.png`
+
+根路径 `/` 仅对 `GET`/`HEAD` 返回 308 到 `/status/blog`。其他路径和方法统一由 Caddy 返回 404；不要放宽为 `/api/*` 或代理 Kuma 全站。`/dashboard`、`/login`、`/metrics`、`/socket.io/`、`/upload/`、`/screenshots/`、其他状态页 slug 和所有 POST 均应拒绝。该公开页面按 HTTP 轮询 heartbeat，不需要暴露 socket。
+
+部署前先用当前 Caddy 镜像验证 `Caddyfile.domain`，再只重建 Caddy；不修改 Kuma 数据或公开 Grafana/Prometheus。隔离验收可把匿名替身服务注册为 `uptime-kuma`，以测试所有允许和拒绝分支，不接触 Kuma 配置、数据库或凭据：
+
+```bash
+python3 scripts/e2e/status_smoke.py --base http://127.0.0.1:8080 --allow-http
+```
+
+生产验收使用系统 CA，不传 `--allow-http`：
+
+```bash
+dig +short status.makerhao.cn CNAME
+python3 scripts/e2e/status_smoke.py
+```
+
+脚本验证状态页、公开状态 API、heartbeat JSON、页面实际引用的 `/assets/*`，并确认根重定向和管理/API/socket/其他 slug/POST 均为 404。浏览器另行确认桌面和移动端页面正常、没有登录或管理入口。随后手动运行 external-probe workflow，确认主站 HTTPS、核心 API、公开状态页与 heartbeat JSON 全部成功，并重新验证内部 `http://caddy` 健康探针和数据层信号。
 
 ## 失败与回退
 
