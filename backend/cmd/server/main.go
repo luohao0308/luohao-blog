@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
@@ -77,12 +79,12 @@ func main() {
 		panic(err)
 	}
 
-	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
+	bc, err := scanBootstrap(c)
+	if err != nil {
 		panic(err)
 	}
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Auth, bc.Wechat, &bc, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Auth, bc.Wechat, bc, logger)
 	if err != nil {
 		panic(err)
 	}
@@ -92,4 +94,24 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
+}
+
+func scanBootstrap(c config.Config) (*conf.Bootstrap, error) {
+	var bc conf.Bootstrap
+	if err := c.Scan(&bc); err != nil {
+		return nil, err
+	}
+	value, ok := os.LookupEnv("KRATOS_AUTH_SECURE_COOKIE")
+	if !ok {
+		return &bc, nil
+	}
+	secure, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("KRATOS_AUTH_SECURE_COOKIE must be a boolean: %w", err)
+	}
+	if bc.Auth == nil {
+		bc.Auth = &conf.Auth{}
+	}
+	bc.Auth.SecureCookie = secure
+	return &bc, nil
 }

@@ -23,3 +23,5 @@ docker compose -f deploy/docker-compose.yml ps   # 等待全部 healthy
 ## Caddy（生产反代，M5 启用）
 
 `caddy/Caddyfile` 已启用：所有请求先到 Nuxt（:3000），由 Nuxt BFF 把 `/api/v1/*` 代理至 Kratos（:8000），同时处理 refresh cookie 路径。当前公网入口为 HTTP IP；域名备案完成后配置 `SITE_ADDRESS` 启用 Caddy HTTPS，并同步 Secure cookie。
+
+域名模式的生产字段、DNS、验收及回退见 [域名切换 Runbook](../docs/operations/runbooks/domain-cutover.md)。生产模板默认 makerhao.cn HTTPS；本地 HTTP 冒烟需按该指南覆盖五个入口字段。

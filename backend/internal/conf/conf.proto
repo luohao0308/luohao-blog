@@ -187,4 +187,8 @@ message Auth {
   // Login brute-force protection.
   RateLimit rate_limit = 3;
   CommentModeration comment_moderation = 4;
+  // Mark refresh cookies Secure when the public site is served over HTTPS.
+  // Keep false for local HTTP development. This is an explicit deployment
+  // setting and is never inferred from client-controlled forwarding headers.
+  bool secure_cookie = 5;
 }

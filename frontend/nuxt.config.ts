@@ -12,6 +12,13 @@ export default defineNuxtConfig({
     // Backend Kratos HTTP server; override with NUXT_BACKEND_BASE in
     // deployment (docker compose service name or Caddy upstream).
     backendBase: 'http://127.0.0.1:8000',
+    public: {
+      // Public origin and ICP registration are supplied by the deployment as
+      // NUXT_PUBLIC_SITE_URL / NUXT_PUBLIC_ICP_NUMBER. Development keeps a
+      // local origin and hides the ICP link when no registration is set.
+      siteUrl: 'http://localhost:3000',
+      icpNumber: '',
+    },
   },
   typescript: {
     strict: true,

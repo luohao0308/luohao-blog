@@ -1,0 +1,17 @@
+# Production domain entrypoint; SITE_ADDRESS must be the bare primary hostname.
+# Imports the shared BFF route and primary HTTPS site.
+import Caddyfile
+
+www.{$SITE_ADDRESS} {
+	redir https://{$SITE_ADDRESS}{uri} 308
+}
+
+# Retain the existing Kuma internal probe without a TLS/Host redirect loop.
+http://caddy {
+	import blog_proxy
+}
+
+# Old public IP bookmarks move to the canonical domain.
+http://193.112.128.245 {
+	redir https://{$SITE_ADDRESS}{uri} 308
+}

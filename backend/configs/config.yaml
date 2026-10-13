@@ -37,6 +37,9 @@ auth:
     access_token_ttl: 900s # 15m
   # Sliding: recreated on every refresh. 604800s = 7d.
   refresh_token_ttl: 604800s
+  # Enable only when the public site is served over HTTPS. Production sets
+  # KRATOS_AUTH_SECURE_COOKIE=true; local HTTP development stays compatible.
+  secure_cookie: false
   # smart: ordinary comments publish immediately; suspicious ones stay pending.
   # Set manual to return to full manual review. No external API is called.
   comment_moderation:

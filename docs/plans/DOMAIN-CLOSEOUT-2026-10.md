@@ -1,0 +1,59 @@
+# 备案后域名收尾
+
+- 状态：`approved`
+- 日期：2026-10-13
+- 关联：T-008、T-011、T-013、T-015
+- 主域名：`makerhao.cn`
+- 用户提供的备案号：`渝ICP备2026025040号-1`
+
+## 目标与边界
+
+将现有博客公开入口切换为 https://makerhao.cn，补齐备案展示、HTTPS 会话、小程序及公众号地址、公开状态页和拨测。保持现有功能、数据库与公众号 draft 模式。
+
+订阅发信和注册邮箱验证仍属未立项功能；本轮列出发信域名准备项，但不实现 SMTP 或发送邮件。小程序正式提审、公众号公开发表/群发也不属于域名配置交付。
+
+## 只读证据
+
+- 当前工作树干净，但位于旧任务 codex/account-avatar-subscription（63dd394）；2026-10-13 git ls-remote 核实 main 为 39f8a524ae7920261dea4eb47cfa22784658b90f。实施从最新 main 隔离，避免混入旧任务。
+- 1.1.1.1、8.8.8.8 查询 makerhao.cn A 均 NOERROR / 无 answer；1.1.1.1 查询 www、status 为 NXDOMAIN。此为查询时的观察，实施前重新验证 A/AAAA/CNAME/CAA。
+- Caddy SITE_ADDRESS 默认 :80，全部反代 Nuxt BFF；禁止绕过 BFF 的 refresh cookie Path 重写。
+- backend/internal/service/auth.go 签发和清除 refresh cookie 都未设置 Secure；需要明确生产配置及本地 HTTP 兼容，不盲信任客户端转发头。
+- 小程序唯一入口仍是 HTTP IP，project.config.json urlCheck=false；实际使用的微信网络 API 决定需要的合法域名种类。
+- 页脚无 ICP 展示，Nuxt 无公开站点 origin/canonical；外部 probe 仍用 HTTP IP。
+- 公众号原文地址由 official_account.site_url 构造；生产实际值须在受控配置操作中核验，不能读取/打印密钥文件。
+- Kuma 公开 /status/blog 已有规划，但生产可用路由/依赖应重新检查，公开代理必须只放行状态页必要路径，不公开管理、登录、socket 管理接口。
+
+## 顺序切片
+
+| 切片 | 结果与修改范围 | 依赖 | 验收 | 回退点 |
+|---|---|---|---|---|
+| S1 主站与安全会话 | DNS @ 指向已核验服务器，www 指向主站并统一跳转；Caddy 自动 HTTPS；backend Secure cookie 显式配置；Nuxt 公开 origin、canonical/OG 地址、ICP 页脚；compose/example 与部署指南同步 | 计划批准；实际 DNS/生产配置访问；备案号已提供 | Cookie 设置/清除回归与 HTTP 开发兼容；Go build/test/lint；pnpm lint/typecheck/build；Caddy validate；真实证书、HTTP/www 跳转、SSR 备案链接、API、登录/刷新/退出、图片及混合内容检查 | 保存 DNS 旧值、Caddy/生产配置与准确旧镜像；恢复旧入口及 cookie 配置；不删除证书卷或数据卷 |
+| S2 微信地址闭环 | 小程序 API_BASE 改 HTTPS，开启合法域名校验，配置实际需要的 request/图片域名；公众号 site_url 切 HTTPS，核验图片来源允许列表 | S1 HTTPS 验收；微信控制台可用权限 | npm run typecheck + npm test；开启校验的 DevTools/真机阅读、登录、评论、图片；公众号 URL 构造/allowlist 回归与受控诊断，不盲重传已有草稿 | 回退代码/微信域名配置/site_url；保留草稿及任务 journal，禁止重新推送历史文章 |
+| S3 监控与交付收尾 | status 子域解析和最小公开反代；外部 probe 改 HTTPS；核验 Kuma 内部探针在 HTTPS 切换后仍有效；更新 README/Runbook/TASKS 与部署证据 | S1、S2；Kuma 状态页实际路由核验 | 状态页和必要静态/API 请求成功，管理/登录/非允许 API 被拒；内部指标/健康探针正常，公网拨测成功；PR required CI 通过，部署准确 SHA 后公开浏览器回归 | 回退状态页代理及拨测配置，保留监控数据；主站入口保持已验收版本 |
+
+每次最多一个切片 in_progress，验收后推进。实施时为每条关键行为先准备最小可执行检查；DNS/证书等外部状态以切换前后探针作证据。SEO robots/sitemap 如需新增动态枚举接口，先评估现有数据读取入口，不扩大 API 契约或暴露草稿/后台页面。
+
+## 外部操作与授权
+
+计划批准不修改持久 gitPolicy。push/PR/merge 仍需准确 ref/SHA 授权并通过 delivery_guard；生产更新在本地代码、验证和回退材料完成后绑定准确版本授权。DNS/微信控制台操作按批准的具体记录与域名范围执行；缺少登录/权限时保留可执行材料并报告实际阻塞。
+
+## 发信域名准备（待另行立项）
+
+DirectMail 域名验证、SPF/DKIM/DMARC 等记录必须由选定账号的实际控制台产生并核验，不能猜测 TXT 值。本轮不从备案通过推导邮件发送功能或凭据操作授权。
+
+## 官方参考
+
+- [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)：域名与公网 80/443 可达性及自动跳转。
+- [腾讯云备案号悬挂说明](https://cloud.tencent.com/document/product/243/61412)：准确备案号展示于页脚并链接 https://beian.miit.gov.cn/。
+
+## 进度
+
+- S1：in_progress（代码与本地验证完成；DNS、准确版本远端交付/生产切换、真实 TLS 与账号闭环验收待完成）
+- S2：pending
+- S3：pending
+- 用户于 2026-10-13 确认三个切片；S1 线上切换尚未完成。
+- 已通过：Go build/test/vet/golangci-lint；frontend lint/typecheck/build；SSR runtime origin/ICP/canonical/noindex 与默认 HTTP 配置；Kratos 实际加载及 HTTP Cookie 回归；实际 Nitro BFF Cookie Path 重写（mock backend）；生产/本地 compose config；服务器当前 Caddy 2.11.4 对生产和 HTTP 配置 validate。
+- 隔离 Caddy HTTP 路由实测（关闭证书签发，不改生产入口）：内部 caddy /health 200，IP POST 和主域名 HTTP 308，路径/query 保留。证书签发、www HTTPS 与真实登录刷新未冒充已验收。
+- 浏览器工具 getState 两次与直接 DNS 控制台一次均超时；公开 DNS 查询仍无主站 A，www/status NXDOMAIN。公网 smoke 因连接失败未通过，等待实际 DNS/TLS。
+- S2/S3 依照顺序门等待 S1 验收；原微信/拨测入口未提前改为无法访问的域名。
+- 新鲜完整输出与准确 SHA 存本机 ignored 交付证据；代码进入 PR 后执行 required CI。

@@ -25,6 +25,8 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
 auth:
+  # Explicit deployment setting; never inferred from untrusted forwarding headers.
+  secure_cookie: false
   jwt:
     secret: ${JWT_SECRET:}
     access_token_ttl: 900s

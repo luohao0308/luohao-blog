@@ -66,7 +66,7 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 	auth := biz.NewAuthUsecase(users, NewSessionRepo(rdb), issuer, NewRateLimiter(rdb, config), NewRegisterRateLimiter(rdb, config), time.Hour)
 	srv, err := blogserver.NewHTTPServer(&conf.Server{Http: &conf.Server_HTTP{}}, issuer, authz,
 		service.NewArticleService(articles), service.NewCategoryService(biz.NewCategoryUsecase(NewCategoryRepo(d))),
-		service.NewAuthService(auth, nil), service.NewUserService(users, nil), service.NewCommentService(nil),
+		service.NewAuthService(auth, nil, config), service.NewUserService(users, nil), service.NewCommentService(nil),
 		service.NewSubscriberService(nil), service.NewArticleSearchService(articles, nil), service.NewChatService(nil), service.NewOfficialAccountService(syncUC))
 	if err != nil {
 		t.Fatal(err)
