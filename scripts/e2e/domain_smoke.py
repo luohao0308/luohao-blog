@@ -48,7 +48,7 @@ def main():
     check(cookie is not None, "refresh cookie expiry returned")
     check(bool(cookie["secure"]) and bool(cookie["httponly"]), "Secure and HttpOnly cookie")
     check(cookie["path"] == "/api/v1/auth", "BFF cookie Path rewrite")
-    check(cookie["samesite"].lower() == "lax" and cookie["max-age"] == "-1", "logout expires SameSite cookie")
+    check(cookie["samesite"].lower() == "lax" and cookie["max-age"] == "0", "logout expires SameSite cookie")
 
 
 if __name__ == "__main__":
