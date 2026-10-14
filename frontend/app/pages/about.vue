@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { usePublishedArticles } from '~/composables/useArticles'
 
-useHead({ title: '关于我' })
-
 const { data: about, status, error, refresh } = await useAboutProfile()
 const { data: projects, error: projectsError } = await usePublicProjects()
 const { data: articles, error: articlesError } = await usePublishedArticles()
@@ -13,6 +11,11 @@ const representativeProjects = computed(() => {
   return (featured.length ? featured : list).slice(0, 2)
 })
 const representativeArticles = computed(() => (articles.value ?? []).slice(0, 2))
+usePageSeo({
+  title: () => about.value?.name ? `关于 ${about.value.name}` : '关于我',
+  description: () => about.value?.intro || about.value?.headline,
+  image: () => about.value?.profile_image,
+})
 </script>
 
 <template>

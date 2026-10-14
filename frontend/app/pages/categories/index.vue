@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePublicCategories } from '~/composables/useCategories'
 
-useHead({ title: '分类' })
+usePageSeo({ title: '分类', description: '按主题分类浏览 luohao-blog 的公开技术文章。' })
 
 const { data, status, error, refresh } = await usePublicCategories()
 const categories = computed(() =>

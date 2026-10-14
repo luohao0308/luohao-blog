@@ -7,7 +7,7 @@ const visibleProjects = computed(() => selectedStack.value === '全部'
   ? projects.value
   : projects.value.filter(project => (project.stack ?? []).includes(selectedStack.value)))
 
-useHead({ title: '作品集' })
+usePageSeo({ title: '作品集', description: '查看 luohao 已公开的全栈工具、工程治理与 AI 协作项目。' })
 </script>
 
 <template>

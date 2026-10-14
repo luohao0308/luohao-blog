@@ -2,9 +2,9 @@
 
 status: approved
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
-current_slice: S4 in_progress
-S1-S3: local_verified
-S5-S6: pending
+current_slice: S5 in_progress
+S1-S4: local_verified
+S6: pending
 mode: direct execution; slices approved by user
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 
@@ -103,3 +103,9 @@ baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 Project/About机器契约、后台新增/编辑/排序/软下架、图片与公开隔离已实现，原三项目和About以幂等seed迁入。字段/嵌套JSON边界、URL协议、不可变slug、mask替换/清空以及匿名401/Reader403均有回归。Go全量test/vet/build、lint0、四包race和生成稳定通过；根复跑Project/About四包回归通过，独立backend/frontend审查APPROVE。真实MySQL11→13及12→13验证旧文章非默认封面/精选保留，seed重跑不覆盖编辑，SQL备份恢复和重升级通过。
 
 真实HTTP+BFF浏览器PASS：登录→创建草稿→匿名404→上传PNG并实际落盘回读→上架/排序→移动详情→软下架公开404→About编辑并刷新持久。联调暴露SSR hydration忽略payload与SPA AsyncData缓存两项真实问题；修复后同一page验证404草稿上架后SPA可见、200项目下架后列表/history不残留、已加载旧About编辑后SPA显示新内容。公开请求no-store，hydration复用payload，后续导航重取；单一NForm同时锁定按钮/Enter提交。最新前端专项mock及S1/S2回归、lint/typecheck/build全部通过；浏览器PASS不能被fixture正常退出替代。新增复跑说明见scripts/e2e/README.md。所有变更仍仅本地，未远端交付或生产部署。
+
+## S4本地验收（2026-10-15）
+
+新增robots.txt、sitemap.xml、无依赖SEO helper与公开页面SSR title/description/canonical/OG/Twitter信息。图片为受控上传路径或原有品牌封面静态副本；origin固定runtimeconfig，不从Host/转发头派生。私密后台/账号/收藏以及未来恢复页面noindex并排除地图。robots只约束抓取，不将其当权限保护；不挡本站公开分享图片。
+
+测试先复现S3构建robots404，以及siteURL双斜杠路径可逃逸到外域，再修复为green。fresh pnpm lint/typecheck/build、纯utils边界、独立SEO专项通过：121文章/111作品多页、draft/hidden防御过滤、无caller Cookie/Authorization转发、XML实际解析/转义/真实lastmod、下架后fresh重生成、后台故障/重复token/空页续页/15s挂起上游在10s超时后503，错误和正常地图均no-store。首屏HTML与浏览器DOM对照确认摘要/分享/canonical/private noindex。collect原始记录与页数限制在拉取阶段生效，最终XML限制50000URL/50MiB；没有开启RSS。独立review APPROVE，所有专项自有进程均已退出。仍为local_verified，未更新生产。

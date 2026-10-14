@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const tag = computed(() => String(route.params.tag))
-useHead(() => ({ title: `${tag.value} · 文章` }))
+usePageSeo({ title: () => `${tag.value} · 文章`, description: () => `浏览标签“${tag.value}”下的公开技术文章。` })
 </script>
 
 <template>

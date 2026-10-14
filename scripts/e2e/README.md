@@ -118,3 +118,5 @@ fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不�
 3. 完成后创建精确的 `/tmp/blog-portfolio-fixture.url.stop` 文件并停止本任务预览。再次启动时使用新 URL 文件，避免旧 stop 信号。fixture 正常退出只证明其自身 HTTP 测试通过；浏览器必须另有脚本 `PASS` 结果。
 
 文章呈现工具边界用 `node --experimental-strip-types scripts/test_article_presentation.mjs` 验证。看门狗隔离回归用 `python3 scripts/test_watchdog.py`，不会重启真实 Docker 容器。真实 MySQL 升级、旧行兼容、幂等内容导入及 SQL 备份恢复用 `python3 scripts/test_mysql_migrations.py --baseline 12 --target 13`；该命令仅接受任务专属 label/volume/loopback 端口的隔离 MySQL，私密测试配置不得提交。
+
+SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_CHROMIUM=<已有Chrome路径> node scripts/e2e/seo_e2e.cjs`。脚本自行启动并停止仅绑定loopback的mock后端和随机端口Nitro preview，固定测试canonical为https://makerhao.cn，不访问该真实域名。验证121文章/111作品的完整分页、公开过滤、下架新鲜地图、无调用者会话转发、XML解析、SSR/head字段以及重复游标、空页续页和上游挂起503。工具边界用 `node --experimental-strip-types scripts/test_seo.mjs` 验证固定origin、受控图片、XML转义和时间戳。

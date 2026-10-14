@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatDate, usePublishedArticles } from '~/composables/useArticles'
 
-useHead({ title: '阅读排行' })
+usePageSeo({ title: '阅读排行', description: '按去重阅读量浏览 luohao-blog 当前最受关注的公开文章。' })
 
 const { data, status, error, refresh } = await usePublishedArticles()
 const ranking = computed(() =>

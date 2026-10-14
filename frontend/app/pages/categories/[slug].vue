@@ -5,7 +5,7 @@ const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 const { data: categories } = await usePublicCategories()
 const category = computed(() => (categories.value ?? []).find(item => item.slug === slug.value))
-useHead(() => ({ title: `${category.value?.name ?? slug.value} · 分类` }))
+usePageSeo({ title: () => `${category.value?.name ?? slug.value} · 分类`, description: () => `浏览分类“${category.value?.name ?? slug.value}”下的公开技术文章。` })
 </script>
 
 <template>

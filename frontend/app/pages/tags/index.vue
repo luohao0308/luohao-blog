@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { tagCounts, usePublishedArticles } from '~/composables/useArticles'
 
-useHead({ title: '标签' })
+usePageSeo({ title: '标签', description: '按技术标签浏览 luohao-blog 的公开文章与实践记录。' })
 
 const { data, status, error, refresh } = await usePublishedArticles()
 const tags = computed(() => tagCounts(data.value ?? []))

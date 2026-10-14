@@ -92,7 +92,12 @@ onMounted(() => {
   }).catch(() => {})
 })
 
-useHead({ title: article.value.title })
+usePageSeo({
+  title: () => article.value.title,
+  description: () => summary.value,
+  image: () => article.value.cover_url,
+  type: 'article',
+})
 </script>
 
 <template>

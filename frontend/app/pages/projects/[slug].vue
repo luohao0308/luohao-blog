@@ -24,7 +24,11 @@ const relatedProjects = computed(() =>
     .map(entry => entry.project),
 )
 
-useHead(() => ({ title: `${project.value?.name ?? '项目'} · 作品集` }))
+usePageSeo({
+  title: () => `${project.value.name} · 作品集`,
+  description: () => project.value.summary,
+  image: () => project.value.cover_url,
+})
 </script>
 
 <template>

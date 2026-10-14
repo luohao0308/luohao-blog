@@ -16,7 +16,7 @@ const homeArticles = computed(() => {
 })
 const hasFeaturedArticles = computed(() => homeArticles.value.some(article => article.featured))
 
-useHead({ title: '首页' })
+usePageSeo({ title: '首页', description: '全栈工程师 luohao 的技术博客，记录 Go、Nuxt 与 AI Agent 的真实工程实践。' })
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/luohao0308' },

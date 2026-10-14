@@ -3,7 +3,7 @@ import { ARTICLE_STATUS, articleDate, formatDate, useArticleList } from '~/compo
 
 const { data, error } = useArticleList({ pageSize: 50 })
 
-useHead({ title: '归档' })
+usePageSeo({ title: '归档', description: '按发布时间浏览 luohao-blog 的全部公开技术文章。' })
 
 // groupByYear archives articles under their publish (or create) year.
 const grouped = computed(() => {
