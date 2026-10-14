@@ -14,6 +14,7 @@ _last-updated: 2026-10-13_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
+| T-016 | 网站能力补齐：六片已确认，S1本地验收通过，S2文章阅读与媒体进行中，S3–S6待实施 | frontend + backend + deploy | `docs/plans/WEBSITE-COMPLETION-2026-10.md` | 真实邮件联调需发信身份/私密配置；远端Git与准确版本生产更新按既有权限办理 |
 | T-015 | 头像/RSS移除及公众号同步 S1–S3 已本地完成并验证；文章/作品集/关于页优化检查完成、未改版 | frontend + 后续 backend | `docs/plans/ACCOUNT-AVATAR-WECHAT-2026-10.md` | 用户确认接口权限并批准本地实现；公开地址与默认永久封面已真实准备成功，并保存本机/生产目录的ignored覆盖片段；真实服务器私密凭据与出口白名单、正式交付/部署仍待配置或授权。默认关闭；真实草稿联调成功，未公开发表/群发；隔离交付分支准备中 |
 | T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已上线验收（PR #90/#91）；S2 小程序 HTTPS 已合并，公众号 HTTPS origin 已上线；S3 状态页与拨测已本地准备 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | S2 生产 Git02344ac 与 main a3c36bc 等树，原镜像775455a3复用；启用/草稿模式保留、HTTPS与401/健康检查通过。DevTools/真机验收待完成；用户选择稍后添加status CNAME，S3远端交付及部署尚未授权 |
 | T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（合法域名配置与关闭开发绕过校验后的真机验收；当前没有web-view，不需要业务域名） |
