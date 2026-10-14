@@ -33,6 +33,10 @@ type User struct {
 	Role biz.UserRole `json:"role,omitempty"`
 	// AvatarURL holds the value of the "avatar_url" field.
 	AvatarURL string `json:"avatar_url,omitempty"`
+	// EmailVerified holds the value of the "email_verified" field.
+	EmailVerified bool `json:"email_verified,omitempty"`
+	// CredentialVersion holds the value of the "credential_version" field.
+	CredentialVersion uint64 `json:"credential_version,omitempty"`
 	// WechatOpenid holds the value of the "wechat_openid" field.
 	WechatOpenid string `json:"wechat_openid,omitempty"`
 	selectValues sql.SelectValues
@@ -43,7 +47,9 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldRole:
+		case user.FieldEmailVerified:
+			values[i] = new(sql.NullBool)
+		case user.FieldRole, user.FieldCredentialVersion:
 			values[i] = new(sql.NullInt64)
 		case user.FieldEmail, user.FieldPasswordHash, user.FieldDisplayName, user.FieldAvatarURL, user.FieldWechatOpenid:
 			values[i] = new(sql.NullString)
@@ -114,6 +120,18 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AvatarURL = value.String
 			}
+		case user.FieldEmailVerified:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field email_verified", values[i])
+			} else if value.Valid {
+				_m.EmailVerified = value.Bool
+			}
+		case user.FieldCredentialVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field credential_version", values[i])
+			} else if value.Valid {
+				_m.CredentialVersion = uint64(value.Int64)
+			}
 		case user.FieldWechatOpenid:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field wechat_openid", values[i])
@@ -176,6 +194,12 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("avatar_url=")
 	builder.WriteString(_m.AvatarURL)
+	builder.WriteString(", ")
+	builder.WriteString("email_verified=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EmailVerified))
+	builder.WriteString(", ")
+	builder.WriteString("credential_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CredentialVersion))
 	builder.WriteString(", ")
 	builder.WriteString("wechat_openid=")
 	builder.WriteString(_m.WechatOpenid)

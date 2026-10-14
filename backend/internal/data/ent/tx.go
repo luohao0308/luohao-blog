@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// About is the client for interacting with the About builders.
 	About *AboutClient
+	// AccountEmailToken is the client for interacting with the AccountEmailToken builders.
+	AccountEmailToken *AccountEmailTokenClient
 	// Article is the client for interacting with the Article builders.
 	Article *ArticleClient
 	// Category is the client for interacting with the Category builders.
@@ -162,6 +164,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.About = NewAboutClient(tx.config)
+	tx.AccountEmailToken = NewAccountEmailTokenClient(tx.config)
 	tx.Article = NewArticleClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)

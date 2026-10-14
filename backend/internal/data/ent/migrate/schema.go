@@ -37,6 +37,40 @@ var (
 			},
 		},
 	}
+	// AccountEmailTokensColumns holds the columns for the "account_email_tokens" table.
+	AccountEmailTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+		{Name: "purpose", Type: field.TypeString, Size: 16},
+		{Name: "token_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "credential_version", Type: field.TypeUint64, Default: 0},
+		{Name: "expires_at", Type: field.TypeTime},
+	}
+	// AccountEmailTokensTable holds the schema information for the "account_email_tokens" table.
+	AccountEmailTokensTable = &schema.Table{
+		Name:       "account_email_tokens",
+		Columns:    AccountEmailTokensColumns,
+		PrimaryKey: []*schema.Column{AccountEmailTokensColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "accountemailtoken_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{AccountEmailTokensColumns[2]},
+			},
+			{
+				Name:    "accountemailtoken_user_id_purpose",
+				Unique:  true,
+				Columns: []*schema.Column{AccountEmailTokensColumns[3], AccountEmailTokensColumns[4]},
+			},
+			{
+				Name:    "accountemailtoken_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{AccountEmailTokensColumns[7]},
+			},
+		},
+	}
 	// ArticlesColumns holds the columns for the "articles" table.
 	ArticlesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -244,6 +278,8 @@ var (
 		{Name: "display_name", Type: field.TypeString, Default: ""},
 		{Name: "role", Type: field.TypeInt32, Default: 1},
 		{Name: "avatar_url", Type: field.TypeString, Default: ""},
+		{Name: "email_verified", Type: field.TypeBool, Default: false},
+		{Name: "credential_version", Type: field.TypeUint64, Default: 0},
 		{Name: "wechat_openid", Type: field.TypeString, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -333,6 +369,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AboutsTable,
+		AccountEmailTokensTable,
 		ArticlesTable,
 		CategoriesTable,
 		CommentsTable,

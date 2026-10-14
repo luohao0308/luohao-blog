@@ -20,14 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Register_FullMethodName       = "/blog.v1.AuthService/Register"
-	AuthService_Login_FullMethodName          = "/blog.v1.AuthService/Login"
-	AuthService_Refresh_FullMethodName        = "/blog.v1.AuthService/Refresh"
-	AuthService_Logout_FullMethodName         = "/blog.v1.AuthService/Logout"
-	AuthService_GetMe_FullMethodName          = "/blog.v1.AuthService/GetMe"
-	AuthService_UpdatePassword_FullMethodName = "/blog.v1.AuthService/UpdatePassword"
-	AuthService_WechatLogin_FullMethodName    = "/blog.v1.AuthService/WechatLogin"
-	AuthService_BindWechat_FullMethodName     = "/blog.v1.AuthService/BindWechat"
+	AuthService_Register_FullMethodName                 = "/blog.v1.AuthService/Register"
+	AuthService_Login_FullMethodName                    = "/blog.v1.AuthService/Login"
+	AuthService_Refresh_FullMethodName                  = "/blog.v1.AuthService/Refresh"
+	AuthService_Logout_FullMethodName                   = "/blog.v1.AuthService/Logout"
+	AuthService_GetMe_FullMethodName                    = "/blog.v1.AuthService/GetMe"
+	AuthService_UpdatePassword_FullMethodName           = "/blog.v1.AuthService/UpdatePassword"
+	AuthService_WechatLogin_FullMethodName              = "/blog.v1.AuthService/WechatLogin"
+	AuthService_BindWechat_FullMethodName               = "/blog.v1.AuthService/BindWechat"
+	AuthService_RequestEmailVerification_FullMethodName = "/blog.v1.AuthService/RequestEmailVerification"
+	AuthService_ConfirmEmailVerification_FullMethodName = "/blog.v1.AuthService/ConfirmEmailVerification"
+	AuthService_RequestPasswordReset_FullMethodName     = "/blog.v1.AuthService/RequestPasswordReset"
+	AuthService_ConfirmPasswordReset_FullMethodName     = "/blog.v1.AuthService/ConfirmPasswordReset"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -36,8 +40,9 @@ const (
 //
 // AuthService issues and revokes the credentials used to call privileged
 // endpoints. Registration is open: anyone can create a READER account with an
-// email, a password, and a display name (no email verification yet; abuse is
-// bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+// email, a password, and a display name. Email verification is optional for
+// access and can be completed later; abuse remains bounded by per-IP rate
+// limiting and comment pre-moderation. ADMIN accounts
 // are still created only by the seed command. The access
 // token is a short-lived JWT carried in the
 // Authorization header; the refresh token is an opaque secret delivered as an
@@ -75,9 +80,9 @@ type AuthServiceClient interface {
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*User, error)
 	// UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
-	// password follows the same rules as account creation (at least 8
-	// characters). Existing refresh sessions keep working until their natural
-	// expiry; the next login must use the new password.
+	// password follows the same rules as account creation (8-1024 UTF-8
+	// bytes). Existing refresh sessions are revoked after the change; access
+	// JWTs can remain valid only for their configured short lifetime.
 	// Authorization: any authenticated account (Authorization: Bearer).
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
@@ -103,6 +108,10 @@ type AuthServiceClient interface {
 	// credentials, CONFLICT when another account already holds the openid.
 	// Rate limited per client IP on the login budget.
 	BindWechat(ctx context.Context, in *BindWechatRequest, opts ...grpc.CallOption) (*LoginReply, error)
+	RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -193,14 +202,55 @@ func (c *authServiceClient) BindWechat(ctx context.Context, in *BindWechatReques
 	return out, nil
 }
 
+func (c *authServiceClient) RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_RequestEmailVerification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_ConfirmEmailVerification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_RequestPasswordReset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_ConfirmPasswordReset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 //
 // AuthService issues and revokes the credentials used to call privileged
 // endpoints. Registration is open: anyone can create a READER account with an
-// email, a password, and a display name (no email verification yet; abuse is
-// bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+// email, a password, and a display name. Email verification is optional for
+// access and can be completed later; abuse remains bounded by per-IP rate
+// limiting and comment pre-moderation. ADMIN accounts
 // are still created only by the seed command. The access
 // token is a short-lived JWT carried in the
 // Authorization header; the refresh token is an opaque secret delivered as an
@@ -238,9 +288,9 @@ type AuthServiceServer interface {
 	GetMe(context.Context, *GetMeRequest) (*User, error)
 	// UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
-	// password follows the same rules as account creation (at least 8
-	// characters). Existing refresh sessions keep working until their natural
-	// expiry; the next login must use the new password.
+	// password follows the same rules as account creation (8-1024 UTF-8
+	// bytes). Existing refresh sessions are revoked after the change; access
+	// JWTs can remain valid only for their configured short lifetime.
 	// Authorization: any authenticated account (Authorization: Bearer).
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
@@ -266,6 +316,10 @@ type AuthServiceServer interface {
 	// credentials, CONFLICT when another account already holds the openid.
 	// Rate limited per client IP on the login budget.
 	BindWechat(context.Context, *BindWechatRequest) (*LoginReply, error)
+	RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*emptypb.Empty, error)
+	ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*emptypb.Empty, error)
+	RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*emptypb.Empty, error)
+	ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -299,6 +353,18 @@ func (UnimplementedAuthServiceServer) WechatLogin(context.Context, *WechatLoginR
 }
 func (UnimplementedAuthServiceServer) BindWechat(context.Context, *BindWechatRequest) (*LoginReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method BindWechat not implemented")
+}
+func (UnimplementedAuthServiceServer) RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestEmailVerification not implemented")
+}
+func (UnimplementedAuthServiceServer) ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmEmailVerification not implemented")
+}
+func (UnimplementedAuthServiceServer) RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestPasswordReset not implemented")
+}
+func (UnimplementedAuthServiceServer) ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmPasswordReset not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -465,6 +531,78 @@ func _AuthService_BindWechat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_RequestEmailVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestEmailVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RequestEmailVerification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RequestEmailVerification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RequestEmailVerification(ctx, req.(*RequestEmailVerificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ConfirmEmailVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmEmailVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ConfirmEmailVerification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ConfirmEmailVerification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ConfirmEmailVerification(ctx, req.(*ConfirmEmailVerificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RequestPasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestPasswordResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RequestPasswordReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RequestPasswordReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RequestPasswordReset(ctx, req.(*RequestPasswordResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ConfirmPasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmPasswordResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ConfirmPasswordReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ConfirmPasswordReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ConfirmPasswordReset(ctx, req.(*ConfirmPasswordResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -503,6 +641,22 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BindWechat",
 			Handler:    _AuthService_BindWechat_Handler,
+		},
+		{
+			MethodName: "RequestEmailVerification",
+			Handler:    _AuthService_RequestEmailVerification_Handler,
+		},
+		{
+			MethodName: "ConfirmEmailVerification",
+			Handler:    _AuthService_ConfirmEmailVerification_Handler,
+		},
+		{
+			MethodName: "RequestPasswordReset",
+			Handler:    _AuthService_RequestPasswordReset_Handler,
+		},
+		{
+			MethodName: "ConfirmPasswordReset",
+			Handler:    _AuthService_ConfirmPasswordReset_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

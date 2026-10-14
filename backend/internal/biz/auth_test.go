@@ -22,12 +22,21 @@ func newFakeSessionRepo() *fakeSessionRepo {
 	return &fakeSessionRepo{sessions: map[string]*RefreshSession{}}
 }
 
-func (f *fakeSessionRepo) Create(_ context.Context, userID uuid.UUID, ttl time.Duration) (*RefreshSession, error) {
+func (f *fakeSessionRepo) Create(_ context.Context, userID uuid.UUID, version uint64, ttl time.Duration) (*RefreshSession, error) {
 	f.seq++
 	token := "refresh-" + string(rune('a'+f.seq-1))
-	s := &RefreshSession{Token: token, UserID: userID, ExpiresAt: time.Now().Add(ttl)}
+	s := &RefreshSession{Token: token, UserID: userID, CredentialVersion: version, ExpiresAt: time.Now().Add(ttl)}
 	f.sessions[token] = s
 	return s, nil
+}
+
+func (f *fakeSessionRepo) RevokeUser(_ context.Context, userID uuid.UUID) error {
+	for token, session := range f.sessions {
+		if session.UserID == userID {
+			delete(f.sessions, token)
+		}
+	}
+	return nil
 }
 
 func (f *fakeSessionRepo) Consume(_ context.Context, token string) (*RefreshSession, error) {
@@ -231,6 +240,45 @@ func TestAuthUsecaseRefreshAfterAccountDeletion(t *testing.T) {
 	}
 }
 
+type interleavingUserRepo struct {
+	*fakeUserRepo
+	findCalls int
+	armed     bool
+}
+
+func (r *interleavingUserRepo) FindByID(ctx context.Context, id uuid.UUID) (*User, error) {
+	stored, err := r.fakeUserRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	r.findCalls++
+	if r.armed && r.findCalls == 2 {
+		stored.CredentialVersion++
+	}
+	copy := *stored
+	return &copy, nil
+}
+
+func TestAuthUsecaseRefreshRejectsCredentialChangeDuringRotation(t *testing.T) {
+	repo := &interleavingUserRepo{fakeUserRepo: newFakeUserRepo()}
+	sessions := newFakeSessionRepo()
+	uc := NewAuthUsecase(NewUserUsecase(repo), sessions, newFakeIssuer(), &fakeLimiter{n: 10}, nil, time.Hour)
+	if _, err := uc.users.CreateAuthor(context.Background(), "race@example.com", "longenough1", "Race"); err != nil {
+		t.Fatal(err)
+	}
+	_, pair, err := uc.Login(context.Background(), "race@example.com", "longenough1", "127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo.findCalls, repo.armed = 0, true
+	if _, _, err = uc.Refresh(context.Background(), pair.Refresh.Token); err != ErrAuthInvalidRefreshToken {
+		t.Fatalf("refresh race = %v", err)
+	}
+	if len(sessions.sessions) != 0 {
+		t.Fatalf("stale replacement session remains: %+v", sessions.sessions)
+	}
+}
+
 func TestAuthUsecaseLogoutRevokes(t *testing.T) {
 	uc, sessions := newTestAuthUsecase()
 	ctx := context.Background()
@@ -251,6 +299,34 @@ func TestAuthUsecaseLogoutRevokes(t *testing.T) {
 	}
 	if err := uc.Logout(ctx, ""); err != nil {
 		t.Fatalf("Logout(empty) error = %v, want nil", err)
+	}
+}
+
+func TestAuthUsecasePasswordChangeIncrementsVersionRevokesSessionsAndKeepsVerification(t *testing.T) {
+	repo := newFakeUserRepo()
+	users := NewUserUsecase(repo)
+	u, err := users.CreateAccount(context.Background(), "password@example.com", "oldpassword1", "Password", UserRoleReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.EmailVerified = false
+	sessions := newFakeSessionRepo()
+	tokens := newFakeEmailTokenStore()
+	tokens.users = repo
+	_, _ = tokens.Issue(context.Background(), EmailPurposeVerify, u.ID, 0, time.Hour)
+	uc := NewAuthUsecaseWithEmail(users, sessions, newFakeIssuer(), &fakeLimiter{n: 10}, nil, time.Hour, tokens)
+	if _, _, err = uc.Login(context.Background(), u.Email, "oldpassword1", "ip"); err != nil {
+		t.Fatal(err)
+	}
+	if err = uc.UpdatePassword(context.Background(), u.ID, "oldpassword1", "newpassword1"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := users.ByID(context.Background(), u.ID)
+	if got.CredentialVersion != 1 || got.EmailVerified {
+		t.Fatalf("password state = %+v", got)
+	}
+	if len(sessions.sessions) != 0 || len(tokens.issued) != 0 {
+		t.Fatalf("revocation incomplete sessions=%d tokens=%d", len(sessions.sessions), len(tokens.issued))
 	}
 }
 

@@ -12,6 +12,7 @@ const email = ref('')
 const password = ref('')
 const pending = ref(false)
 const errorMsg = ref('')
+const passwordChanged = computed(() => route.query.password_changed === '1')
 
 const redirect = computed(() => {
   const target = String(route.query.redirect ?? '/')
@@ -61,6 +62,7 @@ async function submit() {
         <p class="text-sm text-slate-500 dark:text-slate-400">登录后可以评论、收藏身份互通，头像昵称随账号走。</p>
       </header>
       <form class="space-y-4" @submit.prevent="submit">
+        <p v-if="passwordChanged" role="status" class="text-sm text-emerald-600 dark:text-emerald-400">密码已修改，请使用新密码登录。</p>
         <input
           v-model="email"
           type="email"
@@ -86,6 +88,7 @@ async function submit() {
           {{ pending ? '登录中…' : '登录' }}
         </button>
       </form>
+      <p class="text-center text-sm"><NuxtLink to="/forgot-password" class="text-blue-600 hover:underline dark:text-blue-400">忘记密码？</NuxtLink></p>
       <p class="text-center text-sm text-slate-500 dark:text-slate-400">
         还没有账号？
         <NuxtLink :to="`/register?redirect=${encodeURIComponent(redirect)}`" class="text-blue-600 hover:underline dark:text-blue-400">

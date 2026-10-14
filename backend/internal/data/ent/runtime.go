@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -74,6 +75,71 @@ func init() {
 	aboutDescID := aboutMixinFields0[0].Descriptor()
 	// about.DefaultID holds the default value on creation for the id field.
 	about.DefaultID = aboutDescID.Default.(func() uuid.UUID)
+	accountemailtokenMixin := schema.AccountEmailToken{}.Mixin()
+	accountemailtokenMixinFields0 := accountemailtokenMixin[0].Fields()
+	_ = accountemailtokenMixinFields0
+	accountemailtokenMixinFields1 := accountemailtokenMixin[1].Fields()
+	_ = accountemailtokenMixinFields1
+	accountemailtokenFields := schema.AccountEmailToken{}.Fields()
+	_ = accountemailtokenFields
+	// accountemailtokenDescCreatedAt is the schema descriptor for created_at field.
+	accountemailtokenDescCreatedAt := accountemailtokenMixinFields1[0].Descriptor()
+	// accountemailtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	accountemailtoken.DefaultCreatedAt = accountemailtokenDescCreatedAt.Default.(func() time.Time)
+	// accountemailtokenDescUpdatedAt is the schema descriptor for updated_at field.
+	accountemailtokenDescUpdatedAt := accountemailtokenMixinFields1[1].Descriptor()
+	// accountemailtoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	accountemailtoken.DefaultUpdatedAt = accountemailtokenDescUpdatedAt.Default.(func() time.Time)
+	// accountemailtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	accountemailtoken.UpdateDefaultUpdatedAt = accountemailtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// accountemailtokenDescPurpose is the schema descriptor for purpose field.
+	accountemailtokenDescPurpose := accountemailtokenFields[1].Descriptor()
+	// accountemailtoken.PurposeValidator is a validator for the "purpose" field. It is called by the builders before save.
+	accountemailtoken.PurposeValidator = func() func(string) error {
+		validators := accountemailtokenDescPurpose.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(purpose string) error {
+			for _, fn := range fns {
+				if err := fn(purpose); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// accountemailtokenDescTokenHash is the schema descriptor for token_hash field.
+	accountemailtokenDescTokenHash := accountemailtokenFields[2].Descriptor()
+	// accountemailtoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	accountemailtoken.TokenHashValidator = func() func(string) error {
+		validators := accountemailtokenDescTokenHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(token_hash string) error {
+			for _, fn := range fns {
+				if err := fn(token_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// accountemailtokenDescCredentialVersion is the schema descriptor for credential_version field.
+	accountemailtokenDescCredentialVersion := accountemailtokenFields[3].Descriptor()
+	// accountemailtoken.DefaultCredentialVersion holds the default value on creation for the credential_version field.
+	accountemailtoken.DefaultCredentialVersion = accountemailtokenDescCredentialVersion.Default.(uint64)
+	// accountemailtokenDescExpiresAt is the schema descriptor for expires_at field.
+	accountemailtokenDescExpiresAt := accountemailtokenFields[4].Descriptor()
+	// accountemailtoken.DefaultExpiresAt holds the default value on creation for the expires_at field.
+	accountemailtoken.DefaultExpiresAt = accountemailtokenDescExpiresAt.Default.(func() time.Time)
+	// accountemailtokenDescID is the schema descriptor for id field.
+	accountemailtokenDescID := accountemailtokenMixinFields0[0].Descriptor()
+	// accountemailtoken.DefaultID holds the default value on creation for the id field.
+	accountemailtoken.DefaultID = accountemailtokenDescID.Default.(func() uuid.UUID)
 	articleMixin := schema.Article{}.Mixin()
 	articleMixinFields0 := articleMixin[0].Fields()
 	_ = articleMixinFields0
@@ -381,6 +447,14 @@ func init() {
 	userDescAvatarURL := userFields[4].Descriptor()
 	// user.DefaultAvatarURL holds the default value on creation for the avatar_url field.
 	user.DefaultAvatarURL = userDescAvatarURL.Default.(string)
+	// userDescEmailVerified is the schema descriptor for email_verified field.
+	userDescEmailVerified := userFields[5].Descriptor()
+	// user.DefaultEmailVerified holds the default value on creation for the email_verified field.
+	user.DefaultEmailVerified = userDescEmailVerified.Default.(bool)
+	// userDescCredentialVersion is the schema descriptor for credential_version field.
+	userDescCredentialVersion := userFields[6].Descriptor()
+	// user.DefaultCredentialVersion holds the default value on creation for the credential_version field.
+	user.DefaultCredentialVersion = userDescCredentialVersion.Default.(uint64)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

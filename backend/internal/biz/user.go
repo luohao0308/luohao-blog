@@ -52,11 +52,13 @@ const (
 // baselines. The PHC string is self-contained, so parameters can be raised
 // over time and old hashes still verify.
 const (
-	argon2Memory  = 64 * 1024
-	argon2Time    = 1
-	argon2Threads = 4
-	argon2KeyLen  = 32
-	argon2SaltLen = 16
+	argon2Memory     = 64 * 1024
+	argon2Time       = 1
+	argon2Threads    = 4
+	argon2KeyLen     = 32
+	argon2SaltLen    = 16
+	MinPasswordBytes = 8
+	MaxPasswordBytes = 1024
 )
 
 // emailPattern is a pragmatic RFC5322 subset; the real verification for
@@ -75,9 +77,11 @@ type User struct {
 	AvatarURL string
 	// WechatOpenID is the mini-program identity attached through the wechat
 	// login flow, or "" when the account has never been bound.
-	WechatOpenID string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	WechatOpenID      string
+	EmailVerified     bool
+	CredentialVersion uint64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // UserRepository is a user repo.
@@ -89,7 +93,7 @@ type UserRepository interface {
 	// deleted authors).
 	FindByIDs(context.Context, []uuid.UUID) ([]*User, error)
 	Create(context.Context, *User) (*User, error)
-	UpdatePassword(context.Context, uuid.UUID, string) error
+	UpdatePasswordState(context.Context, uuid.UUID, uint64, string, bool) (uint64, bool, error)
 	// UpdateProfile replaces the public display name.
 	UpdateProfile(context.Context, uuid.UUID, string) error
 	// UpdateAvatar replaces the site-relative avatar path ("" clears it).
@@ -181,11 +185,11 @@ func (uc *UserUsecase) CreateAuthor(ctx context.Context, email, password, displa
 // CreateAccount creates an account with the given role (seed path only).
 // The password is hashed before it reaches the repo.
 func (uc *UserUsecase) CreateAccount(ctx context.Context, email, password, displayName string, role UserRole) (*User, error) {
-	email = strings.ToLower(strings.TrimSpace(email))
-	if !emailPattern.MatchString(email) {
+	email = NormalizeEmail(email)
+	if !ValidUserEmail(email) {
 		return nil, ErrUserInvalidArgument
 	}
-	if len(password) < 8 {
+	if !ValidNewPassword(password) {
 		return nil, ErrUserInvalidArgument
 	}
 	if role != UserRoleAdmin && role != UserRoleReader {
@@ -201,6 +205,20 @@ func (uc *UserUsecase) CreateAccount(ctx context.Context, email, password, displ
 		DisplayName:  strings.TrimSpace(displayName),
 		Role:         role,
 	})
+}
+
+func NormalizeEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
+func ValidUserEmail(email string) bool   { return len(email) <= 191 && emailPattern.MatchString(email) }
+func ValidNewPassword(password string) bool {
+	return len(password) >= MinPasswordBytes && len(password) <= MaxPasswordBytes
+}
+
+func (uc *UserUsecase) ByEmail(ctx context.Context, email string) (*User, error) {
+	email = NormalizeEmail(email)
+	if !ValidUserEmail(email) {
+		return nil, ErrUserInvalidArgument
+	}
+	return uc.repo.FindByEmail(ctx, email)
 }
 
 // ByID returns the account with the given id.
@@ -228,7 +246,7 @@ func (uc *UserUsecase) ByIDs(ctx context.Context, ids []uuid.UUID) ([]*User, err
 
 // Authenticate verifies credentials and returns the account on success.
 func (uc *UserUsecase) Authenticate(ctx context.Context, email, password string) (*User, error) {
-	email = strings.ToLower(strings.TrimSpace(email))
+	email = NormalizeEmail(email)
 	user, err := uc.repo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -257,14 +275,21 @@ func (uc *UserUsecase) UpdatePassword(ctx context.Context, id uuid.UUID, oldPass
 	if !VerifyPassword(oldPassword, user.PasswordHash) {
 		return ErrUserInvalidCredentials
 	}
-	if len(newPassword) < 8 {
+	if !ValidNewPassword(newPassword) {
 		return ErrUserInvalidArgument
 	}
 	hash, err := HashPassword(newPassword)
 	if err != nil {
 		return ErrUserInvalidArgument
 	}
-	return uc.repo.UpdatePassword(ctx, id, hash)
+	_, updated, err := uc.repo.UpdatePasswordState(ctx, id, user.CredentialVersion, hash, false)
+	if err != nil {
+		return err
+	}
+	if !updated {
+		return ErrUserInvalidCredentials
+	}
+	return nil
 }
 
 // UpdateProfile renames the calling account. The name is the comment/header

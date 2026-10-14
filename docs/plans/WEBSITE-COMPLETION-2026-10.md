@@ -2,9 +2,9 @@
 
 status: approved
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
-current_slice: S5 in_progress
-S1-S4: local_verified
-S6: pending
+current_slice: S6 in_progress
+S1-S5: local_verified
+S5_mail_delivery: pending_external
 mode: direct execution; slices approved by user
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 
@@ -109,3 +109,21 @@ Project/About机器契约、后台新增/编辑/排序/软下架、图片与公�
 新增robots.txt、sitemap.xml、无依赖SEO helper与公开页面SSR title/description/canonical/OG/Twitter信息。图片为受控上传路径或原有品牌封面静态副本；origin固定runtimeconfig，不从Host/转发头派生。私密后台/账号/收藏以及未来恢复页面noindex并排除地图。robots只约束抓取，不将其当权限保护；不挡本站公开分享图片。
 
 测试先复现S3构建robots404，以及siteURL双斜杠路径可逃逸到外域，再修复为green。fresh pnpm lint/typecheck/build、纯utils边界、独立SEO专项通过：121文章/111作品多页、draft/hidden防御过滤、无caller Cookie/Authorization转发、XML实际解析/转义/真实lastmod、下架后fresh重生成、后台故障/重复token/空页续页/15s挂起上游在10s超时后503，错误和正常地图均no-store。首屏HTML与浏览器DOM对照确认摘要/分享/canonical/private noindex。collect原始记录与页数限制在拉取阶段生效，最终XML限制50000URL/50MiB；没有开启RSS。独立review APPROVE，所有专项自有进程均已退出。仍为local_verified，未更新生产。
+
+## S5实施细化（原批准范围内）
+
+复用现有Argon2id HashPassword/VerifyPassword，不改变散列算法；新register/update/reset密码最大1024 UTF-8 bytes，服务端最小值沿用8bytes，旧Authenticate/current password不新设max以保留历史长密码。前端既有8位最小检查与服务端Unicode口径存在旧差异，不伪称完全一致。
+
+v14新增users.email_verified(defaultfalse)、credential_version(default0)，并增加account_email_tokens（user/purpose唯一、SHA256 token_hash唯一、issue时version、expiry）。采用同一SQL事务条件消费token与用户CAS/验证/改密及清理，两者失败同时回滚，避免Redis令牌先消费而数据库改密失败的跨存储窗口；Redis继续承担fail-closed冷却/小时额度。只存hash，raw只在内存和邮件；重发替换旧hash，失效/并发/重放由目的和版本条件保护。普通改密不标记verified，但版本增加并撤销旧refresh/token；邮件reset标记verified并增加版本。
+
+找回请求使用有界内存队列和固定worker，HTTP不等待已知账号SMTP，已知/未知同样200 Empty受理响应，避免投递时延泄露是否注册；未配/队列满全体同503。队列不持久化raw token，worker才查用户并生成链接。SMTP失败仅精确回收本次hash，不能删掉之后的新token；不记录收件人/密码/token/provider原始敏感错误。SMTP总deadline覆盖连接后的协议阶段，worker可关闭。接口只表述受理、不声称投递成功；真实邮箱闭环仍需已验证发信身份和授权。
+
+## S5本地验收（2026-10-15）
+
+v14账户字段和目的隔离hash-only token表、验证/重置四端点、versioned refresh、bounded reset worker、严格TLS SMTP与前端三私密页已实现。普通改密与后台入口统一到个人设置，当前账号保存后登出；公众token确认不归因到另一个已登录账号。旧登录/评论/微信不受未验证状态限制；旧refresh UUID值兼容v0，旧超长密码仍可登录；access JWT残余窗口为配置TTL（默认15m），UI和契约如实提示。
+
+先锁定失效/并发/限流/存储和发送失败，再实现。独立复核修正：SMTP总deadline/ctx取消、异步发送避免时延枚举、非法token先便宜判定、容量1重置散列防并发内存放大、MySQL no-op affectedRows语义、真实私密enabled覆盖、移除无需求Ent upsert生成膨胀。fresh Go全量test/vet/build、lint0、四包race、api/config/ent/wire重复生成逐字稳定、无依赖变更、backend/frontend独立review APPROVE。前端fresh lint/typecheck/build/mock通过；后台旧modal缺少统一退出入口先RED，删除重复表单复用/settings#password后GREEN。
+
+真实MySQL13→14和11→14：旧账户密码散列/头像/微信绑定保留，verified=false/version0；actual TokenRepo确实RUN/PASS非skip，同秒Issue/已verified确认、重发/CAS/重置/普通未验证改密语义通过；user-purpose/hash唯一、FK拒孤儿，升级前备份恢复重升级与升级后verified/version/hash记录备份恢复均通过。真实HTTP+BFF+SQLite/miniredis/fakeMailer browser PASS：动态注册A/B/C，A验证/重置、B身份确认A链接后B仍false、fragment即时清理且不进DOM/localStorage/network URL、目的混用/弱密码/重放400，A旧refresh401/Brefresh仍200、旧密码401/新密码200、C未验证邮箱reset变true、known/unknown相同受理响应、三页面SSR noindex。所有fixture/preview已正常停止。
+
+SMTP真实身份/配置状态仍未提供，实际投递闭环标记pending_external；默认disabled并不锁旧服务，不能将fakeMailer验证冒称真实发信上线。按原计划继续S6，不阻断其余本地验收。

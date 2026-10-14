@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -34,15 +35,16 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAbout          = "About"
-	TypeArticle        = "Article"
-	TypeCategory       = "Category"
-	TypeComment        = "Comment"
-	TypeProject        = "Project"
-	TypeSubscriber     = "Subscriber"
-	TypeTag            = "Tag"
-	TypeUser           = "User"
-	TypeWechatSyncTask = "WechatSyncTask"
+	TypeAbout             = "About"
+	TypeAccountEmailToken = "AccountEmailToken"
+	TypeArticle           = "Article"
+	TypeCategory          = "Category"
+	TypeComment           = "Comment"
+	TypeProject           = "Project"
+	TypeSubscriber        = "Subscriber"
+	TypeTag               = "Tag"
+	TypeUser              = "User"
+	TypeWechatSyncTask    = "WechatSyncTask"
 )
 
 // AboutMutation represents an operation that mutates the About nodes in the graph.
@@ -1093,6 +1095,698 @@ func (m *AboutMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *AboutMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown About edge %s", name)
+}
+
+// AccountEmailTokenMutation represents an operation that mutates the AccountEmailToken nodes in the graph.
+type AccountEmailTokenMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	created_at            *time.Time
+	updated_at            *time.Time
+	user_id               *uuid.UUID
+	purpose               *string
+	token_hash            *string
+	credential_version    *uint64
+	addcredential_version *int64
+	expires_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*AccountEmailToken, error)
+	predicates            []predicate.AccountEmailToken
+}
+
+var _ ent.Mutation = (*AccountEmailTokenMutation)(nil)
+
+// accountemailtokenOption allows management of the mutation configuration using functional options.
+type accountemailtokenOption func(*AccountEmailTokenMutation)
+
+// newAccountEmailTokenMutation creates new mutation for the AccountEmailToken entity.
+func newAccountEmailTokenMutation(c config, op Op, opts ...accountemailtokenOption) *AccountEmailTokenMutation {
+	m := &AccountEmailTokenMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAccountEmailToken,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAccountEmailTokenID sets the ID field of the mutation.
+func withAccountEmailTokenID(id uuid.UUID) accountemailtokenOption {
+	return func(m *AccountEmailTokenMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AccountEmailToken
+		)
+		m.oldValue = func(ctx context.Context) (*AccountEmailToken, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AccountEmailToken.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAccountEmailToken sets the old AccountEmailToken of the mutation.
+func withAccountEmailToken(node *AccountEmailToken) accountemailtokenOption {
+	return func(m *AccountEmailTokenMutation) {
+		m.oldValue = func(context.Context) (*AccountEmailToken, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AccountEmailTokenMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AccountEmailTokenMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AccountEmailToken entities.
+func (m *AccountEmailTokenMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AccountEmailTokenMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AccountEmailTokenMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AccountEmailToken.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AccountEmailTokenMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AccountEmailTokenMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AccountEmailTokenMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AccountEmailTokenMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AccountEmailTokenMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AccountEmailTokenMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *AccountEmailTokenMutation) SetUserID(u uuid.UUID) {
+	m.user_id = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *AccountEmailTokenMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *AccountEmailTokenMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetPurpose sets the "purpose" field.
+func (m *AccountEmailTokenMutation) SetPurpose(s string) {
+	m.purpose = &s
+}
+
+// Purpose returns the value of the "purpose" field in the mutation.
+func (m *AccountEmailTokenMutation) Purpose() (r string, exists bool) {
+	v := m.purpose
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPurpose returns the old "purpose" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldPurpose(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPurpose is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPurpose requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPurpose: %w", err)
+	}
+	return oldValue.Purpose, nil
+}
+
+// ResetPurpose resets all changes to the "purpose" field.
+func (m *AccountEmailTokenMutation) ResetPurpose() {
+	m.purpose = nil
+}
+
+// SetTokenHash sets the "token_hash" field.
+func (m *AccountEmailTokenMutation) SetTokenHash(s string) {
+	m.token_hash = &s
+}
+
+// TokenHash returns the value of the "token_hash" field in the mutation.
+func (m *AccountEmailTokenMutation) TokenHash() (r string, exists bool) {
+	v := m.token_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTokenHash returns the old "token_hash" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldTokenHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTokenHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTokenHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTokenHash: %w", err)
+	}
+	return oldValue.TokenHash, nil
+}
+
+// ResetTokenHash resets all changes to the "token_hash" field.
+func (m *AccountEmailTokenMutation) ResetTokenHash() {
+	m.token_hash = nil
+}
+
+// SetCredentialVersion sets the "credential_version" field.
+func (m *AccountEmailTokenMutation) SetCredentialVersion(u uint64) {
+	m.credential_version = &u
+	m.addcredential_version = nil
+}
+
+// CredentialVersion returns the value of the "credential_version" field in the mutation.
+func (m *AccountEmailTokenMutation) CredentialVersion() (r uint64, exists bool) {
+	v := m.credential_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialVersion returns the old "credential_version" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldCredentialVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialVersion: %w", err)
+	}
+	return oldValue.CredentialVersion, nil
+}
+
+// AddCredentialVersion adds u to the "credential_version" field.
+func (m *AccountEmailTokenMutation) AddCredentialVersion(u int64) {
+	if m.addcredential_version != nil {
+		*m.addcredential_version += u
+	} else {
+		m.addcredential_version = &u
+	}
+}
+
+// AddedCredentialVersion returns the value that was added to the "credential_version" field in this mutation.
+func (m *AccountEmailTokenMutation) AddedCredentialVersion() (r int64, exists bool) {
+	v := m.addcredential_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCredentialVersion resets all changes to the "credential_version" field.
+func (m *AccountEmailTokenMutation) ResetCredentialVersion() {
+	m.credential_version = nil
+	m.addcredential_version = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *AccountEmailTokenMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *AccountEmailTokenMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the AccountEmailToken entity.
+// If the AccountEmailToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountEmailTokenMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *AccountEmailTokenMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// Where appends a list predicates to the AccountEmailTokenMutation builder.
+func (m *AccountEmailTokenMutation) Where(ps ...predicate.AccountEmailToken) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AccountEmailTokenMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AccountEmailTokenMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AccountEmailToken, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AccountEmailTokenMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AccountEmailTokenMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AccountEmailToken).
+func (m *AccountEmailTokenMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AccountEmailTokenMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, accountemailtoken.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, accountemailtoken.FieldUpdatedAt)
+	}
+	if m.user_id != nil {
+		fields = append(fields, accountemailtoken.FieldUserID)
+	}
+	if m.purpose != nil {
+		fields = append(fields, accountemailtoken.FieldPurpose)
+	}
+	if m.token_hash != nil {
+		fields = append(fields, accountemailtoken.FieldTokenHash)
+	}
+	if m.credential_version != nil {
+		fields = append(fields, accountemailtoken.FieldCredentialVersion)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, accountemailtoken.FieldExpiresAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AccountEmailTokenMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case accountemailtoken.FieldCreatedAt:
+		return m.CreatedAt()
+	case accountemailtoken.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case accountemailtoken.FieldUserID:
+		return m.UserID()
+	case accountemailtoken.FieldPurpose:
+		return m.Purpose()
+	case accountemailtoken.FieldTokenHash:
+		return m.TokenHash()
+	case accountemailtoken.FieldCredentialVersion:
+		return m.CredentialVersion()
+	case accountemailtoken.FieldExpiresAt:
+		return m.ExpiresAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AccountEmailTokenMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case accountemailtoken.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case accountemailtoken.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case accountemailtoken.FieldUserID:
+		return m.OldUserID(ctx)
+	case accountemailtoken.FieldPurpose:
+		return m.OldPurpose(ctx)
+	case accountemailtoken.FieldTokenHash:
+		return m.OldTokenHash(ctx)
+	case accountemailtoken.FieldCredentialVersion:
+		return m.OldCredentialVersion(ctx)
+	case accountemailtoken.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AccountEmailToken field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AccountEmailTokenMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case accountemailtoken.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case accountemailtoken.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case accountemailtoken.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case accountemailtoken.FieldPurpose:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPurpose(v)
+		return nil
+	case accountemailtoken.FieldTokenHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTokenHash(v)
+		return nil
+	case accountemailtoken.FieldCredentialVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialVersion(v)
+		return nil
+	case accountemailtoken.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AccountEmailToken field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AccountEmailTokenMutation) AddedFields() []string {
+	var fields []string
+	if m.addcredential_version != nil {
+		fields = append(fields, accountemailtoken.FieldCredentialVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AccountEmailTokenMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case accountemailtoken.FieldCredentialVersion:
+		return m.AddedCredentialVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AccountEmailTokenMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case accountemailtoken.FieldCredentialVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCredentialVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AccountEmailToken numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AccountEmailTokenMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AccountEmailTokenMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AccountEmailTokenMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown AccountEmailToken nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AccountEmailTokenMutation) ResetField(name string) error {
+	switch name {
+	case accountemailtoken.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case accountemailtoken.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case accountemailtoken.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case accountemailtoken.FieldPurpose:
+		m.ResetPurpose()
+		return nil
+	case accountemailtoken.FieldTokenHash:
+		m.ResetTokenHash()
+		return nil
+	case accountemailtoken.FieldCredentialVersion:
+		m.ResetCredentialVersion()
+		return nil
+	case accountemailtoken.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AccountEmailToken field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AccountEmailTokenMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AccountEmailTokenMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AccountEmailTokenMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AccountEmailTokenMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AccountEmailTokenMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AccountEmailTokenMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AccountEmailTokenMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AccountEmailToken unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AccountEmailTokenMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AccountEmailToken edge %s", name)
 }
 
 // ArticleMutation represents an operation that mutates the Article nodes in the graph.
@@ -6337,22 +7031,25 @@ func (m *TagMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	created_at    *time.Time
-	updated_at    *time.Time
-	email         *string
-	password_hash *string
-	display_name  *string
-	role          *biz.UserRole
-	addrole       *biz.UserRole
-	avatar_url    *string
-	wechat_openid *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	created_at            *time.Time
+	updated_at            *time.Time
+	email                 *string
+	password_hash         *string
+	display_name          *string
+	role                  *biz.UserRole
+	addrole               *biz.UserRole
+	avatar_url            *string
+	email_verified        *bool
+	credential_version    *uint64
+	addcredential_version *int64
+	wechat_openid         *string
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*User, error)
+	predicates            []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -6731,6 +7428,98 @@ func (m *UserMutation) ResetAvatarURL() {
 	m.avatar_url = nil
 }
 
+// SetEmailVerified sets the "email_verified" field.
+func (m *UserMutation) SetEmailVerified(b bool) {
+	m.email_verified = &b
+}
+
+// EmailVerified returns the value of the "email_verified" field in the mutation.
+func (m *UserMutation) EmailVerified() (r bool, exists bool) {
+	v := m.email_verified
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEmailVerified returns the old "email_verified" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldEmailVerified(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEmailVerified is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEmailVerified requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEmailVerified: %w", err)
+	}
+	return oldValue.EmailVerified, nil
+}
+
+// ResetEmailVerified resets all changes to the "email_verified" field.
+func (m *UserMutation) ResetEmailVerified() {
+	m.email_verified = nil
+}
+
+// SetCredentialVersion sets the "credential_version" field.
+func (m *UserMutation) SetCredentialVersion(u uint64) {
+	m.credential_version = &u
+	m.addcredential_version = nil
+}
+
+// CredentialVersion returns the value of the "credential_version" field in the mutation.
+func (m *UserMutation) CredentialVersion() (r uint64, exists bool) {
+	v := m.credential_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialVersion returns the old "credential_version" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldCredentialVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialVersion: %w", err)
+	}
+	return oldValue.CredentialVersion, nil
+}
+
+// AddCredentialVersion adds u to the "credential_version" field.
+func (m *UserMutation) AddCredentialVersion(u int64) {
+	if m.addcredential_version != nil {
+		*m.addcredential_version += u
+	} else {
+		m.addcredential_version = &u
+	}
+}
+
+// AddedCredentialVersion returns the value that was added to the "credential_version" field in this mutation.
+func (m *UserMutation) AddedCredentialVersion() (r int64, exists bool) {
+	v := m.addcredential_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCredentialVersion resets all changes to the "credential_version" field.
+func (m *UserMutation) ResetCredentialVersion() {
+	m.credential_version = nil
+	m.addcredential_version = nil
+}
+
 // SetWechatOpenid sets the "wechat_openid" field.
 func (m *UserMutation) SetWechatOpenid(s string) {
 	m.wechat_openid = &s
@@ -6814,7 +7603,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -6835,6 +7624,12 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.avatar_url != nil {
 		fields = append(fields, user.FieldAvatarURL)
+	}
+	if m.email_verified != nil {
+		fields = append(fields, user.FieldEmailVerified)
+	}
+	if m.credential_version != nil {
+		fields = append(fields, user.FieldCredentialVersion)
 	}
 	if m.wechat_openid != nil {
 		fields = append(fields, user.FieldWechatOpenid)
@@ -6861,6 +7656,10 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Role()
 	case user.FieldAvatarURL:
 		return m.AvatarURL()
+	case user.FieldEmailVerified:
+		return m.EmailVerified()
+	case user.FieldCredentialVersion:
+		return m.CredentialVersion()
 	case user.FieldWechatOpenid:
 		return m.WechatOpenid()
 	}
@@ -6886,6 +7685,10 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldRole(ctx)
 	case user.FieldAvatarURL:
 		return m.OldAvatarURL(ctx)
+	case user.FieldEmailVerified:
+		return m.OldEmailVerified(ctx)
+	case user.FieldCredentialVersion:
+		return m.OldCredentialVersion(ctx)
 	case user.FieldWechatOpenid:
 		return m.OldWechatOpenid(ctx)
 	}
@@ -6946,6 +7749,20 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAvatarURL(v)
 		return nil
+	case user.FieldEmailVerified:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEmailVerified(v)
+		return nil
+	case user.FieldCredentialVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialVersion(v)
+		return nil
 	case user.FieldWechatOpenid:
 		v, ok := value.(string)
 		if !ok {
@@ -6964,6 +7781,9 @@ func (m *UserMutation) AddedFields() []string {
 	if m.addrole != nil {
 		fields = append(fields, user.FieldRole)
 	}
+	if m.addcredential_version != nil {
+		fields = append(fields, user.FieldCredentialVersion)
+	}
 	return fields
 }
 
@@ -6974,6 +7794,8 @@ func (m *UserMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case user.FieldRole:
 		return m.AddedRole()
+	case user.FieldCredentialVersion:
+		return m.AddedCredentialVersion()
 	}
 	return nil, false
 }
@@ -6989,6 +7811,13 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRole(v)
+		return nil
+	case user.FieldCredentialVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCredentialVersion(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User numeric field %s", name)
@@ -7046,6 +7875,12 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldAvatarURL:
 		m.ResetAvatarURL()
+		return nil
+	case user.FieldEmailVerified:
+		m.ResetEmailVerified()
+		return nil
+	case user.FieldCredentialVersion:
+		m.ResetCredentialVersion()
 		return nil
 	case user.FieldWechatOpenid:
 		m.ResetWechatOpenid()

@@ -46,6 +46,17 @@ auth:
     # Public search queries. Defaults when unset: 60 per 1m per IP.
     search_attempts: 60
     search_window: 60s # 1m
+
+mail:
+  enabled: false
+  smtp_host: ${MAIL_SMTP_HOST:smtpdm.aliyun.com}
+  smtp_port: 465
+  username: ${MAIL_SMTP_USERNAME:}
+  password: ${MAIL_SMTP_PASSWORD:}
+  from_address: ${MAIL_FROM_ADDRESS:}
+  from_name: ${MAIL_FROM_NAME:luohao.blog}
+  public_site_origin: ${MAIL_PUBLIC_SITE_ORIGIN:https://makerhao.cn}
+  send_timeout: 10s
 es:
   addresses:
     - http://es:9200

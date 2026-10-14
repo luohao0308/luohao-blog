@@ -510,6 +510,36 @@ paths:
                     description: OK
                     content:
                         '*/*': {}
+    /v1/auth/email-verification/confirm:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_ConfirmEmailVerification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ConfirmEmailVerificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/auth/email-verification/request:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RequestEmailVerification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RequestEmailVerificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/auth/login:
         post:
             tags:
@@ -570,6 +600,36 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.User'
+    /v1/auth/password-reset/confirm:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_ConfirmPasswordReset
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ConfirmPasswordResetRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/auth/password-reset/request:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RequestPasswordReset
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RequestPasswordResetRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/auth/refresh:
         post:
             tags:
@@ -625,9 +685,9 @@ paths:
             description: |-
                 UpdatePassword rotates the calling account's password. The current
                  password must be supplied and is verified before the change; the new
-                 password follows the same rules as account creation (at least 8
-                 characters). Existing refresh sessions keep working until their natural
-                 expiry; the next login must use the new password.
+                 password follows the same rules as account creation (8-1024 UTF-8
+                 bytes). Existing refresh sessions are revoked after the change; access
+                 JWTs can remain valid only for their configured short lifetime.
                  Authorization: any authenticated account (Authorization: Bearer).
                  Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
                  when fields are empty or the new password is too short.
@@ -1506,6 +1566,24 @@ components:
                         Token used to retrieve the next page. Empty when there are no more
                          results.
             description: CommentSet is a paginated collection of comments.
+        blog.v1.ConfirmEmailVerificationRequest:
+            required:
+                - token
+            type: object
+            properties:
+                token:
+                    type: string
+        blog.v1.ConfirmPasswordResetRequest:
+            required:
+                - token
+                - newPassword
+            type: object
+            properties:
+                token:
+                    type: string
+                newPassword:
+                    type: string
+                    description: New password; 8-1024 UTF-8 bytes.
         blog.v1.CreateCommentRequest:
             required:
                 - articleSlug
@@ -1676,13 +1754,23 @@ components:
                     description: Login email, matched case-insensitively and stored lowercased.
                 password:
                     type: string
-                    description: Plaintext password; at least 8 characters. Sent once over TLS.
+                    description: Plaintext password; 8-1024 UTF-8 bytes. Sent once over TLS.
                 displayName:
                     type: string
                     description: Public display name, 1-32 characters.
             description: |-
                 RegisterRequest is the input for AuthService.Register. The new account is
                  always a READER; ADMIN accounts exist only through the seed command.
+        blog.v1.RequestEmailVerificationRequest:
+            type: object
+            properties: {}
+        blog.v1.RequestPasswordResetRequest:
+            required:
+                - email
+            type: object
+            properties:
+                email:
+                    type: string
         blog.v1.RetryWechatSyncTaskRequest:
             required:
                 - id
@@ -1749,7 +1837,7 @@ components:
                     description: Current password, verified before the change.
                 newPassword:
                     type: string
-                    description: New password; at least 8 characters, same rule as account creation.
+                    description: New password; 8-1024 UTF-8 bytes, same rule as account creation.
             description: |-
                 UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
                  fields ride in the request body; the target account comes from the access
@@ -1814,6 +1902,11 @@ components:
                         Site-relative avatar path, e.g. /v1/assets/avatars/<random>.<ext>, or
                          empty when no avatar was uploaded. Clients resolve it against the API
                          origin (the Nuxt BFF prefixes /api).
+                emailVerified:
+                    type: boolean
+                    description: |-
+                        Whether control of the login email has been proven. Existing and newly
+                         registered accounts remain usable while false.
             description: |-
                 User is the public representation of an account. Credentials never appear
                  in responses.
@@ -1922,8 +2015,9 @@ tags:
       description: |-
         AuthService issues and revokes the credentials used to call privileged
          endpoints. Registration is open: anyone can create a READER account with an
-         email, a password, and a display name (no email verification yet; abuse is
-         bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+         email, a password, and a display name. Email verification is optional for
+         access and can be completed later; abuse remains bounded by per-IP rate
+         limiting and comment pre-moderation. ADMIN accounts
          are still created only by the seed command. The access
          token is a short-lived JWT carried in the
          Authorization header; the refresh token is an opaque secret delivered as an

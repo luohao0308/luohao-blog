@@ -17,6 +17,7 @@ export interface AuthUser {
   // Site-relative avatar path (/v1/assets/avatars/<name>) since the reader
   // accounts slice; empty until the first upload. Rendered through assetUrl().
   avatar_url?: string
+  email_verified?: boolean
 }
 
 export interface LoginReply {

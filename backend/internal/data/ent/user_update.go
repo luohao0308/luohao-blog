@@ -112,6 +112,41 @@ func (_u *UserUpdate) SetNillableAvatarURL(v *string) *UserUpdate {
 	return _u
 }
 
+// SetEmailVerified sets the "email_verified" field.
+func (_u *UserUpdate) SetEmailVerified(v bool) *UserUpdate {
+	_u.mutation.SetEmailVerified(v)
+	return _u
+}
+
+// SetNillableEmailVerified sets the "email_verified" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableEmailVerified(v *bool) *UserUpdate {
+	if v != nil {
+		_u.SetEmailVerified(*v)
+	}
+	return _u
+}
+
+// SetCredentialVersion sets the "credential_version" field.
+func (_u *UserUpdate) SetCredentialVersion(v uint64) *UserUpdate {
+	_u.mutation.ResetCredentialVersion()
+	_u.mutation.SetCredentialVersion(v)
+	return _u
+}
+
+// SetNillableCredentialVersion sets the "credential_version" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableCredentialVersion(v *uint64) *UserUpdate {
+	if v != nil {
+		_u.SetCredentialVersion(*v)
+	}
+	return _u
+}
+
+// AddCredentialVersion adds value to the "credential_version" field.
+func (_u *UserUpdate) AddCredentialVersion(v int64) *UserUpdate {
+	_u.mutation.AddCredentialVersion(v)
+	return _u
+}
+
 // SetWechatOpenid sets the "wechat_openid" field.
 func (_u *UserUpdate) SetWechatOpenid(v string) *UserUpdate {
 	_u.mutation.SetWechatOpenid(v)
@@ -221,6 +256,15 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.EmailVerified(); ok {
+		_spec.SetField(user.FieldEmailVerified, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.CredentialVersion(); ok {
+		_spec.SetField(user.FieldCredentialVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedCredentialVersion(); ok {
+		_spec.AddField(user.FieldCredentialVersion, field.TypeUint64, value)
+	}
 	if value, ok := _u.mutation.WechatOpenid(); ok {
 		_spec.SetField(user.FieldWechatOpenid, field.TypeString, value)
 	}
@@ -327,6 +371,41 @@ func (_u *UserUpdateOne) SetNillableAvatarURL(v *string) *UserUpdateOne {
 	if v != nil {
 		_u.SetAvatarURL(*v)
 	}
+	return _u
+}
+
+// SetEmailVerified sets the "email_verified" field.
+func (_u *UserUpdateOne) SetEmailVerified(v bool) *UserUpdateOne {
+	_u.mutation.SetEmailVerified(v)
+	return _u
+}
+
+// SetNillableEmailVerified sets the "email_verified" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableEmailVerified(v *bool) *UserUpdateOne {
+	if v != nil {
+		_u.SetEmailVerified(*v)
+	}
+	return _u
+}
+
+// SetCredentialVersion sets the "credential_version" field.
+func (_u *UserUpdateOne) SetCredentialVersion(v uint64) *UserUpdateOne {
+	_u.mutation.ResetCredentialVersion()
+	_u.mutation.SetCredentialVersion(v)
+	return _u
+}
+
+// SetNillableCredentialVersion sets the "credential_version" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableCredentialVersion(v *uint64) *UserUpdateOne {
+	if v != nil {
+		_u.SetCredentialVersion(*v)
+	}
+	return _u
+}
+
+// AddCredentialVersion adds value to the "credential_version" field.
+func (_u *UserUpdateOne) AddCredentialVersion(v int64) *UserUpdateOne {
+	_u.mutation.AddCredentialVersion(v)
 	return _u
 }
 
@@ -468,6 +547,15 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.AvatarURL(); ok {
 		_spec.SetField(user.FieldAvatarURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.EmailVerified(); ok {
+		_spec.SetField(user.FieldEmailVerified, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.CredentialVersion(); ok {
+		_spec.SetField(user.FieldCredentialVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedCredentialVersion(); ok {
+		_spec.AddField(user.FieldCredentialVersion, field.TypeUint64, value)
 	}
 	if value, ok := _u.mutation.WechatOpenid(); ok {
 		_spec.SetField(user.FieldWechatOpenid, field.TypeString, value)

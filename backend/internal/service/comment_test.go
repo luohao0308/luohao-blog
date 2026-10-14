@@ -185,8 +185,8 @@ func (s *stubUserRepo) Create(context.Context, *biz.User) (*biz.User, error) {
 	return nil, biz.ErrUserInvalidArgument
 }
 
-func (s *stubUserRepo) UpdatePassword(context.Context, uuid.UUID, string) error {
-	return biz.ErrUserNotFound
+func (s *stubUserRepo) UpdatePasswordState(context.Context, uuid.UUID, uint64, string, bool) (uint64, bool, error) {
+	return 0, false, biz.ErrUserNotFound
 }
 
 func (s *stubUserRepo) UpdateProfile(context.Context, uuid.UUID, string) error {

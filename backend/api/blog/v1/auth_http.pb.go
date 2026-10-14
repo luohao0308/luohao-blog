@@ -19,11 +19,15 @@ var _ = new(context.Context)
 const _ = http.SupportPackageIsVersion3
 
 const OperationAuthServiceBindWechat = "/blog.v1.AuthService/BindWechat"
+const OperationAuthServiceConfirmEmailVerification = "/blog.v1.AuthService/ConfirmEmailVerification"
+const OperationAuthServiceConfirmPasswordReset = "/blog.v1.AuthService/ConfirmPasswordReset"
 const OperationAuthServiceGetMe = "/blog.v1.AuthService/GetMe"
 const OperationAuthServiceLogin = "/blog.v1.AuthService/Login"
 const OperationAuthServiceLogout = "/blog.v1.AuthService/Logout"
 const OperationAuthServiceRefresh = "/blog.v1.AuthService/Refresh"
 const OperationAuthServiceRegister = "/blog.v1.AuthService/Register"
+const OperationAuthServiceRequestEmailVerification = "/blog.v1.AuthService/RequestEmailVerification"
+const OperationAuthServiceRequestPasswordReset = "/blog.v1.AuthService/RequestPasswordReset"
 const OperationAuthServiceUpdatePassword = "/blog.v1.AuthService/UpdatePassword"
 const OperationAuthServiceWechatLogin = "/blog.v1.AuthService/WechatLogin"
 
@@ -37,6 +41,8 @@ type AuthServiceHTTPServer interface {
 	// credentials, CONFLICT when another account already holds the openid.
 	// Rate limited per client IP on the login budget.
 	BindWechat(context.Context, *BindWechatRequest) (*LoginReply, error)
+	ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*emptypb.Empty, error)
+	ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*emptypb.Empty, error)
 	// GetMe GetMe returns the account identified by the access token in the
 	// Authorization header. Returns UNAUTHORIZED when the token is missing,
 	// malformed, forged, or expired.
@@ -64,11 +70,13 @@ type AuthServiceHTTPServer interface {
 	// the email is already registered. Rate limited per client IP; excess
 	// attempts return TOO_MANY_REQUESTS.
 	Register(context.Context, *RegisterRequest) (*LoginReply, error)
+	RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*emptypb.Empty, error)
+	RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*emptypb.Empty, error)
 	// UpdatePassword UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
-	// password follows the same rules as account creation (at least 8
-	// characters). Existing refresh sessions keep working until their natural
-	// expiry; the next login must use the new password.
+	// password follows the same rules as account creation (8-1024 UTF-8
+	// bytes). Existing refresh sessions are revoked after the change; access
+	// JWTs can remain valid only for their configured short lifetime.
 	// Authorization: any authenticated account (Authorization: Bearer).
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
@@ -97,6 +105,10 @@ func RegisterAuthServiceHTTPServer(s *http.Server, srv AuthServiceHTTPServer) {
 	r.Handle("POST", "/v1/auth/update-password", _AuthService_UpdatePassword0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/wechat", _AuthService_WechatLogin0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/auth/wechat/bind", _AuthService_BindWechat0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/auth/email-verification/request", _AuthService_RequestEmailVerification0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/auth/email-verification/confirm", _AuthService_ConfirmEmailVerification0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/auth/password-reset/request", _AuthService_RequestPasswordReset0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/auth/password-reset/confirm", _AuthService_ConfirmPasswordReset0_HTTP_Handler(srv))
 }
 
 func _AuthService_Register0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
@@ -251,6 +263,82 @@ func _AuthService_BindWechat0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx h
 	}
 }
 
+func _AuthService_RequestEmailVerification0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RequestEmailVerificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceRequestEmailVerification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RequestEmailVerification(ctx, req.(*RequestEmailVerificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuthService_ConfirmEmailVerification0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ConfirmEmailVerificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceConfirmEmailVerification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ConfirmEmailVerification(ctx, req.(*ConfirmEmailVerificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuthService_RequestPasswordReset0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RequestPasswordResetRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceRequestPasswordReset)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RequestPasswordReset(ctx, req.(*RequestPasswordResetRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _AuthService_ConfirmPasswordReset0_HTTP_Handler(srv AuthServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ConfirmPasswordResetRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthServiceConfirmPasswordReset)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ConfirmPasswordReset(ctx, req.(*ConfirmPasswordResetRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*emptypb.Empty)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AuthServiceHTTPClient interface {
 	// BindWechat BindWechat attaches the openid behind a WechatLogin binding ticket to
 	// the account authenticated by email and password, then signs the caller
@@ -261,6 +349,8 @@ type AuthServiceHTTPClient interface {
 	// credentials, CONFLICT when another account already holds the openid.
 	// Rate limited per client IP on the login budget.
 	BindWechat(ctx context.Context, req *BindWechatRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	ConfirmEmailVerification(ctx context.Context, req *ConfirmEmailVerificationRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
+	ConfirmPasswordReset(ctx context.Context, req *ConfirmPasswordResetRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 	// GetMe GetMe returns the account identified by the access token in the
 	// Authorization header. Returns UNAUTHORIZED when the token is missing,
 	// malformed, forged, or expired.
@@ -288,11 +378,13 @@ type AuthServiceHTTPClient interface {
 	// the email is already registered. Rate limited per client IP; excess
 	// attempts return TOO_MANY_REQUESTS.
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	RequestEmailVerification(ctx context.Context, req *RequestEmailVerificationRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
+	RequestPasswordReset(ctx context.Context, req *RequestPasswordResetRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
 	// UpdatePassword UpdatePassword rotates the calling account's password. The current
 	// password must be supplied and is verified before the change; the new
-	// password follows the same rules as account creation (at least 8
-	// characters). Existing refresh sessions keep working until their natural
-	// expiry; the next login must use the new password.
+	// password follows the same rules as account creation (8-1024 UTF-8
+	// bytes). Existing refresh sessions are revoked after the change; access
+	// JWTs can remain valid only for their configured short lifetime.
 	// Authorization: any authenticated account (Authorization: Bearer).
 	// Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 	// when fields are empty or the new password is too short.
@@ -335,6 +427,40 @@ func (c *AuthServiceHTTPClientImpl) BindWechat(ctx context.Context, in *BindWech
 		http.Accept("application/protojson"),
 		http.ContentType("application/protojson"),
 		http.Operation(OperationAuthServiceBindWechat),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AuthServiceHTTPClientImpl) ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/auth/email-verification/confirm"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceConfirmEmailVerification),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AuthServiceHTTPClientImpl) ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/auth/password-reset/confirm"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceConfirmPasswordReset),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
@@ -450,11 +576,45 @@ func (c *AuthServiceHTTPClientImpl) Register(ctx context.Context, in *RegisterRe
 	return &out, nil
 }
 
+func (c *AuthServiceHTTPClientImpl) RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/auth/email-verification/request"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceRequestEmailVerification),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AuthServiceHTTPClientImpl) RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...http.CallOption) (*emptypb.Empty, error) {
+	var out emptypb.Empty
+	pattern := "/v1/auth/password-reset/request"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationAuthServiceRequestPasswordReset),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // UpdatePassword UpdatePassword rotates the calling account's password. The current
 // password must be supplied and is verified before the change; the new
-// password follows the same rules as account creation (at least 8
-// characters). Existing refresh sessions keep working until their natural
-// expiry; the next login must use the new password.
+// password follows the same rules as account creation (8-1024 UTF-8
+// bytes). Existing refresh sessions are revoked after the change; access
+// JWTs can remain valid only for their configured short lifetime.
 // Authorization: any authenticated account (Authorization: Bearer).
 // Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
 // when fields are empty or the new password is too short.

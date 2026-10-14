@@ -120,3 +120,7 @@ fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不�
 文章呈现工具边界用 `node --experimental-strip-types scripts/test_article_presentation.mjs` 验证。看门狗隔离回归用 `python3 scripts/test_watchdog.py`，不会重启真实 Docker 容器。真实 MySQL 升级、旧行兼容、幂等内容导入及 SQL 备份恢复用 `python3 scripts/test_mysql_migrations.py --baseline 12 --target 13`；该命令仅接受任务专属 label/volume/loopback 端口的隔离 MySQL，私密测试配置不得提交。
 
 SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_CHROMIUM=<已有Chrome路径> node scripts/e2e/seo_e2e.cjs`。脚本自行启动并停止仅绑定loopback的mock后端和随机端口Nitro preview，固定测试canonical为https://makerhao.cn，不访问该真实域名。验证121文章/111作品的完整分页、公开过滤、下架新鲜地图、无调用者会话转发、XML解析、SSR/head字段以及重复游标、空页续页和上游挂起503。工具边界用 `node --experimental-strip-types scripts/test_seo.mjs` 验证固定origin、受控图片、XML转义和时间戳。
+
+账号邮箱专项：`account_email_e2e.cjs`使用模拟接口验证503/429/确认重试、fragment清理、其他账号token确认隔离、默认JWT残余窗口文案以及后台改密入口复用/当前会话退出。`account_email_live_e2e.cjs`不拦截API，使用真实BFF、SQL、Redis和fakeMailer；它动态注册三个仅fixture账号，确认验证/重置单次消费、目的隔离、弱密码不消费、旧refresh失效、其他账号会话保留、新密码登录及未验证邮箱重置证明。两者都只允许loopback，不发送真实邮件。
+
+先build前端，再在backend执行 `BLOG_ACCOUNT_EMAIL_BROWSER_FIXTURE=/tmp/blog-account-email-fixture.url go test ./internal/data -run '^TestAccountEmailHTTPLifecycle$' -count=1 -v -timeout=12m`，将该URL用于NUXT_BACKEND_BASE并启动preview；按其他专项同样设置BLOG_E2E_BASE_URL/NODE_PATH/Chrome运行live。`/fixture/emails/latest`只在测试服务捕获邮件链接，脚本只在内存读取token并在错误中脱敏，禁止把捕获link/token打印到终端。最后建立精确URL文件的`.stop`并停止自有preview；fixture最长10分钟。MySQL13→14/11→14 runner自动传受控DSN给`TestAccountEmailTokenRepoMySQL`并断言真实运行而非Skip；不使用生产配置。

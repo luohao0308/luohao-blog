@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	stderrors "errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -19,8 +21,9 @@ import (
 // refreshKeyPrefix namespaces refresh session keys in Redis; rateKeyPrefix
 // namespaces fixed-window counters.
 const (
-	refreshKeyPrefix = "blog:auth:refresh:"
-	rateKeyPrefix    = "blog:ratelimit:"
+	refreshKeyPrefix  = "blog:auth:refresh:"
+	refreshUserPrefix = "blog:auth:refresh-user:"
+	rateKeyPrefix     = "blog:ratelimit:"
 )
 
 // NewRedis opens the shared Redis client. The connection is established
@@ -131,16 +134,21 @@ func newOpaqueToken() (string, error) {
 
 // Create starts a refresh session with the given TTL. The TTL is applied
 // fresh on every login and rotation, which is what makes the window sliding.
-func (r *sessionRepo) Create(ctx context.Context, userID uuid.UUID, ttl time.Duration) (*biz.RefreshSession, error) {
+func (r *sessionRepo) Create(ctx context.Context, userID uuid.UUID, credentialVersion uint64, ttl time.Duration) (*biz.RefreshSession, error) {
 	token, err := newOpaqueToken()
 	if err != nil {
 		return nil, err
 	}
 	expiresAt := time.Now().Add(ttl)
-	if err := r.rdb.Set(ctx, refreshKeyPrefix+token, userID.String(), ttl).Err(); err != nil {
+	value := fmt.Sprintf("%s|%d", userID.String(), credentialVersion)
+	pipe := r.rdb.TxPipeline()
+	pipe.Set(ctx, refreshKeyPrefix+token, value, ttl)
+	pipe.SAdd(ctx, refreshUserPrefix+userID.String(), token)
+	pipe.Expire(ctx, refreshUserPrefix+userID.String(), ttl)
+	if _, err := pipe.Exec(ctx); err != nil {
 		return nil, err
 	}
-	return &biz.RefreshSession{Token: token, UserID: userID, ExpiresAt: expiresAt}, nil
+	return &biz.RefreshSession{Token: token, UserID: userID, CredentialVersion: credentialVersion, ExpiresAt: expiresAt}, nil
 }
 
 // Consume atomically reads and deletes the session: two concurrent refreshes
@@ -154,16 +162,62 @@ func (r *sessionRepo) Consume(ctx context.Context, token string) (*biz.RefreshSe
 		}
 		return nil, err
 	}
-	uid, err := uuid.Parse(val)
+	uid, version, err := parseRefreshValue(val)
 	if err != nil {
 		return nil, biz.ErrAuthInvalidRefreshToken
 	}
-	return &biz.RefreshSession{Token: token, UserID: uid}, nil
+	_ = r.rdb.SRem(ctx, refreshUserPrefix+uid.String(), token).Err()
+	return &biz.RefreshSession{Token: token, UserID: uid, CredentialVersion: version}, nil
 }
 
 // Delete revokes the session; deleting an unknown token is a no-op.
 func (r *sessionRepo) Delete(ctx context.Context, token string) error {
-	return r.rdb.Del(ctx, refreshKeyPrefix+token).Err()
+	value, err := r.rdb.Get(ctx, refreshKeyPrefix+token).Result()
+	if stderrors.Is(err, redis.Nil) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	uid, _, parseErr := parseRefreshValue(value)
+	pipe := r.rdb.TxPipeline()
+	pipe.Del(ctx, refreshKeyPrefix+token)
+	if parseErr == nil {
+		pipe.SRem(ctx, refreshUserPrefix+uid.String(), token)
+	}
+	_, err = pipe.Exec(ctx)
+	return err
+}
+
+func (r *sessionRepo) RevokeUser(ctx context.Context, userID uuid.UUID) error {
+	setKey := refreshUserPrefix + userID.String()
+	tokens, err := r.rdb.SMembers(ctx, setKey).Result()
+	if err != nil {
+		return err
+	}
+	pipe := r.rdb.TxPipeline()
+	for _, token := range tokens {
+		pipe.Del(ctx, refreshKeyPrefix+token)
+	}
+	pipe.Del(ctx, setKey)
+	_, err = pipe.Exec(ctx)
+	return err
+}
+
+func parseRefreshValue(value string) (uuid.UUID, uint64, error) {
+	parts := strings.Split(value, "|")
+	uid, err := uuid.Parse(parts[0])
+	if err != nil {
+		return uuid.Nil, 0, err
+	}
+	if len(parts) == 1 {
+		return uid, 0, nil
+	}
+	if len(parts) != 2 {
+		return uuid.Nil, 0, fmt.Errorf("invalid refresh value")
+	}
+	version, err := strconv.ParseUint(parts[1], 10, 64)
+	return uid, version, err
 }
 
 type rateLimiter struct {

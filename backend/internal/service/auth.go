@@ -33,6 +33,13 @@ type AuthService struct {
 	uc           *biz.AuthUsecase
 	wechat       *biz.WechatUsecase
 	secureCookie bool
+	email        *biz.AccountEmailUsecase
+}
+
+func NewAuthServiceWithEmail(uc *biz.AuthUsecase, wechat *biz.WechatUsecase, accountEmail *biz.AccountEmailUsecase, c *conf.Auth) *AuthService {
+	s := NewAuthService(uc, wechat, c)
+	s.email = accountEmail
+	return s
 }
 
 // NewAuthService new an auth service.
@@ -119,13 +126,58 @@ func convertUser(u *biz.User) *v1.User {
 		return nil
 	}
 	return &v1.User{
-		Id:          u.ID.String(),
-		Email:       u.Email,
-		DisplayName: u.DisplayName,
-		Role:        convertUserRole(u.Role),
-		AvatarUrl:   u.AvatarURL,
-		CreatedAt:   timestamppb.New(u.CreatedAt),
+		Id:            u.ID.String(),
+		Email:         u.Email,
+		DisplayName:   u.DisplayName,
+		Role:          convertUserRole(u.Role),
+		AvatarUrl:     u.AvatarURL,
+		EmailVerified: u.EmailVerified,
+		CreatedAt:     timestamppb.New(u.CreatedAt),
 	}
+}
+
+func (s *AuthService) RequestEmailVerification(ctx context.Context, _ *v1.RequestEmailVerificationRequest) (*emptypb.Empty, error) {
+	claims, ok := biz.AuthFromContext(ctx)
+	if !ok {
+		return nil, biz.ErrAuthUnauthorized
+	}
+	if s.email == nil {
+		return nil, biz.ErrMailNotConfigured
+	}
+	if err := s.email.RequestVerification(ctx, claims.UserID); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AuthService) ConfirmEmailVerification(ctx context.Context, req *v1.ConfirmEmailVerificationRequest) (*emptypb.Empty, error) {
+	if s.email == nil {
+		return nil, biz.ErrMailNotConfigured
+	}
+	if err := s.email.ConfirmVerification(ctx, req.GetToken()); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AuthService) RequestPasswordReset(ctx context.Context, req *v1.RequestPasswordResetRequest) (*emptypb.Empty, error) {
+	if s.email == nil {
+		return nil, biz.ErrMailNotConfigured
+	}
+	if err := s.email.RequestPasswordReset(ctx, req.GetEmail(), clientIP(ctx)); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *AuthService) ConfirmPasswordReset(ctx context.Context, req *v1.ConfirmPasswordResetRequest) (*emptypb.Empty, error) {
+	if s.email == nil {
+		return nil, biz.ErrMailNotConfigured
+	}
+	if err := s.email.ConfirmPasswordReset(ctx, req.GetToken(), req.GetNewPassword()); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
 }
 
 // convertUserRole maps a domain role onto the api enum. The two share their

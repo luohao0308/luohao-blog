@@ -17,6 +17,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -34,6 +35,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// About is the client for interacting with the About builders.
 	About *AboutClient
+	// AccountEmailToken is the client for interacting with the AccountEmailToken builders.
+	AccountEmailToken *AccountEmailTokenClient
 	// Article is the client for interacting with the Article builders.
 	Article *ArticleClient
 	// Category is the client for interacting with the Category builders.
@@ -62,6 +65,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.About = NewAboutClient(c.config)
+	c.AccountEmailToken = NewAccountEmailTokenClient(c.config)
 	c.Article = NewArticleClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Comment = NewCommentClient(c.config)
@@ -160,17 +164,18 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		About:          NewAboutClient(cfg),
-		Article:        NewArticleClient(cfg),
-		Category:       NewCategoryClient(cfg),
-		Comment:        NewCommentClient(cfg),
-		Project:        NewProjectClient(cfg),
-		Subscriber:     NewSubscriberClient(cfg),
-		Tag:            NewTagClient(cfg),
-		User:           NewUserClient(cfg),
-		WechatSyncTask: NewWechatSyncTaskClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		About:             NewAboutClient(cfg),
+		AccountEmailToken: NewAccountEmailTokenClient(cfg),
+		Article:           NewArticleClient(cfg),
+		Category:          NewCategoryClient(cfg),
+		Comment:           NewCommentClient(cfg),
+		Project:           NewProjectClient(cfg),
+		Subscriber:        NewSubscriberClient(cfg),
+		Tag:               NewTagClient(cfg),
+		User:              NewUserClient(cfg),
+		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
 
@@ -188,17 +193,18 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		About:          NewAboutClient(cfg),
-		Article:        NewArticleClient(cfg),
-		Category:       NewCategoryClient(cfg),
-		Comment:        NewCommentClient(cfg),
-		Project:        NewProjectClient(cfg),
-		Subscriber:     NewSubscriberClient(cfg),
-		Tag:            NewTagClient(cfg),
-		User:           NewUserClient(cfg),
-		WechatSyncTask: NewWechatSyncTaskClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		About:             NewAboutClient(cfg),
+		AccountEmailToken: NewAccountEmailTokenClient(cfg),
+		Article:           NewArticleClient(cfg),
+		Category:          NewCategoryClient(cfg),
+		Comment:           NewCommentClient(cfg),
+		Project:           NewProjectClient(cfg),
+		Subscriber:        NewSubscriberClient(cfg),
+		Tag:               NewTagClient(cfg),
+		User:              NewUserClient(cfg),
+		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
 
@@ -228,8 +234,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.About, c.Article, c.Category, c.Comment, c.Project, c.Subscriber, c.Tag,
-		c.User, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.Category, c.Comment, c.Project,
+		c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
 	} {
 		n.Use(hooks...)
 	}
@@ -239,8 +245,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.About, c.Article, c.Category, c.Comment, c.Project, c.Subscriber, c.Tag,
-		c.User, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.Category, c.Comment, c.Project,
+		c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -251,6 +257,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AboutMutation:
 		return c.About.mutate(ctx, m)
+	case *AccountEmailTokenMutation:
+		return c.AccountEmailToken.mutate(ctx, m)
 	case *ArticleMutation:
 		return c.Article.mutate(ctx, m)
 	case *CategoryMutation:
@@ -402,6 +410,139 @@ func (c *AboutClient) mutate(ctx context.Context, m *AboutMutation) (Value, erro
 		return (&AboutDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown About mutation op: %q", m.Op())
+	}
+}
+
+// AccountEmailTokenClient is a client for the AccountEmailToken schema.
+type AccountEmailTokenClient struct {
+	config
+}
+
+// NewAccountEmailTokenClient returns a client for the AccountEmailToken from the given config.
+func NewAccountEmailTokenClient(c config) *AccountEmailTokenClient {
+	return &AccountEmailTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `accountemailtoken.Hooks(f(g(h())))`.
+func (c *AccountEmailTokenClient) Use(hooks ...Hook) {
+	c.hooks.AccountEmailToken = append(c.hooks.AccountEmailToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `accountemailtoken.Intercept(f(g(h())))`.
+func (c *AccountEmailTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AccountEmailToken = append(c.inters.AccountEmailToken, interceptors...)
+}
+
+// Create returns a builder for creating a AccountEmailToken entity.
+func (c *AccountEmailTokenClient) Create() *AccountEmailTokenCreate {
+	mutation := newAccountEmailTokenMutation(c.config, OpCreate)
+	return &AccountEmailTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AccountEmailToken entities.
+func (c *AccountEmailTokenClient) CreateBulk(builders ...*AccountEmailTokenCreate) *AccountEmailTokenCreateBulk {
+	return &AccountEmailTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AccountEmailTokenClient) MapCreateBulk(slice any, setFunc func(*AccountEmailTokenCreate, int)) *AccountEmailTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AccountEmailTokenCreateBulk{err: fmt.Errorf("calling to AccountEmailTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AccountEmailTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AccountEmailTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Update() *AccountEmailTokenUpdate {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdate)
+	return &AccountEmailTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountEmailTokenClient) UpdateOne(_m *AccountEmailToken) *AccountEmailTokenUpdateOne {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdateOne, withAccountEmailToken(_m))
+	return &AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountEmailTokenClient) UpdateOneID(id uuid.UUID) *AccountEmailTokenUpdateOne {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdateOne, withAccountEmailTokenID(id))
+	return &AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Delete() *AccountEmailTokenDelete {
+	mutation := newAccountEmailTokenMutation(c.config, OpDelete)
+	return &AccountEmailTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AccountEmailTokenClient) DeleteOne(_m *AccountEmailToken) *AccountEmailTokenDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AccountEmailTokenClient) DeleteOneID(id uuid.UUID) *AccountEmailTokenDeleteOne {
+	builder := c.Delete().Where(accountemailtoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountEmailTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Query() *AccountEmailTokenQuery {
+	return &AccountEmailTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAccountEmailToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AccountEmailToken entity by its id.
+func (c *AccountEmailTokenClient) Get(ctx context.Context, id uuid.UUID) (*AccountEmailToken, error) {
+	return c.Query().Where(accountemailtoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountEmailTokenClient) GetX(ctx context.Context, id uuid.UUID) *AccountEmailToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AccountEmailTokenClient) Hooks() []Hook {
+	return c.hooks.AccountEmailToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *AccountEmailTokenClient) Interceptors() []Interceptor {
+	return c.inters.AccountEmailToken
+}
+
+func (c *AccountEmailTokenClient) mutate(ctx context.Context, m *AccountEmailTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AccountEmailTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AccountEmailTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AccountEmailTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AccountEmailToken mutation op: %q", m.Op())
 	}
 }
 
@@ -1536,11 +1677,11 @@ func (c *WechatSyncTaskClient) mutate(ctx context.Context, m *WechatSyncTaskMuta
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		About, Article, Category, Comment, Project, Subscriber, Tag, User,
-		WechatSyncTask []ent.Hook
+		About, AccountEmailToken, Article, Category, Comment, Project, Subscriber, Tag,
+		User, WechatSyncTask []ent.Hook
 	}
 	inters struct {
-		About, Article, Category, Comment, Project, Subscriber, Tag, User,
-		WechatSyncTask []ent.Interceptor
+		About, AccountEmailToken, Article, Category, Comment, Project, Subscriber, Tag,
+		User, WechatSyncTask []ent.Interceptor
 	}
 )

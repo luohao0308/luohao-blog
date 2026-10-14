@@ -91,11 +91,32 @@ def main():
                 mysql(db,"UPDATE articles SET cover_url='/v1/assets/media/00000000000000000000000000000001.jpg',featured=1 WHERE slug='migration-fixture';")
                 previous_metadata=mysql(db,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")
             original=mysql(db,"SELECT slug,title,summary,status,view_count,like_count FROM articles ORDER BY slug;")
+            original_user=None
+            previous_account_metadata=None
+            if opts.baseline>=10:
+                # Public fixture sentinels only; never read real account data.
+                mysql(db,"INSERT INTO users(id,created_at,updated_at,email,password_hash,display_name,role,avatar_url,wechat_openid) VALUES('00000000-0000-0000-0000-000000000002',NOW(),NOW(),'migration-fixture@example.com','fixture-placeholder-hash','旧读者',2,'/v1/assets/avatars/00000000000000000000000000000002.png','fixture-legacy-openid');")
+                original_user=mysql(db,"SELECT email,password_hash,display_name,role,avatar_url,wechat_openid FROM users ORDER BY id;")
+                if opts.baseline>=14:
+                    mysql(db,"UPDATE users SET email_verified=1,credential_version=7 WHERE email='migration-fixture@example.com';")
+                    previous_account_metadata=mysql(db,"SELECT email_verified,credential_version FROM users ORDER BY id;")
             dump=run(["docker","exec",CONTAINER,"sh","-c",'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF '+db])
             compressed=gzip.compress(dump)
             assert gzip.decompress(compressed)==dump
             assert run([binary,str(opts.target)],env=env).decode().strip()==f"{opts.target} false"
             assert mysql(db,"SELECT slug,title,summary,status,view_count,like_count FROM articles ORDER BY slug;")==original
+            if original_user is not None:
+                assert mysql(db,"SELECT email,password_hash,display_name,role,avatar_url,wechat_openid FROM users ORDER BY id;")==original_user
+            if opts.target>=14 and original_user is not None:
+                account_metadata=mysql(db,"SELECT email_verified,credential_version FROM users ORDER BY id;")
+                assert account_metadata==(previous_account_metadata or "0\t0\n"), "old accounts must start unverified/version zero; existing metadata must survive"
+                assert mysql(db,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="0"
+                # Execute the real repository against MySQL, including
+                # changed-rows/no-op semantics that SQLite cannot prove.
+                probe_env=env|{"BLOG_ACCOUNT_EMAIL_MYSQL_DSN":env["MYSQL_MIGRATION_DSN"]}
+                probe=run(["go","test","./internal/data","-run","^TestAccountEmailTokenRepoMySQL$","-count=1","-v"],env=probe_env,cwd=ROOT/"backend").decode()
+                assert "=== RUN   TestAccountEmailTokenRepoMySQL" in probe and "--- PASS: TestAccountEmailTokenRepoMySQL" in probe and "--- SKIP:" not in probe, "real MySQL repo probe must run, not silently skip"
+                assert mysql(db,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="0"
             if previous_metadata is not None:
                 assert mysql(db,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")==previous_metadata
             else:
@@ -122,7 +143,38 @@ def main():
             assert run([binary,str(opts.target)],env=restore_env).decode().strip()==f"{opts.target} false"
             if previous_metadata is not None:
                 assert mysql(restore,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")==previous_metadata
-            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_compatibility":True,"portfolio_seeds_idempotent":opts.target>=13,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
+            if original_user is not None:
+                assert mysql(restore,"SELECT email,password_hash,display_name,role,avatar_url,wechat_openid FROM users ORDER BY id;")==original_user
+            if opts.target>=14 and original_user is not None:
+                assert mysql(restore,"SELECT email_verified,credential_version FROM users ORDER BY id;")==(previous_account_metadata or "0\t0\n")
+                assert mysql(restore,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="0"
+                mysql(db,"UPDATE users SET email_verified=1,credential_version=9 WHERE email='migration-fixture@example.com';")
+                token_values="'00000000-0000-0000-0000-000000000003',NOW(),NOW(),'00000000-0000-0000-0000-000000000002','verify','"+"a"*64+"',9,DATE_ADD(NOW(),INTERVAL 24 HOUR)"
+                mysql(db,"INSERT INTO account_email_tokens(id,created_at,updated_at,user_id,purpose,token_hash,credential_version,expires_at) VALUES("+token_values+");")
+                # Each purpose has one current token; hashes are globally unique.
+                duplicate_purpose=token_values.replace("000000000003","000000000004").replace("a"*64,"b"*64)
+                duplicate_hash=token_values.replace("000000000003","000000000005").replace("'verify'","'reset'")
+                mysql(db,"INSERT IGNORE INTO account_email_tokens(id,created_at,updated_at,user_id,purpose,token_hash,credential_version,expires_at) VALUES("+duplicate_purpose+"),("+duplicate_hash+");")
+                assert mysql(db,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="1"
+                assert mysql(db,"SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='account_email_tokens';").strip()=="1"
+                orphan=token_values.replace("000000000003","000000000006").replace("000000000002","000000000099").replace("a"*64,"c"*64)
+                try:
+                    mysql(db,"INSERT INTO account_email_tokens(id,created_at,updated_at,user_id,purpose,token_hash,credential_version,expires_at) VALUES("+orphan+");")
+                except RuntimeError:
+                    pass
+                else:
+                    raise AssertionError("account token FK must reject missing users")
+                assert mysql(db,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="1"
+                # Also restore a post-upgrade backup, retaining verified state
+                # and credential revocation generation as well as old columns.
+                upgraded_dump=run(["docker","exec",CONTAINER,"sh","-c",'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF '+db])
+                mysql(restore,gzip.decompress(gzip.compress(upgraded_dump)).decode())
+                assert mysql(restore,"SELECT email_verified,credential_version FROM users ORDER BY id;").strip()=="1\t9"
+                assert mysql(restore,"SELECT email,password_hash,display_name,role,avatar_url,wechat_openid FROM users ORDER BY id;")==original_user
+                assert mysql(restore,"SELECT version,dirty FROM schema_migrations;").strip()==f"{opts.target}\t0"
+                assert mysql(restore,"SELECT purpose,credential_version,LENGTH(token_hash) FROM account_email_tokens;").strip()=="verify\t9\t64"
+                assert mysql(restore,"SELECT token_hash FROM account_email_tokens;").strip()=="a"*64
+            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_compatibility":True,"portfolio_seeds_idempotent":opts.target>=13,"account_metadata_compatibility":opts.target>=14,"token_constraints_and_restore":opts.target>=14,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
     finally:
         for name in created:
             assert re.fullmatch(r"website_completion_[a-f0-9_]+",name)

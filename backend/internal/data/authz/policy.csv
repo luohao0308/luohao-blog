@@ -17,6 +17,9 @@ p, public, /v1/auth/refresh, POST
 p, public, /v1/auth/logout, POST
 p, public, /v1/auth/wechat, POST
 p, public, /v1/auth/wechat/bind, POST
+p, public, /v1/auth/email-verification/confirm, POST
+p, public, /v1/auth/password-reset/request, POST
+p, public, /v1/auth/password-reset/confirm, POST
 p, public, /v1/assets/avatars/{name}, GET
 p, public, /v1/assets/media/{name}, GET
 p, public, /v1/projects/list, GET
@@ -34,6 +37,9 @@ p, public, /blog.v1.AuthService/Refresh, *
 p, public, /blog.v1.AuthService/Logout, *
 p, public, /blog.v1.AuthService/WechatLogin, *
 p, public, /blog.v1.AuthService/BindWechat, *
+p, public, /blog.v1.AuthService/ConfirmEmailVerification, *
+p, public, /blog.v1.AuthService/RequestPasswordReset, *
+p, public, /blog.v1.AuthService/ConfirmPasswordReset, *
 p, public, /blog.v1.UserService/GetAvatar, *
 p, public, /blog.v1.MediaService/GetImage, *
 p, public, /blog.v1.ProjectService/ListProjects, *
@@ -45,10 +51,12 @@ p, authenticated, /v1/auth/me, GET
 p, authenticated, /v1/auth/update-password, POST
 p, authenticated, /v1/user/profile, PUT
 p, authenticated, /v1/user/avatar, PUT
+p, authenticated, /v1/auth/email-verification/request, POST
 p, authenticated, /blog.v1.AuthService/GetMe, *
 p, authenticated, /blog.v1.AuthService/UpdatePassword, *
 p, authenticated, /blog.v1.UserService/UpdateProfile, *
 p, authenticated, /blog.v1.UserService/UploadAvatar, *
+p, authenticated, /blog.v1.AuthService/RequestEmailVerification, *
 
 # --- admin: article writes ---
 p, admin, /v1/articles/create, POST

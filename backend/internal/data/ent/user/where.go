@@ -92,6 +92,16 @@ func AvatarURL(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldAvatarURL, v))
 }
 
+// EmailVerified applies equality check predicate on the "email_verified" field. It's identical to EmailVerifiedEQ.
+func EmailVerified(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEmailVerified, v))
+}
+
+// CredentialVersion applies equality check predicate on the "credential_version" field. It's identical to CredentialVersionEQ.
+func CredentialVersion(v uint64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCredentialVersion, v))
+}
+
 // WechatOpenid applies equality check predicate on the "wechat_openid" field. It's identical to WechatOpenidEQ.
 func WechatOpenid(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldWechatOpenid, v))
@@ -489,6 +499,56 @@ func AvatarURLEqualFold(v string) predicate.User {
 // AvatarURLContainsFold applies the ContainsFold predicate on the "avatar_url" field.
 func AvatarURLContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldAvatarURL, v))
+}
+
+// EmailVerifiedEQ applies the EQ predicate on the "email_verified" field.
+func EmailVerifiedEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEmailVerified, v))
+}
+
+// EmailVerifiedNEQ applies the NEQ predicate on the "email_verified" field.
+func EmailVerifiedNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldEmailVerified, v))
+}
+
+// CredentialVersionEQ applies the EQ predicate on the "credential_version" field.
+func CredentialVersionEQ(v uint64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCredentialVersion, v))
+}
+
+// CredentialVersionNEQ applies the NEQ predicate on the "credential_version" field.
+func CredentialVersionNEQ(v uint64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldCredentialVersion, v))
+}
+
+// CredentialVersionIn applies the In predicate on the "credential_version" field.
+func CredentialVersionIn(vs ...uint64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldCredentialVersion, vs...))
+}
+
+// CredentialVersionNotIn applies the NotIn predicate on the "credential_version" field.
+func CredentialVersionNotIn(vs ...uint64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldCredentialVersion, vs...))
+}
+
+// CredentialVersionGT applies the GT predicate on the "credential_version" field.
+func CredentialVersionGT(v uint64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldCredentialVersion, v))
+}
+
+// CredentialVersionGTE applies the GTE predicate on the "credential_version" field.
+func CredentialVersionGTE(v uint64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldCredentialVersion, v))
+}
+
+// CredentialVersionLT applies the LT predicate on the "credential_version" field.
+func CredentialVersionLT(v uint64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldCredentialVersion, v))
+}
+
+// CredentialVersionLTE applies the LTE predicate on the "credential_version" field.
+func CredentialVersionLTE(v uint64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldCredentialVersion, v))
 }
 
 // WechatOpenidEQ applies the EQ predicate on the "wechat_openid" field.

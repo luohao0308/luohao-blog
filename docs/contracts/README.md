@@ -28,6 +28,10 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 
 详情见 [作品集与关于维护](PORTFOLIO-ABOUT.md)。
 
+| AuthService 邮箱验证与密码恢复 | HTTP/gRPC | backend AuthService / AccountEmailUsecase | Nuxt 注册、登录、设置与恢复页 | `backend/api/blog/v1/auth.proto`、`internal/conf/conf.proto` | `make api/config`；token事务、SMTP、HTTP与真实BFF fixture | v14扩展User状态与目的token表；旧账号不加verified gate，密码改变以credential version撤销旧恢复能力 |
+
+详情见 [账号邮箱验证与密码恢复](ACCOUNT-EMAIL.md)。
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

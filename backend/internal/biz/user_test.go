@@ -58,14 +58,21 @@ func (f *fakeUserRepo) Create(_ context.Context, u *User) (*User, error) {
 	return u, nil
 }
 
-func (f *fakeUserRepo) UpdatePassword(_ context.Context, id uuid.UUID, passwordHash string) error {
+func (f *fakeUserRepo) UpdatePasswordState(_ context.Context, id uuid.UUID, expected uint64, passwordHash string, verify bool) (uint64, bool, error) {
 	for _, u := range f.users {
 		if u.ID == id {
+			if u.CredentialVersion != expected {
+				return 0, false, nil
+			}
 			u.PasswordHash = passwordHash
-			return nil
+			u.CredentialVersion++
+			if verify {
+				u.EmailVerified = true
+			}
+			return u.CredentialVersion, true, nil
 		}
 	}
-	return ErrUserNotFound
+	return 0, false, ErrUserNotFound
 }
 
 func (f *fakeUserRepo) UpdateProfile(_ context.Context, id uuid.UUID, displayName string) error {
@@ -207,6 +214,9 @@ func TestUpdatePassword(t *testing.T) {
 	if err := uc.UpdatePassword(ctx, u.ID, "old-password-1", "short"); !kratoserrors.IsBadRequest(err) {
 		t.Fatalf("short new password = %v, want bad request", err)
 	}
+	if err := uc.UpdatePassword(ctx, u.ID, "old-password-1", strings.Repeat("x", MaxPasswordBytes+1)); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("UpdatePassword(too long) error = %v, want bad request", err)
+	}
 	if err := uc.UpdatePassword(ctx, u.ID, "old-password-1", "new-password-1"); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
@@ -216,6 +226,24 @@ func TestUpdatePassword(t *testing.T) {
 	}
 	if _, err := uc.Authenticate(ctx, "admin@example.com", "new-password-1"); err != nil {
 		t.Fatalf("new password login: %v", err)
+	}
+}
+
+func TestCreateAccountRejectsOverlongPasswordWithoutAffectingLoginCompatibility(t *testing.T) {
+	repo := newFakeUserRepo()
+	uc := NewUserUsecase(repo)
+	if _, err := uc.CreateAccount(context.Background(), "long@example.com", strings.Repeat("x", MaxPasswordBytes+1), "Long", UserRoleReader); !kratoserrors.IsBadRequest(err) {
+		t.Fatalf("create overlong = %v", err)
+	}
+	// Authentication deliberately has no new maximum gate: historical hashes
+	// created under the old contract must remain usable.
+	hash, err := HashPassword(strings.Repeat("x", MaxPasswordBytes+1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo.users["legacy@example.com"] = &User{ID: uuid.New(), Email: "legacy@example.com", PasswordHash: hash, Role: UserRoleReader}
+	if _, err = uc.Authenticate(context.Background(), "legacy@example.com", strings.Repeat("x", MaxPasswordBytes+1)); err != nil {
+		t.Fatalf("legacy login = %v", err)
 	}
 }
 

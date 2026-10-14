@@ -9,6 +9,9 @@ import (
 // About is the predicate function for about builders.
 type About func(*sql.Selector)
 
+// AccountEmailToken is the predicate function for accountemailtoken builders.
+type AccountEmailToken func(*sql.Selector)
+
 // Article is the predicate function for article builders.
 type Article func(*sql.Selector)
 

@@ -24,6 +24,23 @@ message Bootstrap {
   Wechat wechat = 7;
   // Official account publishing is separate from mini-program login.
   OfficialAccount official_account = 8;
+  // Transactional account email. Disabled or incomplete configuration keeps
+  // existing authentication available while email endpoints report 503.
+  Mail mail = 9;
+}
+
+message Mail {
+  bool enabled = 1;
+  string smtp_host = 2;
+  int32 smtp_port = 3;
+  string username = 4;
+  string password = 5;
+  string from_address = 6;
+  string from_name = 7;
+  // Trusted public origin used to construct fragment-token links. HTTPS is
+  // required except for loopback development origins.
+  string public_site_origin = 8;
+  google.protobuf.Duration send_timeout = 9;
 }
 
 message OfficialAccount {

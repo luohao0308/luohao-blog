@@ -29,6 +29,10 @@ const (
 	FieldRole = "role"
 	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
 	FieldAvatarURL = "avatar_url"
+	// FieldEmailVerified holds the string denoting the email_verified field in the database.
+	FieldEmailVerified = "email_verified"
+	// FieldCredentialVersion holds the string denoting the credential_version field in the database.
+	FieldCredentialVersion = "credential_version"
 	// FieldWechatOpenid holds the string denoting the wechat_openid field in the database.
 	FieldWechatOpenid = "wechat_openid"
 	// Table holds the table name of the user in the database.
@@ -45,6 +49,8 @@ var Columns = []string{
 	FieldDisplayName,
 	FieldRole,
 	FieldAvatarURL,
+	FieldEmailVerified,
+	FieldCredentialVersion,
 	FieldWechatOpenid,
 }
 
@@ -75,6 +81,10 @@ var (
 	DefaultRole biz.UserRole
 	// DefaultAvatarURL holds the default value on creation for the "avatar_url" field.
 	DefaultAvatarURL string
+	// DefaultEmailVerified holds the default value on creation for the "email_verified" field.
+	DefaultEmailVerified bool
+	// DefaultCredentialVersion holds the default value on creation for the "credential_version" field.
+	DefaultCredentialVersion uint64
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -120,6 +130,16 @@ func ByRole(opts ...sql.OrderTermOption) OrderOption {
 // ByAvatarURL orders the results by the avatar_url field.
 func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
+}
+
+// ByEmailVerified orders the results by the email_verified field.
+func ByEmailVerified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmailVerified, opts...).ToFunc()
+}
+
+// ByCredentialVersion orders the results by the credential_version field.
+func ByCredentialVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCredentialVersion, opts...).ToFunc()
 }
 
 // ByWechatOpenid orders the results by the wechat_openid field.

@@ -68,11 +68,24 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	rateLimiter := data.NewRateLimiter(universalClient, auth)
 	registerRateLimiter := data.NewRegisterRateLimiter(universalClient, auth)
 	duration := data.NewRefreshTokenTTL(auth)
-	authUsecase := biz.NewAuthUsecase(userUsecase, sessionRepo, tokenIssuer, rateLimiter, registerRateLimiter, duration)
+	accountEmailTokenRepo := data.NewAccountEmailTokenRepo(dataData)
+	authUsecase := biz.NewAuthUsecaseWithEmail(userUsecase, sessionRepo, tokenIssuer, rateLimiter, registerRateLimiter, duration, accountEmailTokenRepo)
 	wechatClient := data.NewWechatClient(wechat)
 	wechatBindingStore := data.NewWechatBindingStore(universalClient)
 	wechatUsecase := biz.NewWechatUsecase(userUsecase, authUsecase, wechatClient, wechatBindingStore, rateLimiter)
-	authService := service.NewAuthService(authUsecase, wechatUsecase, auth)
+	emailRateLimiter := data.NewEmailRateLimiter(universalClient)
+	accountMailSender, err := data.NewAccountMailSender(bootstrap)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	accountEmailSettings, err := data.NewAccountEmailSettings(bootstrap)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	accountEmailUsecase := biz.NewAccountEmailUsecase(userUsecase, accountEmailTokenRepo, emailRateLimiter, accountMailSender, sessionRepo, accountEmailSettings)
+	authService := service.NewAuthServiceWithEmail(authUsecase, wechatUsecase, accountEmailUsecase, auth)
 	mediaStore, err := data.NewMediaStore(confData)
 	if err != nil {
 		cleanup()
@@ -109,7 +122,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 		cleanup()
 		return nil, nil, err
 	}
-	app := newApp(logger, grpcServer, httpServer, wechatSyncUsecase)
+	app := newApp(logger, grpcServer, httpServer, wechatSyncUsecase, accountEmailUsecase)
 	return app, func() {
 		cleanup()
 	}, nil

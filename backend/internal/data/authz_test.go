@@ -35,6 +35,10 @@ func TestPolicyMatrix(t *testing.T) {
 		{"public wechat bind", "public", "/v1/auth/wechat/bind", "POST", true},
 		{"public refresh", "public", "/v1/auth/refresh", "POST", true},
 		{"public logout", "public", "/v1/auth/logout", "POST", true},
+		{"public verify confirm", "public", "/v1/auth/email-verification/confirm", "POST", true},
+		{"public reset request", "public", "/v1/auth/password-reset/request", "POST", true},
+		{"public reset confirm", "public", "/v1/auth/password-reset/confirm", "POST", true},
+		{"public verify request denied", "public", "/v1/auth/email-verification/request", "POST", false},
 		{"public media read", "public", "/v1/assets/media/{name}", "GET", true},
 		{"public project list", "public", "/v1/projects/list", "GET", true},
 		{"public project get", "public", "/v1/projects/{slug}", "GET", true},
@@ -49,6 +53,7 @@ func TestPolicyMatrix(t *testing.T) {
 		// Authenticated: any named role reaches /me via inheritance.
 		{"admin me", "admin", "/v1/auth/me", "GET", true},
 		{"reader me", "reader", "/v1/auth/me", "GET", true},
+		{"reader verify request", "reader", "/v1/auth/email-verification/request", "POST", true},
 		// Admin writes.
 		{"admin create", "admin", "/v1/articles/create", "POST", true},
 		{"admin update", "admin", "/v1/articles/update", "PUT", true},

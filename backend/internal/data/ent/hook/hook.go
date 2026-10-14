@@ -21,6 +21,18 @@ func (f AboutFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AboutMutation", m)
 }
 
+// The AccountEmailTokenFunc type is an adapter to allow the use of ordinary
+// function as AccountEmailToken mutator.
+type AccountEmailTokenFunc func(context.Context, *ent.AccountEmailTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountEmailTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AccountEmailTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountEmailTokenMutation", m)
+}
+
 // The ArticleFunc type is an adapter to allow the use of ordinary
 // function as Article mutator.
 type ArticleFunc func(context.Context, *ent.ArticleMutation) (ent.Value, error)
