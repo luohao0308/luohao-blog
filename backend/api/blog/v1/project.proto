@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "ProjectProto";
+
+service ProjectService {
+  rpc ListProjects (ListProjectsRequest) returns (ProjectSet) {
+    option (google.api.http) = { get: "/v1/projects/list" };
+  }
+  rpc GetProject (GetProjectRequest) returns (Project) {
+    option (google.api.http) = { get: "/v1/projects/{slug}" };
+  }
+  rpc CreateProject (CreateProjectRequest) returns (Project) {
+    option (google.api.http) = {
+      post: "/v1/admin/projects"
+      body: "project"
+    };
+  }
+  rpc UpdateProject (UpdateProjectRequest) returns (Project) {
+    option (google.api.http) = {
+      put: "/v1/admin/projects/{project.slug}"
+      body: "project"
+    };
+  }
+  // ArchiveProject is a reversible soft archive: it sets published=false.
+  rpc ArchiveProject (ArchiveProjectRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = { delete: "/v1/admin/projects/{slug}" };
+  }
+}
+
+message Project {
+  string id = 1;
+  string slug = 2 [(google.api.field_behavior) = REQUIRED];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string summary = 4;
+  string description = 5;
+  repeated string stack = 6;
+  string role = 7;
+  string repo_url = 8;
+  string live_url = 9;
+  string emoji = 10;
+  string year = 11;
+  bool featured = 12;
+  string cover_url = 13;
+  repeated string screenshots = 14;
+  string problem = 15;
+  string approach = 16;
+  string outcome = 17;
+  bool published = 18;
+  int32 sort = 19;
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp updated_at = 21;
+}
+
+message ProjectSet {
+  repeated Project projects = 1;
+  string next_page_token = 2;
+}
+
+message ListProjectsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  // ADMIN-only optional filter. Anonymous callers are always restricted to
+  // published projects regardless of this value.
+  optional bool published = 3;
+}
+
+message GetProjectRequest {
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateProjectRequest {
+  Project project = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateProjectRequest {
+  Project project = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveProjectRequest {
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}

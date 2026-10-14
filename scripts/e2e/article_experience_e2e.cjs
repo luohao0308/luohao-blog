@@ -55,6 +55,7 @@ async function installRoutes(page, state) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
   })
   await page.route('**/api/v1/articles/update**', async (route) => {
+      state.updateCalls++
     state.updateRequest = {
       url: route.request().url(),
       body: route.request().postDataJSON(),
@@ -97,6 +98,7 @@ async function main() {
       uploadRequests: [],
       listRequests: [],
       updateRequest: null,
+      updateCalls: 0,
     }
     await installRoutes(page, state)
 
@@ -144,6 +146,11 @@ async function main() {
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByAltText('文章封面预览').waitFor()
     assert.equal(await page.getByRole('checkbox', { name: '首页精选' }).isChecked(), true)
+    const updateCallsBeforeEnter = state.updateCalls
+    await page.getByPlaceholder('文章标题').press('Enter')
+    await page.locator('.n-message').filter({ hasText: '已保存' }).waitFor()
+    assert.equal(state.updateCalls, updateCallsBeforeEnter + 1, 'Enter must submit one update without a native reload')
+    assert.match(page.url(), /\/admin\/posts\/demo\/edit$/)
 
     state.article.status = 2
     state.article.content_md = '短正文'
@@ -176,7 +183,7 @@ async function main() {
     const fallbackState = {
       article: makeArticle({ content_html: '<p>没有标题的正文</p>', content_md: '', cover_url: '' }),
       homeArticles: [makeArticle({ id: 'latest', slug: 'latest', title: '普通最新', featured: false, status: 2 })],
-      uploadMode: 'success', uploadRequests: [], listRequests: [], updateRequest: null,
+      uploadMode: 'success', uploadRequests: [], listRequests: [], updateRequest: null, updateCalls: 0,
     }
     await installRoutes(fallbackPage, fallbackState)
     await fallbackPage.goto(`${base}/admin/posts/demo/edit`, { waitUntil: 'domcontentloaded' })

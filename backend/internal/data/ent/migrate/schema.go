@@ -8,6 +8,35 @@ import (
 )
 
 var (
+	// AboutsColumns holds the columns for the "abouts" table.
+	AboutsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "singleton_key", Type: field.TypeString, Unique: true, Size: 32},
+		{Name: "name", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "headline", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "intro", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "profile_image", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "current_focus", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "skills", Type: field.TypeJSON},
+		{Name: "timeline", Type: field.TypeJSON},
+		{Name: "contacts", Type: field.TypeJSON},
+		{Name: "representative_links", Type: field.TypeJSON},
+	}
+	// AboutsTable holds the schema information for the "abouts" table.
+	AboutsTable = &schema.Table{
+		Name:       "abouts",
+		Columns:    AboutsColumns,
+		PrimaryKey: []*schema.Column{AboutsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "about_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{AboutsColumns[2]},
+			},
+		},
+	}
 	// ArticlesColumns holds the columns for the "articles" table.
 	ArticlesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -115,6 +144,53 @@ var (
 				Name:    "comment_status",
 				Unique:  false,
 				Columns: []*schema.Column{CommentsColumns[6]},
+			},
+		},
+	}
+	// ProjectsColumns holds the columns for the "projects" table.
+	ProjectsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "name", Type: field.TypeString, Size: 128},
+		{Name: "summary", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "stack", Type: field.TypeJSON},
+		{Name: "role", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "repo_url", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "live_url", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "emoji", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "year", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "featured", Type: field.TypeBool, Default: false},
+		{Name: "cover_url", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "screenshots", Type: field.TypeJSON},
+		{Name: "problem", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "approach", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "outcome", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "published", Type: field.TypeBool, Default: false},
+		{Name: "sort", Type: field.TypeInt32, Default: 0},
+	}
+	// ProjectsTable holds the schema information for the "projects" table.
+	ProjectsTable = &schema.Table{
+		Name:       "projects",
+		Columns:    ProjectsColumns,
+		PrimaryKey: []*schema.Column{ProjectsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "project_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[2]},
+			},
+			{
+				Name:    "project_published_sort_slug",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[19], ProjectsColumns[20], ProjectsColumns[3]},
+			},
+			{
+				Name:    "project_sort",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[20]},
 			},
 		},
 	}
@@ -256,9 +332,11 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AboutsTable,
 		ArticlesTable,
 		CategoriesTable,
 		CommentsTable,
+		ProjectsTable,
 		SubscribersTable,
 		TagsTable,
 		UsersTable,

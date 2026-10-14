@@ -74,6 +74,9 @@ async function main() {
     await adminPage.reload({ waitUntil: 'domcontentloaded' })
     await adminPage.getByAltText('文章封面预览').waitFor()
     assert.equal(await adminPage.getByRole('checkbox', { name: '首页精选' }).isChecked(), true)
+    await adminPage.getByPlaceholder('文章标题').press('Enter')
+    await adminPage.locator('.n-message').filter({ hasText: '已保存' }).waitFor()
+    assert.match(adminPage.url(), new RegExp(`/admin/posts/${articleSlug}/edit$`))
 
     const mediaResponse = await adminContext.request.get(`${base}${coverSrc}`)
     assert.equal(mediaResponse.status(), 200)

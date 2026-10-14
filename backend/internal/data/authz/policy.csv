@@ -19,6 +19,9 @@ p, public, /v1/auth/wechat, POST
 p, public, /v1/auth/wechat/bind, POST
 p, public, /v1/assets/avatars/{name}, GET
 p, public, /v1/assets/media/{name}, GET
+p, public, /v1/projects/list, GET
+p, public, /v1/projects/{slug}, GET
+p, public, /v1/about, GET
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
 p, public, /blog.v1.ArticleService/MarkArticleViewed, *
@@ -33,6 +36,9 @@ p, public, /blog.v1.AuthService/WechatLogin, *
 p, public, /blog.v1.AuthService/BindWechat, *
 p, public, /blog.v1.UserService/GetAvatar, *
 p, public, /blog.v1.MediaService/GetImage, *
+p, public, /blog.v1.ProjectService/ListProjects, *
+p, public, /blog.v1.ProjectService/GetProject, *
+p, public, /blog.v1.AboutService/GetAbout, *
 
 # --- any authenticated account ---
 p, authenticated, /v1/auth/me, GET
@@ -53,6 +59,14 @@ p, admin, /blog.v1.ArticleService/UpdateArticle, *
 p, admin, /blog.v1.ArticleService/DeleteArticle, *
 p, admin, /v1/admin/media/images, POST
 p, admin, /blog.v1.MediaService/UploadImage, *
+p, admin, /v1/admin/projects, POST
+p, admin, /v1/admin/projects/{project.slug}, PUT
+p, admin, /v1/admin/projects/{slug}, DELETE
+p, admin, /blog.v1.ProjectService/CreateProject, *
+p, admin, /blog.v1.ProjectService/UpdateProject, *
+p, admin, /blog.v1.ProjectService/ArchiveProject, *
+p, admin, /v1/admin/about, PUT
+p, admin, /blog.v1.AboutService/UpdateAbout, *
 
 # --- public: category reads (single-level taxonomy for navigation) ---
 p, public, /v1/categories/list, GET

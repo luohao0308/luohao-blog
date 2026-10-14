@@ -61,6 +61,11 @@ const (
 	ErrorReason_MEDIA_INVALID_ARGUMENT   ErrorReason = 29
 	ErrorReason_MEDIA_NOT_FOUND          ErrorReason = 30
 	ErrorReason_MEDIA_STORAGE_FAILED     ErrorReason = 31
+	ErrorReason_PROJECT_NOT_FOUND        ErrorReason = 32
+	ErrorReason_PROJECT_INVALID_ARGUMENT ErrorReason = 33
+	ErrorReason_PROJECT_SLUG_CONFLICT    ErrorReason = 34
+	ErrorReason_ABOUT_NOT_FOUND          ErrorReason = 35
+	ErrorReason_ABOUT_INVALID_ARGUMENT   ErrorReason = 36
 )
 
 // Enum value maps for ErrorReason.
@@ -98,6 +103,11 @@ var (
 		29: "MEDIA_INVALID_ARGUMENT",
 		30: "MEDIA_NOT_FOUND",
 		31: "MEDIA_STORAGE_FAILED",
+		32: "PROJECT_NOT_FOUND",
+		33: "PROJECT_INVALID_ARGUMENT",
+		34: "PROJECT_SLUG_CONFLICT",
+		35: "ABOUT_NOT_FOUND",
+		36: "ABOUT_INVALID_ARGUMENT",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":          0,
@@ -132,6 +142,11 @@ var (
 		"MEDIA_INVALID_ARGUMENT":       29,
 		"MEDIA_NOT_FOUND":              30,
 		"MEDIA_STORAGE_FAILED":         31,
+		"PROJECT_NOT_FOUND":            32,
+		"PROJECT_INVALID_ARGUMENT":     33,
+		"PROJECT_SLUG_CONFLICT":        34,
+		"ABOUT_NOT_FOUND":              35,
+		"ABOUT_INVALID_ARGUMENT":       36,
 	}
 )
 
@@ -166,7 +181,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xed\x06\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xee\a\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -200,7 +215,12 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x18SEARCH_TOO_MANY_ATTEMPTS\x10\x1c\x12\x1a\n" +
 	"\x16MEDIA_INVALID_ARGUMENT\x10\x1d\x12\x13\n" +
 	"\x0fMEDIA_NOT_FOUND\x10\x1e\x12\x18\n" +
-	"\x14MEDIA_STORAGE_FAILED\x10\x1fBQ\n" +
+	"\x14MEDIA_STORAGE_FAILED\x10\x1f\x12\x15\n" +
+	"\x11PROJECT_NOT_FOUND\x10 \x12\x1c\n" +
+	"\x18PROJECT_INVALID_ARGUMENT\x10!\x12\x19\n" +
+	"\x15PROJECT_SLUG_CONFLICT\x10\"\x12\x13\n" +
+	"\x0fABOUT_NOT_FOUND\x10#\x12\x1a\n" +
+	"\x16ABOUT_INVALID_ARGUMENT\x10$BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

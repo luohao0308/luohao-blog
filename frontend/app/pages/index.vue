@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { projects } from '~/data/projects'
 import { ARTICLE_STATUS, formatDate, useArticleList, usePublishedArticles } from '~/composables/useArticles'
 
 // Homepage as an intro landing: a centered full-height greeting (the 开屏
@@ -25,19 +24,24 @@ const socials = [
 ]
 
 const { data: allArticles } = await usePublishedArticles()
+const { data: allProjects, error: projectsError } = await usePublicProjects()
 
 const stats = computed(() => {
   const articles = allArticles.value ?? []
   const tags = new Set(articles.flatMap(a => a.tags ?? []))
   return {
     articleCount: articles.length,
-    projectCount: projects.length,
+    projectCount: (allProjects.value ?? []).length,
     tagCount: tags.size,
     latestUpdated: articles[0]?.updated_at,
   }
 })
 
-const featuredProjects = projects.filter((p) => p.featured)
+const featuredProjects = computed(() => {
+  const projects = allProjects.value ?? []
+  const featured = projects.filter(project => project.featured)
+  return (featured.length ? featured : projects).slice(0, 4)
+})
 </script>
 
 <template>
@@ -95,28 +99,11 @@ const featuredProjects = projects.filter((p) => p.featured)
         <h2 class="text-xl font-bold tracking-tight">精选项目</h2>
         <NuxtLink to="/projects" class="text-sm text-blue-600 hover:underline dark:text-blue-400">全部项目 →</NuxtLink>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <NuxtLink
-          v-for="p in featuredProjects"
-          :key="p.slug"
-          :to="`/projects/${p.slug}`"
-          class="rounded-xl border border-slate-200 p-5 transition-shadow hover:shadow-md dark:border-slate-800"
-        >
-          <div class="flex items-center justify-between">
-            <span class="text-2xl">{{ p.emoji }}</span>
-            <span class="text-xs text-slate-500">{{ p.year }}</span>
-          </div>
-          <h3 class="mt-3 font-semibold">{{ p.name }}</h3>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ p.summary }}</p>
-          <div class="mt-3 flex flex-wrap gap-1.5">
-            <span
-              v-for="t in p.stack.slice(0, 4)"
-              :key="t"
-              class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-            >{{ t }}</span>
-          </div>
-        </NuxtLink>
+      <div v-if="featuredProjects.length" class="grid auto-rows-fr gap-4 sm:grid-cols-2">
+        <ProjectCard v-for="project in featuredProjects" :key="project.slug" :project="project" />
       </div>
+      <p v-else-if="projectsError" class="text-sm text-slate-500">精选项目暂时无法加载。</p>
+      <p v-else class="text-sm text-slate-500">项目资料正在整理中。</p>
     </section>
 
     <WechatFollow />

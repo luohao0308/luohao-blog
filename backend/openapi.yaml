@@ -6,6 +6,36 @@ info:
     title: ""
     version: 0.0.1
 paths:
+    /v1/about:
+        get:
+            tags:
+                - AboutService
+            operationId: AboutService_GetAbout
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.About'
+    /v1/admin/about:
+        put:
+            tags:
+                - AboutService
+            operationId: AboutService_UpdateAbout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.About'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.About'
     /v1/admin/media/images:
         post:
             tags:
@@ -27,6 +57,69 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.MediaImage'
+    /v1/admin/projects:
+        post:
+            tags:
+                - ProjectService
+            operationId: ProjectService_CreateProject
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Project'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
+    /v1/admin/projects/{project.slug}:
+        put:
+            tags:
+                - ProjectService
+            operationId: ProjectService_UpdateProject
+            parameters:
+                - name: project.slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: update_mask
+                  in: query
+                  schema:
+                    type: string
+                    format: field-mask
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Project'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
+    /v1/admin/projects/{slug}:
+        delete:
+            tags:
+                - ProjectService
+            description: 'ArchiveProject is a reversible soft archive: it sets published=false.'
+            operationId: ProjectService_ArchiveProject
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/admin/wechat-sync/articles/{slug}:
         post:
             tags:
@@ -876,6 +969,53 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/projects/list:
+        get:
+            tags:
+                - ProjectService
+            operationId: ProjectService_ListProjects
+            parameters:
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: published
+                  in: query
+                  description: |-
+                    ADMIN-only optional filter. Anonymous callers are always restricted to
+                     published projects regardless of this value.
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ProjectSet'
+    /v1/projects/{slug}:
+        get:
+            tags:
+                - ProjectService
+            operationId: ProjectService_GetProject
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
     /v1/search/articles:
         get:
             tags:
@@ -1034,6 +1174,72 @@ paths:
                                 $ref: '#/components/schemas/blog.v1.User'
 components:
     schemas:
+        blog.v1.About:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                headline:
+                    type: string
+                intro:
+                    type: string
+                profileImage:
+                    type: string
+                currentFocus:
+                    type: string
+                skills:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutSkillGroup'
+                timeline:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutTimelineEntry'
+                contacts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutContact'
+                representativeLinks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutLink'
+                updated_at:
+                    type: string
+                    format: date-time
+        blog.v1.AboutContact:
+            type: object
+            properties:
+                label:
+                    type: string
+                href:
+                    type: string
+                text:
+                    type: string
+        blog.v1.AboutLink:
+            type: object
+            properties:
+                label:
+                    type: string
+                href:
+                    type: string
+        blog.v1.AboutSkillGroup:
+            type: object
+            properties:
+                group:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        type: string
+        blog.v1.AboutTimelineEntry:
+            type: object
+            properties:
+                year:
+                    type: string
+                text:
+                    type: string
         blog.v1.ApproveCommentRequest:
             required:
                 - id
@@ -1387,6 +1593,70 @@ components:
                 url:
                     type: string
                     description: Site-relative immutable URL under /v1/assets/media/.
+        blog.v1.Project:
+            required:
+                - slug
+                - name
+            type: object
+            properties:
+                id:
+                    type: string
+                slug:
+                    type: string
+                name:
+                    type: string
+                summary:
+                    type: string
+                description:
+                    type: string
+                stack:
+                    type: array
+                    items:
+                        type: string
+                role:
+                    type: string
+                repoUrl:
+                    type: string
+                liveUrl:
+                    type: string
+                emoji:
+                    type: string
+                year:
+                    type: string
+                featured:
+                    type: boolean
+                coverUrl:
+                    type: string
+                screenshots:
+                    type: array
+                    items:
+                        type: string
+                problem:
+                    type: string
+                approach:
+                    type: string
+                outcome:
+                    type: string
+                published:
+                    type: boolean
+                sort:
+                    type: integer
+                    format: int32
+                created_at:
+                    type: string
+                    format: date-time
+                updated_at:
+                    type: string
+                    format: date-time
+        blog.v1.ProjectSet:
+            type: object
+            properties:
+                projects:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Project'
+                next_page_token:
+                    type: string
         blog.v1.RefreshRequest:
             type: object
             properties: {}
@@ -1637,6 +1907,7 @@ components:
                 next_page_token:
                     type: string
 tags:
+    - name: AboutService
     - name: ArticleSearchService
       description: |-
         ArticleSearchService serves full-text search over published articles. The
@@ -1692,6 +1963,7 @@ tags:
       description: MediaService stores article images on the persistent uploads volume.
     - name: OfficialAccountService
       description: Administrative delivery status only; no account credentials are exposed.
+    - name: ProjectService
     - name: SubscriberService
       description: |-
         SubscriberService registers emails for future article notifications. Actual

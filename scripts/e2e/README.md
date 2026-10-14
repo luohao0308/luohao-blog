@@ -101,3 +101,20 @@ fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不�
 ## 域名 HTTPS 冒烟
 
 生产切换后运行 `python3 scripts/e2e/domain_smoke.py`。默认 https://makerhao.cn，系统 CA 验证证书；检查 ICP 页脚、canonical、公开 BFF API、登录 noindex、匿名退出的 Secure cookie 与 Path 重写。真实登录/刷新和微信真机验证仍需另行执行。切换步骤见 `docs/operations/runbooks/domain-cutover.md`。
+
+## 网站能力补齐专项
+
+`admin_pagination_e2e.cjs` 使用120篇模拟文章检查后台分页、筛选、修改后补位及错误恢复；`article_experience_e2e.cjs` 验证媒体插入、封面/精选、阅读目录和移动端；`portfolio_about_e2e.cjs` 验证后台维护、公开上下架隔离、页面切换及错误重试。模拟接口用例不能替代真实接口验收。
+
+真实接口用例 `article_media_live_e2e.cjs` 和 `portfolio_about_live_e2e.cjs` 不拦截 API，使用独立 SQLite/miniredis/临时文件 fixture，通过 Nuxt BFF 完成登录、写入、刷新、匿名回读及越权拒绝。只允许本机地址，不读取生产配置、不联系真实微信接口。
+
+1. 先构建前端；构建完成后，在后端启动对应 fixture（避免五分钟 fixture 窗口被构建占用）：
+
+   ```bash
+   BLOG_PORTFOLIO_BROWSER_FIXTURE=/tmp/blog-portfolio-fixture.url go test ./internal/data -run TestOfficialAccountHTTPLifecycle -count=1 -v -timeout=6m
+   ```
+
+2. 按上述公众号 fixture 步骤启动预览，将 `NUXT_BACKEND_BASE` 指向这个 URL 文件；在根目录运行对应脚本，指定相同 `BLOG_E2E_BASE_URL`、已安装 Playwright 的 `NODE_PATH`，必要时指定 `BLOG_E2E_CHROMIUM`。
+3. 完成后创建精确的 `/tmp/blog-portfolio-fixture.url.stop` 文件并停止本任务预览。再次启动时使用新 URL 文件，避免旧 stop 信号。fixture 正常退出只证明其自身 HTTP 测试通过；浏览器必须另有脚本 `PASS` 结果。
+
+文章呈现工具边界用 `node --experimental-strip-types scripts/test_article_presentation.mjs` 验证。看门狗隔离回归用 `python3 scripts/test_watchdog.py`，不会重启真实 Docker 容器。真实 MySQL 升级、旧行兼容、幂等内容导入及 SQL 备份恢复用 `python3 scripts/test_mysql_migrations.py --baseline 12 --target 13`；该命令仅接受任务专属 label/volume/loopback 端口的隔离 MySQL，私密测试配置不得提交。

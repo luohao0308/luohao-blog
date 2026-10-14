@@ -1,5 +1,6 @@
-// Portfolio placeholder data. P4 replaces this with the backend projects
-// module; the page code only depends on these types.
+// Legacy migration seed only. Runtime pages load Project records from the
+// backend; keeping these verified strings here preserves the original source
+// for the one-time idempotent migration without making code the CMS.
 
 export interface Project {
   slug: string
@@ -8,11 +9,21 @@ export interface Project {
   description: string
   stack: string[]
   role: string
-  repoUrl?: string
-  liveUrl?: string
+  repo_url?: string
+  live_url?: string
   emoji: string
   year: string
   featured: boolean
+  cover_url?: string
+  screenshots?: string[]
+  problem?: string
+  approach?: string
+  outcome?: string
+  published?: boolean
+  sort?: number
+  id?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export const projects: Project[] = [
@@ -24,10 +35,12 @@ export const projects: Project[] = [
       '单体仓库全栈项目：Kratos 承载 REST/gRPC 契约与文章渲染管道（goldmark + chroma），Nuxt 4 负责 SSR 与 BFF 代理；开发全流程由自研 dev-workflow 治理（fail-closed 交付门禁、版本化迁移、契约索引）。本站的所有功能迭代都以文章形式记录在博客里。',
     stack: ['Go', 'Kratos', 'ent', 'Nuxt 4', 'Tailwind CSS', 'MySQL', 'Redis', 'Elasticsearch'],
     role: '独立设计与开发',
-    repoUrl: 'https://github.com/luohao0308/luohao-blog',
+    repo_url: 'https://github.com/luohao0308/luohao-blog',
     emoji: '🛠️',
     year: '2026',
     featured: true,
+    published: true,
+    sort: 10,
   },
   {
     slug: 'dev-workflow',
@@ -37,10 +50,12 @@ export const projects: Project[] = [
       '一套安装到任意代码仓库的 AI 协作开发流程：项目画像、契约治理、交付门禁（push/PR/merge 全部 fail-closed 校验）、任务上下文与工作日志。本站从建仓到每个 PR 的合并都由它把守。',
     stack: ['Bash', 'Python', 'PowerShell', 'AI Workflow'],
     role: '作者与维护者',
-    repoUrl: 'https://github.com/luohao0308/dev-workflow',
+    repo_url: 'https://github.com/luohao0308/dev-workflow',
     emoji: '⚙️',
     year: '2026',
     featured: true,
+    published: true,
+    sort: 20,
   },
   {
     slug: 'job-application-workbench',
@@ -53,6 +68,8 @@ export const projects: Project[] = [
     emoji: '📋',
     year: '2025',
     featured: false,
+    published: true,
+    sort: 30,
   },
 ]
 

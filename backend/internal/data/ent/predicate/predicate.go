@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// About is the predicate function for about builders.
+type About func(*sql.Selector)
+
 // Article is the predicate function for article builders.
 type Article func(*sql.Selector)
 
@@ -14,6 +17,9 @@ type Category func(*sql.Selector)
 
 // Comment is the predicate function for comment builders.
 type Comment func(*sql.Selector)
+
+// Project is the predicate function for project builders.
+type Project func(*sql.Selector)
 
 // Subscriber is the predicate function for subscriber builders.
 type Subscriber func(*sql.Selector)

@@ -2,10 +2,10 @@
 
 status: approved
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
-current_slice: S3 in_progress
-S1-S2: local_verified
-S4-S6: pending
-mode: direct planning; no product edits before split confirmation
+current_slice: S4 in_progress
+S1-S3: local_verified
+S5-S6: pending
+mode: direct execution; slices approved by user
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 
 ## 目标与授权边界
@@ -97,3 +97,9 @@ baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 新增Article可选cover_url/featured、ADMIN图片上传/公开回读及v12扩展迁移；旧mask保留与明确空值/false清除、published边界、精选过滤和真实多条排序/分页均有回归。存储失败typed错误不暴露内部path。Go全量test/build/vet、golangci-lint(0 issues)、关键race、生成稳定、独立backend/frontend审查通过。buf lint沿用既有全仓AIP命名违例，未将其冒充通过；未改变该既有门禁。
 
 真实MySQL8.4通过11→12、旧行保留、默认空封面/非精选、metadata写入、mysqldump+gzip恢复与恢复后再次升级。前端lint/typecheck/build、presentation utility、article_experience mock browser、S1分页回归通过。真实HTTP+SQLite/miniredis/tempFS/fake微信及BFF browser闭环通过：登录/刷新→PNG转JPEG上传→实际文件回读→正文插入→封面/精选保存与刷新→匿名详情图片解码/目录/阅读时长；匿名上传401、Reader403且无写入。fixture已停止；preview已停止。所有新功能仍为local_verified，未远端交付/生产更新。
+
+## S3本地验收（2026-10-15）
+
+Project/About机器契约、后台新增/编辑/排序/软下架、图片与公开隔离已实现，原三项目和About以幂等seed迁入。字段/嵌套JSON边界、URL协议、不可变slug、mask替换/清空以及匿名401/Reader403均有回归。Go全量test/vet/build、lint0、四包race和生成稳定通过；根复跑Project/About四包回归通过，独立backend/frontend审查APPROVE。真实MySQL11→13及12→13验证旧文章非默认封面/精选保留，seed重跑不覆盖编辑，SQL备份恢复和重升级通过。
+
+真实HTTP+BFF浏览器PASS：登录→创建草稿→匿名404→上传PNG并实际落盘回读→上架/排序→移动详情→软下架公开404→About编辑并刷新持久。联调暴露SSR hydration忽略payload与SPA AsyncData缓存两项真实问题；修复后同一page验证404草稿上架后SPA可见、200项目下架后列表/history不残留、已加载旧About编辑后SPA显示新内容。公开请求no-store，hydration复用payload，后续导航重取；单一NForm同时锁定按钮/Enter提交。最新前端专项mock及S1/S2回归、lint/typecheck/build全部通过；浏览器PASS不能被fixture正常退出替代。新增复跑说明见scripts/e2e/README.md。所有变更仍仅本地，未远端交付或生产部署。

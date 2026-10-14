@@ -24,6 +24,10 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 
 操作边界见 [文章媒体与元数据](MEDIA-ARTICLE-METADATA.md)。
 
+| ProjectService / AboutService | HTTP/gRPC | backend Project/About services | Nuxt public与admin维护页 | `project.proto` / `about.proto` | `make api`；repository/HTTP权限与S3 browser，MySQL迁移恢复 | v13扩展新表、原内容幂等seed，草稿隔离、Project软下架 |
+
+详情见 [作品集与关于维护](PORTFOLIO-ABOUT.md)。
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

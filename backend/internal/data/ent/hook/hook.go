@@ -9,6 +9,18 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
 )
 
+// The AboutFunc type is an adapter to allow the use of ordinary
+// function as About mutator.
+type AboutFunc func(context.Context, *ent.AboutMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AboutFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AboutMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AboutMutation", m)
+}
+
 // The ArticleFunc type is an adapter to allow the use of ordinary
 // function as Article mutator.
 type ArticleFunc func(context.Context, *ent.ArticleMutation) (ent.Value, error)
@@ -43,6 +55,18 @@ func (f CommentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CommentMutation", m)
+}
+
+// The ProjectFunc type is an adapter to allow the use of ordinary
+// function as Project mutator.
+type ProjectFunc func(context.Context, *ent.ProjectMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProjectFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProjectMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectMutation", m)
 }
 
 // The SubscriberFunc type is an adapter to allow the use of ordinary

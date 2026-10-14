@@ -7,9 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
@@ -21,6 +23,57 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	aboutMixin := schema.About{}.Mixin()
+	aboutMixinFields0 := aboutMixin[0].Fields()
+	_ = aboutMixinFields0
+	aboutMixinFields1 := aboutMixin[1].Fields()
+	_ = aboutMixinFields1
+	aboutFields := schema.About{}.Fields()
+	_ = aboutFields
+	// aboutDescCreatedAt is the schema descriptor for created_at field.
+	aboutDescCreatedAt := aboutMixinFields1[0].Descriptor()
+	// about.DefaultCreatedAt holds the default value on creation for the created_at field.
+	about.DefaultCreatedAt = aboutDescCreatedAt.Default.(func() time.Time)
+	// aboutDescUpdatedAt is the schema descriptor for updated_at field.
+	aboutDescUpdatedAt := aboutMixinFields1[1].Descriptor()
+	// about.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	about.DefaultUpdatedAt = aboutDescUpdatedAt.Default.(func() time.Time)
+	// about.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	about.UpdateDefaultUpdatedAt = aboutDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// aboutDescSingletonKey is the schema descriptor for singleton_key field.
+	aboutDescSingletonKey := aboutFields[0].Descriptor()
+	// about.SingletonKeyValidator is a validator for the "singleton_key" field. It is called by the builders before save.
+	about.SingletonKeyValidator = func() func(string) error {
+		validators := aboutDescSingletonKey.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(singleton_key string) error {
+			for _, fn := range fns {
+				if err := fn(singleton_key); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// aboutDescName is the schema descriptor for name field.
+	aboutDescName := aboutFields[1].Descriptor()
+	// about.DefaultName holds the default value on creation for the name field.
+	about.DefaultName = aboutDescName.Default.(string)
+	// about.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	about.NameValidator = aboutDescName.Validators[0].(func(string) error)
+	// aboutDescProfileImage is the schema descriptor for profile_image field.
+	aboutDescProfileImage := aboutFields[4].Descriptor()
+	// about.DefaultProfileImage holds the default value on creation for the profile_image field.
+	about.DefaultProfileImage = aboutDescProfileImage.Default.(string)
+	// about.ProfileImageValidator is a validator for the "profile_image" field. It is called by the builders before save.
+	about.ProfileImageValidator = aboutDescProfileImage.Validators[0].(func(string) error)
+	// aboutDescID is the schema descriptor for id field.
+	aboutDescID := aboutMixinFields0[0].Descriptor()
+	// about.DefaultID holds the default value on creation for the id field.
+	about.DefaultID = aboutDescID.Default.(func() uuid.UUID)
 	articleMixin := schema.Article{}.Mixin()
 	articleMixinFields0 := articleMixin[0].Fields()
 	_ = articleMixinFields0
@@ -134,6 +187,113 @@ func init() {
 	commentDescID := commentMixinFields0[0].Descriptor()
 	// comment.DefaultID holds the default value on creation for the id field.
 	comment.DefaultID = commentDescID.Default.(func() uuid.UUID)
+	projectMixin := schema.Project{}.Mixin()
+	projectMixinFields0 := projectMixin[0].Fields()
+	_ = projectMixinFields0
+	projectMixinFields1 := projectMixin[1].Fields()
+	_ = projectMixinFields1
+	projectFields := schema.Project{}.Fields()
+	_ = projectFields
+	// projectDescCreatedAt is the schema descriptor for created_at field.
+	projectDescCreatedAt := projectMixinFields1[0].Descriptor()
+	// project.DefaultCreatedAt holds the default value on creation for the created_at field.
+	project.DefaultCreatedAt = projectDescCreatedAt.Default.(func() time.Time)
+	// projectDescUpdatedAt is the schema descriptor for updated_at field.
+	projectDescUpdatedAt := projectMixinFields1[1].Descriptor()
+	// project.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	project.DefaultUpdatedAt = projectDescUpdatedAt.Default.(func() time.Time)
+	// project.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	project.UpdateDefaultUpdatedAt = projectDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// projectDescSlug is the schema descriptor for slug field.
+	projectDescSlug := projectFields[0].Descriptor()
+	// project.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	project.SlugValidator = func() func(string) error {
+		validators := projectDescSlug.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(slug string) error {
+			for _, fn := range fns {
+				if err := fn(slug); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// projectDescName is the schema descriptor for name field.
+	projectDescName := projectFields[1].Descriptor()
+	// project.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	project.NameValidator = func() func(string) error {
+		validators := projectDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// projectDescRole is the schema descriptor for role field.
+	projectDescRole := projectFields[5].Descriptor()
+	// project.DefaultRole holds the default value on creation for the role field.
+	project.DefaultRole = projectDescRole.Default.(string)
+	// project.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	project.RoleValidator = projectDescRole.Validators[0].(func(string) error)
+	// projectDescRepoURL is the schema descriptor for repo_url field.
+	projectDescRepoURL := projectFields[6].Descriptor()
+	// project.DefaultRepoURL holds the default value on creation for the repo_url field.
+	project.DefaultRepoURL = projectDescRepoURL.Default.(string)
+	// project.RepoURLValidator is a validator for the "repo_url" field. It is called by the builders before save.
+	project.RepoURLValidator = projectDescRepoURL.Validators[0].(func(string) error)
+	// projectDescLiveURL is the schema descriptor for live_url field.
+	projectDescLiveURL := projectFields[7].Descriptor()
+	// project.DefaultLiveURL holds the default value on creation for the live_url field.
+	project.DefaultLiveURL = projectDescLiveURL.Default.(string)
+	// project.LiveURLValidator is a validator for the "live_url" field. It is called by the builders before save.
+	project.LiveURLValidator = projectDescLiveURL.Validators[0].(func(string) error)
+	// projectDescEmoji is the schema descriptor for emoji field.
+	projectDescEmoji := projectFields[8].Descriptor()
+	// project.DefaultEmoji holds the default value on creation for the emoji field.
+	project.DefaultEmoji = projectDescEmoji.Default.(string)
+	// project.EmojiValidator is a validator for the "emoji" field. It is called by the builders before save.
+	project.EmojiValidator = projectDescEmoji.Validators[0].(func(string) error)
+	// projectDescYear is the schema descriptor for year field.
+	projectDescYear := projectFields[9].Descriptor()
+	// project.DefaultYear holds the default value on creation for the year field.
+	project.DefaultYear = projectDescYear.Default.(string)
+	// project.YearValidator is a validator for the "year" field. It is called by the builders before save.
+	project.YearValidator = projectDescYear.Validators[0].(func(string) error)
+	// projectDescFeatured is the schema descriptor for featured field.
+	projectDescFeatured := projectFields[10].Descriptor()
+	// project.DefaultFeatured holds the default value on creation for the featured field.
+	project.DefaultFeatured = projectDescFeatured.Default.(bool)
+	// projectDescCoverURL is the schema descriptor for cover_url field.
+	projectDescCoverURL := projectFields[11].Descriptor()
+	// project.DefaultCoverURL holds the default value on creation for the cover_url field.
+	project.DefaultCoverURL = projectDescCoverURL.Default.(string)
+	// project.CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
+	project.CoverURLValidator = projectDescCoverURL.Validators[0].(func(string) error)
+	// projectDescPublished is the schema descriptor for published field.
+	projectDescPublished := projectFields[16].Descriptor()
+	// project.DefaultPublished holds the default value on creation for the published field.
+	project.DefaultPublished = projectDescPublished.Default.(bool)
+	// projectDescSort is the schema descriptor for sort field.
+	projectDescSort := projectFields[17].Descriptor()
+	// project.DefaultSort holds the default value on creation for the sort field.
+	project.DefaultSort = projectDescSort.Default.(int32)
+	// project.SortValidator is a validator for the "sort" field. It is called by the builders before save.
+	project.SortValidator = projectDescSort.Validators[0].(func(int32) error)
+	// projectDescID is the schema descriptor for id field.
+	projectDescID := projectMixinFields0[0].Descriptor()
+	// project.DefaultID holds the default value on creation for the id field.
+	project.DefaultID = projectDescID.Default.(func() uuid.UUID)
 	subscriberMixin := schema.Subscriber{}.Mixin()
 	subscriberMixinFields0 := subscriberMixin[0].Fields()
 	_ = subscriberMixinFields0

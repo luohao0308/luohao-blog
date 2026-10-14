@@ -86,13 +86,32 @@ def main():
             env=os.environ|{"MYSQL_MIGRATION_DSN":f"root:{password}@tcp(127.0.0.1:13316)/{db}?multiStatements=true&parseTime=true"}
             assert run([binary,str(opts.baseline)],env=env).decode().strip()==f"{opts.baseline} false"
             mysql(db,"INSERT INTO articles(id,created_at,updated_at,slug,title,summary,content_md,content_html,status,view_count,like_count) VALUES('00000000-0000-0000-0000-000000000001',NOW(),NOW(),'migration-fixture','旧文章','保留摘要','# 旧文章','<h1>旧文章</h1>',2,7,3);")
+            previous_metadata=None
+            if opts.baseline>=12:
+                mysql(db,"UPDATE articles SET cover_url='/v1/assets/media/00000000000000000000000000000001.jpg',featured=1 WHERE slug='migration-fixture';")
+                previous_metadata=mysql(db,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")
             original=mysql(db,"SELECT slug,title,summary,status,view_count,like_count FROM articles ORDER BY slug;")
             dump=run(["docker","exec",CONTAINER,"sh","-c",'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF '+db])
             compressed=gzip.compress(dump)
             assert gzip.decompress(compressed)==dump
             assert run([binary,str(opts.target)],env=env).decode().strip()==f"{opts.target} false"
             assert mysql(db,"SELECT slug,title,summary,status,view_count,like_count FROM articles ORDER BY slug;")==original
-            assert mysql(db,"SELECT COALESCE(cover_url,''),featured FROM articles WHERE slug='migration-fixture';").rstrip("\r\n")=="\t0", "new article metadata must default to empty/false"
+            if previous_metadata is not None:
+                assert mysql(db,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")==previous_metadata
+            else:
+                assert mysql(db,"SELECT COALESCE(cover_url,''),featured FROM articles WHERE slug='migration-fixture';").rstrip("\r\n")=="\t0", "new article metadata must default to empty/false"
+            if opts.target>=13:
+                assert mysql(db,"SELECT COUNT(*) FROM projects;").strip()=="3"
+                assert mysql(db,"SELECT COUNT(*) FROM abouts WHERE singleton_key='main';").strip()=="1"
+                assert mysql(db,"SELECT slug FROM projects ORDER BY sort,slug;").splitlines()==["luohao-blog","dev-workflow","job-application-workbench"]
+                mysql(db,"UPDATE projects SET summary='fixture-edited-project' WHERE slug='luohao-blog'; UPDATE abouts SET intro='fixture-edited-about' WHERE singleton_key='main';")
+                # Seed SQL must never overwrite a user's later edits.
+                seed=(ROOT/"backend/migrations/000013_projects_about.up.sql").read_text()
+                mysql(db,seed)
+                assert mysql(db,"SELECT summary FROM projects WHERE slug='luohao-blog';").strip()=="fixture-edited-project"
+                assert mysql(db,"SELECT intro FROM abouts WHERE singleton_key='main';").strip()=="fixture-edited-about"
+                assert mysql(db,"SELECT COUNT(*) FROM projects;").strip()=="3"
+                assert mysql(db,"SELECT COUNT(*) FROM abouts;").strip()=="1"
             mysql(db,"UPDATE articles SET cover_url='/v1/assets/media/00000000000000000000000000000001.jpg',featured=1 WHERE slug='migration-fixture';")
             assert mysql(db,"SELECT featured FROM articles WHERE slug='migration-fixture';").strip()=="1"
             # A genuine pre-upgrade SQL dump restores to an independent schema.
@@ -101,7 +120,9 @@ def main():
             assert mysql(restore,"SELECT version,dirty FROM schema_migrations;").strip()==f"{opts.baseline}\t0"
             restore_env=env|{"MYSQL_MIGRATION_DSN":f"root:{password}@tcp(127.0.0.1:13316)/{restore}?multiStatements=true&parseTime=true"}
             assert run([binary,str(opts.target)],env=restore_env).decode().strip()==f"{opts.target} false"
-            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_defaults":True,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
+            if previous_metadata is not None:
+                assert mysql(restore,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")==previous_metadata
+            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_compatibility":True,"portfolio_seeds_idempotent":opts.target>=13,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
     finally:
         for name in created:
             assert re.fullmatch(r"website_completion_[a-f0-9_]+",name)

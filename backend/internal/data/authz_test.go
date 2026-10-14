@@ -36,6 +36,9 @@ func TestPolicyMatrix(t *testing.T) {
 		{"public refresh", "public", "/v1/auth/refresh", "POST", true},
 		{"public logout", "public", "/v1/auth/logout", "POST", true},
 		{"public media read", "public", "/v1/assets/media/{name}", "GET", true},
+		{"public project list", "public", "/v1/projects/list", "GET", true},
+		{"public project get", "public", "/v1/projects/{slug}", "GET", true},
+		{"public about", "public", "/v1/about", "GET", true},
 		{"public media upload denied", "public", "/v1/admin/media/images", "POST", false},
 		// Writes are closed to the public, including by method mismatch.
 		{"public create denied", "public", "/v1/articles/create", "POST", false},
@@ -51,11 +54,17 @@ func TestPolicyMatrix(t *testing.T) {
 		{"admin update", "admin", "/v1/articles/update", "PUT", true},
 		{"admin delete", "admin", "/v1/articles/{slug}", "DELETE", true},
 		{"admin media upload", "admin", "/v1/admin/media/images", "POST", true},
+		{"admin project create", "admin", "/v1/admin/projects", "POST", true},
+		{"admin project update", "admin", "/v1/admin/projects/{project.slug}", "PUT", true},
+		{"admin project archive", "admin", "/v1/admin/projects/{slug}", "DELETE", true},
+		{"admin about update", "admin", "/v1/admin/about", "PUT", true},
 		// Reader inherits reads only.
 		{"reader create denied", "reader", "/v1/articles/create", "POST", false},
 		{"reader update denied", "reader", "/v1/articles/update", "PUT", false},
 		{"reader delete denied", "reader", "/v1/articles/{slug}", "DELETE", false},
 		{"reader media upload denied", "reader", "/v1/admin/media/images", "POST", false},
+		{"reader project create denied", "reader", "/v1/admin/projects", "POST", false},
+		{"reader about update denied", "reader", "/v1/admin/about", "PUT", false},
 		// Reader may still read.
 		{"reader list", "reader", "/v1/articles/list", "GET", true},
 		// Method must match exactly for HTTP rows.

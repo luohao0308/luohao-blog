@@ -6,6 +6,7 @@ import { NButton, NCheckbox, NDynamicTags, NForm, NFormItem, NInput, NRadio, NRa
 import type { FormInst, FormRules } from 'naive-ui'
 
 import { ARTICLE_STATUS, type Article } from '~/composables/useArticles'
+import { ADMIN_MEDIA_MAX_SOURCE_BYTES, ADMIN_MEDIA_TYPES, adminMediaError, useAdminMedia } from '~/composables/useAdminMedia'
 import { useAdminCategories } from '~/composables/useCategories'
 
 const props = defineProps<{
@@ -17,14 +18,12 @@ const emit = defineEmits<{
   submit: [payload: { title: string, slug: string, summary: string, content_md: string, tags: string[], category_slug: string | null, status: number, cover_url: string, featured: boolean }]
 }>()
 
-const { authFetch } = useAuth()
+const { uploadImage } = useAdminMedia()
 const imageInput = ref<HTMLInputElement | null>(null)
 const editorRef = ref<{ insertMarkdown: (markdown: string) => boolean } | null>(null)
 const uploadingImage = ref(false)
 const uploadedImage = ref('')
 const mediaNotice = ref<{ kind: 'ok' | 'error', text: string } | null>(null)
-const MAX_SOURCE_BYTES = 2 * 1024 * 1024
-const MAX_ENCODED_BYTES = 1024 * 1024
 
 // Categories are fetched once per form mount; clearing the select sends
 // null, which the owning page maps to an empty category brief (未分类).
@@ -75,71 +74,6 @@ function submit(e: Event) {
   })
 }
 
-function encodeImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const objectURL = URL.createObjectURL(file)
-    const image = new Image()
-    image.onload = () => {
-      URL.revokeObjectURL(objectURL)
-      const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
-      const context = canvas.getContext('2d')
-      if (!context) {
-        reject(new Error('canvas unavailable'))
-        return
-      }
-      // JPEG keeps WeChat-compatible article images compact. A white canvas
-      // makes transparent PNG/WebP pixels deterministic instead of black.
-      context.fillStyle = '#ffffff'
-      context.fillRect(0, 0, canvas.width, canvas.height)
-      context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      const qualities = [0.88, 0.78, 0.68, 0.58]
-      const tryEncode = (index: number) => {
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            reject(new Error('encode failed'))
-            return
-          }
-          if (blob.size > MAX_ENCODED_BYTES && index + 1 < qualities.length) {
-            tryEncode(index + 1)
-            return
-          }
-          if (blob.size > MAX_ENCODED_BYTES) {
-            reject(new Error('encoded image too large'))
-            return
-          }
-          const reader = new FileReader()
-          reader.onload = () => {
-            const data = String(reader.result).split(',')[1] ?? ''
-            if (!data) reject(new Error('empty image'))
-            else resolve(data)
-          }
-          reader.onerror = () => reject(new Error('read failed'))
-          reader.readAsDataURL(blob)
-        }, 'image/jpeg', qualities[index])
-      }
-      tryEncode(0)
-    }
-    image.onerror = () => {
-      URL.revokeObjectURL(objectURL)
-      reject(new Error('not an image'))
-    }
-    image.src = objectURL
-  })
-}
-
-function mediaError(err: unknown): string {
-  const status = (err as { response?: { status?: number }, status?: number } | null)?.response?.status
-    ?? (err as { status?: number } | null)?.status
-  if (status === 400)
-    return '图片不符合要求：仅支持 jpg/png/webp，且不超过 2MB'
-  if (status === 401 || status === 403)
-    return '当前账号没有上传权限'
-  return '图片上传失败，请稍后重试'
-}
-
 async function chooseImage(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -147,34 +81,26 @@ async function chooseImage(event: Event) {
   if (!file || uploadingImage.value)
     return
   mediaNotice.value = null
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+  if (!ADMIN_MEDIA_TYPES.includes(file.type)) {
     mediaNotice.value = { kind: 'error', text: '仅支持 jpg、png 或 webp 图片' }
     return
   }
-  if (file.size > MAX_SOURCE_BYTES) {
+  if (file.size > ADMIN_MEDIA_MAX_SOURCE_BYTES) {
     mediaNotice.value = { kind: 'error', text: '原始图片大小不能超过 2MB' }
     return
   }
   uploadingImage.value = true
   try {
-    const data = await encodeImage(file)
-    const response = await authFetch<{ url?: string }>('/api/v1/admin/media/images', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: { data },
-    })
-    if (!response?.url || !/^\/v1\/assets\/media\/[0-9a-f]{32}\.(?:jpg|png|webp)$/.test(response.url)) {
-      mediaNotice.value = { kind: 'error', text: '上传结果无效，请重试' }
-      return
-    }
-    uploadedImage.value = response.url
-    const markdown = `![文章图片](${assetUrl(response.url)})`
+    const url = await uploadImage(file)
+    uploadedImage.value = url
+    const markdown = `![文章图片](${assetUrl(url)})`
     if (!editorRef.value?.insertMarkdown(markdown))
       form.content_md = `${form.content_md.trimEnd()}\n\n${markdown}\n`
     mediaNotice.value = { kind: 'ok', text: '图片已插入正文，可继续设为封面' }
   }
   catch (err) {
-    mediaNotice.value = { kind: 'error', text: mediaError(err) }
+    const invalidResponse = err instanceof Error && err.message === 'invalid media response'
+    mediaNotice.value = { kind: 'error', text: invalidResponse ? '上传结果无效，请重试' : adminMediaError(err) }
   }
   finally {
     uploadingImage.value = false
@@ -190,8 +116,7 @@ function setCover() {
 </script>
 
 <template>
-  <form class="space-y-6" @submit="submit">
-    <NForm ref="formRef" :model="form" :rules="rules" label-placement="top" :show-require-mark="false">
+  <NForm ref="formRef" class="space-y-6" :model="form" :rules="rules" label-placement="top" :show-require-mark="false" @submit.prevent="submit">
       <div class="grid gap-x-6 sm:grid-cols-2">
         <NFormItem label="标题" path="title" :show-feedback="false">
           <NInput v-model:value="form.title" placeholder="文章标题" />
@@ -267,8 +192,6 @@ function setCover() {
           </NCheckbox>
         </NFormItem>
       </div>
-    </NForm>
-
     <div class="flex flex-wrap items-center gap-6">
       <!-- CreateArticle always starts as DRAFT server-side, so the status
            choice only makes sense when editing an existing article. -->
@@ -282,5 +205,5 @@ function setCover() {
       </NRadioGroup>
       <slot name="actions" :submit="submit" :form="form" />
     </div>
-  </form>
+  </NForm>
 </template>
