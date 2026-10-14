@@ -42,6 +42,8 @@ var allowedArticleUpdateMaskPaths = map[string]struct{}{
 	"tags":       {},
 	"status":     {},
 	"category":   {},
+	"cover_url":  {},
+	"featured":   {},
 }
 
 // clampPageSize enforces maxPageSize on a request's page size in place.
@@ -116,6 +118,7 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 		// category is filtered by slug ("category:\"engineering\""); the
 		// slug-to-id translation happens in the data layer.
 		filtering.DeclareIdent("category", filtering.TypeString),
+		filtering.DeclareIdent("featured", filtering.TypeBool),
 		filtering.DeclareIdent("published_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("created_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("updated_at", filtering.TypeTimestamp),
@@ -138,7 +141,7 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 	if err != nil {
 		return nil, invalidListArgument(err)
 	}
-	if err := orderBy.ValidateForPaths("slug", "title", "published_at", "created_at", "updated_at"); err != nil {
+	if err := orderBy.ValidateForPaths("slug", "title", "published_at", "created_at", "updated_at", "featured"); err != nil {
 		return nil, invalidListArgument(err)
 	}
 	if req.PageSize <= 0 {
@@ -239,6 +242,8 @@ func convertArticle(in *v1.Article) *biz.Article {
 		Tags:         in.GetTags(),
 		CategorySlug: in.GetCategory().GetSlug(),
 		Status:       biz.ArticleStatus(in.GetStatus()),
+		CoverURL:     in.GetCoverUrl(),
+		Featured:     in.GetFeatured(),
 	}
 }
 
@@ -259,6 +264,8 @@ func convertArticleReply(in *biz.Article) *v1.Article {
 		UpdatedAt:   timestamppb.New(in.UpdatedAt),
 		ViewCount:   in.ViewCount,
 		LikeCount:   in.LikeCount,
+		CoverUrl:    &in.CoverURL,
+		Featured:    &in.Featured,
 	}
 	if in.CategorySlug != "" {
 		out.Category = &v1.CategoryBrief{Slug: in.CategorySlug, Name: in.CategoryName}

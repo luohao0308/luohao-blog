@@ -307,6 +307,8 @@ func TestArticlePublicationQueuesOnceAndKeepsEditsLocal(t *testing.T) {
 	}
 	edit := published
 	edit.Title = "a later edit"
+	edit.CoverURL = "/v1/assets/media/0123456789abcdef0123456789abcdef.png"
+	edit.Featured = true
 	if _, err := uc.UpdateArticle(context.Background(), &edit); err != nil {
 		t.Fatal(err)
 	}

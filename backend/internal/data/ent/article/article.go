@@ -38,6 +38,10 @@ const (
 	FieldViewCount = "view_count"
 	// FieldLikeCount holds the string denoting the like_count field in the database.
 	FieldLikeCount = "like_count"
+	// FieldCoverURL holds the string denoting the cover_url field in the database.
+	FieldCoverURL = "cover_url"
+	// FieldFeatured holds the string denoting the featured field in the database.
+	FieldFeatured = "featured"
 	// EdgeTags holds the string denoting the tags edge name in mutations.
 	EdgeTags = "tags"
 	// EdgeCategory holds the string denoting the category edge name in mutations.
@@ -72,6 +76,8 @@ var Columns = []string{
 	FieldPublishedAt,
 	FieldViewCount,
 	FieldLikeCount,
+	FieldCoverURL,
+	FieldFeatured,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "articles"
@@ -116,6 +122,12 @@ var (
 	DefaultViewCount uint64
 	// DefaultLikeCount holds the default value on creation for the "like_count" field.
 	DefaultLikeCount uint64
+	// DefaultCoverURL holds the default value on creation for the "cover_url" field.
+	DefaultCoverURL string
+	// CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
+	CoverURLValidator func(string) error
+	// DefaultFeatured holds the default value on creation for the "featured" field.
+	DefaultFeatured bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )
@@ -181,6 +193,16 @@ func ByViewCount(opts ...sql.OrderTermOption) OrderOption {
 // ByLikeCount orders the results by the like_count field.
 func ByLikeCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLikeCount, opts...).ToFunc()
+}
+
+// ByCoverURL orders the results by the cover_url field.
+func ByCoverURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCoverURL, opts...).ToFunc()
+}
+
+// ByFeatured orders the results by the featured field.
+func ByFeatured(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatured, opts...).ToFunc()
 }
 
 // ByTagsCount orders the results by tags count.

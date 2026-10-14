@@ -22,6 +22,8 @@ var (
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 		{Name: "view_count", Type: field.TypeUint64, Default: 0},
 		{Name: "like_count", Type: field.TypeUint64, Default: 0},
+		{Name: "cover_url", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "featured", Type: field.TypeBool, Default: false},
 		{Name: "category_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
@@ -32,7 +34,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "articles_categories_articles",
-				Columns:    []*schema.Column{ArticlesColumns[12]},
+				Columns:    []*schema.Column{ArticlesColumns[14]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -52,6 +54,11 @@ var (
 				Name:    "article_published_at",
 				Unique:  false,
 				Columns: []*schema.Column{ArticlesColumns[9]},
+			},
+			{
+				Name:    "article_featured_published_at",
+				Unique:  false,
+				Columns: []*schema.Column{ArticlesColumns[13], ArticlesColumns[9]},
 			},
 		},
 	}

@@ -18,6 +18,7 @@ p, public, /v1/auth/logout, POST
 p, public, /v1/auth/wechat, POST
 p, public, /v1/auth/wechat/bind, POST
 p, public, /v1/assets/avatars/{name}, GET
+p, public, /v1/assets/media/{name}, GET
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
 p, public, /blog.v1.ArticleService/MarkArticleViewed, *
@@ -31,6 +32,7 @@ p, public, /blog.v1.AuthService/Logout, *
 p, public, /blog.v1.AuthService/WechatLogin, *
 p, public, /blog.v1.AuthService/BindWechat, *
 p, public, /blog.v1.UserService/GetAvatar, *
+p, public, /blog.v1.MediaService/GetImage, *
 
 # --- any authenticated account ---
 p, authenticated, /v1/auth/me, GET
@@ -49,6 +51,8 @@ p, admin, /v1/articles/{slug}, DELETE
 p, admin, /blog.v1.ArticleService/CreateArticle, *
 p, admin, /blog.v1.ArticleService/UpdateArticle, *
 p, admin, /blog.v1.ArticleService/DeleteArticle, *
+p, admin, /v1/admin/media/images, POST
+p, admin, /blog.v1.MediaService/UploadImage, *
 
 # --- public: category reads (single-level taxonomy for navigation) ---
 p, public, /v1/categories/list, GET

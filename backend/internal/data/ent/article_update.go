@@ -215,6 +215,34 @@ func (_u *ArticleUpdate) AddLikeCount(v int64) *ArticleUpdate {
 	return _u
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (_u *ArticleUpdate) SetCoverURL(v string) *ArticleUpdate {
+	_u.mutation.SetCoverURL(v)
+	return _u
+}
+
+// SetNillableCoverURL sets the "cover_url" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableCoverURL(v *string) *ArticleUpdate {
+	if v != nil {
+		_u.SetCoverURL(*v)
+	}
+	return _u
+}
+
+// SetFeatured sets the "featured" field.
+func (_u *ArticleUpdate) SetFeatured(v bool) *ArticleUpdate {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableFeatured(v *bool) *ArticleUpdate {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdate) AddTagIDs(ids ...uuid.UUID) *ArticleUpdate {
 	_u.mutation.AddTagIDs(ids...)
@@ -324,6 +352,11 @@ func (_u *ArticleUpdate) check() error {
 			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "Article.slug": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CoverURL(); ok {
+		if err := article.CoverURLValidator(v); err != nil {
+			return &ValidationError{Name: "cover_url", err: fmt.Errorf(`ent: validator failed for field "Article.cover_url": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -392,6 +425,12 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedLikeCount(); ok {
 		_spec.AddField(article.FieldLikeCount, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.CoverURL(); ok {
+		_spec.SetField(article.FieldCoverURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(article.FieldFeatured, field.TypeBool, value)
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -670,6 +709,34 @@ func (_u *ArticleUpdateOne) AddLikeCount(v int64) *ArticleUpdateOne {
 	return _u
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (_u *ArticleUpdateOne) SetCoverURL(v string) *ArticleUpdateOne {
+	_u.mutation.SetCoverURL(v)
+	return _u
+}
+
+// SetNillableCoverURL sets the "cover_url" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableCoverURL(v *string) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetCoverURL(*v)
+	}
+	return _u
+}
+
+// SetFeatured sets the "featured" field.
+func (_u *ArticleUpdateOne) SetFeatured(v bool) *ArticleUpdateOne {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableFeatured(v *bool) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdateOne) AddTagIDs(ids ...uuid.UUID) *ArticleUpdateOne {
 	_u.mutation.AddTagIDs(ids...)
@@ -792,6 +859,11 @@ func (_u *ArticleUpdateOne) check() error {
 			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "Article.slug": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CoverURL(); ok {
+		if err := article.CoverURLValidator(v); err != nil {
+			return &ValidationError{Name: "cover_url", err: fmt.Errorf(`ent: validator failed for field "Article.cover_url": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -877,6 +949,12 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if value, ok := _u.mutation.AddedLikeCount(); ok {
 		_spec.AddField(article.FieldLikeCount, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.CoverURL(); ok {
+		_spec.SetField(article.FieldCoverURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(article.FieldFeatured, field.TypeBool, value)
 	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{

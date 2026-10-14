@@ -130,7 +130,7 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
-  // Directory for user-uploaded files (currently avatars). Created on boot
+  // Directory for user-uploaded avatars and article media. Created on boot
   // when missing. Defaults to ./data/uploads when unset; production mounts a
   // named Docker volume here so uploads survive container replacement.
   string uploads_dir = 3;

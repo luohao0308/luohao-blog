@@ -36,6 +36,10 @@ export interface Article {
   updated_at: ArticleTimestamp
   view_count?: number
   like_count?: number
+  // Media paths are stored against the backend API origin and rendered via
+  // assetUrl(). Missing fields keep older articles wire-compatible.
+  cover_url?: string
+  featured?: boolean
 }
 
 export interface ArticleSet {
@@ -43,11 +47,12 @@ export interface ArticleSet {
   next_page_token?: string
 }
 
-export function useArticleList(opts?: { pageSize?: number }) {
+export function useArticleList(opts?: { pageSize?: number, filter?: string, orderBy?: string }) {
   return useFetch<ArticleSet>('/api/v1/articles/list', {
     query: {
       page_size: opts?.pageSize ?? 20,
-      order_by: 'created_at desc',
+      filter: opts?.filter,
+      order_by: opts?.orderBy ?? 'created_at desc',
     },
   })
 }

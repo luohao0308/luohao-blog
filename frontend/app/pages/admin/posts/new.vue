@@ -23,6 +23,8 @@ interface FormPayload {
   tags: string[]
   category_slug: string | null
   status: number
+  cover_url: string
+  featured: boolean
 }
 
 // A chosen category rides as a CategoryBrief; an empty brief means

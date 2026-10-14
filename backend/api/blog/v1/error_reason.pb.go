@@ -58,6 +58,9 @@ const (
 	// Another account already holds the WeChat openid being bound.
 	ErrorReason_USER_WECHAT_CONFLICT     ErrorReason = 27
 	ErrorReason_SEARCH_TOO_MANY_ATTEMPTS ErrorReason = 28
+	ErrorReason_MEDIA_INVALID_ARGUMENT   ErrorReason = 29
+	ErrorReason_MEDIA_NOT_FOUND          ErrorReason = 30
+	ErrorReason_MEDIA_STORAGE_FAILED     ErrorReason = 31
 )
 
 // Enum value maps for ErrorReason.
@@ -92,6 +95,9 @@ var (
 		26: "AUTH_WECHAT_TICKET_INVALID",
 		27: "USER_WECHAT_CONFLICT",
 		28: "SEARCH_TOO_MANY_ATTEMPTS",
+		29: "MEDIA_INVALID_ARGUMENT",
+		30: "MEDIA_NOT_FOUND",
+		31: "MEDIA_STORAGE_FAILED",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":          0,
@@ -123,6 +129,9 @@ var (
 		"AUTH_WECHAT_TICKET_INVALID":   26,
 		"USER_WECHAT_CONFLICT":         27,
 		"SEARCH_TOO_MANY_ATTEMPTS":     28,
+		"MEDIA_INVALID_ARGUMENT":       29,
+		"MEDIA_NOT_FOUND":              30,
+		"MEDIA_STORAGE_FAILED":         31,
 	}
 )
 
@@ -157,7 +166,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xa2\x06\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xed\x06\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -188,7 +197,10 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x18AUTH_WECHAT_CODE_INVALID\x10\x19\x12\x1e\n" +
 	"\x1aAUTH_WECHAT_TICKET_INVALID\x10\x1a\x12\x18\n" +
 	"\x14USER_WECHAT_CONFLICT\x10\x1b\x12\x1c\n" +
-	"\x18SEARCH_TOO_MANY_ATTEMPTS\x10\x1cBQ\n" +
+	"\x18SEARCH_TOO_MANY_ATTEMPTS\x10\x1c\x12\x1a\n" +
+	"\x16MEDIA_INVALID_ARGUMENT\x10\x1d\x12\x13\n" +
+	"\x0fMEDIA_NOT_FOUND\x10\x1e\x12\x18\n" +
+	"\x14MEDIA_STORAGE_FAILED\x10\x1fBQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

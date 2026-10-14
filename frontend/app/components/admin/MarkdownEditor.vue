@@ -4,6 +4,7 @@
 // inside onMounted; the package CSS is style-only and safe to import at the
 // top level. Emits the updated Markdown source on every change.
 import type { Crepe } from '@milkdown/crepe'
+import { editorViewCtx, parserCtx } from '@milkdown/kit/core'
 
 import '@milkdown/crepe/theme/common/style.css'
 import '@milkdown/crepe/theme/classic.css'
@@ -13,6 +14,22 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const rootEl = ref<HTMLDivElement | null>(null)
 let crepe: Crepe | null = null
+
+function insertMarkdown(markdown: string): boolean {
+  if (!crepe)
+    return false
+  const nextMarkdown = `${crepe.getMarkdown().trimEnd()}\n\n${markdown}\n`
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const doc = ctx.get(parserCtx)(nextMarkdown)
+    view.dispatch(view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content).scrollIntoView())
+    view.focus()
+  })
+  emit('update:modelValue', nextMarkdown)
+  return true
+}
+
+defineExpose({ insertMarkdown })
 
 onMounted(async () => {
   const { Crepe: CrepeClass } = await import('@milkdown/crepe')

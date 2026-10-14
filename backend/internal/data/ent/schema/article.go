@@ -57,6 +57,10 @@ func (Article) Fields() []ent.Field {
 		// like_count mirrors view_count: denormalized, incremented only by
 		// the like endpoint after the Redis per-client dedup admits it.
 		field.Uint64("like_count").Default(0),
+		// cover_url points only into the server-managed media namespace; the
+		// biz layer validates the exact path shape before persistence.
+		field.String("cover_url").Default("").MaxLen(255),
+		field.Bool("featured").Default(false),
 	}
 }
 
@@ -65,6 +69,7 @@ func (Article) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),
 		index.Fields("published_at"),
+		index.Fields("featured", "published_at"),
 	}
 }
 

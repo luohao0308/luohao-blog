@@ -54,6 +54,16 @@ func init() {
 	articleDescLikeCount := articleFields[8].Descriptor()
 	// article.DefaultLikeCount holds the default value on creation for the like_count field.
 	article.DefaultLikeCount = articleDescLikeCount.Default.(uint64)
+	// articleDescCoverURL is the schema descriptor for cover_url field.
+	articleDescCoverURL := articleFields[9].Descriptor()
+	// article.DefaultCoverURL holds the default value on creation for the cover_url field.
+	article.DefaultCoverURL = articleDescCoverURL.Default.(string)
+	// article.CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
+	article.CoverURLValidator = articleDescCoverURL.Validators[0].(func(string) error)
+	// articleDescFeatured is the schema descriptor for featured field.
+	articleDescFeatured := articleFields[10].Descriptor()
+	// article.DefaultFeatured holds the default value on creation for the featured field.
+	article.DefaultFeatured = articleDescFeatured.Default.(bool)
 	// articleDescID is the schema descriptor for id field.
 	articleDescID := articleMixinFields0[0].Descriptor()
 	// article.DefaultID holds the default value on creation for the id field.

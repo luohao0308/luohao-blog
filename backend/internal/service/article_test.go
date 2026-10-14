@@ -37,9 +37,15 @@ func TestConvertArticleCarriesStatus(t *testing.T) {
 // of scope for the service-level list tests and fail loudly if reached.
 type stubArticleRepo struct {
 	listOpts []biz.ListOption
+	current  *biz.Article
+	updated  *biz.Article
 }
 
 func (s *stubArticleRepo) FindBySlug(context.Context, string) (*biz.Article, error) {
+	if s.current != nil {
+		copy := *s.current
+		return &copy, nil
+	}
 	return nil, biz.ErrArticleNotFound
 }
 func (s *stubArticleRepo) ListArticles(_ context.Context, opts ...biz.ListOption) ([]*biz.Article, error) {
@@ -49,8 +55,12 @@ func (s *stubArticleRepo) ListArticles(_ context.Context, opts ...biz.ListOption
 func (s *stubArticleRepo) CreateArticle(context.Context, *biz.Article) (*biz.Article, error) {
 	return nil, biz.ErrArticleInvalidArgument
 }
-func (s *stubArticleRepo) UpdateArticle(context.Context, *biz.Article) (*biz.Article, error) {
-	return nil, biz.ErrArticleInvalidArgument
+func (s *stubArticleRepo) UpdateArticle(_ context.Context, article *biz.Article) (*biz.Article, error) {
+	if s.current == nil {
+		return nil, biz.ErrArticleInvalidArgument
+	}
+	s.updated = article
+	return article, nil
 }
 func (s *stubArticleRepo) DeleteArticle(context.Context, string) error {
 	return biz.ErrArticleInvalidArgument
@@ -131,5 +141,76 @@ func TestConvertArticleCarriesCategorySlug(t *testing.T) {
 	}
 	if convertArticle(&v1.Article{Slug: "s"}).CategorySlug != "" {
 		t.Fatal("uncategorized article must convert to an empty category slug")
+	}
+}
+
+func TestArticleMetadataConversionAndLegacyMaskPreservation(t *testing.T) {
+	cover := "/v1/assets/media/0123456789abcdef0123456789abcdef.png"
+	featured := true
+	domain := convertArticle(&v1.Article{
+		Slug: "metadata", Title: "title", ContentMd: "body",
+		CoverUrl: &cover, Featured: &featured,
+	})
+	if domain.CoverURL != cover || !domain.Featured {
+		t.Fatalf("convertArticle metadata = (%q, %v)", domain.CoverURL, domain.Featured)
+	}
+	reply := convertArticleReply(domain)
+	if reply.CoverUrl == nil || reply.GetCoverUrl() != cover || reply.Featured == nil || !reply.GetFeatured() {
+		t.Fatalf("convertArticleReply metadata = (%v, %v)", reply.CoverUrl, reply.Featured)
+	}
+
+	// An older client updating only title omits both new optional fields. The
+	// current record is merged first, so metadata survives unless named in
+	// update_mask.
+	repo := &stubArticleRepo{current: &biz.Article{
+		Slug: "metadata", Title: "old", ContentMD: "body",
+		Status: biz.ArticleStatusPublished, CoverURL: cover, Featured: true,
+	}}
+	svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
+	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
+		Article:    &v1.Article{Slug: "metadata", Title: "new"},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}},
+	})
+	if err != nil {
+		t.Fatalf("legacy UpdateArticle() error = %v", err)
+	}
+	if repo.updated == nil || repo.updated.CoverURL != cover || !repo.updated.Featured {
+		t.Fatalf("legacy update cleared metadata: %+v", repo.updated)
+	}
+
+	// Explicit optional zero values remain distinguishable from omission and
+	// clear the metadata when their mask paths are present.
+	emptyCover := ""
+	notFeatured := false
+	repo.updated = nil
+	_, err = svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
+		Article: &v1.Article{
+			Slug: "metadata", CoverUrl: &emptyCover, Featured: &notFeatured,
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"cover_url", "featured"}},
+	})
+	if err != nil {
+		t.Fatalf("clear metadata UpdateArticle() error = %v", err)
+	}
+	if repo.updated == nil || repo.updated.CoverURL != "" || repo.updated.Featured {
+		t.Fatalf("explicit zero metadata not applied: %+v", repo.updated)
+	}
+}
+
+func TestListArticlesAcceptsFeaturedFilterAndOrder(t *testing.T) {
+	repo := &stubArticleRepo{}
+	svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
+	if _, err := svc.ListArticles(context.Background(), &v1.ListArticlesRequest{
+		Filter:  "featured",
+		OrderBy: "featured desc,published_at desc",
+	}); err != nil {
+		t.Fatalf("ListArticles(featured) error = %v", err)
+	}
+	var opts biz.ListOptions
+	for _, opt := range repo.listOpts {
+		opt(&opts)
+	}
+	if !opts.Public {
+		t.Fatal("anonymous featured list did not keep public boundary")
 	}
 }

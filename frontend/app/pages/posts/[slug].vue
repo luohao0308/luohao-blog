@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticles } from '~/composables/useArticles'
 import { isCollected, toggleCollection } from '~/composables/useCollections'
+import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
 const route = useRoute()
 definePageMeta({ key: route => route.path })
@@ -15,6 +16,9 @@ if (!data.value) throw createError({ statusCode: 404, message: '文章不存在'
 
 // Non-null by the 404 guard above; the backend renderer owns the HTML.
 const article = computed(() => data.value!)
+const preparedContent = computed(() => prepareArticleHtml(article.value.content_html ?? ''))
+const minutes = computed(() => readingMinutes(article.value.content_md))
+const summary = computed(() => articleSummary(article.value.summary, article.value.content_md))
 const { data: published, error: navigationError } = await usePublishedArticles()
 const adjacent = computed(() => {
   const list = published.value ?? []
@@ -96,8 +100,12 @@ useHead({ title: article.value.title })
     <header class="space-y-5 border-b border-slate-200 pb-8 dark:border-slate-800">
       <NuxtLink to="/posts" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回全部文章</NuxtLink>
       <h1 class="break-words text-3xl font-medium leading-relaxed">{{ article.title }}</h1>
+      <p v-if="summary" class="max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
+        {{ summary }}
+      </p>
       <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
         <time>{{ formatDate(article.published_at || article.created_at) }}</time>
+        <span v-if="minutes">约 {{ minutes }} 分钟阅读</span>
         <span aria-label="阅读量">{{ article.view_count }} 次阅读</span>
         <button
           type="button"
@@ -121,10 +129,30 @@ useHead({ title: article.value.title })
           {{ tag }}
         </NuxtLink>
       </div>
+      <img
+        v-if="article.cover_url"
+        :src="assetUrl(article.cover_url)"
+        :alt="`${article.title}封面`"
+        class="aspect-[16/9] w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800"
+      >
     </header>
 
-    <!-- eslint-disable-next-line vue/no-v-html -- trusted backend-rendered HTML -->
-    <div class="markdown-body space-y-4 leading-7" v-html="article.content_html" />
+    <div class="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
+      <nav
+        v-if="preparedContent.headings.length"
+        aria-label="文章目录"
+        class="order-1 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:order-2 lg:sticky lg:top-24 dark:border-slate-800 dark:bg-slate-900/60"
+      >
+        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">目录</p>
+        <ol class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <li v-for="heading in preparedContent.headings" :key="heading.id" :class="heading.level === 3 ? 'pl-3' : ''">
+            <a :href="`#${heading.id}`" class="block break-words hover:text-[#3c5d85] hover:underline dark:hover:text-blue-300">{{ heading.text }}</a>
+          </li>
+        </ol>
+      </nav>
+      <!-- eslint-disable-next-line vue/no-v-html -- trusted backend-rendered HTML with deterministic heading ids -->
+      <div class="markdown-body order-2 min-w-0 space-y-4 leading-7 lg:order-1" v-html="preparedContent.html" />
+    </div>
     <ChatWindow />
     <CommentSection :slug="slug" />
     <section v-if="related.length" class="space-y-4 border-t border-slate-200 pt-8 dark:border-slate-800">

@@ -67,6 +67,13 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	wechatBindingStore := data.NewWechatBindingStore(universalClient)
 	wechatUsecase := biz.NewWechatUsecase(userUsecase, authUsecase, wechatClient, wechatBindingStore, rateLimiter)
 	authService := service.NewAuthService(authUsecase, wechatUsecase, auth)
+	mediaStore, err := data.NewMediaStore(confData)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	mediaUsecase := biz.NewMediaUsecase(mediaStore)
+	mediaService := service.NewMediaService(mediaUsecase)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
 	commentModerationPolicy := data.NewCommentModerationPolicy(auth)
@@ -83,7 +90,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	chatUsecase := biz.NewChatUsecase(articleUsecase, chatLLM, chatRateLimiter)
 	chatService := service.NewChatService(chatUsecase)
 	officialAccountService := service.NewOfficialAccountService(wechatSyncUsecase)
-	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
+	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, mediaService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	avatarStore, err := data.NewAvatarStore(confData)
 	if err != nil {
 		cleanup()
@@ -91,7 +98,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	}
 	avatarUsecase := biz.NewAvatarUsecase(avatarStore, userUsecase)
 	userService := service.NewUserService(userUsecase, avatarUsecase)
-	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, userService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
+	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, authService, userService, mediaService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

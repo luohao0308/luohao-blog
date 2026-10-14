@@ -17,7 +17,7 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, user *service.UserService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService, official *service.OfficialAccountService) (*http.Server, error) {
+func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer, article *service.ArticleService, category *service.CategoryService, auth *service.AuthService, user *service.UserService, media *service.MediaService, comment *service.CommentService, subscriber *service.SubscriberService, search *service.ArticleSearchService, chat *service.ChatService, official *service.OfficialAccountService) (*http.Server, error) {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			Metrics(),
@@ -53,6 +53,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	v1.RegisterSubscriberServiceHTTPServer(srv, subscriber)
 	v1.RegisterAuthServiceHTTPServer(srv, auth)
 	v1.RegisterUserServiceHTTPServer(srv, user)
+	v1.RegisterMediaServiceHTTPServer(srv, media)
 	v1.RegisterCommentServiceHTTPServer(srv, comment)
 	v1.RegisterArticleSearchServiceHTTPServer(srv, search)
 	v1.RegisterChatServiceHTTPServer(srv, chat)
@@ -70,7 +71,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 // default covers every JSON payload the API defines (comments cap at 1000
 // runes, chat questions at 500, article markdown stays far below); the avatar
 // upload is the one large payload — base64 of the 2 MiB image cap is ~2.7 MiB
-// — so its route gets 4 MiB.
+// — so those routes get 4 MiB.
 const (
 	defaultBodyLimit int64 = 1 << 20
 	avatarBodyLimit  int64 = 4 << 20
@@ -86,9 +87,11 @@ const avatarBodyPath = "/v1/user/avatar"
 // proxy's job here anyway.
 func limitedBodyDecoder(r *nethttp.Request, v any) error {
 	limit := defaultBodyLimit
-	if r.URL.Path == avatarBodyPath {
+	if r.URL.Path == avatarBodyPath || r.URL.Path == mediaBodyPath {
 		limit = avatarBodyLimit
 	}
 	r.Body = nethttp.MaxBytesReader(nil, r.Body, limit)
 	return http.DefaultRequestDecoder(r, v)
 }
+
+const mediaBodyPath = "/v1/admin/media/images"

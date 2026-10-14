@@ -35,6 +35,8 @@ func TestPolicyMatrix(t *testing.T) {
 		{"public wechat bind", "public", "/v1/auth/wechat/bind", "POST", true},
 		{"public refresh", "public", "/v1/auth/refresh", "POST", true},
 		{"public logout", "public", "/v1/auth/logout", "POST", true},
+		{"public media read", "public", "/v1/assets/media/{name}", "GET", true},
+		{"public media upload denied", "public", "/v1/admin/media/images", "POST", false},
 		// Writes are closed to the public, including by method mismatch.
 		{"public create denied", "public", "/v1/articles/create", "POST", false},
 		{"public update denied", "public", "/v1/articles/update", "PUT", false},
@@ -48,10 +50,12 @@ func TestPolicyMatrix(t *testing.T) {
 		{"admin create", "admin", "/v1/articles/create", "POST", true},
 		{"admin update", "admin", "/v1/articles/update", "PUT", true},
 		{"admin delete", "admin", "/v1/articles/{slug}", "DELETE", true},
+		{"admin media upload", "admin", "/v1/admin/media/images", "POST", true},
 		// Reader inherits reads only.
 		{"reader create denied", "reader", "/v1/articles/create", "POST", false},
 		{"reader update denied", "reader", "/v1/articles/update", "PUT", false},
 		{"reader delete denied", "reader", "/v1/articles/{slug}", "DELETE", false},
+		{"reader media upload denied", "reader", "/v1/admin/media/images", "POST", false},
 		// Reader may still read.
 		{"reader list", "reader", "/v1/articles/list", "GET", true},
 		// Method must match exactly for HTTP rows.
@@ -59,6 +63,8 @@ func TestPolicyMatrix(t *testing.T) {
 		// gRPC forms.
 		{"grpc public list", "public", "/blog.v1.ArticleService/ListArticles", "*", true},
 		{"grpc admin create", "admin", "/blog.v1.ArticleService/CreateArticle", "*", true},
+		{"grpc admin media upload", "admin", "/blog.v1.MediaService/UploadImage", "*", true},
+		{"grpc reader media upload denied", "reader", "/blog.v1.MediaService/UploadImage", "*", false},
 		{"grpc reader create denied", "reader", "/blog.v1.ArticleService/CreateArticle", "*", false},
 		{"grpc reader get", "reader", "/blog.v1.ArticleService/GetArticle", "*", true},
 		{"grpc admin me", "admin", "/blog.v1.AuthService/GetMe", "*", true},

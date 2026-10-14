@@ -68,6 +68,7 @@ func registerAllRoutes(t *testing.T) *kratoshttp.Server {
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	v1.RegisterAuthServiceHTTPServer(srv, service.NewAuthService(nil, nil, &conf.Auth{}))
 	v1.RegisterUserServiceHTTPServer(srv, service.NewUserService(nil, nil))
+	v1.RegisterMediaServiceHTTPServer(srv, service.NewMediaService(nil))
 	v1.RegisterCommentServiceHTTPServer(srv, service.NewCommentService(nil))
 	v1.RegisterArticleSearchServiceHTTPServer(srv, service.NewArticleSearchService(nil, nil))
 	v1.RegisterChatServiceHTTPServer(srv, service.NewChatService(nil))

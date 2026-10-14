@@ -2,9 +2,9 @@
 
 status: approved
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
-current_slice: S2 in_progress
-S1: local_verified
-S3-S6: pending
+current_slice: S3 in_progress
+S1-S2: local_verified
+S4-S6: pending
 mode: direct planning; no product edits before split confirmation
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 
@@ -91,3 +91,9 @@ baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 看门狗改为Docker健康状态、互斥、失败分类、30分钟冷却和只告警回退。10项本地无Docker副作用回归通过；先复现healthy误重启，以及独立审查发现的损坏时间1:2/08误重启，再修复至green。bash -n、diff-check通过，独立审查APPROVE；shellcheck未安装，以语法检查、行为回归与独立审查替代。
 
 文章后台120篇browser fixture通过：50/50/20三页无重复、末页禁用、503恢复、过滤清游标、旧响应隔离、发布从草稿筛选移除（末页10→9）、删除后边界补位（9→8）。pnpm lint/typecheck/build、node --check全通过，独立审查APPROVE；fixture服务已停止。新代码尚未远端交付或生产部署。下一片S2文章阅读与媒体。
+
+## S2本地验收（2026-10-15）
+
+新增Article可选cover_url/featured、ADMIN图片上传/公开回读及v12扩展迁移；旧mask保留与明确空值/false清除、published边界、精选过滤和真实多条排序/分页均有回归。存储失败typed错误不暴露内部path。Go全量test/build/vet、golangci-lint(0 issues)、关键race、生成稳定、独立backend/frontend审查通过。buf lint沿用既有全仓AIP命名违例，未将其冒充通过；未改变该既有门禁。
+
+真实MySQL8.4通过11→12、旧行保留、默认空封面/非精选、metadata写入、mysqldump+gzip恢复与恢复后再次升级。前端lint/typecheck/build、presentation utility、article_experience mock browser、S1分页回归通过。真实HTTP+SQLite/miniredis/tempFS/fake微信及BFF browser闭环通过：登录/刷新→PNG转JPEG上传→实际文件回读→正文插入→封面/精选保存与刷新→匿名详情图片解码/目录/阅读时长；匿名上传401、Reader403且无写入。fixture已停止；preview已停止。所有新功能仍为local_verified，未远端交付/生产更新。

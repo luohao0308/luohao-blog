@@ -61,6 +61,8 @@ type ArticleMutation struct {
 	addview_count   *int64
 	like_count      *uint64
 	addlike_count   *int64
+	cover_url       *string
+	featured        *bool
 	clearedFields   map[string]struct{}
 	tags            map[uuid.UUID]struct{}
 	removedtags     map[uuid.UUID]struct{}
@@ -697,6 +699,78 @@ func (m *ArticleMutation) ResetLikeCount() {
 	m.addlike_count = nil
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (m *ArticleMutation) SetCoverURL(s string) {
+	m.cover_url = &s
+}
+
+// CoverURL returns the value of the "cover_url" field in the mutation.
+func (m *ArticleMutation) CoverURL() (r string, exists bool) {
+	v := m.cover_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCoverURL returns the old "cover_url" field's value of the Article entity.
+// If the Article object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleMutation) OldCoverURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCoverURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCoverURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCoverURL: %w", err)
+	}
+	return oldValue.CoverURL, nil
+}
+
+// ResetCoverURL resets all changes to the "cover_url" field.
+func (m *ArticleMutation) ResetCoverURL() {
+	m.cover_url = nil
+}
+
+// SetFeatured sets the "featured" field.
+func (m *ArticleMutation) SetFeatured(b bool) {
+	m.featured = &b
+}
+
+// Featured returns the value of the "featured" field in the mutation.
+func (m *ArticleMutation) Featured() (r bool, exists bool) {
+	v := m.featured
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatured returns the old "featured" field's value of the Article entity.
+// If the Article object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleMutation) OldFeatured(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatured is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatured requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatured: %w", err)
+	}
+	return oldValue.Featured, nil
+}
+
+// ResetFeatured resets all changes to the "featured" field.
+func (m *ArticleMutation) ResetFeatured() {
+	m.featured = nil
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by ids.
 func (m *ArticleMutation) AddTagIDs(ids ...uuid.UUID) {
 	if m.tags == nil {
@@ -824,7 +898,7 @@ func (m *ArticleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ArticleMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, article.FieldCreatedAt)
 	}
@@ -858,6 +932,12 @@ func (m *ArticleMutation) Fields() []string {
 	if m.like_count != nil {
 		fields = append(fields, article.FieldLikeCount)
 	}
+	if m.cover_url != nil {
+		fields = append(fields, article.FieldCoverURL)
+	}
+	if m.featured != nil {
+		fields = append(fields, article.FieldFeatured)
+	}
 	return fields
 }
 
@@ -888,6 +968,10 @@ func (m *ArticleMutation) Field(name string) (ent.Value, bool) {
 		return m.ViewCount()
 	case article.FieldLikeCount:
 		return m.LikeCount()
+	case article.FieldCoverURL:
+		return m.CoverURL()
+	case article.FieldFeatured:
+		return m.Featured()
 	}
 	return nil, false
 }
@@ -919,6 +1003,10 @@ func (m *ArticleMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldViewCount(ctx)
 	case article.FieldLikeCount:
 		return m.OldLikeCount(ctx)
+	case article.FieldCoverURL:
+		return m.OldCoverURL(ctx)
+	case article.FieldFeatured:
+		return m.OldFeatured(ctx)
 	}
 	return nil, fmt.Errorf("unknown Article field %s", name)
 }
@@ -1004,6 +1092,20 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLikeCount(v)
+		return nil
+	case article.FieldCoverURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCoverURL(v)
+		return nil
+	case article.FieldFeatured:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatured(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)
@@ -1158,6 +1260,12 @@ func (m *ArticleMutation) ResetField(name string) error {
 		return nil
 	case article.FieldLikeCount:
 		m.ResetLikeCount()
+		return nil
+	case article.FieldCoverURL:
+		m.ResetCoverURL()
+		return nil
+	case article.FieldFeatured:
+		m.ResetFeatured()
 		return nil
 	}
 	return fmt.Errorf("unknown Article field %s", name)

@@ -587,7 +587,7 @@ type Data struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Database *Data_Database         `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	Redis    *Data_Redis            `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"`
-	// Directory for user-uploaded files (currently avatars). Created on boot
+	// Directory for user-uploaded avatars and article media. Created on boot
 	// when missing. Defaults to ./data/uploads when unset; production mounts a
 	// named Docker volume here so uploads survive container replacement.
 	UploadsDir    string `protobuf:"bytes,3,opt,name=uploads_dir,json=uploadsDir,proto3" json:"uploads_dir,omitempty"`

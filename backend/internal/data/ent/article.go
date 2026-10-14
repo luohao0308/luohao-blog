@@ -42,6 +42,10 @@ type Article struct {
 	ViewCount uint64 `json:"view_count,omitempty"`
 	// LikeCount holds the value of the "like_count" field.
 	LikeCount uint64 `json:"like_count,omitempty"`
+	// CoverURL holds the value of the "cover_url" field.
+	CoverURL string `json:"cover_url,omitempty"`
+	// Featured holds the value of the "featured" field.
+	Featured bool `json:"featured,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
 	Edges        ArticleEdges `json:"edges"`
@@ -85,9 +89,11 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case article.FieldFeatured:
+			values[i] = new(sql.NullBool)
 		case article.FieldStatus, article.FieldViewCount, article.FieldLikeCount:
 			values[i] = new(sql.NullInt64)
-		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML:
+		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML, article.FieldCoverURL:
 			values[i] = new(sql.NullString)
 		case article.FieldCreatedAt, article.FieldUpdatedAt, article.FieldPublishedAt:
 			values[i] = new(sql.NullTime)
@@ -183,6 +189,18 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LikeCount = uint64(value.Int64)
 			}
+		case article.FieldCoverURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cover_url", values[i])
+			} else if value.Valid {
+				_m.CoverURL = value.String
+			}
+		case article.FieldFeatured:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field featured", values[i])
+			} else if value.Valid {
+				_m.Featured = value.Bool
+			}
 		case article.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field category_id", values[i])
@@ -270,6 +288,12 @@ func (_m *Article) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("like_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.LikeCount))
+	builder.WriteString(", ")
+	builder.WriteString("cover_url=")
+	builder.WriteString(_m.CoverURL)
+	builder.WriteString(", ")
+	builder.WriteString("featured=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Featured))
 	builder.WriteByte(')')
 	return builder.String()
 }

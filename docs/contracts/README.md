@@ -20,6 +20,10 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 
 | OfficialAccountService（同步配置状态、任务分页、重试、显式同步） | HTTP/gRPC | backend OfficialAccountService | Nuxt admin/wechat-sync | `backend/api/blog/v1/official_account.proto` | `make api`；HTTP 权限/流程测试 `TestOfficialAccountHTTPLifecycle` | 新增管理员接口，未配置时不产生远端调用 |
 
+| MediaService（文章图片上传与公开回读） | HTTP/gRPC | backend MediaService | Nuxt ArticleForm、文章/作品封面 | `backend/api/blog/v1/media.proto` | `make api`；media权限/FS/HTTP测试、S2 browser及真实BFF回归 | 新增后台上传/公开资产接口，2MiB内容和4MiB请求限制；Article可选metadata旧mask保留 |
+
+操作边界见 [文章媒体与元数据](MEDIA-ARTICLE-METADATA.md)。
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

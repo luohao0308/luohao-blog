@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -64,9 +65,14 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	auth := biz.NewAuthUsecase(users, NewSessionRepo(rdb), issuer, NewRateLimiter(rdb, config), NewRegisterRateLimiter(rdb, config), time.Hour)
+	uploadsDir := t.TempDir()
+	mediaStore, err := NewMediaStore(&conf.Data{UploadsDir: uploadsDir})
+	if err != nil {
+		t.Fatal(err)
+	}
 	srv, err := blogserver.NewHTTPServer(&conf.Server{Http: &conf.Server_HTTP{}}, issuer, authz,
 		service.NewArticleService(articles), service.NewCategoryService(biz.NewCategoryUsecase(NewCategoryRepo(d))),
-		service.NewAuthService(auth, nil, config), service.NewUserService(users, nil), service.NewCommentService(nil),
+		service.NewAuthService(auth, nil, config), service.NewUserService(users, nil), service.NewMediaService(biz.NewMediaUsecase(mediaStore)), service.NewCommentService(nil),
 		service.NewSubscriberService(nil), service.NewArticleSearchService(articles, nil), service.NewChatService(nil), service.NewOfficialAccountService(syncUC))
 	if err != nil {
 		t.Fatal(err)
@@ -113,6 +119,40 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 		return reply["access_token"].(string)
 	}
 	admin, reader := login("author@example.com"), login("reader@example.com")
+	mediaDir := filepath.Join(uploadsDir, mediaDirName)
+	mediaFiles := func() int {
+		files, readErr := os.ReadDir(mediaDir)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		return len(files)
+	}
+	png := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 0}
+	request("POST", "/v1/admin/media/images", "", map[string]any{"data": png}, http.StatusUnauthorized)
+	request("POST", "/v1/admin/media/images", reader, map[string]any{"data": png}, http.StatusForbidden)
+	if got := mediaFiles(); got != 0 {
+		t.Fatalf("unauthorized media uploads wrote %d file(s)", got)
+	}
+	uploaded := request("POST", "/v1/admin/media/images", admin, map[string]any{"data": png}, http.StatusOK)
+	mediaURL, ok := uploaded["url"].(string)
+	if !ok || !biz.ValidMediaURL(mediaURL) || mediaFiles() != 1 {
+		t.Fatalf("media upload reply = %#v, files = %d", uploaded, mediaFiles())
+	}
+	mediaResponse, err := server.Client().Get(server.URL + mediaURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaBytes, readErr := io.ReadAll(mediaResponse.Body)
+	_ = mediaResponse.Body.Close()
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if mediaResponse.StatusCode != http.StatusOK || mediaResponse.Header.Get("Content-Type") != "image/png" || !bytes.Equal(mediaBytes, png) {
+		t.Fatalf("anonymous media GET = status %d type %q bytes %x", mediaResponse.StatusCode, mediaResponse.Header.Get("Content-Type"), mediaBytes)
+	}
+	if cache := mediaResponse.Header.Get("Cache-Control"); cache != "public, max-age=31536000, immutable" {
+		t.Fatalf("media Cache-Control = %q", cache)
+	}
 	for _, path := range []string{"/v1/admin/wechat-sync/settings", "/v1/admin/wechat-sync/tasks"} {
 		request("GET", path, "", nil, 401)
 		request("GET", path, reader, nil, 403)

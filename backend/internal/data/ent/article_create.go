@@ -170,6 +170,34 @@ func (_c *ArticleCreate) SetNillableLikeCount(v *uint64) *ArticleCreate {
 	return _c
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (_c *ArticleCreate) SetCoverURL(v string) *ArticleCreate {
+	_c.mutation.SetCoverURL(v)
+	return _c
+}
+
+// SetNillableCoverURL sets the "cover_url" field if the given value is not nil.
+func (_c *ArticleCreate) SetNillableCoverURL(v *string) *ArticleCreate {
+	if v != nil {
+		_c.SetCoverURL(*v)
+	}
+	return _c
+}
+
+// SetFeatured sets the "featured" field.
+func (_c *ArticleCreate) SetFeatured(v bool) *ArticleCreate {
+	_c.mutation.SetFeatured(v)
+	return _c
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_c *ArticleCreate) SetNillableFeatured(v *bool) *ArticleCreate {
+	if v != nil {
+		_c.SetFeatured(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ArticleCreate) SetID(v uuid.UUID) *ArticleCreate {
 	_c.mutation.SetID(v)
@@ -273,6 +301,14 @@ func (_c *ArticleCreate) defaults() {
 		v := article.DefaultLikeCount
 		_c.mutation.SetLikeCount(v)
 	}
+	if _, ok := _c.mutation.CoverURL(); !ok {
+		v := article.DefaultCoverURL
+		_c.mutation.SetCoverURL(v)
+	}
+	if _, ok := _c.mutation.Featured(); !ok {
+		v := article.DefaultFeatured
+		_c.mutation.SetFeatured(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := article.DefaultID()
 		_c.mutation.SetID(v)
@@ -303,6 +339,17 @@ func (_c *ArticleCreate) check() error {
 	}
 	if _, ok := _c.mutation.LikeCount(); !ok {
 		return &ValidationError{Name: "like_count", err: errors.New(`ent: missing required field "Article.like_count"`)}
+	}
+	if _, ok := _c.mutation.CoverURL(); !ok {
+		return &ValidationError{Name: "cover_url", err: errors.New(`ent: missing required field "Article.cover_url"`)}
+	}
+	if v, ok := _c.mutation.CoverURL(); ok {
+		if err := article.CoverURLValidator(v); err != nil {
+			return &ValidationError{Name: "cover_url", err: fmt.Errorf(`ent: validator failed for field "Article.cover_url": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Featured(); !ok {
+		return &ValidationError{Name: "featured", err: errors.New(`ent: missing required field "Article.featured"`)}
 	}
 	return nil
 }
@@ -382,6 +429,14 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LikeCount(); ok {
 		_spec.SetField(article.FieldLikeCount, field.TypeUint64, value)
 		_node.LikeCount = value
+	}
+	if value, ok := _c.mutation.CoverURL(); ok {
+		_spec.SetField(article.FieldCoverURL, field.TypeString, value)
+		_node.CoverURL = value
+	}
+	if value, ok := _c.mutation.Featured(); ok {
+		_spec.SetField(article.FieldFeatured, field.TypeBool, value)
+		_node.Featured = value
 	}
 	if nodes := _c.mutation.TagsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

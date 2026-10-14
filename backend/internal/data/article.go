@@ -49,6 +49,8 @@ func toBiz(po *ent.Article, tagNames []string, cat *ent.Category) *biz.Article {
 		UpdatedAt:   po.UpdatedAt,
 		ViewCount:   po.ViewCount,
 		LikeCount:   po.LikeCount,
+		CoverURL:    po.CoverURL,
+		Featured:    po.Featured,
 	}
 	if cat != nil {
 		out.CategorySlug = cat.Slug
@@ -393,6 +395,8 @@ func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		SetSummary(a.Summary).
 		SetContentMd(a.ContentMD).
 		SetContentHTML(a.ContentHTML).
+		SetCoverURL(a.CoverURL).
+		SetFeatured(a.Featured).
 		SetStatus(biz.ArticleStatusDraft)
 	if len(tags) > 0 {
 		creator = creator.AddTags(tags...)
@@ -441,6 +445,8 @@ func updateArticle(ctx context.Context, client *ent.Client, a *biz.Article) (*bi
 		SetSummary(a.Summary).
 		SetContentMd(a.ContentMD).
 		SetContentHTML(a.ContentHTML).
+		SetCoverURL(a.CoverURL).
+		SetFeatured(a.Featured).
 		SetStatus(a.Status).
 		ClearTags()
 	if a.PublishedAt != nil {
