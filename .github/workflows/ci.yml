@@ -72,5 +72,7 @@ jobs:
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
+      - name: Auth route regression tests
+        run: node --test tests/*.test.cjs
       - name: Build
         run: pnpm build

@@ -28,7 +28,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 层/能力 | 当前方案 | 稳定约束 |
 |---|---|---|
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
-| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号）；当前代码支持可配置邮箱验证/密码恢复，默认邮件关闭且未验证不锁旧登录；新设密码限制 8–1024 UTF-8 字节，历史长密码登录兼容保留；凭据版本撤销refresh，access保留配置TTL窗口；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
+| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号）；当前代码支持可配置邮箱验证/密码恢复，默认邮件关闭且未验证不锁旧登录；新设密码限制 8–1024 UTF-8 字节，历史长密码登录兼容保留；凭据版本撤销refresh，access保留配置TTL窗口；ADMIN 初始由 `cmd/seed` 创建，存量账号权限移交需独立受控授权；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
