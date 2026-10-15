@@ -222,7 +222,8 @@ func TestConcurrentResetConfirmRunsAtMostOneHasher(t *testing.T) {
 	tokens.users = repo
 	_, _ = tokens.Issue(context.Background(), EmailPurposeReset, u.ID, 0, time.Hour)
 	uc := NewAccountEmailUsecase(users, tokens, &fakeEmailLimiter{allowed: true}, &fakeMailSender{configured: true}, newFakeSessionRepo(), AccountEmailSettings{})
-	entered, release := make(chan struct{}), make(chan struct{})
+	// Retain the first notification even when the observer has not started waiting.
+	entered, release := make(chan struct{}, 1), make(chan struct{})
 	active, maxActive := 0, 0
 	var mu sync.Mutex
 	uc.hashPassword = func(string) (string, error) {
