@@ -20,6 +20,8 @@ type Tx struct {
 	Article *ArticleClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Collection is the client for interacting with the Collection builders.
+	Collection *CollectionClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
 	// Project is the client for interacting with the Project builders.
@@ -167,6 +169,7 @@ func (tx *Tx) init() {
 	tx.AccountEmailToken = NewAccountEmailTokenClient(tx.config)
 	tx.Article = NewArticleClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
+	tx.Collection = NewCollectionClient(tx.config)
 	tx.Comment = NewCommentClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)
 	tx.Subscriber = NewSubscriberClient(tx.config)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 )
@@ -35,8 +36,17 @@ const (
 	FieldCredentialVersion = "credential_version"
 	// FieldWechatOpenid holds the string denoting the wechat_openid field in the database.
 	FieldWechatOpenid = "wechat_openid"
+	// EdgeCollections holds the string denoting the collections edge name in mutations.
+	EdgeCollections = "collections"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// CollectionsTable is the table that holds the collections relation/edge.
+	CollectionsTable = "collections"
+	// CollectionsInverseTable is the table name for the Collection entity.
+	// It exists in this package in order to avoid circular dependency with the "collection" package.
+	CollectionsInverseTable = "collections"
+	// CollectionsColumn is the table column denoting the collections relation/edge.
+	CollectionsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -145,4 +155,25 @@ func ByCredentialVersion(opts ...sql.OrderTermOption) OrderOption {
 // ByWechatOpenid orders the results by the wechat_openid field.
 func ByWechatOpenid(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWechatOpenid, opts...).ToFunc()
+}
+
+// ByCollectionsCount orders the results by collections count.
+func ByCollectionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCollectionsStep(), opts...)
+	}
+}
+
+// ByCollections orders the results by collections terms.
+func ByCollections(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCollectionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newCollectionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CollectionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+	)
 }

@@ -6,7 +6,9 @@ const verifyToken = 'verify_token_abcdefghijklmnopqrstuvwxyz'
 const resetToken = 'reset_token_abcdefghijklmnopqrstuvwxyz'
 
 async function install(page, state) {
-  await page.route('**/api/v1/auth/refresh', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'reader-token', token_type: 'Bearer', expires_in: 900, user: { id: 'reader', email: 'reader@example.com', display_name: '测试读者', role: 1, email_verified: state.verified } }) }))
+  await page.route('**/api/v1/auth/refresh', route => route.fulfill(state.authenticated
+    ? { status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'reader-token', token_type: 'Bearer', expires_in: 900, user: { id: 'reader', email: 'reader@example.com', display_name: '测试读者', role: 1, email_verified: state.verified } }) }
+    : { status: 401, contentType: 'application/json', body: '{}' }))
   await page.route('**/api/v1/auth/me', (route) => { state.meCalls++; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'reader', email: 'reader@example.com', display_name: '测试读者', role: 1, email_verified: false }) }) })
   await page.route('**/api/v1/auth/email-verification/request', (route) => {
     state.verifyRequests++
@@ -39,7 +41,7 @@ async function install(page, state) {
 async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BLOG_E2E_CHROMIUM || undefined })
   try {
-    const state = { verified: false, meCalls: 0, verifyRequests: 0, verifyRequestMode: 'not-configured', verifyConfirmMode: 'unavailable', verifyBodies: [], resetRequestMode: 'success', resetRequestEmails: [], resetConfirmMode: 'unavailable', resetBodies: [], logoutCalls: 0, passwordChanges: 0 }
+    const state = { authenticated: false, verified: false, meCalls: 0, verifyRequests: 0, verifyRequestMode: 'not-configured', verifyConfirmMode: 'unavailable', verifyBodies: [], resetRequestMode: 'success', resetRequestEmails: [], resetConfirmMode: 'unavailable', resetBodies: [], logoutCalls: 0, passwordChanges: 0 }
     const context = await browser.newContext({ locale: 'zh-CN' })
     const page = await context.newPage()
     await install(page, state)
@@ -49,12 +51,17 @@ async function main() {
     await page.getByPlaceholder('邮箱').fill('known@example.com')
     await page.getByRole('button', { name: '提交找回请求' }).click()
     const uniform = '请求已接收，若邮箱已注册且投递可用将收到链接；未收到可稍后重试。'
-    await page.getByText(uniform, { exact: true }).waitFor()
+    try { await page.getByText(uniform, { exact: true }).waitFor({ timeout: 8000 }) }
+    catch (error) {
+      console.error('email request diagnostic', { url: page.url(), requestCount: state.resetRequestEmails.length, body: (await page.locator('body').innerText()).slice(0, 700) })
+      throw error
+    }
     await page.getByPlaceholder('邮箱').fill('unknown@example.com')
     await page.getByRole('button', { name: '提交找回请求' }).click()
     await page.getByText(uniform, { exact: true }).waitFor()
     assert.deepEqual(state.resetRequestEmails, ['known@example.com', 'unknown@example.com'])
 
+    state.authenticated = true
     await page.goto(`${base}/settings`)
     await page.getByRole('region', { name: '邮箱验证' }).waitFor()
     await page.getByRole('button', { name: '发送验证请求' }).click()

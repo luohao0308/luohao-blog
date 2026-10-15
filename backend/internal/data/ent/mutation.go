@@ -17,6 +17,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
@@ -39,6 +40,7 @@ const (
 	TypeAccountEmailToken = "AccountEmailToken"
 	TypeArticle           = "Article"
 	TypeCategory          = "Category"
+	TypeCollection        = "Collection"
 	TypeComment           = "Comment"
 	TypeProject           = "Project"
 	TypeSubscriber        = "Subscriber"
@@ -1792,34 +1794,37 @@ func (m *AccountEmailTokenMutation) ResetEdge(name string) error {
 // ArticleMutation represents an operation that mutates the Article nodes in the graph.
 type ArticleMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *uuid.UUID
-	created_at      *time.Time
-	updated_at      *time.Time
-	slug            *string
-	title           *string
-	summary         *string
-	content_md      *string
-	content_html    *string
-	status          *biz.ArticleStatus
-	addstatus       *biz.ArticleStatus
-	published_at    *time.Time
-	view_count      *uint64
-	addview_count   *int64
-	like_count      *uint64
-	addlike_count   *int64
-	cover_url       *string
-	featured        *bool
-	clearedFields   map[string]struct{}
-	tags            map[uuid.UUID]struct{}
-	removedtags     map[uuid.UUID]struct{}
-	clearedtags     bool
-	category        *uuid.UUID
-	clearedcategory bool
-	done            bool
-	oldValue        func(context.Context) (*Article, error)
-	predicates      []predicate.Article
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	created_at         *time.Time
+	updated_at         *time.Time
+	slug               *string
+	title              *string
+	summary            *string
+	content_md         *string
+	content_html       *string
+	status             *biz.ArticleStatus
+	addstatus          *biz.ArticleStatus
+	published_at       *time.Time
+	view_count         *uint64
+	addview_count      *int64
+	like_count         *uint64
+	addlike_count      *int64
+	cover_url          *string
+	featured           *bool
+	clearedFields      map[string]struct{}
+	tags               map[uuid.UUID]struct{}
+	removedtags        map[uuid.UUID]struct{}
+	clearedtags        bool
+	collections        map[uuid.UUID]struct{}
+	removedcollections map[uuid.UUID]struct{}
+	clearedcollections bool
+	category           *uuid.UUID
+	clearedcategory    bool
+	done               bool
+	oldValue           func(context.Context) (*Article, error)
+	predicates         []predicate.Article
 }
 
 var _ ent.Mutation = (*ArticleMutation)(nil)
@@ -2573,6 +2578,60 @@ func (m *ArticleMutation) ResetTags() {
 	m.removedtags = nil
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by ids.
+func (m *ArticleMutation) AddCollectionIDs(ids ...uuid.UUID) {
+	if m.collections == nil {
+		m.collections = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.collections[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCollections clears the "collections" edge to the Collection entity.
+func (m *ArticleMutation) ClearCollections() {
+	m.clearedcollections = true
+}
+
+// CollectionsCleared reports if the "collections" edge to the Collection entity was cleared.
+func (m *ArticleMutation) CollectionsCleared() bool {
+	return m.clearedcollections
+}
+
+// RemoveCollectionIDs removes the "collections" edge to the Collection entity by IDs.
+func (m *ArticleMutation) RemoveCollectionIDs(ids ...uuid.UUID) {
+	if m.removedcollections == nil {
+		m.removedcollections = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.collections, ids[i])
+		m.removedcollections[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCollections returns the removed IDs of the "collections" edge to the Collection entity.
+func (m *ArticleMutation) RemovedCollectionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedcollections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CollectionsIDs returns the "collections" edge IDs in the mutation.
+func (m *ArticleMutation) CollectionsIDs() (ids []uuid.UUID) {
+	for id := range m.collections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCollections resets all changes to the "collections" edge.
+func (m *ArticleMutation) ResetCollections() {
+	m.collections = nil
+	m.clearedcollections = false
+	m.removedcollections = nil
+}
+
 // SetCategoryID sets the "category" edge to the Category entity by id.
 func (m *ArticleMutation) SetCategoryID(id uuid.UUID) {
 	m.category = &id
@@ -3021,9 +3080,12 @@ func (m *ArticleMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ArticleMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.tags != nil {
 		edges = append(edges, article.EdgeTags)
+	}
+	if m.collections != nil {
+		edges = append(edges, article.EdgeCollections)
 	}
 	if m.category != nil {
 		edges = append(edges, article.EdgeCategory)
@@ -3041,6 +3103,12 @@ func (m *ArticleMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case article.EdgeCollections:
+		ids := make([]ent.Value, 0, len(m.collections))
+		for id := range m.collections {
+			ids = append(ids, id)
+		}
+		return ids
 	case article.EdgeCategory:
 		if id := m.category; id != nil {
 			return []ent.Value{*id}
@@ -3051,9 +3119,12 @@ func (m *ArticleMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ArticleMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedtags != nil {
 		edges = append(edges, article.EdgeTags)
+	}
+	if m.removedcollections != nil {
+		edges = append(edges, article.EdgeCollections)
 	}
 	return edges
 }
@@ -3068,15 +3139,24 @@ func (m *ArticleMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case article.EdgeCollections:
+		ids := make([]ent.Value, 0, len(m.removedcollections))
+		for id := range m.removedcollections {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ArticleMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedtags {
 		edges = append(edges, article.EdgeTags)
+	}
+	if m.clearedcollections {
+		edges = append(edges, article.EdgeCollections)
 	}
 	if m.clearedcategory {
 		edges = append(edges, article.EdgeCategory)
@@ -3090,6 +3170,8 @@ func (m *ArticleMutation) EdgeCleared(name string) bool {
 	switch name {
 	case article.EdgeTags:
 		return m.clearedtags
+	case article.EdgeCollections:
+		return m.clearedcollections
 	case article.EdgeCategory:
 		return m.clearedcategory
 	}
@@ -3113,6 +3195,9 @@ func (m *ArticleMutation) ResetEdge(name string) error {
 	switch name {
 	case article.EdgeTags:
 		m.ResetTags()
+		return nil
+	case article.EdgeCollections:
+		m.ResetCollections()
 		return nil
 	case article.EdgeCategory:
 		m.ResetCategory()
@@ -3796,6 +3881,600 @@ func (m *CategoryMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Category edge %s", name)
+}
+
+// CollectionMutation represents an operation that mutates the Collection nodes in the graph.
+type CollectionMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *uuid.UUID
+	saved_at       *time.Time
+	article_slug   *string
+	clearedFields  map[string]struct{}
+	user           *uuid.UUID
+	cleareduser    bool
+	article        *uuid.UUID
+	clearedarticle bool
+	done           bool
+	oldValue       func(context.Context) (*Collection, error)
+	predicates     []predicate.Collection
+}
+
+var _ ent.Mutation = (*CollectionMutation)(nil)
+
+// collectionOption allows management of the mutation configuration using functional options.
+type collectionOption func(*CollectionMutation)
+
+// newCollectionMutation creates new mutation for the Collection entity.
+func newCollectionMutation(c config, op Op, opts ...collectionOption) *CollectionMutation {
+	m := &CollectionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCollection,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCollectionID sets the ID field of the mutation.
+func withCollectionID(id uuid.UUID) collectionOption {
+	return func(m *CollectionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Collection
+		)
+		m.oldValue = func(ctx context.Context) (*Collection, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Collection.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCollection sets the old Collection of the mutation.
+func withCollection(node *Collection) collectionOption {
+	return func(m *CollectionMutation) {
+		m.oldValue = func(context.Context) (*Collection, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CollectionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CollectionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Collection entities.
+func (m *CollectionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CollectionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CollectionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Collection.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSavedAt sets the "saved_at" field.
+func (m *CollectionMutation) SetSavedAt(t time.Time) {
+	m.saved_at = &t
+}
+
+// SavedAt returns the value of the "saved_at" field in the mutation.
+func (m *CollectionMutation) SavedAt() (r time.Time, exists bool) {
+	v := m.saved_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSavedAt returns the old "saved_at" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldSavedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSavedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSavedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSavedAt: %w", err)
+	}
+	return oldValue.SavedAt, nil
+}
+
+// ResetSavedAt resets all changes to the "saved_at" field.
+func (m *CollectionMutation) ResetSavedAt() {
+	m.saved_at = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *CollectionMutation) SetUserID(u uuid.UUID) {
+	m.user = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *CollectionMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *CollectionMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetArticleID sets the "article_id" field.
+func (m *CollectionMutation) SetArticleID(u uuid.UUID) {
+	m.article = &u
+}
+
+// ArticleID returns the value of the "article_id" field in the mutation.
+func (m *CollectionMutation) ArticleID() (r uuid.UUID, exists bool) {
+	v := m.article
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleID returns the old "article_id" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldArticleID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleID: %w", err)
+	}
+	return oldValue.ArticleID, nil
+}
+
+// ResetArticleID resets all changes to the "article_id" field.
+func (m *CollectionMutation) ResetArticleID() {
+	m.article = nil
+}
+
+// SetArticleSlug sets the "article_slug" field.
+func (m *CollectionMutation) SetArticleSlug(s string) {
+	m.article_slug = &s
+}
+
+// ArticleSlug returns the value of the "article_slug" field in the mutation.
+func (m *CollectionMutation) ArticleSlug() (r string, exists bool) {
+	v := m.article_slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleSlug returns the old "article_slug" field's value of the Collection entity.
+// If the Collection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CollectionMutation) OldArticleSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleSlug: %w", err)
+	}
+	return oldValue.ArticleSlug, nil
+}
+
+// ResetArticleSlug resets all changes to the "article_slug" field.
+func (m *CollectionMutation) ResetArticleSlug() {
+	m.article_slug = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *CollectionMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[collection.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *CollectionMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *CollectionMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *CollectionMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// ClearArticle clears the "article" edge to the Article entity.
+func (m *CollectionMutation) ClearArticle() {
+	m.clearedarticle = true
+	m.clearedFields[collection.FieldArticleID] = struct{}{}
+}
+
+// ArticleCleared reports if the "article" edge to the Article entity was cleared.
+func (m *CollectionMutation) ArticleCleared() bool {
+	return m.clearedarticle
+}
+
+// ArticleIDs returns the "article" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ArticleID instead. It exists only for internal usage by the builders.
+func (m *CollectionMutation) ArticleIDs() (ids []uuid.UUID) {
+	if id := m.article; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetArticle resets all changes to the "article" edge.
+func (m *CollectionMutation) ResetArticle() {
+	m.article = nil
+	m.clearedarticle = false
+}
+
+// Where appends a list predicates to the CollectionMutation builder.
+func (m *CollectionMutation) Where(ps ...predicate.Collection) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CollectionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CollectionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Collection, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CollectionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CollectionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Collection).
+func (m *CollectionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CollectionMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.saved_at != nil {
+		fields = append(fields, collection.FieldSavedAt)
+	}
+	if m.user != nil {
+		fields = append(fields, collection.FieldUserID)
+	}
+	if m.article != nil {
+		fields = append(fields, collection.FieldArticleID)
+	}
+	if m.article_slug != nil {
+		fields = append(fields, collection.FieldArticleSlug)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CollectionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case collection.FieldSavedAt:
+		return m.SavedAt()
+	case collection.FieldUserID:
+		return m.UserID()
+	case collection.FieldArticleID:
+		return m.ArticleID()
+	case collection.FieldArticleSlug:
+		return m.ArticleSlug()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CollectionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case collection.FieldSavedAt:
+		return m.OldSavedAt(ctx)
+	case collection.FieldUserID:
+		return m.OldUserID(ctx)
+	case collection.FieldArticleID:
+		return m.OldArticleID(ctx)
+	case collection.FieldArticleSlug:
+		return m.OldArticleSlug(ctx)
+	}
+	return nil, fmt.Errorf("unknown Collection field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CollectionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case collection.FieldSavedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSavedAt(v)
+		return nil
+	case collection.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case collection.FieldArticleID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleID(v)
+		return nil
+	case collection.FieldArticleSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleSlug(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Collection field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CollectionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CollectionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CollectionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Collection numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CollectionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CollectionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CollectionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Collection nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CollectionMutation) ResetField(name string) error {
+	switch name {
+	case collection.FieldSavedAt:
+		m.ResetSavedAt()
+		return nil
+	case collection.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case collection.FieldArticleID:
+		m.ResetArticleID()
+		return nil
+	case collection.FieldArticleSlug:
+		m.ResetArticleSlug()
+		return nil
+	}
+	return fmt.Errorf("unknown Collection field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CollectionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, collection.EdgeUser)
+	}
+	if m.article != nil {
+		edges = append(edges, collection.EdgeArticle)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CollectionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case collection.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case collection.EdgeArticle:
+		if id := m.article; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CollectionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CollectionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CollectionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, collection.EdgeUser)
+	}
+	if m.clearedarticle {
+		edges = append(edges, collection.EdgeArticle)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CollectionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case collection.EdgeUser:
+		return m.cleareduser
+	case collection.EdgeArticle:
+		return m.clearedarticle
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CollectionMutation) ClearEdge(name string) error {
+	switch name {
+	case collection.EdgeUser:
+		m.ClearUser()
+		return nil
+	case collection.EdgeArticle:
+		m.ClearArticle()
+		return nil
+	}
+	return fmt.Errorf("unknown Collection unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CollectionMutation) ResetEdge(name string) error {
+	switch name {
+	case collection.EdgeUser:
+		m.ResetUser()
+		return nil
+	case collection.EdgeArticle:
+		m.ResetArticle()
+		return nil
+	}
+	return fmt.Errorf("unknown Collection edge %s", name)
 }
 
 // CommentMutation represents an operation that mutates the Comment nodes in the graph.
@@ -7047,6 +7726,9 @@ type UserMutation struct {
 	addcredential_version *int64
 	wechat_openid         *string
 	clearedFields         map[string]struct{}
+	collections           map[uuid.UUID]struct{}
+	removedcollections    map[uuid.UUID]struct{}
+	clearedcollections    bool
 	done                  bool
 	oldValue              func(context.Context) (*User, error)
 	predicates            []predicate.User
@@ -7569,6 +8251,60 @@ func (m *UserMutation) ResetWechatOpenid() {
 	delete(m.clearedFields, user.FieldWechatOpenid)
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by ids.
+func (m *UserMutation) AddCollectionIDs(ids ...uuid.UUID) {
+	if m.collections == nil {
+		m.collections = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.collections[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCollections clears the "collections" edge to the Collection entity.
+func (m *UserMutation) ClearCollections() {
+	m.clearedcollections = true
+}
+
+// CollectionsCleared reports if the "collections" edge to the Collection entity was cleared.
+func (m *UserMutation) CollectionsCleared() bool {
+	return m.clearedcollections
+}
+
+// RemoveCollectionIDs removes the "collections" edge to the Collection entity by IDs.
+func (m *UserMutation) RemoveCollectionIDs(ids ...uuid.UUID) {
+	if m.removedcollections == nil {
+		m.removedcollections = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.collections, ids[i])
+		m.removedcollections[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCollections returns the removed IDs of the "collections" edge to the Collection entity.
+func (m *UserMutation) RemovedCollectionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedcollections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CollectionsIDs returns the "collections" edge IDs in the mutation.
+func (m *UserMutation) CollectionsIDs() (ids []uuid.UUID) {
+	for id := range m.collections {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCollections resets all changes to the "collections" edge.
+func (m *UserMutation) ResetCollections() {
+	m.collections = nil
+	m.clearedcollections = false
+	m.removedcollections = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -7891,49 +8627,85 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.collections != nil {
+		edges = append(edges, user.EdgeCollections)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeCollections:
+		ids := make([]ent.Value, 0, len(m.collections))
+		for id := range m.collections {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedcollections != nil {
+		edges = append(edges, user.EdgeCollections)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeCollections:
+		ids := make([]ent.Value, 0, len(m.removedcollections))
+		for id := range m.removedcollections {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedcollections {
+		edges = append(edges, user.EdgeCollections)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeCollections:
+		return m.clearedcollections
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeCollections:
+		m.ResetCollections()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
 }
 

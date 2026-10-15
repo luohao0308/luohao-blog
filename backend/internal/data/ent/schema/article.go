@@ -80,6 +80,7 @@ func (Article) Indexes() []ent.Index {
 func (Article) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("tags", Tag.Type),
+		edge.To("collections", Collection.Type),
 		edge.From("category", Category.Type).Ref("articles").Unique(),
 	}
 }

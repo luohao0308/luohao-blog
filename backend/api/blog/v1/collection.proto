@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "blog/v1/article.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "CollectionProto";
+
+service CollectionService {
+  rpc ListCollections (ListCollectionsRequest) returns (CollectionSet) {
+    option (google.api.http) = { get: "/v1/collections/list" };
+  }
+  rpc SaveCollection (SaveCollectionRequest) returns (Collection) {
+    option (google.api.http) = {
+      post: "/v1/collections/{slug}"
+      body: "*"
+    };
+  }
+  rpc DeleteCollection (DeleteCollectionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = { delete: "/v1/collections/{slug}" };
+  }
+}
+
+message Collection {
+  Article article = 1;
+  google.protobuf.Timestamp saved_at = 2;
+}
+
+message CollectionSet {
+  repeated Collection collections = 1;
+  string next_page_token = 2;
+}
+
+message ListCollectionsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message SaveCollectionRequest {
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteCollectionRequest {
+  string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}

@@ -95,6 +95,7 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 	srv, err := blogserver.NewHTTPServer(&conf.Server{Http: &conf.Server_HTTP{}}, issuer, authz,
 		service.NewArticleService(articles), service.NewCategoryService(biz.NewCategoryUsecase(NewCategoryRepo(d))),
 		service.NewProjectService(projectUC), service.NewAboutService(aboutUC),
+		service.NewCollectionService(biz.NewCollectionUsecase(NewCollectionRepo(d))),
 		service.NewAuthService(auth, nil, config), service.NewUserService(users, nil), service.NewMediaService(biz.NewMediaUsecase(mediaStore)), service.NewCommentService(commentUC),
 		service.NewSubscriberService(nil), service.NewArticleSearchService(articles, nil), service.NewChatService(nil), service.NewOfficialAccountService(syncUC))
 	if err != nil {

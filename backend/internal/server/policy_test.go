@@ -19,6 +19,7 @@ func registerCategoryRoutes(t *testing.T) *kratoshttp.Server {
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
 	v1.RegisterProjectServiceHTTPServer(srv, service.NewProjectService(nil))
 	v1.RegisterAboutServiceHTTPServer(srv, service.NewAboutService(nil))
+	v1.RegisterCollectionServiceHTTPServer(srv, service.NewCollectionService(nil))
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	return srv
 }
@@ -84,6 +85,7 @@ func registerAllRoutes(t *testing.T) *kratoshttp.Server {
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
 	v1.RegisterProjectServiceHTTPServer(srv, service.NewProjectService(nil))
 	v1.RegisterAboutServiceHTTPServer(srv, service.NewAboutService(nil))
+	v1.RegisterCollectionServiceHTTPServer(srv, service.NewCollectionService(nil))
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	v1.RegisterAuthServiceHTTPServer(srv, service.NewAuthService(nil, nil, &conf.Auth{}))
 	v1.RegisterUserServiceHTTPServer(srv, service.NewUserService(nil, nil))

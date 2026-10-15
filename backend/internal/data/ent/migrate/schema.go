@@ -147,6 +147,46 @@ var (
 			},
 		},
 	}
+	// CollectionsColumns holds the columns for the "collections" table.
+	CollectionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "saved_at", Type: field.TypeTime},
+		{Name: "article_slug", Type: field.TypeString, Size: 64},
+		{Name: "article_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// CollectionsTable holds the schema information for the "collections" table.
+	CollectionsTable = &schema.Table{
+		Name:       "collections",
+		Columns:    CollectionsColumns,
+		PrimaryKey: []*schema.Column{CollectionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "collections_articles_collections",
+				Columns:    []*schema.Column{CollectionsColumns[3]},
+				RefColumns: []*schema.Column{ArticlesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "collections_users_collections",
+				Columns:    []*schema.Column{CollectionsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "collection_user_id_article_id",
+				Unique:  true,
+				Columns: []*schema.Column{CollectionsColumns[4], CollectionsColumns[3]},
+			},
+			{
+				Name:    "collection_user_id_saved_at_article_slug_id",
+				Unique:  false,
+				Columns: []*schema.Column{CollectionsColumns[4], CollectionsColumns[1], CollectionsColumns[2], CollectionsColumns[0]},
+			},
+		},
+	}
 	// CommentsColumns holds the columns for the "comments" table.
 	CommentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -372,6 +412,7 @@ var (
 		AccountEmailTokensTable,
 		ArticlesTable,
 		CategoriesTable,
+		CollectionsTable,
 		CommentsTable,
 		ProjectsTable,
 		SubscribersTable,
@@ -384,6 +425,8 @@ var (
 
 func init() {
 	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
+	CollectionsTable.ForeignKeys[0].RefTable = ArticlesTable
+	CollectionsTable.ForeignKeys[1].RefTable = UsersTable
 	ArticleTagsTable.ForeignKeys[0].RefTable = ArticlesTable
 	ArticleTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

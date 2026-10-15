@@ -117,6 +117,12 @@ def main():
                 probe=run(["go","test","./internal/data","-run","^TestAccountEmailTokenRepoMySQL$","-count=1","-v"],env=probe_env,cwd=ROOT/"backend").decode()
                 assert "=== RUN   TestAccountEmailTokenRepoMySQL" in probe and "--- PASS: TestAccountEmailTokenRepoMySQL" in probe and "--- SKIP:" not in probe, "real MySQL repo probe must run, not silently skip"
                 assert mysql(db,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="0"
+            if opts.target>=15 and original_user is not None:
+                assert mysql(db,"SELECT COUNT(*) FROM collections;").strip()=="0"
+                collection_probe=run(["go","test","./internal/data","-run","^TestCollectionRepoMySQL$","-count=1","-v"],env=env|{"BLOG_COLLECTION_MYSQL_DSN":env["MYSQL_MIGRATION_DSN"]},cwd=ROOT/"backend").decode()
+                assert "=== RUN   TestCollectionRepoMySQL" in collection_probe and "--- PASS: TestCollectionRepoMySQL" in collection_probe and "--- SKIP:" not in collection_probe, "collection MySQL probe must run"
+                assert mysql(db,"SELECT COUNT(*) FROM collections;").strip()=="0"
+                assert mysql(db,"SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='collections';").strip()=="2"
             if previous_metadata is not None:
                 assert mysql(db,"SELECT cover_url,featured FROM articles WHERE slug='migration-fixture';")==previous_metadata
             else:
@@ -148,6 +154,22 @@ def main():
             if opts.target>=14 and original_user is not None:
                 assert mysql(restore,"SELECT email_verified,credential_version FROM users ORDER BY id;")==(previous_account_metadata or "0\t0\n")
                 assert mysql(restore,"SELECT COUNT(*) FROM account_email_tokens;").strip()=="0"
+                collection_snapshot=None
+                if opts.target>=15:
+                    assert mysql(restore,"SELECT COUNT(*) FROM collections;").strip()=="0"
+                    row="'00000000-0000-0000-0000-000000000007',NOW(),'00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','migration-fixture'"
+                    mysql(db,"INSERT INTO collections(id,saved_at,user_id,article_id,article_slug) VALUES("+row+");")
+                    duplicate=row.replace("000000000007","000000000008")
+                    mysql(db,"INSERT IGNORE INTO collections(id,saved_at,user_id,article_id,article_slug) VALUES("+duplicate+");")
+                    assert mysql(db,"SELECT COUNT(*) FROM collections;").strip()=="1"
+                    for bad in [row.replace("000000000007","000000000009").replace("000000000002","000000000099"),row.replace("000000000007","000000000010").replace("000000000001","000000000098")]:
+                        try:
+                            mysql(db,"INSERT INTO collections(id,saved_at,user_id,article_id,article_slug) VALUES("+bad+");")
+                        except RuntimeError:
+                            pass
+                        else:
+                            raise AssertionError("collection FK must reject missing users/articles")
+                    collection_snapshot=mysql(db,"SELECT user_id,article_id,article_slug,saved_at FROM collections;")
                 mysql(db,"UPDATE users SET email_verified=1,credential_version=9 WHERE email='migration-fixture@example.com';")
                 token_values="'00000000-0000-0000-0000-000000000003',NOW(),NOW(),'00000000-0000-0000-0000-000000000002','verify','"+"a"*64+"',9,DATE_ADD(NOW(),INTERVAL 24 HOUR)"
                 mysql(db,"INSERT INTO account_email_tokens(id,created_at,updated_at,user_id,purpose,token_hash,credential_version,expires_at) VALUES("+token_values+");")
@@ -174,7 +196,9 @@ def main():
                 assert mysql(restore,"SELECT version,dirty FROM schema_migrations;").strip()==f"{opts.target}\t0"
                 assert mysql(restore,"SELECT purpose,credential_version,LENGTH(token_hash) FROM account_email_tokens;").strip()=="verify\t9\t64"
                 assert mysql(restore,"SELECT token_hash FROM account_email_tokens;").strip()=="a"*64
-            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_compatibility":True,"portfolio_seeds_idempotent":opts.target>=13,"account_metadata_compatibility":opts.target>=14,"token_constraints_and_restore":opts.target>=14,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
+                if collection_snapshot is not None:
+                    assert mysql(restore,"SELECT user_id,article_id,article_slug,saved_at FROM collections;")==collection_snapshot
+            print(json.dumps({"baseline":opts.baseline,"target":opts.target,"dirty":False,"old_rows_preserved":True,"metadata_compatibility":True,"portfolio_seeds_idempotent":opts.target>=13,"account_metadata_compatibility":opts.target>=14,"token_constraints_and_restore":opts.target>=14,"collection_repository_constraints_and_restore":opts.target>=15,"backup_restore_and_reupgrade":True,"isolated_fixture":True}))
     finally:
         for name in created:
             assert re.fullmatch(r"website_completion_[a-f0-9_]+",name)

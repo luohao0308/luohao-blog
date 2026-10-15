@@ -32,6 +32,10 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 
 详情见 [账号邮箱验证与密码恢复](ACCOUNT-EMAIL.md)。
 
+| CollectionService | HTTP/gRPC | backend CollectionService | Nuxt 收藏页与文章详情 | `backend/api/blog/v1/collection.proto` | `make api`；repo/权限/HTTP/MySQL与真实BFF fixture | v15扩展表；身份仅取claims，公开文章动态过滤，重复保存和取消幂等 |
+
+详情见 [跨设备收藏](COLLECTIONS.md)。
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

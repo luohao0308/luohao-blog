@@ -124,3 +124,7 @@ SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_C
 账号邮箱专项：`account_email_e2e.cjs`使用模拟接口验证503/429/确认重试、fragment清理、其他账号token确认隔离、默认JWT残余窗口文案以及后台改密入口复用/当前会话退出。`account_email_live_e2e.cjs`不拦截API，使用真实BFF、SQL、Redis和fakeMailer；它动态注册三个仅fixture账号，确认验证/重置单次消费、目的隔离、弱密码不消费、旧refresh失效、其他账号会话保留、新密码登录及未验证邮箱重置证明。两者都只允许loopback，不发送真实邮件。
 
 先build前端，再在backend执行 `BLOG_ACCOUNT_EMAIL_BROWSER_FIXTURE=/tmp/blog-account-email-fixture.url go test ./internal/data -run '^TestAccountEmailHTTPLifecycle$' -count=1 -v -timeout=12m`，将该URL用于NUXT_BACKEND_BASE并启动preview；按其他专项同样设置BLOG_E2E_BASE_URL/NODE_PATH/Chrome运行live。`/fixture/emails/latest`只在测试服务捕获邮件链接，脚本只在内存读取token并在错误中脱敏，禁止把捕获link/token打印到终端。最后建立精确URL文件的`.stop`并停止自有preview；fixture最长10分钟。MySQL13→14/11→14 runner自动传受控DSN给`TestAccountEmailTokenRepoMySQL`并断言真实运行而非Skip；不使用生产配置。
+
+收藏专项：`collections_e2e.cjs`模拟接口检查登录恢复门禁、错误重试、延迟列表/身份变化、localStorage配额失败、显式部分导入和105条分页。`collections_live_e2e.cjs`不拦截API，使用实际JWT/BFF/SQL、两浏览器同账号、另一账号与游客；验证105条50/50/5、首次收藏时间幂等、服务端身份边界、部分导入只删成功项、跨浏览器SPA重验、草稿/软删除/下架隔离、隐藏记录取消、退出保留游客数据、390px和noindex。
+
+先build前端，再在backend启动 `BLOG_COLLECTION_BROWSER_FIXTURE=/tmp/blog-collection-fixture.url go test ./internal/data -run '^TestCollectionHTTPLifecycle$' -count=1 -v -timeout=12m`；测试种子有105篇public（collection-fixture-000..104）和一篇draft/一篇softdeleted。用该URL启动NUXT_BACKEND_BASE preview，再运行live；成功或失败都停自有preview并创建精确URL文件的`.stop`。fixture10分钟退出不替代独立script PASS。MySQL14→15/11→15 runner还要求TestCollectionRepoMySQL实际运行，覆盖8并发幂等、过滤先于分页、稳定排序和租户隔离；升前/升后SQL备份恢复涵盖旧账号、目的token、封面/精选及收藏日期，不处理真实生产数据。

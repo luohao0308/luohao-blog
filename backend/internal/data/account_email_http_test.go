@@ -78,6 +78,7 @@ func TestAccountEmailHTTPLifecycle(t *testing.T) {
 	}
 	srv, err := blogserver.NewHTTPServer(&conf.Server{Http: &conf.Server_HTTP{}}, issuer, authz,
 		service.NewArticleService(articles), service.NewCategoryService(biz.NewCategoryUsecase(NewCategoryRepo(d))), service.NewProjectService(biz.NewProjectUsecase(NewProjectRepo(d))), service.NewAboutService(biz.NewAboutUsecase(NewAboutRepo(d))),
+		service.NewCollectionService(biz.NewCollectionUsecase(NewCollectionRepo(d))),
 		service.NewAuthServiceWithEmail(authUC, nil, accountEmail, authConfig), service.NewUserService(users, nil), service.NewMediaService(biz.NewMediaUsecase(mediaStore)), service.NewCommentService(commentUC), service.NewSubscriberService(nil), service.NewArticleSearchService(articles, nil), service.NewChatService(nil), service.NewOfficialAccountService(nil))
 	if err != nil {
 		t.Fatal(err)

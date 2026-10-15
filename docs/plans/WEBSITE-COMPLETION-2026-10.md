@@ -1,9 +1,10 @@
 # 网站能力补齐（2026-10-15）
 
-status: approved
+status: local_verified
+delivery: pending_authorization
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
-current_slice: S6 in_progress
-S1-S5: local_verified
+current_slice: none
+S1-S6: local_verified
 S5_mail_delivery: pending_external
 mode: direct execution; slices approved by user
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
@@ -127,3 +128,17 @@ v14账户字段和目的隔离hash-only token表、验证/重置四端点、vers
 真实MySQL13→14和11→14：旧账户密码散列/头像/微信绑定保留，verified=false/version0；actual TokenRepo确实RUN/PASS非skip，同秒Issue/已verified确认、重发/CAS/重置/普通未验证改密语义通过；user-purpose/hash唯一、FK拒孤儿，升级前备份恢复重升级与升级后verified/version/hash记录备份恢复均通过。真实HTTP+BFF+SQLite/miniredis/fakeMailer browser PASS：动态注册A/B/C，A验证/重置、B身份确认A链接后B仍false、fragment即时清理且不进DOM/localStorage/network URL、目的混用/弱密码/重放400，A旧refresh401/Brefresh仍200、旧密码401/新密码200、C未验证邮箱reset变true、known/unknown相同受理响应、三页面SSR noindex。所有fixture/preview已正常停止。
 
 SMTP真实身份/配置状态仍未提供，实际投递闭环标记pending_external；默认disabled并不锁旧服务，不能将fakeMailer验证冒称真实发信上线。按原计划继续S6，不阻断其余本地验收。
+
+## S6本地验收（2026-10-15）
+
+新增三authenticated收藏端点、v15表及claim-only tenant边界，ADMIN/Reader均published-only；唯一约束确保并发幂等/首次日期，SQL过滤先于分页，稳定排序且private响应no-store。Web登录云收藏、游客原blog:collections ISO时间结构、显式导入/成功项确认后持久清理、失败保留/退出清cloud但保留guest；小程序本地收藏未扩展。
+
+fresh Go全量test/vet/build/lint0、四包race、api/ent/wire重复gen稳定、backend独立review APPROVE；实际MySQL14→15/11→15验证两个仓储test确RUN非Skip、8并发幂等/同秒排序/hidden预过滤/tenant、user/articleFK和unique、旧verified/version/media保留及升级前后SQL备份恢复。frontendfresh lint/typecheck/build及独立review APPROVE。
+
+先红后绿锁定：等待初始session/cloud成功才能ready，详情503 alert/disabled/retry；loadVersion+mutationEpoch避旧same-owner快照回滚；superseded force initialize不永久禁有效状态；localStorage quota保留guest；watchflush同步identity和状态；authFetch expectedUserId剥离且旧401不能重试/清新B；login/register等已有refresh，actual deferred mock证明B HTTP晚于A refresh、最终cookie和可见菜单B、A不写B；busy只释放当次Set。
+
+Root真实BFF/SQL完整collections_live_e2e PASS：未验证账号可用，105收藏50/50/5、重复saved_at不变、client userID不窜号、不同账号删除隔离、同账号两浏览器、explicit部分导入保留hidden项、SPA感知另一浏览器取消/重新收藏、下架private title/content不返回、hidden/absent取消幂等、完整退出仅guest可见、匿名本地收藏、390px无溢出、noindex。初期用例错误(一draft一deleted、同秒slug排序、退出menuitem语义)已纠正，只有最终完整script PASS才计验收。
+
+最终同构建回归：S1后台120分页、S2文章体验、S3作品/About、S5邮箱、S6收藏mock全部PASS，S4独立Nitro SEO再验PASS；S2 actual media上传/FS/metadata/public/auth拒绝又PASS。邮箱mock原本首个/login就模拟已登录导致合法重定向与点击竞态，已修成先anonymous验证forgot入口再显式authenticated设置流程，保留全部断言而非跳过。所有fixture/preview已正常停止，测试容器仅任务专属MySQL保留数据待交付准备后停止。
+
+六片本地验收完成；真实DirectMail身份/投递仍pending_external，新版本远端Git/CI/生产部署/迁移尚未授权和执行。备份与保留数据回退说明见docs/operations/runbooks/website-completion.md。

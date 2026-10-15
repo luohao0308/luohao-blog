@@ -11,7 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 )
@@ -167,9 +169,45 @@ func (_u *UserUpdate) ClearWechatOpenid() *UserUpdate {
 	return _u
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *UserUpdate) AddCollectionIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *UserUpdate) AddCollections(v ...*Collection) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *UserUpdate) ClearCollections() *UserUpdate {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *UserUpdate) RemoveCollectionIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *UserUpdate) RemoveCollections(v ...*Collection) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -270,6 +308,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.WechatOpenidCleared() {
 		_spec.ClearField(user.FieldWechatOpenid, field.TypeString)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -429,9 +512,45 @@ func (_u *UserUpdateOne) ClearWechatOpenid() *UserUpdateOne {
 	return _u
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *UserUpdateOne) AddCollectionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *UserUpdateOne) AddCollections(v ...*Collection) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *UserUpdateOne) ClearCollections() *UserUpdateOne {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *UserUpdateOne) RemoveCollectionIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *UserUpdateOne) RemoveCollections(v ...*Collection) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -562,6 +681,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.WechatOpenidCleared() {
 		_spec.ClearField(user.FieldWechatOpenid, field.TypeString)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CollectionsTable,
+			Columns: []string{user.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

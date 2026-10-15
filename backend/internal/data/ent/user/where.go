@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
@@ -624,6 +625,29 @@ func WechatOpenidEqualFold(v string) predicate.User {
 // WechatOpenidContainsFold applies the ContainsFold predicate on the "wechat_openid" field.
 func WechatOpenidContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldWechatOpenid, v))
+}
+
+// HasCollections applies the HasEdge predicate on the "collections" edge.
+func HasCollections() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCollectionsWith applies the HasEdge predicate on the "collections" edge with a given conditions (other predicates).
+func HasCollectionsWith(preds ...predicate.Collection) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCollectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

@@ -14,6 +14,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
 
@@ -225,6 +226,21 @@ func (_c *ArticleCreate) AddTags(v ...*Tag) *ArticleCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddTagIDs(ids...)
+}
+
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_c *ArticleCreate) AddCollectionIDs(ids ...uuid.UUID) *ArticleCreate {
+	_c.mutation.AddCollectionIDs(ids...)
+	return _c
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_c *ArticleCreate) AddCollections(v ...*Collection) *ArticleCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCollectionIDs(ids...)
 }
 
 // SetCategoryID sets the "category" edge to the Category entity by ID.
@@ -447,6 +463,22 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -13,6 +14,8 @@ import (
 type User struct {
 	ent.Schema
 }
+
+func (User) Edges() []ent.Edge { return []ent.Edge{edge.To("collections", Collection.Type)} }
 
 // Mixin of the User.
 func (User) Mixin() []ent.Mixin {

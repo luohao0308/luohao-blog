@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticles } from '~/composables/useArticles'
-import { isCollected, toggleCollection } from '~/composables/useCollections'
 import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
 const route = useRoute()
@@ -51,11 +50,14 @@ const related = computed(() => {
 // data plus the local bump.
 const liked = ref(false)
 const likeCount = ref(article.value.like_count ?? 0)
-const collected = ref(false)
+const collections = useCollections()
+const collected = computed(() => collections.collected(slug.value))
+const collectionError = ref('')
+const collectionStatusError = computed(() => collectionError.value || collections.error.value)
 
 onMounted(() => {
   liked.value = localStorage.getItem(`blog:liked:${slug.value}`) === '1'
-  collected.value = isCollected(slug.value)
+  collections.initialize(true).then((ok) => { if (!ok) collectionError.value = '收藏状态暂时无法加载。' }).catch(() => { collectionError.value = '收藏状态暂时无法加载。' })
 })
 
 async function like() {
@@ -78,8 +80,16 @@ async function like() {
   }
 }
 
-function toggleCollect() {
-  collected.value = toggleCollection(slug.value, article.value.title)
+async function toggleCollect() {
+  collectionError.value = ''
+  try { await collections.toggle(slug.value, article.value.title) }
+  catch { collectionError.value = '收藏操作失败，请重试。' }
+}
+
+async function retryCollections() {
+  collectionError.value = ''
+  const ok = await collections.initialize(true)
+  if (!ok) collectionError.value = '收藏状态暂时无法加载。'
 }
 
 // Report one view per page open. Fire-and-forget: the server deduplicates by
@@ -124,8 +134,10 @@ usePageSeo({
           class="rounded-full px-2.5 py-1 text-xs transition-colors"
           :class="collected ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-slate-100 text-slate-600 hover:bg-amber-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-amber-950/40'"
           :aria-pressed="collected"
+          :disabled="!collections.ready.value || collections.busy.value.has(slug)"
           @click="toggleCollect"
         >{{ collected ? '★ 已收藏' : '☆ 收藏' }}</button>
+        <span v-if="collectionStatusError" role="alert" class="text-xs text-red-600">{{ collectionStatusError }} <button type="button" class="underline" @click="retryCollections">重试</button></span>
         <span
           v-if="article.status !== 2"
           class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700"

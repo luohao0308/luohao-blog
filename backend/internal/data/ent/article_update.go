@@ -15,6 +15,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
@@ -258,6 +259,21 @@ func (_u *ArticleUpdate) AddTags(v ...*Tag) *ArticleUpdate {
 	return _u.AddTagIDs(ids...)
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *ArticleUpdate) AddCollectionIDs(ids ...uuid.UUID) *ArticleUpdate {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *ArticleUpdate) AddCollections(v ...*Collection) *ArticleUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
+}
+
 // SetCategoryID sets the "category" edge to the Category entity by ID.
 func (_u *ArticleUpdate) SetCategoryID(id uuid.UUID) *ArticleUpdate {
 	_u.mutation.SetCategoryID(id)
@@ -301,6 +317,27 @@ func (_u *ArticleUpdate) RemoveTags(v ...*Tag) *ArticleUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *ArticleUpdate) ClearCollections() *ArticleUpdate {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *ArticleUpdate) RemoveCollectionIDs(ids ...uuid.UUID) *ArticleUpdate {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *ArticleUpdate) RemoveCollections(v ...*Collection) *ArticleUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // ClearCategory clears the "category" edge to the Category entity.
@@ -470,6 +507,51 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -752,6 +834,21 @@ func (_u *ArticleUpdateOne) AddTags(v ...*Tag) *ArticleUpdateOne {
 	return _u.AddTagIDs(ids...)
 }
 
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *ArticleUpdateOne) AddCollectionIDs(ids ...uuid.UUID) *ArticleUpdateOne {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *ArticleUpdateOne) AddCollections(v ...*Collection) *ArticleUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
+}
+
 // SetCategoryID sets the "category" edge to the Category entity by ID.
 func (_u *ArticleUpdateOne) SetCategoryID(id uuid.UUID) *ArticleUpdateOne {
 	_u.mutation.SetCategoryID(id)
@@ -795,6 +892,27 @@ func (_u *ArticleUpdateOne) RemoveTags(v ...*Tag) *ArticleUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *ArticleUpdateOne) ClearCollections() *ArticleUpdateOne {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *ArticleUpdateOne) RemoveCollectionIDs(ids ...uuid.UUID) *ArticleUpdateOne {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *ArticleUpdateOne) RemoveCollections(v ...*Collection) *ArticleUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // ClearCategory clears the "category" edge to the Category entity.
@@ -994,6 +1112,51 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

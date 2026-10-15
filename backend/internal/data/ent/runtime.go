@@ -11,6 +11,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
@@ -220,6 +221,37 @@ func init() {
 	categoryDescID := categoryMixinFields0[0].Descriptor()
 	// category.DefaultID holds the default value on creation for the id field.
 	category.DefaultID = categoryDescID.Default.(func() uuid.UUID)
+	collectionMixin := schema.Collection{}.Mixin()
+	collectionMixinFields0 := collectionMixin[0].Fields()
+	_ = collectionMixinFields0
+	collectionFields := schema.Collection{}.Fields()
+	_ = collectionFields
+	// collectionDescSavedAt is the schema descriptor for saved_at field.
+	collectionDescSavedAt := collectionFields[0].Descriptor()
+	// collection.DefaultSavedAt holds the default value on creation for the saved_at field.
+	collection.DefaultSavedAt = collectionDescSavedAt.Default.(func() time.Time)
+	// collectionDescArticleSlug is the schema descriptor for article_slug field.
+	collectionDescArticleSlug := collectionFields[3].Descriptor()
+	// collection.ArticleSlugValidator is a validator for the "article_slug" field. It is called by the builders before save.
+	collection.ArticleSlugValidator = func() func(string) error {
+		validators := collectionDescArticleSlug.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(article_slug string) error {
+			for _, fn := range fns {
+				if err := fn(article_slug); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// collectionDescID is the schema descriptor for id field.
+	collectionDescID := collectionMixinFields0[0].Descriptor()
+	// collection.DefaultID holds the default value on creation for the id field.
+	collection.DefaultID = collectionDescID.Default.(func() uuid.UUID)
 	commentMixin := schema.Comment{}.Mixin()
 	commentMixinFields0 := commentMixin[0].Fields()
 	_ = commentMixinFields0

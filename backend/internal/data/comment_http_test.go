@@ -55,6 +55,7 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 	srv, err := blogserver.NewHTTPServer(&conf.Server{Http: &conf.Server_HTTP{}}, issuer, authorizer,
 		service.NewArticleService(articles), service.NewCategoryService(biz.NewCategoryUsecase(NewCategoryRepo(d))),
 		service.NewProjectService(nil), service.NewAboutService(nil),
+		service.NewCollectionService(biz.NewCollectionUsecase(NewCollectionRepo(d))),
 		service.NewAuthService(auth, nil, authConfig), service.NewUserService(users, nil), service.NewMediaService(nil), service.NewCommentService(uc),
 		service.NewSubscriberService(nil), service.NewArticleSearchService(articles, nil), service.NewChatService(nil), service.NewOfficialAccountService(biz.NewWechatSyncUsecase(NewWechatSyncRepo(d), NewArticleRepo(d, rdb), nil, biz.WechatSyncSettings{})))
 	if err != nil {

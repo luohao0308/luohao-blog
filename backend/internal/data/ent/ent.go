@@ -16,6 +16,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
@@ -86,6 +87,7 @@ func checkColumn(t, c string) error {
 			accountemailtoken.Table: accountemailtoken.ValidColumn,
 			article.Table:           article.ValidColumn,
 			category.Table:          category.ValidColumn,
+			collection.Table:        collection.ValidColumn,
 			comment.Table:           comment.ValidColumn,
 			project.Table:           project.ValidColumn,
 			subscriber.Table:        subscriber.ValidColumn,

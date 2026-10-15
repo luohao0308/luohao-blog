@@ -52,11 +52,17 @@ p, authenticated, /v1/auth/update-password, POST
 p, authenticated, /v1/user/profile, PUT
 p, authenticated, /v1/user/avatar, PUT
 p, authenticated, /v1/auth/email-verification/request, POST
+p, authenticated, /v1/collections/list, GET
+p, authenticated, /v1/collections/{slug}, POST
+p, authenticated, /v1/collections/{slug}, DELETE
 p, authenticated, /blog.v1.AuthService/GetMe, *
 p, authenticated, /blog.v1.AuthService/UpdatePassword, *
 p, authenticated, /blog.v1.UserService/UpdateProfile, *
 p, authenticated, /blog.v1.UserService/UploadAvatar, *
 p, authenticated, /blog.v1.AuthService/RequestEmailVerification, *
+p, authenticated, /blog.v1.CollectionService/ListCollections, *
+p, authenticated, /blog.v1.CollectionService/SaveCollection, *
+p, authenticated, /blog.v1.CollectionService/DeleteCollection, *
 
 # --- admin: article writes ---
 p, admin, /v1/articles/create, POST

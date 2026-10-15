@@ -850,6 +850,29 @@ func HasTagsWith(preds ...predicate.Tag) predicate.Article {
 	})
 }
 
+// HasCollections applies the HasEdge predicate on the "collections" edge.
+func HasCollections() predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCollectionsWith applies the HasEdge predicate on the "collections" edge with a given conditions (other predicates).
+func HasCollectionsWith(preds ...predicate.Collection) predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := newCollectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCategory applies the HasEdge predicate on the "category" edge.
 func HasCategory() predicate.Article {
 	return predicate.Article(func(s *sql.Selector) {

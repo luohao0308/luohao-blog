@@ -57,11 +57,13 @@ type Article struct {
 type ArticleEdges struct {
 	// Tags holds the value of the tags edge.
 	Tags []*Tag `json:"tags,omitempty"`
+	// Collections holds the value of the collections edge.
+	Collections []*Collection `json:"collections,omitempty"`
 	// Category holds the value of the category edge.
 	Category *Category `json:"category,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // TagsOrErr returns the Tags value or an error if the edge
@@ -73,12 +75,21 @@ func (e ArticleEdges) TagsOrErr() ([]*Tag, error) {
 	return nil, &NotLoadedError{edge: "tags"}
 }
 
+// CollectionsOrErr returns the Collections value or an error if the edge
+// was not loaded in eager-loading.
+func (e ArticleEdges) CollectionsOrErr() ([]*Collection, error) {
+	if e.loadedTypes[1] {
+		return e.Collections, nil
+	}
+	return nil, &NotLoadedError{edge: "collections"}
+}
+
 // CategoryOrErr returns the Category value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ArticleEdges) CategoryOrErr() (*Category, error) {
 	if e.Category != nil {
 		return e.Category, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: category.Label}
 	}
 	return nil, &NotLoadedError{edge: "category"}
@@ -224,6 +235,11 @@ func (_m *Article) Value(name string) (ent.Value, error) {
 // QueryTags queries the "tags" edge of the Article entity.
 func (_m *Article) QueryTags() *TagQuery {
 	return NewArticleClient(_m.config).QueryTags(_m)
+}
+
+// QueryCollections queries the "collections" edge of the Article entity.
+func (_m *Article) QueryCollections() *CollectionQuery {
+	return NewArticleClient(_m.config).QueryCollections(_m)
 }
 
 // QueryCategory queries the "category" edge of the Article entity.

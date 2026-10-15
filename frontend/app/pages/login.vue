@@ -22,7 +22,7 @@ const redirect = computed(() => {
 
 onMounted(async () => {
   await ensureSession()
-  if (user.value)
+  if (user.value && route.query.switch !== '1')
     navigateTo(redirect.value, { replace: true })
 })
 

@@ -916,6 +916,66 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.ChatReply'
+    /v1/collections/list:
+        get:
+            tags:
+                - CollectionService
+            operationId: CollectionService_ListCollections
+            parameters:
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CollectionSet'
+    /v1/collections/{slug}:
+        post:
+            tags:
+                - CollectionService
+            operationId: CollectionService_SaveCollection
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.SaveCollectionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Collection'
+        delete:
+            tags:
+                - CollectionService
+            operationId: CollectionService_DeleteCollection
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/comments:
         get:
             tags:
@@ -1514,6 +1574,23 @@ components:
                 summary:
                     type: string
             description: CitedArticle identifies one source article of the answer.
+        blog.v1.Collection:
+            type: object
+            properties:
+                article:
+                    $ref: '#/components/schemas/blog.v1.Article'
+                savedAt:
+                    type: string
+                    format: date-time
+        blog.v1.CollectionSet:
+            type: object
+            properties:
+                collections:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Collection'
+                next_page_token:
+                    type: string
         blog.v1.Comment:
             type: object
             properties:
@@ -1777,6 +1854,13 @@ components:
             type: object
             properties:
                 id:
+                    type: string
+        blog.v1.SaveCollectionRequest:
+            required:
+                - slug
+            type: object
+            properties:
+                slug:
                     type: string
         blog.v1.SubscribeRequest:
             required:
@@ -2042,6 +2126,7 @@ tags:
          the question is answered from the blog's published articles, and the reply
          cites the articles the answer drew from. Generation requires the LLM config;
          retrieval reuses the hybrid article search. Authorization: public.
+    - name: CollectionService
     - name: CommentService
       description: |-
         CommentService handles article comments. Commenters are authenticated

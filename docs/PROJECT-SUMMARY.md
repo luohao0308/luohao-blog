@@ -1,7 +1,7 @@
 # 项目摘要（AI 快速参考）
 
 _来源：仓库实际内容与最近验证命令输出（build/test/lint/compose/认证冒烟）_
-_状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-13_
+_状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-15_
 
 > 本文件只保存稳定的项目事实和路径速查，不记录实时任务、临时验证、交接过程或历史证据。当前任务状态以 `TASKS.md` 为准，短期上下文以 `WORKING-CONTEXT.md` 为准。
 
@@ -28,7 +28,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾�
 | 层/能力 | 当前方案 | 稳定约束 |
 |---|---|---|
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
-| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号，无邮箱验证）；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
+| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号）；当前代码支持可配置邮箱验证/密码恢复，默认邮件关闭且未验证不锁旧登录；凭据版本撤销refresh，access保留配置TTL窗口；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
@@ -48,6 +48,15 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾�
 | 公众号同步（默认关闭） | biz/official_account.go、data/official_account_client/repo、admin/wechat-sync.vue | 文章发布原子入队、版本/账号幂等，草稿/公开发表/群发三模式，状态查询与持久退避 | 独立official_account配置，MySQL任务表v11，admin-only状态/重试/显式同步；真实启用见Runbook | 与小程序wechat登录配置独立；不存凭据、不盲重试未知写操作 |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
 | 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
+
+当前代码还包含以下能力；交付/真实服务状态以 TASKS.md 为准，不从代码存在推断生产已启用：
+
+- 图片：头像与文章/作品媒体使用持久uploads，公开immutable路径，后台JPEG/PNG/WebP上传；文章支持封面/精选与目录/摘要/阅读时长。
+- 作品与About：MySQL持久模型及后台维护，原静态资料幂等迁入，不覆盖编辑。
+- SEO：Nuxt SSR元信息及公开sitemap/robots，可信配置origin、受控分享图、私密页noindex。
+- 邮箱：SMTP465严格TLS、SQL hash-only目的token和凭据版本、有界找回队列/散列并发门；默认关闭，真实发信需独立配置/验收。
+- Web收藏：JWT自身范围的云收藏、公开文章过滤、唯一约束；游客原localStorage和显式导入保留。小程序仍使用独立本地blog:favorites，本轮没有扩展其云同步。
+- 迁移12–15和保留数据的回退边界见docs/operations/runbooks/website-completion.md。
 
 ## 5. 开发、验证与交付入口
 
@@ -86,7 +95,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾�
 | RBAC | casbin（enforcer 挂 HTTP/gRPC 中间件） | S3 已实现；公开文章仅列已发布内容，admin 可管理草稿 | backend auth/article | active |
 | 管理后台编辑器 | Milkdown Crepe（所见即所得 Markdown） | S4 冒烟验证：`#`/`**` 实时渲染、markdownUpdated 回传 source；SSR 受阻时降级路径为 Tiptap+tiptap-markdown（未触发） | frontend admin | active |
 | BFF refresh cookie | `cookiePathRewrite {'/v1/auth': '/api/v1/auth'}` | S4 冒烟验证：后端契约不变，浏览器经 `/api/v1/auth/*` 自动携带 httpOnly cookie | frontend server/api | active |
-| 开放注册 | READER 自助注册（无邮箱验证），独立 IP 限流 fail-open；评论由本地风险筛查与人工复核兜底（可切 manual 全量待审） | T-010/S1（PR #52）；SMTP 未接前不做邮箱验证 | auth/评论 | active |
+| 开放注册 | READER 自助注册，邮箱验证可选且不锁旧账号；注册独立 IP 限流 fail-open，邮箱恢复独立 fail-closed；评论由本地风险筛查与人工复核兜底（可切 manual 全量待审） | T-010/S1（PR #52）；T-016代码支持验证/恢复，真实投递状态见TASKS | auth/评论 | active |
 | 头像存储 | 后端本地磁盘卷（`data.uploads_dir`，JSON base64 上传，魔数 sniff，2MiB） | 生产拓扑无 MinIO、2C4G 不再加服务；文件名 UUIDv4 随机，GetAvatar 以 HttpBody 返回 + immutable 缓存 | 用户头像/评论头像 | active |
 | 评论审核 | 默认 smart：普通评论自动 APPROVED；链接/联系方式、导流词、连续重复字符和限流异常留 PENDING；manual/未知模式全部待审 | `auth.comment_moderation`；可追加 `review_keywords`，无外部调用费，无旧数据回填；本地反垃圾不能覆盖全部违规语义 | 评论后端 + Web/小程序 | active |
 | 评论身份模型 | CreateComment 需认证，身份取自 token；`comments.user_id` 可空兼容旧匿名行 | T-010/S4（PR #55）契约测试 + SQLite 回归 | 评论（破坏性契约变更） | active |

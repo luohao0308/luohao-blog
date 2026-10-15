@@ -39,6 +39,7 @@ func TestPolicyMatrix(t *testing.T) {
 		{"public reset request", "public", "/v1/auth/password-reset/request", "POST", true},
 		{"public reset confirm", "public", "/v1/auth/password-reset/confirm", "POST", true},
 		{"public verify request denied", "public", "/v1/auth/email-verification/request", "POST", false},
+		{"public collections denied", "public", "/v1/collections/list", "GET", false},
 		{"public media read", "public", "/v1/assets/media/{name}", "GET", true},
 		{"public project list", "public", "/v1/projects/list", "GET", true},
 		{"public project get", "public", "/v1/projects/{slug}", "GET", true},
@@ -54,6 +55,9 @@ func TestPolicyMatrix(t *testing.T) {
 		{"admin me", "admin", "/v1/auth/me", "GET", true},
 		{"reader me", "reader", "/v1/auth/me", "GET", true},
 		{"reader verify request", "reader", "/v1/auth/email-verification/request", "POST", true},
+		{"reader collection list", "reader", "/v1/collections/list", "GET", true},
+		{"reader collection save", "reader", "/v1/collections/{slug}", "POST", true},
+		{"reader collection delete", "reader", "/v1/collections/{slug}", "DELETE", true},
 		// Admin writes.
 		{"admin create", "admin", "/v1/articles/create", "POST", true},
 		{"admin update", "admin", "/v1/articles/update", "PUT", true},
