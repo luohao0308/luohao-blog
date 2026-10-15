@@ -1,18 +1,27 @@
 # 备案后域名收尾
 
-- 状态：`approved`
+- 状态：`production_delivered_client_acceptance_pending`
 - 日期：2026-10-13
 - 关联：T-008、T-011、T-013、T-015
 - 主域名：`makerhao.cn`
 - 用户提供的备案号：`渝ICP备2026025040号-1`
 
+
+## 当前交付状态（2026-10-16 对齐）
+
+S1 主站 HTTPS/备案展示/Secure Cookie 与 S3 受限公开状态页已交付；S2 小程序 HTTPS 地址和合法域名校验代码、公众号 HTTPS 原文已交付，客户端完整真机验收仍待完成。当前生产与 main 为 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`，以下立项证据与旧镜像标记保留其历史时点。
+
+本轮只读核验主站200、`https://status.makerhao.cn` 最终进入 `/status/blog` 返回200，公开状态与 heartbeat API200，管理页面、其他状态页 slug 和 socket入口404。该检查不替代完整42项公开代理负向复验；最近一次 [external-probe](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 于2026-10-16北京时间01:18启动并成功（源码main30e）；本轮未额外触发工作流。
+
+SMTP/邮箱验证与密码找回已由后续 T-016 另行实现、上线并完成真实账号验收，不再作为未立项项。网站看门狗亦由 T-016 改用 Docker 容器健康状态。小程序自身备案/隐私指引、正式发布状态以及网站公安备案状态，仍需平台证据，不能从网站ICP备案号推定。
+
 ## 目标与边界
 
 将现有博客公开入口切换为 https://makerhao.cn，补齐备案展示、HTTPS 会话、小程序及公众号地址、公开状态页和拨测。保持现有功能、数据库与公众号 draft 模式。
 
-订阅发信和注册邮箱验证仍属未立项功能；本轮列出发信域名准备项，但不实现 SMTP 或发送邮件。小程序正式提审、公众号公开发表/群发也不属于域名配置交付。
+原域名切换轮不实现 SMTP 或发送邮件；后续账号邮箱功能已由 T-016 另行交付，首页邮件订阅不恢复。小程序正式提审、公众号公开发表/群发也不属于域名配置交付。
 
-## 只读证据
+## 立项时只读证据（2026-10-13，历史）
 
 - 当前工作树干净，但位于旧任务 codex/account-avatar-subscription（63dd394）；2026-10-13 git ls-remote 核实 main 为 39f8a524ae7920261dea4eb47cfa22784658b90f。实施从最新 main 隔离，避免混入旧任务。
 - 1.1.1.1、8.8.8.8 查询 makerhao.cn A 均 NOERROR / 无 answer；1.1.1.1 查询 www、status 为 NXDOMAIN。此为查询时的观察，实施前重新验证 A/AAAA/CNAME/CAA。
@@ -50,5 +59,5 @@ DirectMail 域名验证、SPF/DKIM/DMARC 等记录必须由选定账号的实际
 
 - S1：completed。PR #90/#91；生产 Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3（修复仅检查脚本/测试）。DNS/TLS、ICP/canonical、HTTP/www/IP 308、公开API/多页资源、真实注册/登录/刷新/退出/401、Secure/HttpOnly/Lax/Path、内部健康探针验收通过；任务临时账号与会话已精确清理。
 - S2：代码与生产配置已交付，客户端验收待完成。PR #92（main a3c36bc / source02344ac）CI与独立复核通过；小程序HTTPS与默认域名校验已合并，微信后台request/downloadFile由用户确认保存。重新授权后准确源码检出成功，生产公众号origin为https://makerhao.cn，enabled/draft_mode保留，零同步任务，backend healthy、HTTPS smoke与管理员匿名401通过，看门狗逐字恢复。运行镜像仍为775455a3；未重传封面或重放历史任务。DevTools/真机验证因IDE服务端口关闭未完成。
-- S3：本地配置与检查已准备，尚未远端交付或上线。相同Caddy镜像隔离validate、实际Kuma公开路由42项正负检查及独立复核通过，6监控目标/data信号正常；用户选择稍后添加status CNAME，待DNS与准确版本逐次交付/部署授权。主站入口维持已验收版本。
+- S3：已由 [PR #93](https://github.com/luohao0308/luohao-blog/pull/93) 合并并生产交付（merge `fade43abed5578236a340e7034eba0df63401aff`，当前生产包含该提交）。2026-10-16 本轮只读核验公开状态页/公开API200及管理、其他slug、socket入口404；不再将旧“status CNAME待配置”当作当前阻塞。此前完整42项正负检查保留原时点，最近外部拨测成功记录见本文件顶部，本轮没有重新触发。
 - 首次验收脚本误将删除Cookie的wire Max-Age=0视为-1，自动回退后已修复，并通过真实Go→Nitro回归与重新授权部署。恢复点、消费记录和动态证据保存在本机ignored artifacts与受控服务器备份目录。

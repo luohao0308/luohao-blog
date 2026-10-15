@@ -1,6 +1,6 @@
 # 小程序端 T-011：原生 TypeScript 阅读端
 
-_创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合并；S3/S4 UI 实操及正式发布待验_
+_创建：2026-10-07 ｜ 更新：2026-10-16 ｜ 状态：S1–S4 代码已合并；S3/S4 UI 实操及正式发布待验_
 
 ## 1. 目标与范围
 
@@ -8,7 +8,7 @@ _创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合�
 
 - AppID：`wx58089476f518fd3f`（个人主体，已注册 2026-10-07）
 - 目录：仓库根新增 `miniprogram/`，不影响 backend/frontend 既有部署
-- 前置依赖：无（开发期 DevTools 关闭合法域名校验，直连生产 IP 的 BFF）；正式发布前依赖 makerhao.cn 备案通过（T-008）
+- 当前代码入口：`https://makerhao.cn/api/v1`，`project.config.json` 为 `urlCheck:true`；主站 ICP 与 HTTPS 已完成。正式发布前仍需核对微信平台合法域名、小程序自身备案和隐私指引，并完成开启校验的 DevTools/真机验收。早期 HTTP/IP 及关闭校验仅是历史开发方式。
 
 ## 2. 规模判定与用户确认
 
@@ -20,7 +20,7 @@ _创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合�
 |---|---|---|---|---|---|---|
 | S1 | 原生 TS 骨架 + 文章列表/详情只读浏览 + 阅读量上报 + 分享 | `miniprogram/`（纯新增） | 无 | `tsc --noEmit` + DevTools 打开编译 + 模拟器访问生产 API 实测列表/详情 | 删除目录 | completed |
 | S2 | 微信登录：wx.login → 后端 code2session → openid 绑定 reader 账号 + 会话下发 | backend（wechat 契约、secrets、users 绑定字段）+ miniprogram 登录流程 | S1、用户对契约的单独确认 | 契约测试 + DevTools 真机登录实测 | 单 PR revert；迁移 down.sql | completed |
-| S3 | 互动：点赞/评论查看与发表/收藏同步 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | completed |
+| S3 | 互动：点赞/评论查看与发表/本地收藏 | backend 复用既有接口 + miniprogram | S2 | 真机实测 + 契约测试 | 单 PR revert | completed（代码；完整 UI 实操待验） |
 | S4 | 搜索/分类标签筛选/AI 问答 | miniprogram 复用公开 API | S3 | 类型检查/API 与 mocked wx 回归；UI 点验待补 | 单 PR revert | completed（代码） |
 
 ## 3. 原则与决策
@@ -28,7 +28,7 @@ _创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合�
 | 决策 | 选择 | 理由 | 代价 |
 |---|---|---|---|
 | 技术栈 | 原生小程序 + TypeScript | 阅读端功能面窄，避免第三方框架工具链；用户已拍板 | 多端复用放弃（当前无需求） |
-| API 入口 | 走 BFF 同源路径 `/api/v1`，单点配置 `utils/config.ts` | 与 Web 端同一条公开入口；备案后仅改一行切 `https://makerhao.cn/api/v1` | 开发期依赖「不校验合法域名」（`project.config.json` 已置 `urlCheck:false`） |
+| API 入口 | `miniprogram/miniprogram/utils/config.ts` 固定 `https://makerhao.cn/api/v1`，走 Web BFF | 与 Web 同一公开入口；HTTPS 变更已随 PR #92 合并 | `project.config.json` 已开启 `urlCheck:true`，平台合法域名及真机链路仍需复核 |
 | 详情渲染 | 复用后端 `content_html` + `rich-text`，对 img/pre/code/table 补内联样式 | 服务端已渲染（M1/S3），零 markdown 库依赖；rich-text 不解析 class，只认内联 style | 复杂排版/代码高亮后续再增强 |
 | wire 格式 | snake_case 字段 + 枚举数字 + RFC3339 时间 | 与 `frontend/app/composables/useArticles.ts` 声明一致（Kratos HTTP codec 行为） | 无 |
 | 列表分页 | `order_by=published_at desc` + `next_page_token` 触底翻页，客户端兜底过滤 `status===2` | 与 `usePublishedArticles` 行为一致 | 无 |
@@ -79,4 +79,13 @@ _创建：2026-10-07 ｜ 更新：2026-10-08 ｜ 状态：S1–S4 代码已合�
 
 - `npm run typecheck && npm test` 通过；`scripts/verify.cjs` 使用 mocked wx（不读取真实凭据）覆盖 401 单次 POST 重放/重复 401、收藏、点赞失败回滚、待审评论、搜索和问答引用跳转。
 - 验收发现并修复：401 POST 被重复重放；点赞失败仍保留本机去重标记。公开生产 API 的只读契约检查与模拟行为分开记录。
-- S3/S4 DevTools/真机 UI 操作仍待验，正式提审依赖域名；本轮不将自动检查冒称人工点验通过。
+- S3/S4 DevTools/真机 UI 操作仍待验；该时点尚未切换 HTTPS，现有入口状态见下节。本轮不将自动检查冒称人工点验通过。
+
+## 6. 当前交付状态（2026-10-16 对齐）
+
+- S1–S4 代码均已合并；历史模拟器阅读和微信绑定登录记录保留，不扩写成完整真机验收。
+- T-008/S2（PR #92）已将 API 切为 HTTPS 并默认开启合法域名校验；微信后台 request/downloadFile 域名曾由用户确认保存，正式验收前须重新核对平台状态。
+- 网站 ICP 已完成，不能继续把“网站待备案”作为发布阻塞。小程序自身备案、隐私指引、主体与提审能力尚无本轮平台核验结论。
+- 仍缺 S3/S4 完整 DevTools 与真实设备操作证据、上传体验版/提审/正式发布记录；自动类型/逻辑测试不能替代这些检查。
+- 收藏仍为 `blog:favorites` 本地存储，不宣称与 T-016 Web 云收藏同步。生产评论策略支持 smart/manual，早期“先审后显”记录不表示当前所有普通评论一律待审。
+- 按用户顺序，先完成后台生产验收和文档对齐，再推进本计划的真机与发布收尾。当前任务进度以 [TASKS.md](../TASKS.md) 为准。

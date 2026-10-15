@@ -14,9 +14,9 @@ _last-updated: 2026-10-16_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-015 | 头像/RSS移除及公众号同步 S1–S3 已本地完成并验证；文章/作品集/关于页优化检查完成、未改版 | frontend + 后续 backend | `docs/plans/ACCOUNT-AVATAR-WECHAT-2026-10.md` | 用户确认接口权限并批准本地实现；公开地址与默认永久封面已真实准备成功，并保存本机/生产目录的ignored覆盖片段；真实服务器私密凭据与出口白名单、正式交付/部署仍待配置或授权。默认关闭；真实草稿联调成功，未公开发表/群发；隔离交付分支准备中 |
-| T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已上线验收（PR #90/#91）；S2 小程序 HTTPS 已合并，公众号 HTTPS origin 已上线；S3 状态页与拨测已本地准备 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | S2 生产 Git02344ac 与 main a3c36bc 等树，原镜像775455a3复用；启用/草稿模式保留、HTTPS与401/健康检查通过。DevTools/真机验收待完成；用户选择稍后添加status CNAME，S3远端交付及部署尚未授权 |
-| T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① 用户对 S3/S4 UI 的模拟器点验；② **正式提审发布**（合法域名配置与关闭开发绕过校验后的真机验收；当前没有web-view，不需要业务域名） |
+| T-017 | 后台生产验收与文档对齐 → 小程序真机验收 → 上传/提审/发布，顺序已获用户确认 | frontend + backend + miniprogram + docs | `docs/plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md` | S1进行中：文档状态已对齐、待评审；用户已确认管理员正常登录，但 Chrome 页面内容/截图读取无响应，等待浏览器连接恢复后执行具体测试；本轮尚无生产写入。不读取密码/JWT或用SSH能力代替管理员登录。小程序后续操作按准确包与平台状态办理 |
+| T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。小程序 DevTools/真机验收仍待完成 |
+| T-011 | 微信小程序阅读端（原生 TS，AppID `wx58089476f518fd3f`）：S1 骨架只读浏览（#65）、S2 微信登录+绑定（#67，**用户实测绑定登录通过**）、S2 打磨（站点风 UI+票据静默重试 #71）、S3 点赞/评论/收藏（#72）、S4 搜索/分类标签筛选/AI 问答（#76）、uint64 计数修复（#77）——**全部合并，CI 全绿** | `miniprogram/` + backend（S2 wechat 契约/迁移 v10） | 计划 `docs/plans/MINIPROGRAM-2026-10.md` | 剩余：① S3/S4 完整 DevTools/真机 UI 验收；② **正式提审发布**。代码 API 已为 HTTPS、`urlCheck=true`；微信平台合法域名保存状态及小程序备案/隐私指引需复核。当前没有 web-view，不需要业务域名 |
 
 ## 待办 (Todo)
 
@@ -25,17 +25,19 @@ _last-updated: 2026-10-16_
 ## 未授权或未立项 (Do Not Start)
 
 - M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
-- 本轮收尾 PR/CI 与准确版本生产更新已获用户确认；其他 tag/Release、迁移、仓库设置等操作仍不在授权范围。
+- 此前 T-016 的 PR/CI 与准确版本生产更新授权已用于既定交付；不延伸为 T-017 的生产测试写入、远端 Git 或小程序上传/提审/发布授权。后续具体操作按目标与准确版本办理。
 - T-016 已上线并启用 DirectMail，指定邮箱已确认收到唯一配置测试邮件；真实账号验证/找回及旧密码、刷新会话失效已完成生产验收；额外邮件按单独明确授权发送。已移除的 RSS/首页邮件订阅不在本轮恢复范围。
-- 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
+- 小程序提审发布已获用户概括批准继续准备；主站 ICP/HTTPS 已验收，不能继续写作“等网站备案”。小程序自身备案、隐私指引、合法域名与可用真机/开发者工具状态需平台复核；正式提交及发布仍按准确版本与平台门禁办理。网站公安备案状态另待核实。
 
 ## 已完成 (Done)
+
+- [x] T-015 头像入口/编码修复、RSS 与首页邮件订阅入口移除、公众号自动草稿同步已生产交付；保留既有订阅数据。永久封面与 HTTPS 原文地址已配置，真实草稿联调通过。个人主体上次公开发表接口返回 48001，现采用自动同步草稿后人工发表，未声称已具备公开发表/群发权限；当前权限如需改变须重新核实。文章/作品/关于页的后续实现归 T-016。计划见 `docs/plans/ACCOUNT-AVATAR-WECHAT-2026-10.md`。
 
 - [x] T-016 网站能力补齐六片已上线：[PR #95](https://github.com/luohao0308/luohao-blog/pull/95) 与并发测试通知修复 [PR #96](https://github.com/luohao0308/luohao-blog/pull/96)，生产版本 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`；CI 与 [release](https://github.com/luohao0308/luohao-blog/actions/runs/38772498032) 通过。SQL/uploads/配置备份校验、v11→v15（dirty=false）、原账号/文章/头像保留、42 项公开/API/SEO/负向检查及 8 个桌面/手机页面通过；看门狗已改用容器健康状态。DirectMail 唯一配置测试邮件已由用户确认进入收件箱；随后以自有 READER 账号完成生产验证邮件、密码找回与新密码登录，旧密码和原刷新会话均返回401；账号按授权保留，其他账号不变。管理员写入未在本轮重复执行。计划见 `docs/plans/WEBSITE-COMPLETION-2026-10.md`。
 
 - [x] T-008/S1 主站域名：makerhao.cn/www 解析、可信 HTTPS、308 跳转、备案号渝ICP备2026025040号-1、canonical 与 Secure Cookie 已通过真实生产验收；账号注册/登录/刷新/退出及精确清理通过。Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3；PR #90/#91 CI全绿，继续 S2/S3。
 
-- [x] T-014 评论审核与交互优化（本地完成，尚未远端交付/部署）：默认本地 smart 自动通过普通评论，可疑内容和限流异常待审；manual 回退；下架评论隐藏；Web/后台分页、小程序状态回显、跨账号/分页竞态和 Unicode 长度修复。Go 全量 test/build/vet/lint、frontend lint/typecheck/build、小程序 typecheck/test 与真实 HTTP 本地浏览器闭环通过。计划与复现命令见 `docs/plans/COMMENT-MODERATION-2026-10.md`、`scripts/e2e/README.md`。
+- [x] T-014 评论审核与交互优化（PR #86 已合并，并随生产版本 `30e291dc2167229e6018bd3cd3e1a540a7607ea0` 运行；本轮管理员生产复验待做）：默认本地 smart 自动通过普通评论，可疑内容和限流异常待审；manual 回退；下架评论隐藏；Web/后台分页、小程序状态回显、跨账号/分页竞态和 Unicode 长度修复。Go 全量 test/build/vet/lint、frontend lint/typecheck/build、小程序 typecheck/test 与真实 HTTP 本地浏览器闭环通过。计划与复现命令见 `docs/plans/COMMENT-MODERATION-2026-10.md`、`scripts/e2e/README.md`。
 
 - [x] T-013 监控 S1–S3：PR #79/#81 已合并，Loki、三个 exporter、外部拨测和内部状态页已交付；状态页公网接入随 T-008。本轮核实 MySQL exporter 账号缺失，target up 不代表 mysql_up；原数据层告警表达式漏报，修正与账号补齐纳入非域名收尾 S4。
 
@@ -62,7 +64,7 @@ _last-updated: 2026-10-16_
 - [x] 全量代码 review + Python Playwright E2E 套件（16 用例）+ 四切片修复交付：P0 无标签文章打挂全站（前端 3 文件判空 + 后端 protojson codec 根治）、限流键 XFF 最右跳、搜索 400 + page_size 上限、useAuth 刷新单飞、backend/.dockerignore + gitignore/备份脚本泄漏面收口；go/vet/test 与 pnpm lint/typecheck/build 全绿，E2E 16/16，本地生产栈已重建验证；[PR #28](https://github.com/luohao0308/luohao-blog/pull/28) squash 合并（head `c48860f`，merge `6a4d0d3`，required CI 两项通过，guard push/PR/merge 三次 consume 全 allow，2026-10-04）；计划与执行记录 `docs/plans/REVIEW-FIXES-2026-10.md`
 - [x] 服务器（193.112.128.245）部署 #28：git pull → `compose up -d --build backend frontend`（用户"你继续就行"授权 AI SSH，与 M5/S2 同模式）；公网核验——API 新 wire 格式（tags 恒在/枚举数字/RFC3339）、全部页面 200、搜索非法 token 400、page_size 上限生效；**公网 E2E 16/16 全绿**（含后台完整 CRUD/评论审核/登出守卫，测试数据自清理，无遗留）；六容器 healthy（2026-10-04）
 
-- [x] M5/S3+S4 发布流水线与运维基线：release.yml（Actions 推 ghcr，实跑绿）+ compose image 指向 ghcr（build 段保留回退；ghcr 国内拉取受限，服务器更新走本地构建回退——两次排障 #26/#27 参数化 GOPROXY/APT_MIRROR）；服务器备份 cron 03:10 + 健康看门狗每 5 分钟（连续 2 失败自动重启 backend）（2026-10-03）
+- [x] M5/S3+S4 发布流水线与运维基线：release.yml（Actions 推 ghcr，实跑绿）+ compose image 指向 ghcr（build 段保留回退；ghcr 国内拉取受限，服务器更新走本地构建回退——两次排障 #26/#27 参数化 GOPROXY/APT_MIRROR）；服务器备份 cron 03:10 + 健康看门狗每 5 分钟（2026-10-03 初版）；T-016 已替换为 Docker 容器健康状态，连续 2 次 running/unhealthy 才重启，flock 防重入、30 分钟冷却；停止/启动中/探测失败不自动重启
 - [x] M5/S2 服务器首次上线：193.112.128.245（腾讯云 Ubuntu 24.04 2C4G）——jobapp-staging 经确认下线清理（释放 35.9GB，80/443 释放）；swap+clone+密钥+compose up --build+seed+reindex；公网验收全通（页面/API/混合搜索/真实 DeepSeek 问答 1.3s）；备份脚本已上服务器；生产管理员 luohao@2days.org（提醒改密）（2026-10-02，用户授权 AI SSH 操作）
 
 - [x] M5/S1 本地生产化：生产 compose（caddy→BFF→backend+mysql/redis/es，六容器 healthy）+ frontend Dockerfile + Caddyfile 启用 + backup/restore 脚本 + prod secrets 双文件模板；Caddy :8080 全功能冒烟 + 真实 DeepSeek 问答 1.3s + 灾难恢复演练；[PR #23](https://github.com/luohao0308/luohao-blog/pull/23) squash 合并（merge `a975bfc`，2026-10-02）
@@ -124,14 +126,14 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 | ~~E2E known_issue 失效~~ | 已修复 | #29 摘除过期标注；2026-10-06 复核套件内无 known_issue=True。限流自撞亦已修复（见下行） |
 | ~~E2E 限流自撞~~ | 已修复 | 套件开关 `BLOG_E2E_CLEAR_RATELIMIT=1` 启动前清限流键（默认关，docker exec 通道仅限本地栈；2026-10-06 实测：打满 10 次/5min 限流器后 cleared(1) → t12 立即通过；对生产跑不开启） |
 | ~~Caddy 无访问日志 / restore 边服务边恢复 / 容器日志无轮转~~ | 已修复 | 三件全部清账（2026-10-06）：Caddy 访问日志启用；容器日志轮转 compose 六服务 json-file 10MB×3；restore.sh 改为「坏包停服前拒收 → uploads 先行 → 停 backend 灌库 → 回启等健康 → 提示 reindex」，本地栈完整 DR 演练（含灌库失败回启路径） |
-| Secure cookie 未启用 | 中 | 等域名+TLS（conf.proto 改动需 buf）；TLS 前公网登录明文 |
+| ~~Secure cookie 未启用~~ | 已修复 | T-008/S1 已加入显式 `auth.secure_cookie`；生产 HTTPS 签发/清除 Secure/HttpOnly/Lax Cookie 已实测，本地 HTTP 可显式关闭 |
 | ~~v-html + WithUnsafe XSS 面~~ | 基本修复 | #68 移除 goldmark WithUnsafe（原始 HTML 整体省略）+ 链接/图片协议白名单——服务端 content_html 即消毒后的安全源；前端 v-html 消费该输出，残留风险低（引入第二作者时复核一次即可销账） |
 | ~~frontend healthcheck 用整页 SSR 探针~~ | 已修复 | Nitro 新增 /health（不触数据层）+ compose 探针改打 /health（2026-10-06 本地栈实弹：frontend ~20s 转 healthy，/health 200，首页/E2E t01–t02 无回归）；backend 探针打 /v1/articles/list 属数据层语义，有意保留 |
 | ~~demo 文章软删后 seed 冲突~~ | 代码已修复 | seed 对占用 slug 跳过，`-reset` 也不恢复软删；SQLite+seed 回归通过，服务器待 S4 |
 | ~~dev compose 端口发布 0.0.0.0~~ | 已修复 | 六端口（mysql/redis/es/minio）全部绑 `127.0.0.1`（compose config 渲染核验，2026-10-06） |
 | ~~CI 杂项~~ | 已修复 | ci.yml 6 个 action 全部 pin 官方 SHA + `permissions: contents: read`（workflow_call 兼容）；backup.sh 轮转改 glob 展开免 ls 空白分词（实跑 KEEP=2 轮转核验）；paths 过滤评估后**不做**——workflow 级 paths 会把 required check 留在 Pending 卡死文档型 PR（官方文档），public 仓库 Actions 免费无收益；release.yml 四个 action 本轮固定官方 SHA（不改变发布行为），服务器版本待 S4 |
 | 搜索 "Chinese analyzed" 名不副实 | 低 | standard analyzer 单字切分（M4/S1 的 #16 决策），改文案或上 ik |
-| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 串行（本轮已补分页，不再截断 1000 篇）、seed 不回填索引、chat 无缓存、prompt 无定界符（本轮已补 LLM 完整响应 1MiB 上限）、密码无上限——全量见 REVIEW-ROUND2 文档 |
+| P3 长尾 | 低 | Accept 协商、int64 类型漂移、IP 规范化、ES 启动 ctx 无超时、tags multi_match 低效、TIMESTAMP 2038、reindex 串行（本轮已补分页，不再截断 1000 篇）、seed 不回填索引、chat 无缓存、prompt 无定界符（本轮已补 LLM 完整响应 1MiB 上限）；新设密码已有 1024 UTF-8 字节上限，历史长密码登录兼容保留（T-016），不再作为“密码无上限”追踪——全量见 REVIEW-ROUND2 文档 |
 | ent selector 错误扁平化 | 已规避 | data 层返回错误码必须在查询构建前校验（`data.validateStatusFilter` 模式） |
 | MinIO 拉取 denied / 宿主 3306 被占 | 低 | 环境类备忘 |
 
