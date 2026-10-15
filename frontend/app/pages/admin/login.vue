@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// Login page. Registration is closed (accounts exist only via cmd/seed), so
-// this is a credentials form and nothing else. After login, users return to
-// the ?redirect= target captured by the admin-auth middleware.
+// Admin accounts are provisioned by the seed command. Reader sessions can
+// switch accounts here; only admins follow the middleware's return path.
 import { NButton, NForm, NFormItem, NInput } from 'naive-ui'
 
 definePageMeta({ layout: 'admin' })
@@ -15,6 +14,7 @@ const email = ref('')
 const password = ref('')
 const pending = ref(false)
 const errorMsg = ref('')
+const isNonAdmin = computed(() => user.value !== null && user.value.role !== 1)
 
 const redirect = computed(() => {
   const target = String(route.query.redirect ?? '/admin/posts')
@@ -24,7 +24,7 @@ const redirect = computed(() => {
 
 onMounted(async () => {
   await ensureSession()
-  if (user.value)
+  if (user.value?.role === 1)
     navigateTo(redirect.value, { replace: true })
 })
 
@@ -37,7 +37,8 @@ async function submit() {
   pending.value = true
   try {
     await login(email.value.trim(), password.value)
-    navigateTo(redirect.value, { replace: true })
+    if (user.value?.role === 1)
+      navigateTo(redirect.value, { replace: true })
   }
   catch (err: unknown) {
     const status = (err as { response?: { status?: number } } | null)?.response?.status
@@ -64,6 +65,9 @@ async function submit() {
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">仅站长账号可登录，注册通道不开放。</p>
       </header>
+      <p v-if="isNonAdmin" class="text-sm text-amber-700 dark:text-amber-300" role="alert">
+        当前账号没有后台管理权限，请使用站长账号登录。
+      </p>
       <NForm label-placement="top" @submit.prevent="submit">
         <NFormItem label="邮箱">
           <NInput v-model:value="email" type="text" placeholder="you@example.com" :input-props="{ autocomplete: 'username', type: 'email' }" />

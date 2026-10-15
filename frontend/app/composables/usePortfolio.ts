@@ -144,7 +144,22 @@ export function useAdminPortfolio() {
   })
   const unpublishProject = (slug: string) => authFetch(`/api/v1/admin/projects/${encodeURIComponent(slug)}`, { method: 'DELETE' })
   const getAbout = () => authFetch<AboutProfile>('/api/v1/about')
-  const updateAbout = (about: AboutProfile) => authFetch<AboutProfile>('/api/v1/admin/about', { method: 'PUT', body: about })
+  const updateAbout = (about: AboutProfile) => authFetch<AboutProfile>('/api/v1/admin/about', {
+    method: 'PUT',
+    // GET metadata is read-only; its RFC3339 updated_at is not an editable
+    // field and cannot be decoded by the message-field request binding.
+    body: {
+      name: about.name,
+      headline: about.headline,
+      intro: about.intro,
+      profile_image: about.profile_image,
+      current_focus: about.current_focus,
+      skills: about.skills,
+      timeline: about.timeline,
+      contacts: about.contacts,
+      representative_links: about.representative_links,
+    },
+  })
 
   return { listProjects, getProject, createProject, updateProject, unpublishProject, getAbout, updateAbout }
 }

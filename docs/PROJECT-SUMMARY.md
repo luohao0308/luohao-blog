@@ -1,7 +1,7 @@
 # 项目摘要（AI 快速参考）
 
 _来源：仓库实际内容与最近验证命令输出（build/test/lint/compose/认证冒烟）_
-_状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾部署状态见 TASKS.md | 更新：2026-10-15_
+_状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与待验状态见 TASKS.md | 更新：2026-10-16_
 
 > 本文件只保存稳定的项目事实和路径速查，不记录实时任务、临时验证、交接过程或历史证据。当前任务状态以 `TASKS.md` 为准，短期上下文以 `WORKING-CONTEXT.md` 为准。
 
@@ -28,7 +28,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾�
 | 层/能力 | 当前方案 | 稳定约束 |
 |---|---|---|
 | 后端 | Go 1.26（go.mod 声明）/ Kratos v3 | 分层 service→biz→data，DTO/DO/PO 转换，禁跨层 import |
-| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号）；当前代码支持可配置邮箱验证/密码恢复，默认邮件关闭且未验证不锁旧登录；凭据版本撤销refresh，access保留配置TTL窗口；ADMIN 账号只由 `cmd/seed` 创建；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
+| 认证 | argon2id 密码哈希 + HS256 access JWT（15min）+ Redis refresh 会话（httpOnly cookie，7d 滑动旋转；生产 Secure=true，本地 HTTP 可显式关闭）+ 登录/注册/评论/订阅/聊天各自限流（Redis 固定窗口） | 注册开放（`POST /v1/auth/register`，READER 账号）；当前代码支持可配置邮箱验证/密码恢复，默认邮件关闭且未验证不锁旧登录；新设密码限制 8–1024 UTF-8 字节，历史长密码登录兼容保留；凭据版本撤销refresh，access保留配置TTL窗口；ADMIN 初始由 `cmd/seed` 创建，存量账号权限移交需独立受控授权；JWT 密钥经 `KRATOS_JWT_SECRET` 注入，空则拒绝启动 |
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
@@ -56,22 +56,26 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；非域名收尾�
 - SEO：Nuxt SSR元信息及公开sitemap/robots，可信配置origin、受控分享图、私密页noindex。
 - 邮箱：SMTP465严格TLS、SQL hash-only目的token和凭据版本、有界找回队列/散列并发门；默认关闭，真实发信需独立配置/验收。
 - Web收藏：JWT自身范围的云收藏、公开文章过滤、唯一约束；游客原localStorage和显式导入保留。小程序仍使用独立本地blog:favorites，本轮没有扩展其云同步。
-- 迁移12–15和保留数据的回退边界见docs/operations/runbooks/website-completion.md。
+- 迁移12–15和保留数据的回退边界见 [网站能力 Runbook](operations/runbooks/website-completion.md)。
+- 小程序固定 HTTPS BFF 入口且默认 `urlCheck:true`；运行/提审状态另见 TASKS.md。
+- 看门狗以 Docker 容器健康状态为准：连续两次 running/unhealthy、flock 防重入、30 分钟冷却；其他状态不自动重启，支持关闭重启仅告警。
 
 ## 5. 开发、验证与交付入口
 
 | 目的 | 命令或入口 | 适用范围 | 证据/备注 |
 |---|---|---|---|
-| 后端全量验证 | `go build ./... && go test ./... && golangci-lint run` | backend/ | 2026-09-29 全部通过 |
+| 后端全量验证 | `go build ./... && go vet ./... && go test ./... && golangci-lint run` | backend/ | 运行结果以当前任务与 CI 证据为准 |
 | proto 生成 | `make api`（api/）/ `make config`（conf） | backend/ | buf 插件走 `go run` 固定版本 |
 | 后端启动 | `KRATOS_JWT_SECRET=<密钥> go run ./cmd/server -conf ./configs` | backend/ | 空密钥 fail-fast；conf 默认值 `../../configs` 仅适用 cmd/server cwd |
 | 创建 ADMIN 账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一 ADMIN 建号入口（READER 走前台注册）；先幂等执行迁移 |
 | 演示文章 seed | `go run ./cmd/seed -conf ./configs -demo-articles`（`-reset` 覆写） | backend/ | 内嵌 markdown（`cmd/seed/demoarticles/`）；幂等补缺，默认不覆盖后台编辑 |
 | 认证冒烟 | `./scripts/smoke-auth.sh` / `./scripts/smoke-account.sh` | backend/ | 需 compose 依赖服务 + jq；auth 覆盖 login/me/refresh/logout/负向/限流；account 覆盖 register/profile/avatar/静态资源/穿越/429 |
-| 前端验证 | `pnpm lint && pnpm typecheck && pnpm build` | frontend/ | 2026-09-29 全部通过 |
+| 前端验证 | `pnpm lint && pnpm typecheck && pnpm build` | frontend/ | Nuxt SSR 构建，结果见当前任务与 CI |
+| 小程序验证 | `npm run typecheck && npm test` | miniprogram/ | mocked wx 逻辑回归；不替代 DevTools/真机验收 |
+| 看门狗验证 | `python3 scripts/test_watchdog.py` | 仓库根 | fake Docker 正负场景；探针使用容器健康状态 |
 | 前端启动 | `pnpm dev` | frontend/ | :3000 |
 | 依赖服务 | `docker compose -f deploy/docker-compose.yml up -d` | 仓库根 | `config -q` 已校验；启动冒烟 M1 做 |
-| CI | `.github/workflows/ci.yml` | 仓库根 | backend / frontend 两个 job |
+| CI | `.github/workflows/ci.yml` | 仓库根 | backend / frontend / miniprogram 三个 job |
 
 ## 6. 契约、数据和运行边界
 
