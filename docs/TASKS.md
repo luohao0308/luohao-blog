@@ -26,12 +26,12 @@ _last-updated: 2026-10-16_
 
 - M5 上线：已上线（服务器 193.112.128.245 生产运行，见上方 T-008）；M4 全部完成（语义检索生产实证 2026-10-05）
 - 本轮收尾 PR/CI 与准确版本生产更新已获用户确认；其他 tag/Release、迁移、仓库设置等操作仍不在授权范围。
-- T-016 已上线并启用 DirectMail，指定邮箱已确认收到唯一配置测试邮件；真实账号验证/找回完整操作仍待用户点验，本轮不追加发信。已移除的 RSS/首页邮件订阅不在本轮恢复范围。
+- T-016 已上线并启用 DirectMail，指定邮箱已确认收到唯一配置测试邮件；真实账号验证/找回及旧密码、刷新会话失效已完成生产验收；额外邮件按单独明确授权发送。已移除的 RSS/首页邮件订阅不在本轮恢复范围。
 - 小程序提审发布：等备案（合法域名/业务域名配置依赖 ICP）
 
 ## 已完成 (Done)
 
-- [x] T-016 网站能力补齐六片已上线：[PR #95](https://github.com/luohao0308/luohao-blog/pull/95) 与并发测试通知修复 [PR #96](https://github.com/luohao0308/luohao-blog/pull/96)，生产版本 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`；CI 与 [release](https://github.com/luohao0308/luohao-blog/actions/runs/38772498032) 通过。SQL/uploads/配置备份校验、v11→v15（dirty=false）、原账号/文章/头像保留、42 项公开/API/SEO/负向检查及 8 个桌面/手机页面通过；看门狗已改用容器健康状态。DirectMail 唯一配置测试邮件已由用户确认进入收件箱；生产真实账号邮件链接完整操作及管理员写入未在本轮重复执行。计划见 `docs/plans/WEBSITE-COMPLETION-2026-10.md`。
+- [x] T-016 网站能力补齐六片已上线：[PR #95](https://github.com/luohao0308/luohao-blog/pull/95) 与并发测试通知修复 [PR #96](https://github.com/luohao0308/luohao-blog/pull/96)，生产版本 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`；CI 与 [release](https://github.com/luohao0308/luohao-blog/actions/runs/38772498032) 通过。SQL/uploads/配置备份校验、v11→v15（dirty=false）、原账号/文章/头像保留、42 项公开/API/SEO/负向检查及 8 个桌面/手机页面通过；看门狗已改用容器健康状态。DirectMail 唯一配置测试邮件已由用户确认进入收件箱；随后以自有 READER 账号完成生产验证邮件、密码找回与新密码登录，旧密码和原刷新会话均返回401；账号按授权保留，其他账号不变。管理员写入未在本轮重复执行。计划见 `docs/plans/WEBSITE-COMPLETION-2026-10.md`。
 
 - [x] T-008/S1 主站域名：makerhao.cn/www 解析、可信 HTTPS、308 跳转、备案号渝ICP备2026025040号-1、canonical 与 Secure Cookie 已通过真实生产验收；账号注册/登录/刷新/退出及精确清理通过。Git ed8be10 与 main d206e0e 树一致，运行镜像775455a3；PR #90/#91 CI全绿，继续 S2/S3。
 
