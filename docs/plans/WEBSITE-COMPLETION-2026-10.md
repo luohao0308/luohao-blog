@@ -1,11 +1,12 @@
 # 网站能力补齐（2026-10-15）
 
-status: local_verified
-delivery: pending_authorization
+status: production_deployed
+delivery: production_deployed
 confirmed: 2026-10-15 用户确认全部六片、按顺序实现
 current_slice: none
-S1-S6: local_verified
-S5_mail_delivery: pending_external
+S1-S6: production_deployed
+S5_mail_delivery: inbox_confirmed
+S5_production_account_email_journey: pending_user_validation
 mode: direct execution; slices approved by user
 baseline: origin/main fade43abed5578236a340e7034eba0df63401aff
 
@@ -142,3 +143,16 @@ Root真实BFF/SQL完整collections_live_e2e PASS：未验证账号可用，105�
 最终同构建回归：S1后台120分页、S2文章体验、S3作品/About、S5邮箱、S6收藏mock全部PASS，S4独立Nitro SEO再验PASS；S2 actual media上传/FS/metadata/public/auth拒绝又PASS。邮箱mock原本首个/login就模拟已登录导致合法重定向与点击竞态，已修成先anonymous验证forgot入口再显式authenticated设置流程，保留全部断言而非跳过。所有fixture/preview已正常停止，测试容器仅任务专属MySQL保留数据待交付准备后停止。
 
 六片本地验收完成；真实DirectMail身份/投递仍pending_external，新版本远端Git/CI/生产部署/迁移尚未授权和执行。备份与保留数据回退说明见docs/operations/runbooks/website-completion.md。
+
+
+## 生产交付结果（2026-10-16）
+
+六片实现经 [PR #95](https://github.com/luohao0308/luohao-blog/pull/95) 合并；发布门禁发现并发测试启动通知可能丢失，经 [PR #96](https://github.com/luohao0308/luohao-blog/pull/96) 修复，500 次重复、50 次 race、完整后端检查及独立复核通过。两次交付及最终生产更新分别取得准确版本授权，没有改变持久权限策略。
+
+生产版本为 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`，源码树等于批准源 `28bbf87055efc14f2da3dfe4587aae8d1bda76e5`；[release](https://github.com/luohao0308/luohao-blog/actions/runs/38772498032) 与 main CI 通过。前后端镜像按原始 OCI index digest 验证并固定版本；镜像仓库直连缓慢时，仅替换传输方式，所有索引、证明、配置及层内容仍逐项 SHA-256 核验。应用升级只执行一次，基础容器未重建。
+
+生产 SQL、uploads 与私密配置备份已校验，未轮转删除历史备份；数据库 v11→v15 且 dirty=false，原账号、文章及头像保留。私密覆盖、公众号草稿配置、HTTPS origin 与 Secure Cookie 保持。新看门狗已回到正式 cron 路径，健康后端不再因宿主端口误探测而重启。
+
+生产 42 项公开页面/API/SEO/访问控制检查与 8 个桌面1440px/手机390px页面通过，另有可信 TLS/备案/cookie 冒烟和截图人工检查。DirectMail 已启用，唯一配置测试邮件由用户确认进入收件箱。生产真实账号验证/找回邮件链接与管理员写入流程未在本次额外执行；已有本地真实 SQL/BFF 流程验证，不将其描述为生产写入验收。仍不执行 down migration、数据库覆盖恢复、额外发信或公众号公开发表。
+
+一次性流水、备份位置、digest、凭据操作审计及截图保留在受控服务器和本机 ignored `.dev-workflow/`；可重复部署与保留数据回退规则仍见 [Runbook](../operations/runbooks/website-completion.md)。以上交付结果优先于先前各切片当时的本地状态记录。
