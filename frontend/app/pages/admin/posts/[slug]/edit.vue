@@ -36,6 +36,8 @@ interface FormPayload {
   tags: string[]
   category_slug: string | null
   status: number
+  cover_url: string
+  featured: boolean
 }
 
 async function onSubmit(payload: FormPayload) {
@@ -46,7 +48,7 @@ async function onSubmit(payload: FormPayload) {
     // brief, which the server stores as uncategorized.
     await authFetch<Article>('/api/v1/articles/update', {
       method: 'PUT',
-      query: { update_mask: 'title,summary,content_md,tags,category,status' },
+      query: { update_mask: 'title,summary,content_md,tags,category,status,cover_url,featured' },
       body: {
         ...payload,
         slug: slug.value,

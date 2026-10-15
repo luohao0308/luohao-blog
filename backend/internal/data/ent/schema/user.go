@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -13,6 +14,8 @@ import (
 type User struct {
 	ent.Schema
 }
+
+func (User) Edges() []ent.Edge { return []ent.Edge{edge.To("collections", Collection.Type)} }
 
 // Mixin of the User.
 func (User) Mixin() []ent.Mixin {
@@ -35,6 +38,8 @@ func (User) Fields() []ent.Field {
 		// Site-relative avatar path served by GetAvatar, e.g.
 		// /v1/assets/avatars/<32-hex>.<ext>. Empty until the first upload.
 		field.String("avatar_url").Default(""),
+		field.Bool("email_verified").Default(false),
+		field.Uint64("credential_version").Default(0),
 		// WeChat mini-program identity (openid). NULL until the account is
 		// bound through the wechat login flow; the unique index guarantees one
 		// openid maps to exactly one account. Must stay in sync with

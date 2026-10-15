@@ -60,6 +60,8 @@ type Article struct {
 	UpdatedAt    time.Time
 	ViewCount    uint64
 	LikeCount    uint64
+	CoverURL     string
+	Featured     bool
 }
 
 // ArticleSearchIndex is the full-text index the write path keeps in sync and
@@ -382,6 +384,9 @@ func validateArticle(a *Article) error {
 		return ErrArticleInvalidArgument
 	}
 	if len([]rune(a.ContentMD)) == 0 {
+		return ErrArticleInvalidArgument
+	}
+	if !ValidMediaURL(a.CoverURL) {
 		return ErrArticleInvalidArgument
 	}
 	return nil

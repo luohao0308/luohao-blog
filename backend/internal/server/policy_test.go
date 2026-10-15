@@ -17,6 +17,9 @@ func registerCategoryRoutes(t *testing.T) *kratoshttp.Server {
 	srv := kratoshttp.NewServer()
 	v1.RegisterArticleServiceHTTPServer(srv, service.NewArticleService(biz.NewArticleUsecase(nil, nil)))
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
+	v1.RegisterProjectServiceHTTPServer(srv, service.NewProjectService(nil))
+	v1.RegisterAboutServiceHTTPServer(srv, service.NewAboutService(nil))
+	v1.RegisterCollectionServiceHTTPServer(srv, service.NewCollectionService(nil))
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	return srv
 }
@@ -57,6 +60,21 @@ func TestListRouteRegistersBeforeSlugRoute(t *testing.T) {
 	}
 }
 
+func TestProjectListRouteRegistersBeforeSlugRoute(t *testing.T) {
+	var order []string
+	if err := registerAllRoutes(t).WalkRoute(func(r kratoshttp.RouteInfo) error {
+		if r.Method == "GET" && (r.Path == "/v1/projects/list" || r.Path == "/v1/projects/{slug}") {
+			order = append(order, r.Path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(order) != 2 || order[0] != "/v1/projects/list" {
+		t.Fatalf("project GET route registration order = %v, want list before {slug}", order)
+	}
+}
+
 // registerAllRoutes mirrors the boot wiring: every HTTP service is registered
 // exactly as NewHTTPServer does, with nil usecases where the test never
 // issues a request.
@@ -65,9 +83,13 @@ func registerAllRoutes(t *testing.T) *kratoshttp.Server {
 	srv := kratoshttp.NewServer()
 	v1.RegisterArticleServiceHTTPServer(srv, service.NewArticleService(biz.NewArticleUsecase(nil, nil)))
 	v1.RegisterCategoryServiceHTTPServer(srv, service.NewCategoryService(biz.NewCategoryUsecase(nil)))
+	v1.RegisterProjectServiceHTTPServer(srv, service.NewProjectService(nil))
+	v1.RegisterAboutServiceHTTPServer(srv, service.NewAboutService(nil))
+	v1.RegisterCollectionServiceHTTPServer(srv, service.NewCollectionService(nil))
 	v1.RegisterSubscriberServiceHTTPServer(srv, service.NewSubscriberService(biz.NewSubscriberUsecase(nil, nil)))
 	v1.RegisterAuthServiceHTTPServer(srv, service.NewAuthService(nil, nil, &conf.Auth{}))
 	v1.RegisterUserServiceHTTPServer(srv, service.NewUserService(nil, nil))
+	v1.RegisterMediaServiceHTTPServer(srv, service.NewMediaService(nil))
 	v1.RegisterCommentServiceHTTPServer(srv, service.NewCommentService(nil))
 	v1.RegisterArticleSearchServiceHTTPServer(srv, service.NewArticleSearchService(nil, nil))
 	v1.RegisterChatServiceHTTPServer(srv, service.NewChatService(nil))

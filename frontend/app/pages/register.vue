@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // Public registration. Creates a READER account and signs the caller in
 // immediately (the backend returns the same token pair as login). Field
-// rules mirror the backend contract: email, password ≥ 8, display name
-// 1-32 characters — client checks give fast feedback, the server stays
-// authoritative.
+// UI retains its existing minimum of 8 UTF-16 code units; the server uses
+// 8 UTF-8 bytes. Both cap new passwords at 1024 UTF-8 bytes. The server
+// remains authoritative.
 useHead({ title: '注册' })
 
 const route = useRoute()
@@ -16,7 +16,7 @@ const pending = ref(false)
 const errorMsg = ref('')
 
 const redirect = computed(() => {
-  const target = String(route.query.redirect ?? '/')
+  const target = String(route.query.redirect ?? '/settings?new_account=1')
   return target.startsWith('/') && !target.startsWith('//') ? target : '/'
 })
 
@@ -39,6 +39,10 @@ async function submit() {
   }
   if (password.value.length < 8) {
     errorMsg.value = '密码至少 8 位'
+    return
+  }
+  if (passwordByteLength(password.value) > PASSWORD_MAX_BYTES) {
+    errorMsg.value = '密码过长，请控制在 1024 字节以内'
     return
   }
   pending.value = true

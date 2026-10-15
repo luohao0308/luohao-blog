@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { projects } from '~/data/projects'
-import { formatDate, useArticleList, usePublishedArticles } from '~/composables/useArticles'
+import { ARTICLE_STATUS, formatDate, useArticleList, usePublishedArticles } from '~/composables/useArticles'
 
 // Homepage as an intro landing: a centered full-height greeting (the 开屏
 // screen) with the blog's vital signs in one line, then latest articles,
 // featured projects below the fold. Search, hot posts
 // and the tag cloud live on their dedicated pages (/posts, /ranking, /tags).
 
-const { data } = useArticleList({ pageSize: 6 })
+const { data: latestData } = useArticleList({ pageSize: 6, orderBy: 'published_at desc,slug' })
+const { data: featuredData } = useArticleList({ pageSize: 4, filter: 'featured', orderBy: 'published_at desc,slug' })
+const homeArticles = computed(() => {
+  const featured = (featuredData.value?.articles ?? []).filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
+  const latest = (latestData.value?.articles ?? []).filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
+  return featured.length ? featured : latest
+})
+const hasFeaturedArticles = computed(() => homeArticles.value.some(article => article.featured))
 
-useHead({ title: '首页' })
+usePageSeo({ title: '首页', description: '全栈工程师 luohao 的技术博客，记录 Go、Nuxt 与 AI Agent 的真实工程实践。' })
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/luohao0308' },
@@ -18,19 +24,24 @@ const socials = [
 ]
 
 const { data: allArticles } = await usePublishedArticles()
+const { data: allProjects, error: projectsError } = await usePublicProjects()
 
 const stats = computed(() => {
   const articles = allArticles.value ?? []
   const tags = new Set(articles.flatMap(a => a.tags ?? []))
   return {
     articleCount: articles.length,
-    projectCount: projects.length,
+    projectCount: (allProjects.value ?? []).length,
     tagCount: tags.size,
     latestUpdated: articles[0]?.updated_at,
   }
 })
 
-const featuredProjects = projects.filter((p) => p.featured)
+const featuredProjects = computed(() => {
+  const projects = allProjects.value ?? []
+  const featured = projects.filter(project => project.featured)
+  return (featured.length ? featured : projects).slice(0, 4)
+})
 </script>
 
 <template>
@@ -71,27 +82,13 @@ const featuredProjects = projects.filter((p) => p.featured)
     </section>
 
     <!-- latest articles -->
-    <section class="space-y-4">
+    <section class="space-y-4" aria-label="首页文章推荐">
       <div class="flex items-baseline justify-between">
-        <h2 class="text-xl font-bold tracking-tight">最新文章</h2>
+        <h2 class="text-xl font-bold tracking-tight">{{ hasFeaturedArticles ? '精选文章' : '最新文章' }}</h2>
         <NuxtLink to="/posts" class="text-sm text-blue-600 hover:underline dark:text-blue-400">全部文章 →</NuxtLink>
       </div>
-      <div v-if="data?.articles?.length" class="grid gap-4 sm:grid-cols-2">
-        <NuxtLink
-          v-for="a in data.articles"
-          :key="a.id"
-          :to="`/posts/${a.slug}`"
-          class="rounded-xl border border-slate-200 p-5 transition-shadow hover:shadow-md dark:border-slate-800"
-        >
-          <div class="flex items-center justify-between gap-2 text-xs text-slate-500">
-            <time>{{ formatDate(a.published_at || a.created_at) }}</time>
-            <span>{{ a.tags?.[0] ?? '随笔' }}</span>
-          </div>
-          <h3 class="mt-2 font-semibold">{{ a.title }}</h3>
-          <p class="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
-            {{ a.summary || a.content_md?.slice(0, 60) }}
-          </p>
-        </NuxtLink>
+      <div v-if="homeArticles.length" class="grid auto-rows-fr gap-4 sm:grid-cols-2">
+        <ArticleCard v-for="article in homeArticles" :key="article.id" :article="article" />
       </div>
       <p v-else class="text-sm text-slate-500">第一篇文章正在路上。</p>
     </section>
@@ -102,28 +99,11 @@ const featuredProjects = projects.filter((p) => p.featured)
         <h2 class="text-xl font-bold tracking-tight">精选项目</h2>
         <NuxtLink to="/projects" class="text-sm text-blue-600 hover:underline dark:text-blue-400">全部项目 →</NuxtLink>
       </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <NuxtLink
-          v-for="p in featuredProjects"
-          :key="p.slug"
-          :to="`/projects/${p.slug}`"
-          class="rounded-xl border border-slate-200 p-5 transition-shadow hover:shadow-md dark:border-slate-800"
-        >
-          <div class="flex items-center justify-between">
-            <span class="text-2xl">{{ p.emoji }}</span>
-            <span class="text-xs text-slate-500">{{ p.year }}</span>
-          </div>
-          <h3 class="mt-3 font-semibold">{{ p.name }}</h3>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ p.summary }}</p>
-          <div class="mt-3 flex flex-wrap gap-1.5">
-            <span
-              v-for="t in p.stack.slice(0, 4)"
-              :key="t"
-              class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-            >{{ t }}</span>
-          </div>
-        </NuxtLink>
+      <div v-if="featuredProjects.length" class="grid auto-rows-fr gap-4 sm:grid-cols-2">
+        <ProjectCard v-for="project in featuredProjects" :key="project.slug" :project="project" />
       </div>
+      <p v-else-if="projectsError" class="text-sm text-slate-500">精选项目暂时无法加载。</p>
+      <p v-else class="text-sm text-slate-500">项目资料正在整理中。</p>
     </section>
 
     <WechatFollow />

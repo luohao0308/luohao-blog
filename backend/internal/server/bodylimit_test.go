@@ -38,6 +38,21 @@ func TestLimitedBodyDecoderAllowsAvatarUpload(t *testing.T) {
 	}
 }
 
+func TestLimitedBodyDecoderAllowsMediaUpload(t *testing.T) {
+	mediaSized := `{"unknown_field":"` + strings.Repeat("a", 3<<20) + `"}`
+	if err := decodeBody(t, http.MethodPost, "/v1/admin/media/images", mediaSized, &v1.UploadMediaImageRequest{}); err != nil {
+		t.Fatalf("3MiB media payload should decode within the 4MiB cap: %v", err)
+	}
+}
+
+func TestLimitedBodyDecoderRejectsOversizedMediaUpload(t *testing.T) {
+	oversized := `{"data":"` + strings.Repeat("a", (4<<20)+1) + `"}`
+	err := decodeBody(t, http.MethodPost, "/v1/admin/media/images", oversized, &v1.UploadMediaImageRequest{})
+	if err == nil || !strings.Contains(err.Error(), "request body too large") {
+		t.Fatalf("expected body-too-large error, got %v", err)
+	}
+}
+
 // The cap must not change decoding semantics for normal payloads.
 func TestLimitedBodyDecoderDecodesSmallBodies(t *testing.T) {
 	req := &v1.LoginRequest{}

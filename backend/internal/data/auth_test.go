@@ -156,7 +156,7 @@ func TestSessionRepoRotation(t *testing.T) {
 	repo := NewSessionRepo(rdb)
 	uid := uuid.Must(uuid.NewV7())
 
-	session, err := repo.Create(ctx, uid, time.Hour)
+	session, err := repo.Create(ctx, uid, 0, time.Hour)
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
@@ -185,7 +185,7 @@ func TestSessionRepoExpiryAndDelete(t *testing.T) {
 	repo := NewSessionRepo(rdb)
 	uid := uuid.Must(uuid.NewV7())
 
-	session, err := repo.Create(ctx, uid, time.Hour)
+	session, err := repo.Create(ctx, uid, 0, time.Hour)
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
@@ -196,7 +196,7 @@ func TestSessionRepoExpiryAndDelete(t *testing.T) {
 		t.Fatalf("Consume(expired) error = %v, want invalid refresh token", err)
 	}
 
-	session, err = repo.Create(ctx, uid, time.Hour)
+	session, err = repo.Create(ctx, uid, 0, time.Hour)
 	if err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
@@ -209,6 +209,39 @@ func TestSessionRepoExpiryAndDelete(t *testing.T) {
 	// Deleting an unknown token is a no-op, not an error.
 	if err := repo.Delete(ctx, session.Token); err != nil {
 		t.Fatalf("Delete(unknown) error = %v", err)
+	}
+}
+
+func TestSessionRepoVersionLegacyAndRevokeUser(t *testing.T) {
+	ctx := context.Background()
+	rdb, mr := newTestRedis(t)
+	repo := NewSessionRepo(rdb)
+	uid := uuid.Must(uuid.NewV7())
+	legacyToken := "legacy-token"
+	if err := mr.Set(refreshKeyPrefix+legacyToken, uid.String()); err != nil {
+		t.Fatal(err)
+	}
+	mr.SetTTL(refreshKeyPrefix+legacyToken, time.Hour)
+	legacy, err := repo.Consume(ctx, legacyToken)
+	if err != nil || legacy.CredentialVersion != 0 {
+		t.Fatalf("legacy session = %+v, %v", legacy, err)
+	}
+	first, err := repo.Create(ctx, uid, 7, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repo.Create(ctx, uid, 7, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if consumed, err := repo.Consume(ctx, first.Token); err != nil || consumed.CredentialVersion != 7 {
+		t.Fatalf("versioned consume = %+v, %v", consumed, err)
+	}
+	if err := repo.RevokeUser(ctx, uid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Consume(ctx, second.Token); err != biz.ErrAuthInvalidRefreshToken {
+		t.Fatalf("revoke user consume = %v", err)
 	}
 }
 

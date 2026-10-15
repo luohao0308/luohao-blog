@@ -9,9 +9,13 @@ import type { AuthUser } from '~/composables/useAuth'
 
 useHead({ title: '个人设置' })
 
-const { user, authFetch, setUser, ensureSession } = useAuth()
+const route = useRoute()
+const { user, authFetch, setUser, ensureSession, logout } = useAuth()
+const { requestVerification } = useAccountEmail()
 
 const ready = ref(false)
+const verificationPending = ref(false)
+const verificationNotice = ref<{ kind: 'ok' | 'err', text: string } | null>(null)
 onMounted(async () => {
   await ensureSession()
   if (!user.value) {
@@ -20,6 +24,29 @@ onMounted(async () => {
   }
   ready.value = true
 })
+
+async function resendVerification() {
+  if (verificationPending.value || user.value?.email_verified) return
+  verificationPending.value = true
+  verificationNotice.value = null
+  try {
+    await requestVerification()
+    verificationNotice.value = { kind: 'ok', text: '请求已接收；若邮件投递可用，请检查邮箱中的验证链接。' }
+  }
+  catch (err) {
+    const reason = accountEmailReason(err)
+    const status = accountEmailStatus(err)
+    const text = status === 429 || ['AUTH_EMAIL_REQUEST_COOLDOWN', 'AUTH_EMAIL_TOO_MANY_ATTEMPTS'].includes(reason)
+      ? '请求过于频繁，请稍后重试。'
+      : reason === 'AUTH_MAIL_NOT_CONFIGURED'
+        ? '邮件服务尚未配置，请稍后再试。'
+        : reason === 'AUTH_EMAIL_DELIVERY_FAILED'
+          ? '邮件投递失败，可稍后重试。'
+          : '验证请求暂时无法处理，请稍后重试。'
+    verificationNotice.value = { kind: 'err', text }
+  }
+  finally { verificationPending.value = false }
+}
 
 // --- avatar --------------------------------------------------------------
 
@@ -211,6 +238,10 @@ async function savePassword() {
     passwordNotice.value = { kind: 'err', text: '新密码至少 8 位' }
     return
   }
+  if (passwordByteLength(newPassword.value) > PASSWORD_MAX_BYTES) {
+    passwordNotice.value = { kind: 'err', text: '新密码过长，请控制在 1024 字节以内' }
+    return
+  }
   if (newPassword.value !== confirmPassword.value) {
     passwordNotice.value = { kind: 'err', text: '两次输入的新密码不一致' }
     return
@@ -222,10 +253,8 @@ async function savePassword() {
       headers: { 'Content-Type': 'application/json' },
       body: { old_password: oldPassword.value, new_password: newPassword.value },
     })
-    passwordNotice.value = { kind: 'ok', text: '密码已修改，下次登录请使用新密码' }
-    oldPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
+    await logout().catch(() => {})
+    await navigateTo('/login?password_changed=1', { replace: true })
   }
   catch (err) {
     const status = (err as { response?: { status?: number } } | null)?.response?.status
@@ -252,6 +281,16 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
           头像和昵称会显示在评论区与右上角菜单。
         </p>
       </header>
+
+      <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="邮箱验证">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="font-medium">邮箱验证</h2><p class="mt-1 text-sm text-slate-500">{{ user.email }}</p></div>
+          <span class="rounded-full px-3 py-1 text-xs" :class="user.email_verified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'">{{ user.email_verified ? '已验证' : '待验证' }}</span>
+        </div>
+        <p v-if="route.query.new_account === '1' && !user.email_verified" class="text-sm text-slate-600 dark:text-slate-400">账号已创建。验证邮箱有助于找回密码，但当前不会限制登录、评论或其他功能。</p>
+        <button v-if="!user.email_verified" type="button" :disabled="verificationPending" :class="primaryButtonClass" @click="resendVerification">{{ verificationPending ? '提交中…' : '发送验证请求' }}</button>
+        <p v-if="verificationNotice" role="status" class="text-sm" :class="verificationNotice.kind === 'ok' ? 'text-emerald-600' : 'text-red-600'">{{ verificationNotice.text }}</p>
+      </section>
 
       <!-- 头像 -->
       <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="头像">
@@ -306,7 +345,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
       </section>
 
       <!-- 密码 -->
-      <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="密码">
+      <section id="password" class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="密码">
         <h2 class="font-medium">
           修改密码
         </h2>

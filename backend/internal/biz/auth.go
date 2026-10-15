@@ -90,21 +90,23 @@ type TokenIssuer interface {
 // RefreshSession is a server-side login session addressed by an opaque
 // refresh token.
 type RefreshSession struct {
-	Token     string
-	UserID    uuid.UUID
-	ExpiresAt time.Time
+	Token             string
+	UserID            uuid.UUID
+	CredentialVersion uint64
+	ExpiresAt         time.Time
 }
 
 // SessionRepo stores refresh sessions in Redis. The token is the key; the
 // server holds the only authoritative copy, so revocation is immediate.
 type SessionRepo interface {
 	// Create starts a session for the account, returning a fresh opaque token.
-	Create(ctx context.Context, userID uuid.UUID, ttl time.Duration) (*RefreshSession, error)
+	Create(ctx context.Context, userID uuid.UUID, credentialVersion uint64, ttl time.Duration) (*RefreshSession, error)
 	// Consume atomically reads and removes the session, so a rotated token can
 	// never be redeemed twice. Missing sessions return ErrAuthInvalidRefreshToken.
 	Consume(ctx context.Context, token string) (*RefreshSession, error)
 	// Delete revokes the session. It is a no-op for unknown tokens.
 	Delete(ctx context.Context, token string) error
+	RevokeUser(ctx context.Context, userID uuid.UUID) error
 }
 
 // RateLimiter is a fixed-window counter used to throttle brute-forceable
@@ -133,6 +135,7 @@ type AuthUsecase struct {
 	limiter         RateLimiter
 	registerLimiter RegisterRateLimiter
 	refreshTTL      time.Duration
+	emailTokens     AccountEmailTokenRepo
 }
 
 // NewAuthUsecase new an Auth usecase.
@@ -141,6 +144,12 @@ func NewAuthUsecase(users *UserUsecase, sessions SessionRepo, issuer TokenIssuer
 		refreshTTL = DefaultRefreshTokenTTL
 	}
 	return &AuthUsecase{users: users, sessions: sessions, issuer: issuer, limiter: limiter, registerLimiter: registerLimiter, refreshTTL: refreshTTL}
+}
+
+func NewAuthUsecaseWithEmail(users *UserUsecase, sessions SessionRepo, issuer TokenIssuer, limiter RateLimiter, registerLimiter RegisterRateLimiter, refreshTTL time.Duration, tokens AccountEmailTokenRepo) *AuthUsecase {
+	uc := NewAuthUsecase(users, sessions, issuer, limiter, registerLimiter, refreshTTL)
+	uc.emailTokens = tokens
+	return uc
 }
 
 // Register creates a READER account and signs the caller in. Throttling is
@@ -167,6 +176,11 @@ func (uc *AuthUsecase) Register(ctx context.Context, email, password, displayNam
 	if err != nil {
 		return nil, nil, err
 	}
+	latest, err := uc.users.ByID(ctx, u.ID)
+	if err != nil || latest.CredentialVersion != u.CredentialVersion {
+		_ = uc.sessions.Delete(ctx, pair.Refresh.Token)
+		return nil, nil, ErrAuthInvalidRefreshToken
+	}
 	return u, pair, nil
 }
 
@@ -189,6 +203,11 @@ func (uc *AuthUsecase) Login(ctx context.Context, email, password, clientIP stri
 	if err != nil {
 		return nil, nil, err
 	}
+	latest, err := uc.users.ByID(ctx, u.ID)
+	if err != nil || latest.CredentialVersion != u.CredentialVersion {
+		_ = uc.sessions.Delete(ctx, pair.Refresh.Token)
+		return nil, nil, ErrAuthInvalidRefreshToken
+	}
 	return u, pair, nil
 }
 
@@ -207,9 +226,17 @@ func (uc *AuthUsecase) Refresh(ctx context.Context, refreshToken string) (*User,
 	if err != nil {
 		return nil, nil, ErrAuthInvalidRefreshToken
 	}
+	if session.CredentialVersion != u.CredentialVersion {
+		return nil, nil, ErrAuthInvalidRefreshToken
+	}
 	pair, err := uc.issuePair(ctx, u)
 	if err != nil {
 		return nil, nil, err
+	}
+	latest, err := uc.users.ByID(ctx, u.ID)
+	if err != nil || latest.CredentialVersion != u.CredentialVersion {
+		_ = uc.sessions.Delete(ctx, pair.Refresh.Token)
+		return nil, nil, ErrAuthInvalidRefreshToken
 	}
 	return u, pair, nil
 }
@@ -237,7 +264,7 @@ func (uc *AuthUsecase) issuePair(ctx context.Context, u *User) (*TokenPair, erro
 	if err != nil {
 		return nil, err
 	}
-	refresh, err := uc.sessions.Create(ctx, u.ID, uc.refreshTTL)
+	refresh, err := uc.sessions.Create(ctx, u.ID, u.CredentialVersion, uc.refreshTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -247,5 +274,16 @@ func (uc *AuthUsecase) issuePair(ctx context.Context, u *User) (*TokenPair, erro
 // UpdatePassword rotates the authenticated account's password, delegating
 // verification and hashing to the user usecase.
 func (uc *AuthUsecase) UpdatePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
-	return uc.users.UpdatePassword(ctx, userID, oldPassword, newPassword)
+	if err := uc.users.UpdatePassword(ctx, userID, oldPassword, newPassword); err != nil {
+		return err
+	}
+	if uc.emailTokens != nil {
+		if err := uc.emailTokens.RevokeUser(ctx, userID); err != nil {
+			log.Warn("auth: failed to physically revoke email tokens after password change")
+		}
+	}
+	if err := uc.sessions.RevokeUser(ctx, userID); err != nil {
+		log.Warn("auth: failed to physically revoke refresh sessions after password change")
+	}
+	return nil
 }

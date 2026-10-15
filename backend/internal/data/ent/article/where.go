@@ -113,6 +113,16 @@ func LikeCount(v uint64) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldLikeCount, v))
 }
 
+// CoverURL applies equality check predicate on the "cover_url" field. It's identical to CoverURLEQ.
+func CoverURL(v string) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldCoverURL, v))
+}
+
+// Featured applies equality check predicate on the "featured" field. It's identical to FeaturedEQ.
+func Featured(v bool) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldFeatured, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Article {
 	return predicate.Article(sql.FieldEQ(FieldCreatedAt, v))
@@ -742,6 +752,81 @@ func LikeCountLTE(v uint64) predicate.Article {
 	return predicate.Article(sql.FieldLTE(FieldLikeCount, v))
 }
 
+// CoverURLEQ applies the EQ predicate on the "cover_url" field.
+func CoverURLEQ(v string) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldCoverURL, v))
+}
+
+// CoverURLNEQ applies the NEQ predicate on the "cover_url" field.
+func CoverURLNEQ(v string) predicate.Article {
+	return predicate.Article(sql.FieldNEQ(FieldCoverURL, v))
+}
+
+// CoverURLIn applies the In predicate on the "cover_url" field.
+func CoverURLIn(vs ...string) predicate.Article {
+	return predicate.Article(sql.FieldIn(FieldCoverURL, vs...))
+}
+
+// CoverURLNotIn applies the NotIn predicate on the "cover_url" field.
+func CoverURLNotIn(vs ...string) predicate.Article {
+	return predicate.Article(sql.FieldNotIn(FieldCoverURL, vs...))
+}
+
+// CoverURLGT applies the GT predicate on the "cover_url" field.
+func CoverURLGT(v string) predicate.Article {
+	return predicate.Article(sql.FieldGT(FieldCoverURL, v))
+}
+
+// CoverURLGTE applies the GTE predicate on the "cover_url" field.
+func CoverURLGTE(v string) predicate.Article {
+	return predicate.Article(sql.FieldGTE(FieldCoverURL, v))
+}
+
+// CoverURLLT applies the LT predicate on the "cover_url" field.
+func CoverURLLT(v string) predicate.Article {
+	return predicate.Article(sql.FieldLT(FieldCoverURL, v))
+}
+
+// CoverURLLTE applies the LTE predicate on the "cover_url" field.
+func CoverURLLTE(v string) predicate.Article {
+	return predicate.Article(sql.FieldLTE(FieldCoverURL, v))
+}
+
+// CoverURLContains applies the Contains predicate on the "cover_url" field.
+func CoverURLContains(v string) predicate.Article {
+	return predicate.Article(sql.FieldContains(FieldCoverURL, v))
+}
+
+// CoverURLHasPrefix applies the HasPrefix predicate on the "cover_url" field.
+func CoverURLHasPrefix(v string) predicate.Article {
+	return predicate.Article(sql.FieldHasPrefix(FieldCoverURL, v))
+}
+
+// CoverURLHasSuffix applies the HasSuffix predicate on the "cover_url" field.
+func CoverURLHasSuffix(v string) predicate.Article {
+	return predicate.Article(sql.FieldHasSuffix(FieldCoverURL, v))
+}
+
+// CoverURLEqualFold applies the EqualFold predicate on the "cover_url" field.
+func CoverURLEqualFold(v string) predicate.Article {
+	return predicate.Article(sql.FieldEqualFold(FieldCoverURL, v))
+}
+
+// CoverURLContainsFold applies the ContainsFold predicate on the "cover_url" field.
+func CoverURLContainsFold(v string) predicate.Article {
+	return predicate.Article(sql.FieldContainsFold(FieldCoverURL, v))
+}
+
+// FeaturedEQ applies the EQ predicate on the "featured" field.
+func FeaturedEQ(v bool) predicate.Article {
+	return predicate.Article(sql.FieldEQ(FieldFeatured, v))
+}
+
+// FeaturedNEQ applies the NEQ predicate on the "featured" field.
+func FeaturedNEQ(v bool) predicate.Article {
+	return predicate.Article(sql.FieldNEQ(FieldFeatured, v))
+}
+
 // HasTags applies the HasEdge predicate on the "tags" edge.
 func HasTags() predicate.Article {
 	return predicate.Article(func(s *sql.Selector) {
@@ -757,6 +842,29 @@ func HasTags() predicate.Article {
 func HasTagsWith(preds ...predicate.Tag) predicate.Article {
 	return predicate.Article(func(s *sql.Selector) {
 		step := newTagsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCollections applies the HasEdge predicate on the "collections" edge.
+func HasCollections() predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCollectionsWith applies the HasEdge predicate on the "collections" edge with a given conditions (other predicates).
+func HasCollectionsWith(preds ...predicate.Collection) predicate.Article {
+	return predicate.Article(func(s *sql.Selector) {
+		step := newCollectionsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

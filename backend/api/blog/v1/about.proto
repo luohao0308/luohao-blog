@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "AboutProto";
+
+service AboutService {
+  rpc GetAbout (GetAboutRequest) returns (About) {
+    option (google.api.http) = { get: "/v1/about" };
+  }
+  rpc UpdateAbout (UpdateAboutRequest) returns (About) {
+    option (google.api.http) = {
+      put: "/v1/admin/about"
+      body: "about"
+    };
+  }
+}
+
+message AboutSkillGroup {
+  string group = 1;
+  repeated string items = 2;
+}
+
+message AboutTimelineEntry {
+  string year = 1;
+  string text = 2;
+}
+
+message AboutContact {
+  string label = 1;
+  string href = 2;
+  string text = 3;
+}
+
+message AboutLink {
+  string label = 1;
+  string href = 2;
+}
+
+message About {
+  string id = 1;
+  string name = 2;
+  string headline = 3;
+  string intro = 4;
+  string profile_image = 5;
+  string current_focus = 6;
+  repeated AboutSkillGroup skills = 7;
+  repeated AboutTimelineEntry timeline = 8;
+  repeated AboutContact contacts = 9;
+  repeated AboutLink representative_links = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message GetAboutRequest {}
+
+message UpdateAboutRequest {
+  About about = 1 [(google.api.field_behavior) = REQUIRED];
+}

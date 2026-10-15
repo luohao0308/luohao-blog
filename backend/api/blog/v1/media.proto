@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/httpbody.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.blog.v1";
+option java_outer_classname = "MediaProto";
+
+// MediaService stores article images on the persistent uploads volume.
+service MediaService {
+  // UploadImage stores a jpeg, png, or webp image and returns its stable,
+  // site-relative public URL. Authorization: ADMIN only.
+  rpc UploadImage (UploadMediaImageRequest) returns (MediaImage) {
+    option (google.api.http) = {
+      post: "/v1/admin/media/images"
+      body: "*"
+    };
+  }
+
+  // GetImage serves an uploaded image as a raw HTTP body. Authorization:
+  // public, because covers and article bodies render for every visitor.
+  rpc GetImage (GetMediaImageRequest) returns (google.api.HttpBody) {
+    option (google.api.http) = {
+      get: "/v1/assets/media/{name}"
+    };
+  }
+}
+
+message UploadMediaImageRequest {
+  // Raw jpeg/png/webp bytes, at most 2 MiB after base64 JSON decoding.
+  bytes data = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message MediaImage {
+  // Site-relative immutable URL under /v1/assets/media/.
+  string url = 1;
+}
+
+message GetMediaImageRequest {
+  // Server-generated filename embedded in MediaImage.url.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+}

@@ -7,9 +7,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/schema"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
@@ -21,6 +25,122 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	aboutMixin := schema.About{}.Mixin()
+	aboutMixinFields0 := aboutMixin[0].Fields()
+	_ = aboutMixinFields0
+	aboutMixinFields1 := aboutMixin[1].Fields()
+	_ = aboutMixinFields1
+	aboutFields := schema.About{}.Fields()
+	_ = aboutFields
+	// aboutDescCreatedAt is the schema descriptor for created_at field.
+	aboutDescCreatedAt := aboutMixinFields1[0].Descriptor()
+	// about.DefaultCreatedAt holds the default value on creation for the created_at field.
+	about.DefaultCreatedAt = aboutDescCreatedAt.Default.(func() time.Time)
+	// aboutDescUpdatedAt is the schema descriptor for updated_at field.
+	aboutDescUpdatedAt := aboutMixinFields1[1].Descriptor()
+	// about.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	about.DefaultUpdatedAt = aboutDescUpdatedAt.Default.(func() time.Time)
+	// about.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	about.UpdateDefaultUpdatedAt = aboutDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// aboutDescSingletonKey is the schema descriptor for singleton_key field.
+	aboutDescSingletonKey := aboutFields[0].Descriptor()
+	// about.SingletonKeyValidator is a validator for the "singleton_key" field. It is called by the builders before save.
+	about.SingletonKeyValidator = func() func(string) error {
+		validators := aboutDescSingletonKey.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(singleton_key string) error {
+			for _, fn := range fns {
+				if err := fn(singleton_key); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// aboutDescName is the schema descriptor for name field.
+	aboutDescName := aboutFields[1].Descriptor()
+	// about.DefaultName holds the default value on creation for the name field.
+	about.DefaultName = aboutDescName.Default.(string)
+	// about.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	about.NameValidator = aboutDescName.Validators[0].(func(string) error)
+	// aboutDescProfileImage is the schema descriptor for profile_image field.
+	aboutDescProfileImage := aboutFields[4].Descriptor()
+	// about.DefaultProfileImage holds the default value on creation for the profile_image field.
+	about.DefaultProfileImage = aboutDescProfileImage.Default.(string)
+	// about.ProfileImageValidator is a validator for the "profile_image" field. It is called by the builders before save.
+	about.ProfileImageValidator = aboutDescProfileImage.Validators[0].(func(string) error)
+	// aboutDescID is the schema descriptor for id field.
+	aboutDescID := aboutMixinFields0[0].Descriptor()
+	// about.DefaultID holds the default value on creation for the id field.
+	about.DefaultID = aboutDescID.Default.(func() uuid.UUID)
+	accountemailtokenMixin := schema.AccountEmailToken{}.Mixin()
+	accountemailtokenMixinFields0 := accountemailtokenMixin[0].Fields()
+	_ = accountemailtokenMixinFields0
+	accountemailtokenMixinFields1 := accountemailtokenMixin[1].Fields()
+	_ = accountemailtokenMixinFields1
+	accountemailtokenFields := schema.AccountEmailToken{}.Fields()
+	_ = accountemailtokenFields
+	// accountemailtokenDescCreatedAt is the schema descriptor for created_at field.
+	accountemailtokenDescCreatedAt := accountemailtokenMixinFields1[0].Descriptor()
+	// accountemailtoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	accountemailtoken.DefaultCreatedAt = accountemailtokenDescCreatedAt.Default.(func() time.Time)
+	// accountemailtokenDescUpdatedAt is the schema descriptor for updated_at field.
+	accountemailtokenDescUpdatedAt := accountemailtokenMixinFields1[1].Descriptor()
+	// accountemailtoken.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	accountemailtoken.DefaultUpdatedAt = accountemailtokenDescUpdatedAt.Default.(func() time.Time)
+	// accountemailtoken.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	accountemailtoken.UpdateDefaultUpdatedAt = accountemailtokenDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// accountemailtokenDescPurpose is the schema descriptor for purpose field.
+	accountemailtokenDescPurpose := accountemailtokenFields[1].Descriptor()
+	// accountemailtoken.PurposeValidator is a validator for the "purpose" field. It is called by the builders before save.
+	accountemailtoken.PurposeValidator = func() func(string) error {
+		validators := accountemailtokenDescPurpose.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(purpose string) error {
+			for _, fn := range fns {
+				if err := fn(purpose); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// accountemailtokenDescTokenHash is the schema descriptor for token_hash field.
+	accountemailtokenDescTokenHash := accountemailtokenFields[2].Descriptor()
+	// accountemailtoken.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	accountemailtoken.TokenHashValidator = func() func(string) error {
+		validators := accountemailtokenDescTokenHash.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(token_hash string) error {
+			for _, fn := range fns {
+				if err := fn(token_hash); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// accountemailtokenDescCredentialVersion is the schema descriptor for credential_version field.
+	accountemailtokenDescCredentialVersion := accountemailtokenFields[3].Descriptor()
+	// accountemailtoken.DefaultCredentialVersion holds the default value on creation for the credential_version field.
+	accountemailtoken.DefaultCredentialVersion = accountemailtokenDescCredentialVersion.Default.(uint64)
+	// accountemailtokenDescExpiresAt is the schema descriptor for expires_at field.
+	accountemailtokenDescExpiresAt := accountemailtokenFields[4].Descriptor()
+	// accountemailtoken.DefaultExpiresAt holds the default value on creation for the expires_at field.
+	accountemailtoken.DefaultExpiresAt = accountemailtokenDescExpiresAt.Default.(func() time.Time)
+	// accountemailtokenDescID is the schema descriptor for id field.
+	accountemailtokenDescID := accountemailtokenMixinFields0[0].Descriptor()
+	// accountemailtoken.DefaultID holds the default value on creation for the id field.
+	accountemailtoken.DefaultID = accountemailtokenDescID.Default.(func() uuid.UUID)
 	articleMixin := schema.Article{}.Mixin()
 	articleMixinFields0 := articleMixin[0].Fields()
 	_ = articleMixinFields0
@@ -54,6 +174,16 @@ func init() {
 	articleDescLikeCount := articleFields[8].Descriptor()
 	// article.DefaultLikeCount holds the default value on creation for the like_count field.
 	article.DefaultLikeCount = articleDescLikeCount.Default.(uint64)
+	// articleDescCoverURL is the schema descriptor for cover_url field.
+	articleDescCoverURL := articleFields[9].Descriptor()
+	// article.DefaultCoverURL holds the default value on creation for the cover_url field.
+	article.DefaultCoverURL = articleDescCoverURL.Default.(string)
+	// article.CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
+	article.CoverURLValidator = articleDescCoverURL.Validators[0].(func(string) error)
+	// articleDescFeatured is the schema descriptor for featured field.
+	articleDescFeatured := articleFields[10].Descriptor()
+	// article.DefaultFeatured holds the default value on creation for the featured field.
+	article.DefaultFeatured = articleDescFeatured.Default.(bool)
 	// articleDescID is the schema descriptor for id field.
 	articleDescID := articleMixinFields0[0].Descriptor()
 	// article.DefaultID holds the default value on creation for the id field.
@@ -91,6 +221,37 @@ func init() {
 	categoryDescID := categoryMixinFields0[0].Descriptor()
 	// category.DefaultID holds the default value on creation for the id field.
 	category.DefaultID = categoryDescID.Default.(func() uuid.UUID)
+	collectionMixin := schema.Collection{}.Mixin()
+	collectionMixinFields0 := collectionMixin[0].Fields()
+	_ = collectionMixinFields0
+	collectionFields := schema.Collection{}.Fields()
+	_ = collectionFields
+	// collectionDescSavedAt is the schema descriptor for saved_at field.
+	collectionDescSavedAt := collectionFields[0].Descriptor()
+	// collection.DefaultSavedAt holds the default value on creation for the saved_at field.
+	collection.DefaultSavedAt = collectionDescSavedAt.Default.(func() time.Time)
+	// collectionDescArticleSlug is the schema descriptor for article_slug field.
+	collectionDescArticleSlug := collectionFields[3].Descriptor()
+	// collection.ArticleSlugValidator is a validator for the "article_slug" field. It is called by the builders before save.
+	collection.ArticleSlugValidator = func() func(string) error {
+		validators := collectionDescArticleSlug.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(article_slug string) error {
+			for _, fn := range fns {
+				if err := fn(article_slug); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// collectionDescID is the schema descriptor for id field.
+	collectionDescID := collectionMixinFields0[0].Descriptor()
+	// collection.DefaultID holds the default value on creation for the id field.
+	collection.DefaultID = collectionDescID.Default.(func() uuid.UUID)
 	commentMixin := schema.Comment{}.Mixin()
 	commentMixinFields0 := commentMixin[0].Fields()
 	_ = commentMixinFields0
@@ -124,6 +285,113 @@ func init() {
 	commentDescID := commentMixinFields0[0].Descriptor()
 	// comment.DefaultID holds the default value on creation for the id field.
 	comment.DefaultID = commentDescID.Default.(func() uuid.UUID)
+	projectMixin := schema.Project{}.Mixin()
+	projectMixinFields0 := projectMixin[0].Fields()
+	_ = projectMixinFields0
+	projectMixinFields1 := projectMixin[1].Fields()
+	_ = projectMixinFields1
+	projectFields := schema.Project{}.Fields()
+	_ = projectFields
+	// projectDescCreatedAt is the schema descriptor for created_at field.
+	projectDescCreatedAt := projectMixinFields1[0].Descriptor()
+	// project.DefaultCreatedAt holds the default value on creation for the created_at field.
+	project.DefaultCreatedAt = projectDescCreatedAt.Default.(func() time.Time)
+	// projectDescUpdatedAt is the schema descriptor for updated_at field.
+	projectDescUpdatedAt := projectMixinFields1[1].Descriptor()
+	// project.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	project.DefaultUpdatedAt = projectDescUpdatedAt.Default.(func() time.Time)
+	// project.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	project.UpdateDefaultUpdatedAt = projectDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// projectDescSlug is the schema descriptor for slug field.
+	projectDescSlug := projectFields[0].Descriptor()
+	// project.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	project.SlugValidator = func() func(string) error {
+		validators := projectDescSlug.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(slug string) error {
+			for _, fn := range fns {
+				if err := fn(slug); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// projectDescName is the schema descriptor for name field.
+	projectDescName := projectFields[1].Descriptor()
+	// project.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	project.NameValidator = func() func(string) error {
+		validators := projectDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// projectDescRole is the schema descriptor for role field.
+	projectDescRole := projectFields[5].Descriptor()
+	// project.DefaultRole holds the default value on creation for the role field.
+	project.DefaultRole = projectDescRole.Default.(string)
+	// project.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	project.RoleValidator = projectDescRole.Validators[0].(func(string) error)
+	// projectDescRepoURL is the schema descriptor for repo_url field.
+	projectDescRepoURL := projectFields[6].Descriptor()
+	// project.DefaultRepoURL holds the default value on creation for the repo_url field.
+	project.DefaultRepoURL = projectDescRepoURL.Default.(string)
+	// project.RepoURLValidator is a validator for the "repo_url" field. It is called by the builders before save.
+	project.RepoURLValidator = projectDescRepoURL.Validators[0].(func(string) error)
+	// projectDescLiveURL is the schema descriptor for live_url field.
+	projectDescLiveURL := projectFields[7].Descriptor()
+	// project.DefaultLiveURL holds the default value on creation for the live_url field.
+	project.DefaultLiveURL = projectDescLiveURL.Default.(string)
+	// project.LiveURLValidator is a validator for the "live_url" field. It is called by the builders before save.
+	project.LiveURLValidator = projectDescLiveURL.Validators[0].(func(string) error)
+	// projectDescEmoji is the schema descriptor for emoji field.
+	projectDescEmoji := projectFields[8].Descriptor()
+	// project.DefaultEmoji holds the default value on creation for the emoji field.
+	project.DefaultEmoji = projectDescEmoji.Default.(string)
+	// project.EmojiValidator is a validator for the "emoji" field. It is called by the builders before save.
+	project.EmojiValidator = projectDescEmoji.Validators[0].(func(string) error)
+	// projectDescYear is the schema descriptor for year field.
+	projectDescYear := projectFields[9].Descriptor()
+	// project.DefaultYear holds the default value on creation for the year field.
+	project.DefaultYear = projectDescYear.Default.(string)
+	// project.YearValidator is a validator for the "year" field. It is called by the builders before save.
+	project.YearValidator = projectDescYear.Validators[0].(func(string) error)
+	// projectDescFeatured is the schema descriptor for featured field.
+	projectDescFeatured := projectFields[10].Descriptor()
+	// project.DefaultFeatured holds the default value on creation for the featured field.
+	project.DefaultFeatured = projectDescFeatured.Default.(bool)
+	// projectDescCoverURL is the schema descriptor for cover_url field.
+	projectDescCoverURL := projectFields[11].Descriptor()
+	// project.DefaultCoverURL holds the default value on creation for the cover_url field.
+	project.DefaultCoverURL = projectDescCoverURL.Default.(string)
+	// project.CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
+	project.CoverURLValidator = projectDescCoverURL.Validators[0].(func(string) error)
+	// projectDescPublished is the schema descriptor for published field.
+	projectDescPublished := projectFields[16].Descriptor()
+	// project.DefaultPublished holds the default value on creation for the published field.
+	project.DefaultPublished = projectDescPublished.Default.(bool)
+	// projectDescSort is the schema descriptor for sort field.
+	projectDescSort := projectFields[17].Descriptor()
+	// project.DefaultSort holds the default value on creation for the sort field.
+	project.DefaultSort = projectDescSort.Default.(int32)
+	// project.SortValidator is a validator for the "sort" field. It is called by the builders before save.
+	project.SortValidator = projectDescSort.Validators[0].(func(int32) error)
+	// projectDescID is the schema descriptor for id field.
+	projectDescID := projectMixinFields0[0].Descriptor()
+	// project.DefaultID holds the default value on creation for the id field.
+	project.DefaultID = projectDescID.Default.(func() uuid.UUID)
 	subscriberMixin := schema.Subscriber{}.Mixin()
 	subscriberMixinFields0 := subscriberMixin[0].Fields()
 	_ = subscriberMixinFields0
@@ -211,6 +479,14 @@ func init() {
 	userDescAvatarURL := userFields[4].Descriptor()
 	// user.DefaultAvatarURL holds the default value on creation for the avatar_url field.
 	user.DefaultAvatarURL = userDescAvatarURL.Default.(string)
+	// userDescEmailVerified is the schema descriptor for email_verified field.
+	userDescEmailVerified := userFields[5].Descriptor()
+	// user.DefaultEmailVerified holds the default value on creation for the email_verified field.
+	user.DefaultEmailVerified = userDescEmailVerified.Default.(bool)
+	// userDescCredentialVersion is the schema descriptor for credential_version field.
+	userDescCredentialVersion := userFields[6].Descriptor()
+	// user.DefaultCredentialVersion holds the default value on creation for the credential_version field.
+	user.DefaultCredentialVersion = userDescCredentialVersion.Default.(uint64)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.

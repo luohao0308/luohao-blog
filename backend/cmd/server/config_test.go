@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
+	"github.com/luohao0308/luohao-blog/backend/internal/data"
 
 	"github.com/go-kratos/kratos/v3/config"
 	"github.com/go-kratos/kratos/v3/config/env"
@@ -57,6 +58,26 @@ func TestSecureCookieConfigFileDefaultAndEnvironmentOverride(t *testing.T) {
 			t.Fatalf("scanBootstrap() error = %v", err)
 		}
 	})
+}
+
+func TestMailPrivateOverrideEnablesConfiguredSender(t *testing.T) {
+	dir := t.TempDir()
+	base := "mail:\n  enabled: false\n  smtp_host: smtpdm.aliyun.com\n  smtp_port: 465\n  public_site_origin: https://example.com\n"
+	private := "mail:\n  enabled: true\n  username: sender@example.com\n  password: fixture-only\n  from_address: sender@example.com\n"
+	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(base), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "secrets.local.yaml"), []byte(private), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bc := loadBootstrap(t, dir)
+	sender, err := data.NewAccountMailSender(bc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bc.GetMail().GetEnabled() || !sender.Configured() {
+		t.Fatal("private mail override did not produce configured sender")
+	}
 }
 
 func TestCommittedConfigTemplatesKeepTypedAndStringValues(t *testing.T) {

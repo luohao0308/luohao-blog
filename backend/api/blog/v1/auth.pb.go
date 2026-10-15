@@ -140,7 +140,7 @@ type UpdatePasswordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current password, verified before the change.
 	OldPassword string `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
-	// New password; at least 8 characters, same rule as account creation.
+	// New password; 8-1024 UTF-8 bytes, same rule as account creation.
 	NewPassword   string `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -207,7 +207,10 @@ type User struct {
 	// Site-relative avatar path, e.g. /v1/assets/avatars/<random>.<ext>, or
 	// empty when no avatar was uploaded. Clients resolve it against the API
 	// origin (the Nuxt BFF prefixes /api).
-	AvatarUrl     string `protobuf:"bytes,6,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	AvatarUrl string `protobuf:"bytes,6,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	// Whether control of the login email has been proven. Existing and newly
+	// registered accounts remain usable while false.
+	EmailVerified bool `protobuf:"varint,7,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,13 +287,20 @@ func (x *User) GetAvatarUrl() string {
 	return ""
 }
 
+func (x *User) GetEmailVerified() bool {
+	if x != nil {
+		return x.EmailVerified
+	}
+	return false
+}
+
 // RegisterRequest is the input for AuthService.Register. The new account is
 // always a READER; ADMIN accounts exist only through the seed command.
 type RegisterRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Login email, matched case-insensitively and stored lowercased.
 	Email string `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	// Plaintext password; at least 8 characters. Sent once over TLS.
+	// Plaintext password; 8-1024 UTF-8 bytes. Sent once over TLS.
 	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	// Public display name, 1-32 characters.
 	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
@@ -773,6 +783,183 @@ func (x *BindWechatRequest) GetPassword() string {
 	return ""
 }
 
+type RequestEmailVerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestEmailVerificationRequest) Reset() {
+	*x = RequestEmailVerificationRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestEmailVerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestEmailVerificationRequest) ProtoMessage() {}
+
+func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestEmailVerificationRequest.ProtoReflect.Descriptor instead.
+func (*RequestEmailVerificationRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{11}
+}
+
+type ConfirmEmailVerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmEmailVerificationRequest) Reset() {
+	*x = ConfirmEmailVerificationRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmEmailVerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmEmailVerificationRequest) ProtoMessage() {}
+
+func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmEmailVerificationRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmEmailVerificationRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ConfirmEmailVerificationRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type RequestPasswordResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestPasswordResetRequest) Reset() {
+	*x = RequestPasswordResetRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestPasswordResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestPasswordResetRequest) ProtoMessage() {}
+
+func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestPasswordResetRequest.ProtoReflect.Descriptor instead.
+func (*RequestPasswordResetRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RequestPasswordResetRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type ConfirmPasswordResetRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Token string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	// New password; 8-1024 UTF-8 bytes.
+	NewPassword   string `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmPasswordResetRequest) Reset() {
+	*x = ConfirmPasswordResetRequest{}
+	mi := &file_blog_v1_auth_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmPasswordResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmPasswordResetRequest) ProtoMessage() {}
+
+func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_auth_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmPasswordResetRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmPasswordResetRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_auth_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ConfirmPasswordResetRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *ConfirmPasswordResetRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
 var File_blog_v1_auth_proto protoreflect.FileDescriptor
 
 const file_blog_v1_auth_proto_rawDesc = "" +
@@ -780,7 +967,7 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\x12blog/v1/auth.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"g\n" +
 	"\x15UpdatePasswordRequest\x12&\n" +
 	"\fold_password\x18\x01 \x01(\tB\x03\xe0A\x02R\voldPassword\x12&\n" +
-	"\fnew_password\x18\x02 \x01(\tB\x03\xe0A\x02R\vnewPassword\"\xd0\x01\n" +
+	"\fnew_password\x18\x02 \x01(\tB\x03\xe0A\x02R\vnewPassword\"\xf7\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
@@ -789,7 +976,8 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x06 \x01(\tR\tavatarUrl\"u\n" +
+	"avatar_url\x18\x06 \x01(\tR\tavatarUrl\x12%\n" +
+	"\x0eemail_verified\x18\a \x01(\bR\remailVerified\"u\n" +
 	"\x0fRegisterRequest\x12\x19\n" +
 	"\x05email\x18\x01 \x01(\tB\x03\xe0A\x02R\x05email\x12\x1f\n" +
 	"\bpassword\x18\x02 \x01(\tB\x03\xe0A\x02R\bpassword\x12&\n" +
@@ -817,7 +1005,15 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\x11BindWechatRequest\x12*\n" +
 	"\x0ebinding_ticket\x18\x01 \x01(\tB\x03\xe0A\x02R\rbindingTicket\x12\x19\n" +
 	"\x05email\x18\x02 \x01(\tB\x03\xe0A\x02R\x05email\x12\x1f\n" +
-	"\bpassword\x18\x03 \x01(\tB\x03\xe0A\x02R\bpassword*P\n" +
+	"\bpassword\x18\x03 \x01(\tB\x03\xe0A\x02R\bpassword\"!\n" +
+	"\x1fRequestEmailVerificationRequest\"<\n" +
+	"\x1fConfirmEmailVerificationRequest\x12\x19\n" +
+	"\x05token\x18\x01 \x01(\tB\x03\xe0A\x02R\x05token\"8\n" +
+	"\x1bRequestPasswordResetRequest\x12\x19\n" +
+	"\x05email\x18\x01 \x01(\tB\x03\xe0A\x02R\x05email\"`\n" +
+	"\x1bConfirmPasswordResetRequest\x12\x19\n" +
+	"\x05token\x18\x01 \x01(\tB\x03\xe0A\x02R\x05token\x12&\n" +
+	"\fnew_password\x18\x02 \x01(\tB\x03\xe0A\x02R\vnewPassword*P\n" +
 	"\bUserRole\x12\x19\n" +
 	"\x15USER_ROLE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fUSER_ROLE_ADMIN\x10\x01\x12\x14\n" +
@@ -825,7 +1021,7 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\x11WechatLoginStatus\x12#\n" +
 	"\x1fWECHAT_LOGIN_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16WECHAT_LOGIN_STATUS_OK\x10\x01\x12(\n" +
-	"$WECHAT_LOGIN_STATUS_BINDING_REQUIRED\x10\x022\xd8\x05\n" +
+	"$WECHAT_LOGIN_STATUS_BINDING_REQUIRED\x10\x022\xfc\t\n" +
 	"\vAuthService\x12W\n" +
 	"\bRegister\x12\x18.blog.v1.RegisterRequest\x1a\x13.blog.v1.LoginReply\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/auth/register\x12N\n" +
 	"\x05Login\x12\x15.blog.v1.LoginRequest\x1a\x13.blog.v1.LoginReply\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/auth/login\x12T\n" +
@@ -835,7 +1031,11 @@ const file_blog_v1_auth_proto_rawDesc = "" +
 	"\x0eUpdatePassword\x12\x1e.blog.v1.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/auth/update-password\x12a\n" +
 	"\vWechatLogin\x12\x1b.blog.v1.WechatLoginRequest\x1a\x19.blog.v1.WechatLoginReply\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/auth/wechat\x12^\n" +
 	"\n" +
-	"BindWechat\x12\x1a.blog.v1.BindWechatRequest\x1a\x13.blog.v1.LoginReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/auth/wechat/bindBa\n" +
+	"BindWechat\x12\x1a.blog.v1.BindWechatRequest\x1a\x13.blog.v1.LoginReply\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/auth/wechat/bind\x12\x8c\x01\n" +
+	"\x18RequestEmailVerification\x12(.blog.v1.RequestEmailVerificationRequest\x1a\x16.google.protobuf.Empty\".\x82\xd3\xe4\x93\x02(:\x01*\"#/v1/auth/email-verification/request\x12\x8c\x01\n" +
+	"\x18ConfirmEmailVerification\x12(.blog.v1.ConfirmEmailVerificationRequest\x1a\x16.google.protobuf.Empty\".\x82\xd3\xe4\x93\x02(:\x01*\"#/v1/auth/email-verification/confirm\x12\x80\x01\n" +
+	"\x14RequestPasswordReset\x12$.blog.v1.RequestPasswordResetRequest\x1a\x16.google.protobuf.Empty\"*\x82\xd3\xe4\x93\x02$:\x01*\"\x1f/v1/auth/password-reset/request\x12\x80\x01\n" +
+	"\x14ConfirmPasswordReset\x12$.blog.v1.ConfirmPasswordResetRequest\x1a\x16.google.protobuf.Empty\"*\x82\xd3\xe4\x93\x02$:\x01*\"\x1f/v1/auth/password-reset/confirmBa\n" +
 	"\x18io.grpc.examples.blog.v1B\tAuthProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
 
 var (
@@ -851,27 +1051,31 @@ func file_blog_v1_auth_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_blog_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_blog_v1_auth_proto_goTypes = []any{
-	(UserRole)(0),                 // 0: blog.v1.UserRole
-	(WechatLoginStatus)(0),        // 1: blog.v1.WechatLoginStatus
-	(*UpdatePasswordRequest)(nil), // 2: blog.v1.UpdatePasswordRequest
-	(*User)(nil),                  // 3: blog.v1.User
-	(*RegisterRequest)(nil),       // 4: blog.v1.RegisterRequest
-	(*LoginRequest)(nil),          // 5: blog.v1.LoginRequest
-	(*LoginReply)(nil),            // 6: blog.v1.LoginReply
-	(*RefreshRequest)(nil),        // 7: blog.v1.RefreshRequest
-	(*LogoutRequest)(nil),         // 8: blog.v1.LogoutRequest
-	(*GetMeRequest)(nil),          // 9: blog.v1.GetMeRequest
-	(*WechatLoginRequest)(nil),    // 10: blog.v1.WechatLoginRequest
-	(*WechatLoginReply)(nil),      // 11: blog.v1.WechatLoginReply
-	(*BindWechatRequest)(nil),     // 12: blog.v1.BindWechatRequest
-	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 14: google.protobuf.Empty
+	(UserRole)(0),                           // 0: blog.v1.UserRole
+	(WechatLoginStatus)(0),                  // 1: blog.v1.WechatLoginStatus
+	(*UpdatePasswordRequest)(nil),           // 2: blog.v1.UpdatePasswordRequest
+	(*User)(nil),                            // 3: blog.v1.User
+	(*RegisterRequest)(nil),                 // 4: blog.v1.RegisterRequest
+	(*LoginRequest)(nil),                    // 5: blog.v1.LoginRequest
+	(*LoginReply)(nil),                      // 6: blog.v1.LoginReply
+	(*RefreshRequest)(nil),                  // 7: blog.v1.RefreshRequest
+	(*LogoutRequest)(nil),                   // 8: blog.v1.LogoutRequest
+	(*GetMeRequest)(nil),                    // 9: blog.v1.GetMeRequest
+	(*WechatLoginRequest)(nil),              // 10: blog.v1.WechatLoginRequest
+	(*WechatLoginReply)(nil),                // 11: blog.v1.WechatLoginReply
+	(*BindWechatRequest)(nil),               // 12: blog.v1.BindWechatRequest
+	(*RequestEmailVerificationRequest)(nil), // 13: blog.v1.RequestEmailVerificationRequest
+	(*ConfirmEmailVerificationRequest)(nil), // 14: blog.v1.ConfirmEmailVerificationRequest
+	(*RequestPasswordResetRequest)(nil),     // 15: blog.v1.RequestPasswordResetRequest
+	(*ConfirmPasswordResetRequest)(nil),     // 16: blog.v1.ConfirmPasswordResetRequest
+	(*timestamppb.Timestamp)(nil),           // 17: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 18: google.protobuf.Empty
 }
 var file_blog_v1_auth_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.User.role:type_name -> blog.v1.UserRole
-	13, // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	17, // 1: blog.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: blog.v1.LoginReply.user:type_name -> blog.v1.User
 	1,  // 3: blog.v1.WechatLoginReply.status:type_name -> blog.v1.WechatLoginStatus
 	6,  // 4: blog.v1.WechatLoginReply.login:type_name -> blog.v1.LoginReply
@@ -883,16 +1087,24 @@ var file_blog_v1_auth_proto_depIdxs = []int32{
 	2,  // 10: blog.v1.AuthService.UpdatePassword:input_type -> blog.v1.UpdatePasswordRequest
 	10, // 11: blog.v1.AuthService.WechatLogin:input_type -> blog.v1.WechatLoginRequest
 	12, // 12: blog.v1.AuthService.BindWechat:input_type -> blog.v1.BindWechatRequest
-	6,  // 13: blog.v1.AuthService.Register:output_type -> blog.v1.LoginReply
-	6,  // 14: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
-	6,  // 15: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
-	14, // 16: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	3,  // 17: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
-	14, // 18: blog.v1.AuthService.UpdatePassword:output_type -> google.protobuf.Empty
-	11, // 19: blog.v1.AuthService.WechatLogin:output_type -> blog.v1.WechatLoginReply
-	6,  // 20: blog.v1.AuthService.BindWechat:output_type -> blog.v1.LoginReply
-	13, // [13:21] is the sub-list for method output_type
-	5,  // [5:13] is the sub-list for method input_type
+	13, // 13: blog.v1.AuthService.RequestEmailVerification:input_type -> blog.v1.RequestEmailVerificationRequest
+	14, // 14: blog.v1.AuthService.ConfirmEmailVerification:input_type -> blog.v1.ConfirmEmailVerificationRequest
+	15, // 15: blog.v1.AuthService.RequestPasswordReset:input_type -> blog.v1.RequestPasswordResetRequest
+	16, // 16: blog.v1.AuthService.ConfirmPasswordReset:input_type -> blog.v1.ConfirmPasswordResetRequest
+	6,  // 17: blog.v1.AuthService.Register:output_type -> blog.v1.LoginReply
+	6,  // 18: blog.v1.AuthService.Login:output_type -> blog.v1.LoginReply
+	6,  // 19: blog.v1.AuthService.Refresh:output_type -> blog.v1.LoginReply
+	18, // 20: blog.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	3,  // 21: blog.v1.AuthService.GetMe:output_type -> blog.v1.User
+	18, // 22: blog.v1.AuthService.UpdatePassword:output_type -> google.protobuf.Empty
+	11, // 23: blog.v1.AuthService.WechatLogin:output_type -> blog.v1.WechatLoginReply
+	6,  // 24: blog.v1.AuthService.BindWechat:output_type -> blog.v1.LoginReply
+	18, // 25: blog.v1.AuthService.RequestEmailVerification:output_type -> google.protobuf.Empty
+	18, // 26: blog.v1.AuthService.ConfirmEmailVerification:output_type -> google.protobuf.Empty
+	18, // 27: blog.v1.AuthService.RequestPasswordReset:output_type -> google.protobuf.Empty
+	18, // 28: blog.v1.AuthService.ConfirmPasswordReset:output_type -> google.protobuf.Empty
+	17, // [17:29] is the sub-list for method output_type
+	5,  // [5:17] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -909,7 +1121,7 @@ func file_blog_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_auth_proto_rawDesc), len(file_blog_v1_auth_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   11,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

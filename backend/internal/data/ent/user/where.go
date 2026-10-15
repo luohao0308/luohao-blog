@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
@@ -90,6 +91,16 @@ func Role(v biz.UserRole) predicate.User {
 // AvatarURL applies equality check predicate on the "avatar_url" field. It's identical to AvatarURLEQ.
 func AvatarURL(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldAvatarURL, v))
+}
+
+// EmailVerified applies equality check predicate on the "email_verified" field. It's identical to EmailVerifiedEQ.
+func EmailVerified(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEmailVerified, v))
+}
+
+// CredentialVersion applies equality check predicate on the "credential_version" field. It's identical to CredentialVersionEQ.
+func CredentialVersion(v uint64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCredentialVersion, v))
 }
 
 // WechatOpenid applies equality check predicate on the "wechat_openid" field. It's identical to WechatOpenidEQ.
@@ -491,6 +502,56 @@ func AvatarURLContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldAvatarURL, v))
 }
 
+// EmailVerifiedEQ applies the EQ predicate on the "email_verified" field.
+func EmailVerifiedEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldEmailVerified, v))
+}
+
+// EmailVerifiedNEQ applies the NEQ predicate on the "email_verified" field.
+func EmailVerifiedNEQ(v bool) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldEmailVerified, v))
+}
+
+// CredentialVersionEQ applies the EQ predicate on the "credential_version" field.
+func CredentialVersionEQ(v uint64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldCredentialVersion, v))
+}
+
+// CredentialVersionNEQ applies the NEQ predicate on the "credential_version" field.
+func CredentialVersionNEQ(v uint64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldCredentialVersion, v))
+}
+
+// CredentialVersionIn applies the In predicate on the "credential_version" field.
+func CredentialVersionIn(vs ...uint64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldCredentialVersion, vs...))
+}
+
+// CredentialVersionNotIn applies the NotIn predicate on the "credential_version" field.
+func CredentialVersionNotIn(vs ...uint64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldCredentialVersion, vs...))
+}
+
+// CredentialVersionGT applies the GT predicate on the "credential_version" field.
+func CredentialVersionGT(v uint64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldCredentialVersion, v))
+}
+
+// CredentialVersionGTE applies the GTE predicate on the "credential_version" field.
+func CredentialVersionGTE(v uint64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldCredentialVersion, v))
+}
+
+// CredentialVersionLT applies the LT predicate on the "credential_version" field.
+func CredentialVersionLT(v uint64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldCredentialVersion, v))
+}
+
+// CredentialVersionLTE applies the LTE predicate on the "credential_version" field.
+func CredentialVersionLTE(v uint64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldCredentialVersion, v))
+}
+
 // WechatOpenidEQ applies the EQ predicate on the "wechat_openid" field.
 func WechatOpenidEQ(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldWechatOpenid, v))
@@ -564,6 +625,29 @@ func WechatOpenidEqualFold(v string) predicate.User {
 // WechatOpenidContainsFold applies the ContainsFold predicate on the "wechat_openid" field.
 func WechatOpenidContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldWechatOpenid, v))
+}
+
+// HasCollections applies the HasEdge predicate on the "collections" edge.
+func HasCollections() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCollectionsWith applies the HasEdge predicate on the "collections" edge with a given conditions (other predicates).
+func HasCollectionsWith(preds ...predicate.Collection) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newCollectionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

@@ -12,9 +12,13 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
@@ -79,13 +83,17 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			article.Table:        article.ValidColumn,
-			category.Table:       category.ValidColumn,
-			comment.Table:        comment.ValidColumn,
-			subscriber.Table:     subscriber.ValidColumn,
-			tag.Table:            tag.ValidColumn,
-			user.Table:           user.ValidColumn,
-			wechatsynctask.Table: wechatsynctask.ValidColumn,
+			about.Table:             about.ValidColumn,
+			accountemailtoken.Table: accountemailtoken.ValidColumn,
+			article.Table:           article.ValidColumn,
+			category.Table:          category.ValidColumn,
+			collection.Table:        collection.ValidColumn,
+			comment.Table:           comment.ValidColumn,
+			project.Table:           project.ValidColumn,
+			subscriber.Table:        subscriber.ValidColumn,
+			tag.Table:               tag.ValidColumn,
+			user.Table:              user.ValidColumn,
+			wechatsynctask.Table:    wechatsynctask.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

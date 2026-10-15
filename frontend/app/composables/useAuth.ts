@@ -17,6 +17,7 @@ export interface AuthUser {
   // Site-relative avatar path (/v1/assets/avatars/<name>) since the reader
   // accounts slice; empty until the first upload. Rendered through assetUrl().
   avatar_url?: string
+  email_verified?: boolean
 }
 
 export interface LoginReply {
@@ -73,6 +74,7 @@ export function useAuth() {
   const jsonHeaders = { 'Content-Type': 'application/json' }
 
   async function login(email: string, password: string): Promise<void> {
+    if (refreshPromise) await refreshPromise.catch(() => {})
     const reply = await $fetch<LoginReply>('/api/v1/auth/login', {
       method: 'POST',
       headers: jsonHeaders,
@@ -84,6 +86,7 @@ export function useAuth() {
   // Register creates a READER account; the backend signs the caller in with
   // the same reply shape as login, so the session state updates identically.
   async function register(payload: RegisterPayload): Promise<void> {
+    if (refreshPromise) await refreshPromise.catch(() => {})
     const reply = await $fetch<LoginReply>('/api/v1/auth/register', {
       method: 'POST',
       headers: jsonHeaders,
@@ -136,26 +139,41 @@ export function useAuth() {
   }
 
   async function authFetch<T>(path: string, opts: Record<string, unknown> = {}): Promise<T> {
+    const { expectedUserId, ...fetchOptions } = opts as Record<string, unknown> & { expectedUserId?: string }
+    const assertOwner = () => {
+      if (expectedUserId && user.value?.id !== expectedUserId) {
+        const error = new Error('authenticated request owner changed')
+        error.name = 'AuthOwnerChangedError'
+        throw error
+      }
+    }
     const run = () => $fetch<T>(path, {
-      ...opts,
+      ...fetchOptions,
       headers: {
-        ...(opts.headers as Record<string, string> | undefined),
+        ...(fetchOptions.headers as Record<string, string> | undefined),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
     })
     try {
+      assertOwner()
       return await run()
     }
     catch (err) {
       if (!isUnauthorized(err))
         throw err
+      assertOwner()
       try {
         await refreshOnce()
       }
       catch {
+        // A different account may have logged in while this request's
+        // refresh was in flight. Never clear that newer session on behalf
+        // of the stale owner.
+        assertOwner()
         clearSession()
         throw err
       }
+      assertOwner()
       return await run()
     }
   }

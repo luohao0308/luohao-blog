@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,8 +9,10 @@ import (
 	"time"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
+	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 
+	kratoserrors "github.com/go-kratos/kratos/v3/errors"
 	kratoshttp "github.com/go-kratos/kratos/v3/transport/http"
 )
 
@@ -114,5 +117,22 @@ func TestRightmostForwardedIP(t *testing.T) {
 				t.Fatalf("rightmostForwardedIP(%q) = %q, want %q", tc.xff, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestConvertUserCarriesEmailVerification(t *testing.T) {
+	got := convertUser(&biz.User{Email: "reader@example.com", EmailVerified: true})
+	if !got.GetEmailVerified() {
+		t.Fatal("email_verified was dropped from User DTO")
+	}
+}
+
+func TestUnconfiguredPasswordResetIsUniform(t *testing.T) {
+	svc := NewAuthService(nil, nil, &conf.Auth{})
+	for _, email := range []string{"known@example.com", "unknown@example.com"} {
+		_, err := svc.RequestPasswordReset(context.Background(), &v1.RequestPasswordResetRequest{Email: email})
+		if !kratoserrors.IsServiceUnavailable(err) || kratoserrors.Reason(err) != v1.ErrorReason_AUTH_MAIL_NOT_CONFIGURED.String() {
+			t.Fatalf("request(%s) = %v", email, err)
+		}
 	}
 }

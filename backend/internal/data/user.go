@@ -17,15 +17,17 @@ func userToBiz(po *ent.User) *biz.User {
 		return nil
 	}
 	return &biz.User{
-		ID:           po.ID,
-		Email:        po.Email,
-		PasswordHash: po.PasswordHash,
-		DisplayName:  po.DisplayName,
-		Role:         po.Role,
-		AvatarURL:    po.AvatarURL,
-		WechatOpenID: po.WechatOpenid,
-		CreatedAt:    po.CreatedAt,
-		UpdatedAt:    po.UpdatedAt,
+		ID:                po.ID,
+		Email:             po.Email,
+		PasswordHash:      po.PasswordHash,
+		DisplayName:       po.DisplayName,
+		Role:              po.Role,
+		AvatarURL:         po.AvatarURL,
+		WechatOpenID:      po.WechatOpenid,
+		EmailVerified:     po.EmailVerified,
+		CredentialVersion: po.CredentialVersion,
+		CreatedAt:         po.CreatedAt,
+		UpdatedAt:         po.UpdatedAt,
 	}
 }
 
@@ -102,17 +104,20 @@ func (r *userRepo) Create(ctx context.Context, u *biz.User) (*biz.User, error) {
 
 // UpdatePassword replaces the stored password hash. A missing account maps
 // to the domain not-found error like the read paths.
-func (r *userRepo) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
-	_, err := r.data.db.User.UpdateOneID(id).
-		SetPasswordHash(passwordHash).
-		Save(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return biz.ErrUserNotFound
-		}
-		return err
+func (r *userRepo) UpdatePasswordState(ctx context.Context, id uuid.UUID, expectedVersion uint64, passwordHash string, verifyEmail bool) (uint64, bool, error) {
+	update := r.data.db.User.Update().Where(user.IDEQ(id), user.CredentialVersionEQ(expectedVersion)).
+		SetPasswordHash(passwordHash).AddCredentialVersion(1)
+	if verifyEmail {
+		update = update.SetEmailVerified(true)
 	}
-	return nil
+	affected, err := update.Save(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+	if affected == 0 {
+		return 0, false, nil
+	}
+	return expectedVersion + 1, true, nil
 }
 
 // UpdateProfile replaces the public display name. A missing account maps to

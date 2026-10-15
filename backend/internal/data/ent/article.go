@@ -42,6 +42,10 @@ type Article struct {
 	ViewCount uint64 `json:"view_count,omitempty"`
 	// LikeCount holds the value of the "like_count" field.
 	LikeCount uint64 `json:"like_count,omitempty"`
+	// CoverURL holds the value of the "cover_url" field.
+	CoverURL string `json:"cover_url,omitempty"`
+	// Featured holds the value of the "featured" field.
+	Featured bool `json:"featured,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ArticleQuery when eager-loading is set.
 	Edges        ArticleEdges `json:"edges"`
@@ -53,11 +57,13 @@ type Article struct {
 type ArticleEdges struct {
 	// Tags holds the value of the tags edge.
 	Tags []*Tag `json:"tags,omitempty"`
+	// Collections holds the value of the collections edge.
+	Collections []*Collection `json:"collections,omitempty"`
 	// Category holds the value of the category edge.
 	Category *Category `json:"category,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // TagsOrErr returns the Tags value or an error if the edge
@@ -69,12 +75,21 @@ func (e ArticleEdges) TagsOrErr() ([]*Tag, error) {
 	return nil, &NotLoadedError{edge: "tags"}
 }
 
+// CollectionsOrErr returns the Collections value or an error if the edge
+// was not loaded in eager-loading.
+func (e ArticleEdges) CollectionsOrErr() ([]*Collection, error) {
+	if e.loadedTypes[1] {
+		return e.Collections, nil
+	}
+	return nil, &NotLoadedError{edge: "collections"}
+}
+
 // CategoryOrErr returns the Category value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ArticleEdges) CategoryOrErr() (*Category, error) {
 	if e.Category != nil {
 		return e.Category, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: category.Label}
 	}
 	return nil, &NotLoadedError{edge: "category"}
@@ -85,9 +100,11 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case article.FieldFeatured:
+			values[i] = new(sql.NullBool)
 		case article.FieldStatus, article.FieldViewCount, article.FieldLikeCount:
 			values[i] = new(sql.NullInt64)
-		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML:
+		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML, article.FieldCoverURL:
 			values[i] = new(sql.NullString)
 		case article.FieldCreatedAt, article.FieldUpdatedAt, article.FieldPublishedAt:
 			values[i] = new(sql.NullTime)
@@ -183,6 +200,18 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.LikeCount = uint64(value.Int64)
 			}
+		case article.FieldCoverURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field cover_url", values[i])
+			} else if value.Valid {
+				_m.CoverURL = value.String
+			}
+		case article.FieldFeatured:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field featured", values[i])
+			} else if value.Valid {
+				_m.Featured = value.Bool
+			}
 		case article.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field category_id", values[i])
@@ -206,6 +235,11 @@ func (_m *Article) Value(name string) (ent.Value, error) {
 // QueryTags queries the "tags" edge of the Article entity.
 func (_m *Article) QueryTags() *TagQuery {
 	return NewArticleClient(_m.config).QueryTags(_m)
+}
+
+// QueryCollections queries the "collections" edge of the Article entity.
+func (_m *Article) QueryCollections() *CollectionQuery {
+	return NewArticleClient(_m.config).QueryCollections(_m)
 }
 
 // QueryCategory queries the "category" edge of the Article entity.
@@ -270,6 +304,12 @@ func (_m *Article) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("like_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.LikeCount))
+	builder.WriteString(", ")
+	builder.WriteString("cover_url=")
+	builder.WriteString(_m.CoverURL)
+	builder.WriteString(", ")
+	builder.WriteString("featured=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Featured))
 	builder.WriteByte(')')
 	return builder.String()
 }

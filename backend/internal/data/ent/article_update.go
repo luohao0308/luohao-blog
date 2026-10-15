@@ -15,6 +15,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
@@ -215,6 +216,34 @@ func (_u *ArticleUpdate) AddLikeCount(v int64) *ArticleUpdate {
 	return _u
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (_u *ArticleUpdate) SetCoverURL(v string) *ArticleUpdate {
+	_u.mutation.SetCoverURL(v)
+	return _u
+}
+
+// SetNillableCoverURL sets the "cover_url" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableCoverURL(v *string) *ArticleUpdate {
+	if v != nil {
+		_u.SetCoverURL(*v)
+	}
+	return _u
+}
+
+// SetFeatured sets the "featured" field.
+func (_u *ArticleUpdate) SetFeatured(v bool) *ArticleUpdate {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableFeatured(v *bool) *ArticleUpdate {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdate) AddTagIDs(ids ...uuid.UUID) *ArticleUpdate {
 	_u.mutation.AddTagIDs(ids...)
@@ -228,6 +257,21 @@ func (_u *ArticleUpdate) AddTags(v ...*Tag) *ArticleUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddTagIDs(ids...)
+}
+
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *ArticleUpdate) AddCollectionIDs(ids ...uuid.UUID) *ArticleUpdate {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *ArticleUpdate) AddCollections(v ...*Collection) *ArticleUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
 }
 
 // SetCategoryID sets the "category" edge to the Category entity by ID.
@@ -273,6 +317,27 @@ func (_u *ArticleUpdate) RemoveTags(v ...*Tag) *ArticleUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *ArticleUpdate) ClearCollections() *ArticleUpdate {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *ArticleUpdate) RemoveCollectionIDs(ids ...uuid.UUID) *ArticleUpdate {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *ArticleUpdate) RemoveCollections(v ...*Collection) *ArticleUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // ClearCategory clears the "category" edge to the Category entity.
@@ -322,6 +387,11 @@ func (_u *ArticleUpdate) check() error {
 	if v, ok := _u.mutation.Slug(); ok {
 		if err := article.SlugValidator(v); err != nil {
 			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "Article.slug": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CoverURL(); ok {
+		if err := article.CoverURLValidator(v); err != nil {
+			return &ValidationError{Name: "cover_url", err: fmt.Errorf(`ent: validator failed for field "Article.cover_url": %w`, err)}
 		}
 	}
 	return nil
@@ -393,6 +463,12 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedLikeCount(); ok {
 		_spec.AddField(article.FieldLikeCount, field.TypeUint64, value)
 	}
+	if value, ok := _u.mutation.CoverURL(); ok {
+		_spec.SetField(article.FieldCoverURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(article.FieldFeatured, field.TypeBool, value)
+	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -431,6 +507,51 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -670,6 +791,34 @@ func (_u *ArticleUpdateOne) AddLikeCount(v int64) *ArticleUpdateOne {
 	return _u
 }
 
+// SetCoverURL sets the "cover_url" field.
+func (_u *ArticleUpdateOne) SetCoverURL(v string) *ArticleUpdateOne {
+	_u.mutation.SetCoverURL(v)
+	return _u
+}
+
+// SetNillableCoverURL sets the "cover_url" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableCoverURL(v *string) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetCoverURL(*v)
+	}
+	return _u
+}
+
+// SetFeatured sets the "featured" field.
+func (_u *ArticleUpdateOne) SetFeatured(v bool) *ArticleUpdateOne {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableFeatured(v *bool) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // AddTagIDs adds the "tags" edge to the Tag entity by IDs.
 func (_u *ArticleUpdateOne) AddTagIDs(ids ...uuid.UUID) *ArticleUpdateOne {
 	_u.mutation.AddTagIDs(ids...)
@@ -683,6 +832,21 @@ func (_u *ArticleUpdateOne) AddTags(v ...*Tag) *ArticleUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.AddTagIDs(ids...)
+}
+
+// AddCollectionIDs adds the "collections" edge to the Collection entity by IDs.
+func (_u *ArticleUpdateOne) AddCollectionIDs(ids ...uuid.UUID) *ArticleUpdateOne {
+	_u.mutation.AddCollectionIDs(ids...)
+	return _u
+}
+
+// AddCollections adds the "collections" edges to the Collection entity.
+func (_u *ArticleUpdateOne) AddCollections(v ...*Collection) *ArticleUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCollectionIDs(ids...)
 }
 
 // SetCategoryID sets the "category" edge to the Category entity by ID.
@@ -728,6 +892,27 @@ func (_u *ArticleUpdateOne) RemoveTags(v ...*Tag) *ArticleUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveTagIDs(ids...)
+}
+
+// ClearCollections clears all "collections" edges to the Collection entity.
+func (_u *ArticleUpdateOne) ClearCollections() *ArticleUpdateOne {
+	_u.mutation.ClearCollections()
+	return _u
+}
+
+// RemoveCollectionIDs removes the "collections" edge to Collection entities by IDs.
+func (_u *ArticleUpdateOne) RemoveCollectionIDs(ids ...uuid.UUID) *ArticleUpdateOne {
+	_u.mutation.RemoveCollectionIDs(ids...)
+	return _u
+}
+
+// RemoveCollections removes "collections" edges to Collection entities.
+func (_u *ArticleUpdateOne) RemoveCollections(v ...*Collection) *ArticleUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCollectionIDs(ids...)
 }
 
 // ClearCategory clears the "category" edge to the Category entity.
@@ -790,6 +975,11 @@ func (_u *ArticleUpdateOne) check() error {
 	if v, ok := _u.mutation.Slug(); ok {
 		if err := article.SlugValidator(v); err != nil {
 			return &ValidationError{Name: "slug", err: fmt.Errorf(`ent: validator failed for field "Article.slug": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CoverURL(); ok {
+		if err := article.CoverURLValidator(v); err != nil {
+			return &ValidationError{Name: "cover_url", err: fmt.Errorf(`ent: validator failed for field "Article.cover_url": %w`, err)}
 		}
 	}
 	return nil
@@ -878,6 +1068,12 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	if value, ok := _u.mutation.AddedLikeCount(); ok {
 		_spec.AddField(article.FieldLikeCount, field.TypeUint64, value)
 	}
+	if value, ok := _u.mutation.CoverURL(); ok {
+		_spec.SetField(article.FieldCoverURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(article.FieldFeatured, field.TypeBool, value)
+	}
 	if _u.mutation.TagsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -916,6 +1112,51 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(tag.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCollectionsIDs(); len(nodes) > 0 && !_u.mutation.CollectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CollectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   article.CollectionsTable,
+			Columns: []string{article.CollectionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

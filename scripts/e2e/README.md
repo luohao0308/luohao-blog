@@ -101,3 +101,30 @@ fixture 最长运行十分钟，然后自动结束；普通 `go test ./...` 不�
 ## 域名 HTTPS 冒烟
 
 生产切换后运行 `python3 scripts/e2e/domain_smoke.py`。默认 https://makerhao.cn，系统 CA 验证证书；检查 ICP 页脚、canonical、公开 BFF API、登录 noindex、匿名退出的 Secure cookie 与 Path 重写。真实登录/刷新和微信真机验证仍需另行执行。切换步骤见 `docs/operations/runbooks/domain-cutover.md`。
+
+## 网站能力补齐专项
+
+`admin_pagination_e2e.cjs` 使用120篇模拟文章检查后台分页、筛选、修改后补位及错误恢复；`article_experience_e2e.cjs` 验证媒体插入、封面/精选、阅读目录和移动端；`portfolio_about_e2e.cjs` 验证后台维护、公开上下架隔离、页面切换及错误重试。模拟接口用例不能替代真实接口验收。
+
+真实接口用例 `article_media_live_e2e.cjs` 和 `portfolio_about_live_e2e.cjs` 不拦截 API，使用独立 SQLite/miniredis/临时文件 fixture，通过 Nuxt BFF 完成登录、写入、刷新、匿名回读及越权拒绝。只允许本机地址，不读取生产配置、不联系真实微信接口。
+
+1. 先构建前端；构建完成后，在后端启动对应 fixture（避免五分钟 fixture 窗口被构建占用）：
+
+   ```bash
+   BLOG_PORTFOLIO_BROWSER_FIXTURE=/tmp/blog-portfolio-fixture.url go test ./internal/data -run TestOfficialAccountHTTPLifecycle -count=1 -v -timeout=6m
+   ```
+
+2. 按上述公众号 fixture 步骤启动预览，将 `NUXT_BACKEND_BASE` 指向这个 URL 文件；在根目录运行对应脚本，指定相同 `BLOG_E2E_BASE_URL`、已安装 Playwright 的 `NODE_PATH`，必要时指定 `BLOG_E2E_CHROMIUM`。
+3. 完成后创建精确的 `/tmp/blog-portfolio-fixture.url.stop` 文件并停止本任务预览。再次启动时使用新 URL 文件，避免旧 stop 信号。fixture 正常退出只证明其自身 HTTP 测试通过；浏览器必须另有脚本 `PASS` 结果。
+
+文章呈现工具边界用 `node --experimental-strip-types scripts/test_article_presentation.mjs` 验证。看门狗隔离回归用 `python3 scripts/test_watchdog.py`，不会重启真实 Docker 容器。真实 MySQL 升级、旧行兼容、幂等内容导入及 SQL 备份恢复用 `python3 scripts/test_mysql_migrations.py --baseline 12 --target 13`；该命令仅接受任务专属 label/volume/loopback 端口的隔离 MySQL，私密测试配置不得提交。
+
+SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_CHROMIUM=<已有Chrome路径> node scripts/e2e/seo_e2e.cjs`。脚本自行启动并停止仅绑定loopback的mock后端和随机端口Nitro preview，固定测试canonical为https://makerhao.cn，不访问该真实域名。验证121文章/111作品的完整分页、公开过滤、下架新鲜地图、无调用者会话转发、XML解析、SSR/head字段以及重复游标、空页续页和上游挂起503。工具边界用 `node --experimental-strip-types scripts/test_seo.mjs` 验证固定origin、受控图片、XML转义和时间戳。
+
+账号邮箱专项：`account_email_e2e.cjs`使用模拟接口验证503/429/确认重试、fragment清理、其他账号token确认隔离、默认JWT残余窗口文案以及后台改密入口复用/当前会话退出。`account_email_live_e2e.cjs`不拦截API，使用真实BFF、SQL、Redis和fakeMailer；它动态注册三个仅fixture账号，确认验证/重置单次消费、目的隔离、弱密码不消费、旧refresh失效、其他账号会话保留、新密码登录及未验证邮箱重置证明。两者都只允许loopback，不发送真实邮件。
+
+先build前端，再在backend执行 `BLOG_ACCOUNT_EMAIL_BROWSER_FIXTURE=/tmp/blog-account-email-fixture.url go test ./internal/data -run '^TestAccountEmailHTTPLifecycle$' -count=1 -v -timeout=12m`，将该URL用于NUXT_BACKEND_BASE并启动preview；按其他专项同样设置BLOG_E2E_BASE_URL/NODE_PATH/Chrome运行live。`/fixture/emails/latest`只在测试服务捕获邮件链接，脚本只在内存读取token并在错误中脱敏，禁止把捕获link/token打印到终端。最后建立精确URL文件的`.stop`并停止自有preview；fixture最长10分钟。MySQL13→14/11→14 runner自动传受控DSN给`TestAccountEmailTokenRepoMySQL`并断言真实运行而非Skip；不使用生产配置。
+
+收藏专项：`collections_e2e.cjs`模拟接口检查登录恢复门禁、错误重试、延迟列表/身份变化、localStorage配额失败、显式部分导入和105条分页。`collections_live_e2e.cjs`不拦截API，使用实际JWT/BFF/SQL、两浏览器同账号、另一账号与游客；验证105条50/50/5、首次收藏时间幂等、服务端身份边界、部分导入只删成功项、跨浏览器SPA重验、草稿/软删除/下架隔离、隐藏记录取消、退出保留游客数据、390px和noindex。
+
+先build前端，再在backend启动 `BLOG_COLLECTION_BROWSER_FIXTURE=/tmp/blog-collection-fixture.url go test ./internal/data -run '^TestCollectionHTTPLifecycle$' -count=1 -v -timeout=12m`；测试种子有105篇public（collection-fixture-000..104）和一篇draft/一篇softdeleted。用该URL启动NUXT_BACKEND_BASE preview，再运行live；成功或失败都停自有preview并创建精确URL文件的`.stop`。fixture10分钟退出不替代独立script PASS。MySQL14→15/11→15 runner还要求TestCollectionRepoMySQL实际运行，覆盖8并发幂等、过滤先于分页、稳定排序和租户隔离；升前/升后SQL备份恢复涵盖旧账号、目的token、封面/精选及收藏日期，不处理真实生产数据。

@@ -20,6 +20,22 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 
 | OfficialAccountService（同步配置状态、任务分页、重试、显式同步） | HTTP/gRPC | backend OfficialAccountService | Nuxt admin/wechat-sync | `backend/api/blog/v1/official_account.proto` | `make api`；HTTP 权限/流程测试 `TestOfficialAccountHTTPLifecycle` | 新增管理员接口，未配置时不产生远端调用 |
 
+| MediaService（文章图片上传与公开回读） | HTTP/gRPC | backend MediaService | Nuxt ArticleForm、文章/作品封面 | `backend/api/blog/v1/media.proto` | `make api`；media权限/FS/HTTP测试、S2 browser及真实BFF回归 | 新增后台上传/公开资产接口，2MiB内容和4MiB请求限制；Article可选metadata旧mask保留 |
+
+操作边界见 [文章媒体与元数据](MEDIA-ARTICLE-METADATA.md)。
+
+| ProjectService / AboutService | HTTP/gRPC | backend Project/About services | Nuxt public与admin维护页 | `project.proto` / `about.proto` | `make api`；repository/HTTP权限与S3 browser，MySQL迁移恢复 | v13扩展新表、原内容幂等seed，草稿隔离、Project软下架 |
+
+详情见 [作品集与关于维护](PORTFOLIO-ABOUT.md)。
+
+| AuthService 邮箱验证与密码恢复 | HTTP/gRPC | backend AuthService / AccountEmailUsecase | Nuxt 注册、登录、设置与恢复页 | `backend/api/blog/v1/auth.proto`、`internal/conf/conf.proto` | `make api/config`；token事务、SMTP、HTTP与真实BFF fixture | v14扩展User状态与目的token表；旧账号不加verified gate，密码改变以credential version撤销旧恢复能力 |
+
+详情见 [账号邮箱验证与密码恢复](ACCOUNT-EMAIL.md)。
+
+| CollectionService | HTTP/gRPC | backend CollectionService | Nuxt 收藏页与文章详情 | `backend/api/blog/v1/collection.proto` | `make api`；repo/权限/HTTP/MySQL与真实BFF fixture | v15扩展表；身份仅取claims，公开文章动态过滤，重复保存和取消幂等 |
+
+详情见 [跨设备收藏](COLLECTIONS.md)。
+
 ## 生成物规则
 
 - 机器使用的固定文件名保持稳定，不复制出 `final`、`new`、`latest` 等并行版本。

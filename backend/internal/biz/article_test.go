@@ -153,6 +153,21 @@ func TestArticleUsecaseSlugValidation(t *testing.T) {
 	}
 }
 
+func TestArticleUsecaseCoverURLValidation(t *testing.T) {
+	uc := NewArticleUsecase(newFakeArticleRepo(), nil)
+	for _, cover := range []string{"https://example.com/cover.jpg", "javascript:alert(1)", "/v1/assets/media/../secret.png"} {
+		_, err := uc.CreateArticle(context.Background(), &Article{Slug: "cover-test", Title: "t", ContentMD: "c", CoverURL: cover})
+		if !kratoserrors.IsBadRequest(err) {
+			t.Fatalf("CreateArticle(cover=%q) error = %v, want bad request", cover, err)
+		}
+	}
+	valid := "/v1/assets/media/0123456789abcdef0123456789abcdef.jpg"
+	created, err := uc.CreateArticle(context.Background(), &Article{Slug: "valid-cover", Title: "t", ContentMD: "c", CoverURL: valid, Featured: true})
+	if err != nil || created.CoverURL != valid || !created.Featured {
+		t.Fatalf("CreateArticle(valid cover) = %+v, %v", created, err)
+	}
+}
+
 func TestArticleUsecasePublicReadsHideDrafts(t *testing.T) {
 	repo := newFakeArticleRepo()
 	uc := NewArticleUsecase(repo, nil)

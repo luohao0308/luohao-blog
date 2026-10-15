@@ -423,14 +423,14 @@ func TestOfficialAccountUploadsAllowedContentImage(t *testing.T) {
 	publisher.siteURL = "https://blog.example.com"
 	publisher.allowedImages = []allowedImageSource{{scheme: "https", host: "blog.example.com"}}
 	publisher.imageClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		if r.URL.String() != "https://blog.example.com/images/a.png" {
+		if r.URL.String() != "https://blog.example.com/api/v1/assets/media/0123456789abcdef0123456789abcdef.png" {
 			t.Fatalf("relative image resolved to %q", r.URL.String())
 		}
 		response := &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(png)), Header: make(http.Header), Request: r}
 		response.Header.Set("Content-Type", "image/png")
 		return response, nil
 	})}
-	content, err := publisher.prepareContent(context.Background(), `<p><img style="width:1px" src="/images/a.png"></p>`)
+	content, err := publisher.prepareContent(context.Background(), `<p><img style="width:1px" src="/api/v1/assets/media/0123456789abcdef0123456789abcdef.png"></p>`)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,9 +16,13 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/project"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
@@ -30,12 +34,20 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// About is the client for interacting with the About builders.
+	About *AboutClient
+	// AccountEmailToken is the client for interacting with the AccountEmailToken builders.
+	AccountEmailToken *AccountEmailTokenClient
 	// Article is the client for interacting with the Article builders.
 	Article *ArticleClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Collection is the client for interacting with the Collection builders.
+	Collection *CollectionClient
 	// Comment is the client for interacting with the Comment builders.
 	Comment *CommentClient
+	// Project is the client for interacting with the Project builders.
+	Project *ProjectClient
 	// Subscriber is the client for interacting with the Subscriber builders.
 	Subscriber *SubscriberClient
 	// Tag is the client for interacting with the Tag builders.
@@ -55,9 +67,13 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.About = NewAboutClient(c.config)
+	c.AccountEmailToken = NewAccountEmailTokenClient(c.config)
 	c.Article = NewArticleClient(c.config)
 	c.Category = NewCategoryClient(c.config)
+	c.Collection = NewCollectionClient(c.config)
 	c.Comment = NewCommentClient(c.config)
+	c.Project = NewProjectClient(c.config)
 	c.Subscriber = NewSubscriberClient(c.config)
 	c.Tag = NewTagClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -152,15 +168,19 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		Article:        NewArticleClient(cfg),
-		Category:       NewCategoryClient(cfg),
-		Comment:        NewCommentClient(cfg),
-		Subscriber:     NewSubscriberClient(cfg),
-		Tag:            NewTagClient(cfg),
-		User:           NewUserClient(cfg),
-		WechatSyncTask: NewWechatSyncTaskClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		About:             NewAboutClient(cfg),
+		AccountEmailToken: NewAccountEmailTokenClient(cfg),
+		Article:           NewArticleClient(cfg),
+		Category:          NewCategoryClient(cfg),
+		Collection:        NewCollectionClient(cfg),
+		Comment:           NewCommentClient(cfg),
+		Project:           NewProjectClient(cfg),
+		Subscriber:        NewSubscriberClient(cfg),
+		Tag:               NewTagClient(cfg),
+		User:              NewUserClient(cfg),
+		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
 
@@ -178,22 +198,26 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:            ctx,
-		config:         cfg,
-		Article:        NewArticleClient(cfg),
-		Category:       NewCategoryClient(cfg),
-		Comment:        NewCommentClient(cfg),
-		Subscriber:     NewSubscriberClient(cfg),
-		Tag:            NewTagClient(cfg),
-		User:           NewUserClient(cfg),
-		WechatSyncTask: NewWechatSyncTaskClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		About:             NewAboutClient(cfg),
+		AccountEmailToken: NewAccountEmailTokenClient(cfg),
+		Article:           NewArticleClient(cfg),
+		Category:          NewCategoryClient(cfg),
+		Collection:        NewCollectionClient(cfg),
+		Comment:           NewCommentClient(cfg),
+		Project:           NewProjectClient(cfg),
+		Subscriber:        NewSubscriberClient(cfg),
+		Tag:               NewTagClient(cfg),
+		User:              NewUserClient(cfg),
+		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Article.
+//		About.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -216,7 +240,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Article, c.Category, c.Comment, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
+		c.Project, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
 	} {
 		n.Use(hooks...)
 	}
@@ -226,7 +251,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Article, c.Category, c.Comment, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
+		c.Project, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -235,12 +261,20 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AboutMutation:
+		return c.About.mutate(ctx, m)
+	case *AccountEmailTokenMutation:
+		return c.AccountEmailToken.mutate(ctx, m)
 	case *ArticleMutation:
 		return c.Article.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
+	case *CollectionMutation:
+		return c.Collection.mutate(ctx, m)
 	case *CommentMutation:
 		return c.Comment.mutate(ctx, m)
+	case *ProjectMutation:
+		return c.Project.mutate(ctx, m)
 	case *SubscriberMutation:
 		return c.Subscriber.mutate(ctx, m)
 	case *TagMutation:
@@ -251,6 +285,272 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.WechatSyncTask.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AboutClient is a client for the About schema.
+type AboutClient struct {
+	config
+}
+
+// NewAboutClient returns a client for the About from the given config.
+func NewAboutClient(c config) *AboutClient {
+	return &AboutClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `about.Hooks(f(g(h())))`.
+func (c *AboutClient) Use(hooks ...Hook) {
+	c.hooks.About = append(c.hooks.About, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `about.Intercept(f(g(h())))`.
+func (c *AboutClient) Intercept(interceptors ...Interceptor) {
+	c.inters.About = append(c.inters.About, interceptors...)
+}
+
+// Create returns a builder for creating a About entity.
+func (c *AboutClient) Create() *AboutCreate {
+	mutation := newAboutMutation(c.config, OpCreate)
+	return &AboutCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of About entities.
+func (c *AboutClient) CreateBulk(builders ...*AboutCreate) *AboutCreateBulk {
+	return &AboutCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AboutClient) MapCreateBulk(slice any, setFunc func(*AboutCreate, int)) *AboutCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AboutCreateBulk{err: fmt.Errorf("calling to AboutClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AboutCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AboutCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for About.
+func (c *AboutClient) Update() *AboutUpdate {
+	mutation := newAboutMutation(c.config, OpUpdate)
+	return &AboutUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AboutClient) UpdateOne(_m *About) *AboutUpdateOne {
+	mutation := newAboutMutation(c.config, OpUpdateOne, withAbout(_m))
+	return &AboutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AboutClient) UpdateOneID(id uuid.UUID) *AboutUpdateOne {
+	mutation := newAboutMutation(c.config, OpUpdateOne, withAboutID(id))
+	return &AboutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for About.
+func (c *AboutClient) Delete() *AboutDelete {
+	mutation := newAboutMutation(c.config, OpDelete)
+	return &AboutDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AboutClient) DeleteOne(_m *About) *AboutDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AboutClient) DeleteOneID(id uuid.UUID) *AboutDeleteOne {
+	builder := c.Delete().Where(about.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AboutDeleteOne{builder}
+}
+
+// Query returns a query builder for About.
+func (c *AboutClient) Query() *AboutQuery {
+	return &AboutQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAbout},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a About entity by its id.
+func (c *AboutClient) Get(ctx context.Context, id uuid.UUID) (*About, error) {
+	return c.Query().Where(about.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AboutClient) GetX(ctx context.Context, id uuid.UUID) *About {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AboutClient) Hooks() []Hook {
+	return c.hooks.About
+}
+
+// Interceptors returns the client interceptors.
+func (c *AboutClient) Interceptors() []Interceptor {
+	return c.inters.About
+}
+
+func (c *AboutClient) mutate(ctx context.Context, m *AboutMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AboutCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AboutUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AboutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AboutDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown About mutation op: %q", m.Op())
+	}
+}
+
+// AccountEmailTokenClient is a client for the AccountEmailToken schema.
+type AccountEmailTokenClient struct {
+	config
+}
+
+// NewAccountEmailTokenClient returns a client for the AccountEmailToken from the given config.
+func NewAccountEmailTokenClient(c config) *AccountEmailTokenClient {
+	return &AccountEmailTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `accountemailtoken.Hooks(f(g(h())))`.
+func (c *AccountEmailTokenClient) Use(hooks ...Hook) {
+	c.hooks.AccountEmailToken = append(c.hooks.AccountEmailToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `accountemailtoken.Intercept(f(g(h())))`.
+func (c *AccountEmailTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AccountEmailToken = append(c.inters.AccountEmailToken, interceptors...)
+}
+
+// Create returns a builder for creating a AccountEmailToken entity.
+func (c *AccountEmailTokenClient) Create() *AccountEmailTokenCreate {
+	mutation := newAccountEmailTokenMutation(c.config, OpCreate)
+	return &AccountEmailTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AccountEmailToken entities.
+func (c *AccountEmailTokenClient) CreateBulk(builders ...*AccountEmailTokenCreate) *AccountEmailTokenCreateBulk {
+	return &AccountEmailTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AccountEmailTokenClient) MapCreateBulk(slice any, setFunc func(*AccountEmailTokenCreate, int)) *AccountEmailTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AccountEmailTokenCreateBulk{err: fmt.Errorf("calling to AccountEmailTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AccountEmailTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AccountEmailTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Update() *AccountEmailTokenUpdate {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdate)
+	return &AccountEmailTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountEmailTokenClient) UpdateOne(_m *AccountEmailToken) *AccountEmailTokenUpdateOne {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdateOne, withAccountEmailToken(_m))
+	return &AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountEmailTokenClient) UpdateOneID(id uuid.UUID) *AccountEmailTokenUpdateOne {
+	mutation := newAccountEmailTokenMutation(c.config, OpUpdateOne, withAccountEmailTokenID(id))
+	return &AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Delete() *AccountEmailTokenDelete {
+	mutation := newAccountEmailTokenMutation(c.config, OpDelete)
+	return &AccountEmailTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AccountEmailTokenClient) DeleteOne(_m *AccountEmailToken) *AccountEmailTokenDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AccountEmailTokenClient) DeleteOneID(id uuid.UUID) *AccountEmailTokenDeleteOne {
+	builder := c.Delete().Where(accountemailtoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountEmailTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for AccountEmailToken.
+func (c *AccountEmailTokenClient) Query() *AccountEmailTokenQuery {
+	return &AccountEmailTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAccountEmailToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AccountEmailToken entity by its id.
+func (c *AccountEmailTokenClient) Get(ctx context.Context, id uuid.UUID) (*AccountEmailToken, error) {
+	return c.Query().Where(accountemailtoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountEmailTokenClient) GetX(ctx context.Context, id uuid.UUID) *AccountEmailToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AccountEmailTokenClient) Hooks() []Hook {
+	return c.hooks.AccountEmailToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *AccountEmailTokenClient) Interceptors() []Interceptor {
+	return c.inters.AccountEmailToken
+}
+
+func (c *AccountEmailTokenClient) mutate(ctx context.Context, m *AccountEmailTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AccountEmailTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AccountEmailTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AccountEmailTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AccountEmailTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AccountEmailToken mutation op: %q", m.Op())
 	}
 }
 
@@ -371,6 +671,22 @@ func (c *ArticleClient) QueryTags(_m *Article) *TagQuery {
 			sqlgraph.From(article.Table, article.FieldID, id),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, article.TagsTable, article.TagsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCollections queries the collections edge of a Article.
+func (c *ArticleClient) QueryCollections(_m *Article) *CollectionQuery {
+	query := (&CollectionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(article.Table, article.FieldID, id),
+			sqlgraph.To(collection.Table, collection.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, article.CollectionsTable, article.CollectionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -568,6 +884,171 @@ func (c *CategoryClient) mutate(ctx context.Context, m *CategoryMutation) (Value
 	}
 }
 
+// CollectionClient is a client for the Collection schema.
+type CollectionClient struct {
+	config
+}
+
+// NewCollectionClient returns a client for the Collection from the given config.
+func NewCollectionClient(c config) *CollectionClient {
+	return &CollectionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `collection.Hooks(f(g(h())))`.
+func (c *CollectionClient) Use(hooks ...Hook) {
+	c.hooks.Collection = append(c.hooks.Collection, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `collection.Intercept(f(g(h())))`.
+func (c *CollectionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Collection = append(c.inters.Collection, interceptors...)
+}
+
+// Create returns a builder for creating a Collection entity.
+func (c *CollectionClient) Create() *CollectionCreate {
+	mutation := newCollectionMutation(c.config, OpCreate)
+	return &CollectionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Collection entities.
+func (c *CollectionClient) CreateBulk(builders ...*CollectionCreate) *CollectionCreateBulk {
+	return &CollectionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CollectionClient) MapCreateBulk(slice any, setFunc func(*CollectionCreate, int)) *CollectionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CollectionCreateBulk{err: fmt.Errorf("calling to CollectionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CollectionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CollectionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Collection.
+func (c *CollectionClient) Update() *CollectionUpdate {
+	mutation := newCollectionMutation(c.config, OpUpdate)
+	return &CollectionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CollectionClient) UpdateOne(_m *Collection) *CollectionUpdateOne {
+	mutation := newCollectionMutation(c.config, OpUpdateOne, withCollection(_m))
+	return &CollectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CollectionClient) UpdateOneID(id uuid.UUID) *CollectionUpdateOne {
+	mutation := newCollectionMutation(c.config, OpUpdateOne, withCollectionID(id))
+	return &CollectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Collection.
+func (c *CollectionClient) Delete() *CollectionDelete {
+	mutation := newCollectionMutation(c.config, OpDelete)
+	return &CollectionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CollectionClient) DeleteOne(_m *Collection) *CollectionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CollectionClient) DeleteOneID(id uuid.UUID) *CollectionDeleteOne {
+	builder := c.Delete().Where(collection.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CollectionDeleteOne{builder}
+}
+
+// Query returns a query builder for Collection.
+func (c *CollectionClient) Query() *CollectionQuery {
+	return &CollectionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCollection},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Collection entity by its id.
+func (c *CollectionClient) Get(ctx context.Context, id uuid.UUID) (*Collection, error) {
+	return c.Query().Where(collection.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CollectionClient) GetX(ctx context.Context, id uuid.UUID) *Collection {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Collection.
+func (c *CollectionClient) QueryUser(_m *Collection) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(collection.Table, collection.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, collection.UserTable, collection.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryArticle queries the article edge of a Collection.
+func (c *CollectionClient) QueryArticle(_m *Collection) *ArticleQuery {
+	query := (&ArticleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(collection.Table, collection.FieldID, id),
+			sqlgraph.To(article.Table, article.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, collection.ArticleTable, collection.ArticleColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CollectionClient) Hooks() []Hook {
+	return c.hooks.Collection
+}
+
+// Interceptors returns the client interceptors.
+func (c *CollectionClient) Interceptors() []Interceptor {
+	return c.inters.Collection
+}
+
+func (c *CollectionClient) mutate(ctx context.Context, m *CollectionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CollectionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CollectionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CollectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CollectionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Collection mutation op: %q", m.Op())
+	}
+}
+
 // CommentClient is a client for the Comment schema.
 type CommentClient struct {
 	config
@@ -698,6 +1179,139 @@ func (c *CommentClient) mutate(ctx context.Context, m *CommentMutation) (Value, 
 		return (&CommentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Comment mutation op: %q", m.Op())
+	}
+}
+
+// ProjectClient is a client for the Project schema.
+type ProjectClient struct {
+	config
+}
+
+// NewProjectClient returns a client for the Project from the given config.
+func NewProjectClient(c config) *ProjectClient {
+	return &ProjectClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `project.Hooks(f(g(h())))`.
+func (c *ProjectClient) Use(hooks ...Hook) {
+	c.hooks.Project = append(c.hooks.Project, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `project.Intercept(f(g(h())))`.
+func (c *ProjectClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Project = append(c.inters.Project, interceptors...)
+}
+
+// Create returns a builder for creating a Project entity.
+func (c *ProjectClient) Create() *ProjectCreate {
+	mutation := newProjectMutation(c.config, OpCreate)
+	return &ProjectCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Project entities.
+func (c *ProjectClient) CreateBulk(builders ...*ProjectCreate) *ProjectCreateBulk {
+	return &ProjectCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProjectClient) MapCreateBulk(slice any, setFunc func(*ProjectCreate, int)) *ProjectCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProjectCreateBulk{err: fmt.Errorf("calling to ProjectClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProjectCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProjectCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Project.
+func (c *ProjectClient) Update() *ProjectUpdate {
+	mutation := newProjectMutation(c.config, OpUpdate)
+	return &ProjectUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProjectClient) UpdateOne(_m *Project) *ProjectUpdateOne {
+	mutation := newProjectMutation(c.config, OpUpdateOne, withProject(_m))
+	return &ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProjectClient) UpdateOneID(id uuid.UUID) *ProjectUpdateOne {
+	mutation := newProjectMutation(c.config, OpUpdateOne, withProjectID(id))
+	return &ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Project.
+func (c *ProjectClient) Delete() *ProjectDelete {
+	mutation := newProjectMutation(c.config, OpDelete)
+	return &ProjectDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProjectClient) DeleteOne(_m *Project) *ProjectDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProjectClient) DeleteOneID(id uuid.UUID) *ProjectDeleteOne {
+	builder := c.Delete().Where(project.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProjectDeleteOne{builder}
+}
+
+// Query returns a query builder for Project.
+func (c *ProjectClient) Query() *ProjectQuery {
+	return &ProjectQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProject},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Project entity by its id.
+func (c *ProjectClient) Get(ctx context.Context, id uuid.UUID) (*Project, error) {
+	return c.Query().Where(project.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProjectClient) GetX(ctx context.Context, id uuid.UUID) *Project {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProjectClient) Hooks() []Hook {
+	return c.hooks.Project
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProjectClient) Interceptors() []Interceptor {
+	return c.inters.Project
+}
+
+func (c *ProjectClient) mutate(ctx context.Context, m *ProjectMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProjectCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProjectUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProjectDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Project mutation op: %q", m.Op())
 	}
 }
 
@@ -1091,6 +1705,22 @@ func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	return obj
 }
 
+// QueryCollections queries the collections edge of a User.
+func (c *UserClient) QueryCollections(_m *User) *CollectionQuery {
+	query := (&CollectionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(collection.Table, collection.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CollectionsTable, user.CollectionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1252,10 +1882,11 @@ func (c *WechatSyncTaskClient) mutate(ctx context.Context, m *WechatSyncTaskMuta
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Article, Category, Comment, Subscriber, Tag, User, WechatSyncTask []ent.Hook
+		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
+		Subscriber, Tag, User, WechatSyncTask []ent.Hook
 	}
 	inters struct {
-		Article, Category, Comment, Subscriber, Tag, User,
-		WechatSyncTask []ent.Interceptor
+		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
+		Subscriber, Tag, User, WechatSyncTask []ent.Interceptor
 	}
 )

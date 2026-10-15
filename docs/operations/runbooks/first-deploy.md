@@ -156,3 +156,12 @@ ls backups/ | tail -3                    # 次日 03:10 后应出现新 dump
 - 踩坑：国内直连 deb.debian.org 卡死 → backend Dockerfile runtime 层换腾讯内网镜像源（已进 main）
 - 公网验收：页面/API/登录/发布/混合搜索/真实 DeepSeek 问答全通；安全组 80 需在腾讯云控制台放行（本例已放行）
 - 生产管理员：seed 创建（首次登录后请立即改密码）；演示文章可在后台删除
+
+
+### 看门狗健康判定（网站补齐 S1）
+
+`deploy/watchdog.sh` 复用 `blog-backend` 的 Docker healthcheck；backend不开放宿主8000，不能用宿主地址检测。只有 running + unhealthy 连续两轮才重启；healthy清零。starting/restarting/stopped/missing/没有healthcheck/inspect失败只记录告警并清零，不重启未知状态。每次重启尝试后30分钟冷却，失败也保留冷却。`flock`非阻塞锁避免cron重叠；缺少flock退出告警，不自动安装系统包。
+
+默认私有状态目录 `/var/lib/blog-watchdog`、日志 `/var/log/blog-watchdog.log`，无需新增容器或数据库迁移。既有每5分钟cron保持；上线使用已批准版本的脚本，备份旧脚本与cron并验证容器健康、日志不误报。最小回退为在该cron命令前设置 `BLOG_WATCHDOG_RESTART_ENABLED=0` 只告警，不恢复错误宿主8000探针。
+
+本地无真实Docker副作用的回归：`python3 scripts/test_watchdog.py`、`bash -n deploy/watchdog.sh`。仅本地通过不代表新脚本已上线；生产修改仍按准确版本授权执行。

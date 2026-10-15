@@ -8,6 +8,69 @@ import (
 )
 
 var (
+	// AboutsColumns holds the columns for the "abouts" table.
+	AboutsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "singleton_key", Type: field.TypeString, Unique: true, Size: 32},
+		{Name: "name", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "headline", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "intro", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "profile_image", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "current_focus", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "skills", Type: field.TypeJSON},
+		{Name: "timeline", Type: field.TypeJSON},
+		{Name: "contacts", Type: field.TypeJSON},
+		{Name: "representative_links", Type: field.TypeJSON},
+	}
+	// AboutsTable holds the schema information for the "abouts" table.
+	AboutsTable = &schema.Table{
+		Name:       "abouts",
+		Columns:    AboutsColumns,
+		PrimaryKey: []*schema.Column{AboutsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "about_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{AboutsColumns[2]},
+			},
+		},
+	}
+	// AccountEmailTokensColumns holds the columns for the "account_email_tokens" table.
+	AccountEmailTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+		{Name: "purpose", Type: field.TypeString, Size: 16},
+		{Name: "token_hash", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "credential_version", Type: field.TypeUint64, Default: 0},
+		{Name: "expires_at", Type: field.TypeTime},
+	}
+	// AccountEmailTokensTable holds the schema information for the "account_email_tokens" table.
+	AccountEmailTokensTable = &schema.Table{
+		Name:       "account_email_tokens",
+		Columns:    AccountEmailTokensColumns,
+		PrimaryKey: []*schema.Column{AccountEmailTokensColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "accountemailtoken_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{AccountEmailTokensColumns[2]},
+			},
+			{
+				Name:    "accountemailtoken_user_id_purpose",
+				Unique:  true,
+				Columns: []*schema.Column{AccountEmailTokensColumns[3], AccountEmailTokensColumns[4]},
+			},
+			{
+				Name:    "accountemailtoken_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{AccountEmailTokensColumns[7]},
+			},
+		},
+	}
 	// ArticlesColumns holds the columns for the "articles" table.
 	ArticlesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -22,6 +85,8 @@ var (
 		{Name: "published_at", Type: field.TypeTime, Nullable: true},
 		{Name: "view_count", Type: field.TypeUint64, Default: 0},
 		{Name: "like_count", Type: field.TypeUint64, Default: 0},
+		{Name: "cover_url", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "featured", Type: field.TypeBool, Default: false},
 		{Name: "category_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ArticlesTable holds the schema information for the "articles" table.
@@ -32,7 +97,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "articles_categories_articles",
-				Columns:    []*schema.Column{ArticlesColumns[12]},
+				Columns:    []*schema.Column{ArticlesColumns[14]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -52,6 +117,11 @@ var (
 				Name:    "article_published_at",
 				Unique:  false,
 				Columns: []*schema.Column{ArticlesColumns[9]},
+			},
+			{
+				Name:    "article_featured_published_at",
+				Unique:  false,
+				Columns: []*schema.Column{ArticlesColumns[13], ArticlesColumns[9]},
 			},
 		},
 	}
@@ -74,6 +144,46 @@ var (
 				Name:    "category_updated_at",
 				Unique:  false,
 				Columns: []*schema.Column{CategoriesColumns[2]},
+			},
+		},
+	}
+	// CollectionsColumns holds the columns for the "collections" table.
+	CollectionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "saved_at", Type: field.TypeTime},
+		{Name: "article_slug", Type: field.TypeString, Size: 64},
+		{Name: "article_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// CollectionsTable holds the schema information for the "collections" table.
+	CollectionsTable = &schema.Table{
+		Name:       "collections",
+		Columns:    CollectionsColumns,
+		PrimaryKey: []*schema.Column{CollectionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "collections_articles_collections",
+				Columns:    []*schema.Column{CollectionsColumns[3]},
+				RefColumns: []*schema.Column{ArticlesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "collections_users_collections",
+				Columns:    []*schema.Column{CollectionsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "collection_user_id_article_id",
+				Unique:  true,
+				Columns: []*schema.Column{CollectionsColumns[4], CollectionsColumns[3]},
+			},
+			{
+				Name:    "collection_user_id_saved_at_article_slug_id",
+				Unique:  false,
+				Columns: []*schema.Column{CollectionsColumns[4], CollectionsColumns[1], CollectionsColumns[2], CollectionsColumns[0]},
 			},
 		},
 	}
@@ -108,6 +218,53 @@ var (
 				Name:    "comment_status",
 				Unique:  false,
 				Columns: []*schema.Column{CommentsColumns[6]},
+			},
+		},
+	}
+	// ProjectsColumns holds the columns for the "projects" table.
+	ProjectsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "name", Type: field.TypeString, Size: 128},
+		{Name: "summary", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "stack", Type: field.TypeJSON},
+		{Name: "role", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "repo_url", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "live_url", Type: field.TypeString, Size: 512, Default: ""},
+		{Name: "emoji", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "year", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "featured", Type: field.TypeBool, Default: false},
+		{Name: "cover_url", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "screenshots", Type: field.TypeJSON},
+		{Name: "problem", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "approach", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "outcome", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "published", Type: field.TypeBool, Default: false},
+		{Name: "sort", Type: field.TypeInt32, Default: 0},
+	}
+	// ProjectsTable holds the schema information for the "projects" table.
+	ProjectsTable = &schema.Table{
+		Name:       "projects",
+		Columns:    ProjectsColumns,
+		PrimaryKey: []*schema.Column{ProjectsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "project_updated_at",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[2]},
+			},
+			{
+				Name:    "project_published_sort_slug",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[19], ProjectsColumns[20], ProjectsColumns[3]},
+			},
+			{
+				Name:    "project_sort",
+				Unique:  false,
+				Columns: []*schema.Column{ProjectsColumns[20]},
 			},
 		},
 	}
@@ -161,6 +318,8 @@ var (
 		{Name: "display_name", Type: field.TypeString, Default: ""},
 		{Name: "role", Type: field.TypeInt32, Default: 1},
 		{Name: "avatar_url", Type: field.TypeString, Default: ""},
+		{Name: "email_verified", Type: field.TypeBool, Default: false},
+		{Name: "credential_version", Type: field.TypeUint64, Default: 0},
 		{Name: "wechat_openid", Type: field.TypeString, Unique: true, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -249,9 +408,13 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AboutsTable,
+		AccountEmailTokensTable,
 		ArticlesTable,
 		CategoriesTable,
+		CollectionsTable,
 		CommentsTable,
+		ProjectsTable,
 		SubscribersTable,
 		TagsTable,
 		UsersTable,
@@ -262,6 +425,8 @@ var (
 
 func init() {
 	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
+	CollectionsTable.ForeignKeys[0].RefTable = ArticlesTable
+	CollectionsTable.ForeignKeys[1].RefTable = UsersTable
 	ArticleTagsTable.ForeignKeys[0].RefTable = ArticlesTable
 	ArticleTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

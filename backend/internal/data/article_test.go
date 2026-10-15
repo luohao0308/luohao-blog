@@ -5,6 +5,7 @@ import (
 	stdsql "database/sql"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
@@ -88,6 +89,22 @@ func listFilter(t *testing.T, expr string) biz.ListOption {
 	filter, err := filtering.ParseFilterString(expr, declarations)
 	if err != nil {
 		t.Fatalf("ParseFilterString(%q) error = %v", expr, err)
+	}
+	return biz.ListFilter(filter)
+}
+
+func featuredListFilter(t *testing.T, expression string) biz.ListOption {
+	t.Helper()
+	declarations, err := filtering.NewDeclarations(
+		filtering.DeclareStandardFunctions(),
+		filtering.DeclareIdent("featured", filtering.TypeBool),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filter, err := filtering.ParseFilterString(expression, declarations)
+	if err != nil {
+		t.Fatalf("ParseFilterString(%q) error = %v", expression, err)
 	}
 	return biz.ListFilter(filter)
 }
@@ -181,6 +198,8 @@ func TestArticleRepoCRUD(t *testing.T) {
 		Title:     "hello kratos",
 		ContentMD: "# hi",
 		Tags:      []string{"go", "kratos"},
+		CoverURL:  "/v1/assets/media/0123456789abcdef0123456789abcdef.webp",
+		Featured:  true,
 	})
 	if err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
@@ -191,7 +210,7 @@ func TestArticleRepoCRUD(t *testing.T) {
 	if created.Status != biz.ArticleStatusDraft {
 		t.Fatalf("status = %d, want draft", created.Status)
 	}
-	if len(created.Tags) != 2 {
+	if len(created.Tags) != 2 || !created.Featured || created.CoverURL == "" {
 		t.Fatalf("tags = %v, want [go kratos]", created.Tags)
 	}
 
@@ -209,6 +228,8 @@ func TestArticleRepoCRUD(t *testing.T) {
 		ContentMD: "# hi again",
 		Status:    biz.ArticleStatusPublished,
 		Tags:      []string{"kratos", "blog"},
+		CoverURL:  created.CoverURL,
+		Featured:  true,
 	})
 	if err != nil {
 		t.Fatalf("UpdateArticle() error = %v", err)
@@ -222,6 +243,63 @@ func TestArticleRepoCRUD(t *testing.T) {
 
 	if _, err := repo.FindBySlug(ctx, "missing-post"); !kratoserrors.IsNotFound(err) {
 		t.Fatalf("FindBySlug(missing) error = %v, want not found", err)
+	}
+}
+
+func TestArticleRepoFeaturedFilterOrderKeepsPublicBoundary(t *testing.T) {
+	ctx := context.Background()
+	repo, _ := newTestArticleRepo(t)
+	now := time.Now().UTC()
+	for _, item := range []struct {
+		slug        string
+		featured    bool
+		published   bool
+		publishedAt time.Time
+	}{
+		{"featured-published", true, true, now.Add(-time.Hour)},
+		// This regular article is newer. Without the featured-first sort it
+		// would incorrectly lead the result.
+		{"regular-published", false, true, now},
+		{"featured-draft", true, false, time.Time{}},
+	} {
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: item.slug, Title: item.slug, ContentMD: "body", Featured: item.featured})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.published {
+			created.Status = biz.ArticleStatusPublished
+			created.PublishedAt = &item.publishedAt
+			if _, err = repo.UpdateArticle(ctx, created); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	filtered := listSlugs(t, repo, biz.ListPublic(), featuredListFilter(t, "featured"))
+	if len(filtered) != 1 || filtered[0] != "featured-published" {
+		t.Fatalf("public featured filter = %v, want only published featured article", filtered)
+	}
+
+	order := biz.ListOrderBy(ordering.OrderBy{Fields: []ordering.Field{
+		{Path: "featured", Desc: true},
+		{Path: "published_at", Desc: true},
+		{Path: "slug"},
+	}})
+	page := func(offset int) []*biz.Article {
+		got, err := repo.ListArticles(ctx, biz.ListPublic(), order, biz.ListOffset(offset), biz.ListLimit(1))
+		if err != nil {
+			t.Fatalf("ListArticles(offset=%d) error = %v", offset, err)
+		}
+		return got
+	}
+	first, second, third := page(0), page(1), page(2)
+	if len(first) != 1 || first[0].Slug != "featured-published" {
+		t.Fatalf("first ordered page = %+v, want featured-published", first)
+	}
+	if len(second) != 1 || second[0].Slug != "regular-published" {
+		t.Fatalf("second ordered page = %+v, want regular-published", second)
+	}
+	if len(third) != 0 {
+		t.Fatalf("third ordered page = %+v, draft escaped public boundary", third)
 	}
 }
 

@@ -17,7 +17,14 @@ p, public, /v1/auth/refresh, POST
 p, public, /v1/auth/logout, POST
 p, public, /v1/auth/wechat, POST
 p, public, /v1/auth/wechat/bind, POST
+p, public, /v1/auth/email-verification/confirm, POST
+p, public, /v1/auth/password-reset/request, POST
+p, public, /v1/auth/password-reset/confirm, POST
 p, public, /v1/assets/avatars/{name}, GET
+p, public, /v1/assets/media/{name}, GET
+p, public, /v1/projects/list, GET
+p, public, /v1/projects/{slug}, GET
+p, public, /v1/about, GET
 p, public, /blog.v1.ArticleService/ListArticles, *
 p, public, /blog.v1.ArticleService/GetArticle, *
 p, public, /blog.v1.ArticleService/MarkArticleViewed, *
@@ -30,17 +37,32 @@ p, public, /blog.v1.AuthService/Refresh, *
 p, public, /blog.v1.AuthService/Logout, *
 p, public, /blog.v1.AuthService/WechatLogin, *
 p, public, /blog.v1.AuthService/BindWechat, *
+p, public, /blog.v1.AuthService/ConfirmEmailVerification, *
+p, public, /blog.v1.AuthService/RequestPasswordReset, *
+p, public, /blog.v1.AuthService/ConfirmPasswordReset, *
 p, public, /blog.v1.UserService/GetAvatar, *
+p, public, /blog.v1.MediaService/GetImage, *
+p, public, /blog.v1.ProjectService/ListProjects, *
+p, public, /blog.v1.ProjectService/GetProject, *
+p, public, /blog.v1.AboutService/GetAbout, *
 
 # --- any authenticated account ---
 p, authenticated, /v1/auth/me, GET
 p, authenticated, /v1/auth/update-password, POST
 p, authenticated, /v1/user/profile, PUT
 p, authenticated, /v1/user/avatar, PUT
+p, authenticated, /v1/auth/email-verification/request, POST
+p, authenticated, /v1/collections/list, GET
+p, authenticated, /v1/collections/{slug}, POST
+p, authenticated, /v1/collections/{slug}, DELETE
 p, authenticated, /blog.v1.AuthService/GetMe, *
 p, authenticated, /blog.v1.AuthService/UpdatePassword, *
 p, authenticated, /blog.v1.UserService/UpdateProfile, *
 p, authenticated, /blog.v1.UserService/UploadAvatar, *
+p, authenticated, /blog.v1.AuthService/RequestEmailVerification, *
+p, authenticated, /blog.v1.CollectionService/ListCollections, *
+p, authenticated, /blog.v1.CollectionService/SaveCollection, *
+p, authenticated, /blog.v1.CollectionService/DeleteCollection, *
 
 # --- admin: article writes ---
 p, admin, /v1/articles/create, POST
@@ -49,6 +71,16 @@ p, admin, /v1/articles/{slug}, DELETE
 p, admin, /blog.v1.ArticleService/CreateArticle, *
 p, admin, /blog.v1.ArticleService/UpdateArticle, *
 p, admin, /blog.v1.ArticleService/DeleteArticle, *
+p, admin, /v1/admin/media/images, POST
+p, admin, /blog.v1.MediaService/UploadImage, *
+p, admin, /v1/admin/projects, POST
+p, admin, /v1/admin/projects/{project.slug}, PUT
+p, admin, /v1/admin/projects/{slug}, DELETE
+p, admin, /blog.v1.ProjectService/CreateProject, *
+p, admin, /blog.v1.ProjectService/UpdateProject, *
+p, admin, /blog.v1.ProjectService/ArchiveProject, *
+p, admin, /v1/admin/about, PUT
+p, admin, /blog.v1.AboutService/UpdateAbout, *
 
 # --- public: category reads (single-level taxonomy for navigation) ---
 p, public, /v1/categories/list, GET

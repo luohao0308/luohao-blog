@@ -6,6 +6,120 @@ info:
     title: ""
     version: 0.0.1
 paths:
+    /v1/about:
+        get:
+            tags:
+                - AboutService
+            operationId: AboutService_GetAbout
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.About'
+    /v1/admin/about:
+        put:
+            tags:
+                - AboutService
+            operationId: AboutService_UpdateAbout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.About'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.About'
+    /v1/admin/media/images:
+        post:
+            tags:
+                - MediaService
+            description: |-
+                UploadImage stores a jpeg, png, or webp image and returns its stable,
+                 site-relative public URL. Authorization: ADMIN only.
+            operationId: MediaService_UploadImage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.UploadMediaImageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.MediaImage'
+    /v1/admin/projects:
+        post:
+            tags:
+                - ProjectService
+            operationId: ProjectService_CreateProject
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Project'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
+    /v1/admin/projects/{project.slug}:
+        put:
+            tags:
+                - ProjectService
+            operationId: ProjectService_UpdateProject
+            parameters:
+                - name: project.slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: update_mask
+                  in: query
+                  schema:
+                    type: string
+                    format: field-mask
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.Project'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
+    /v1/admin/projects/{slug}:
+        delete:
+            tags:
+                - ProjectService
+            description: 'ArchiveProject is a reversible soft archive: it sets published=false.'
+            operationId: ProjectService_ArchiveProject
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/admin/wechat-sync/articles/{slug}:
         post:
             tags:
@@ -151,6 +265,7 @@ paths:
                         * `status` (i.e. `status:"PUBLISHED"`)
                         * `tag` (i.e. `tag:"go"`)
                         * `category` (i.e. `category:"engineering"`)
+                        * `featured` (i.e. `featured`; use `NOT featured` for regular items)
                         * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
                         * `created_at` range, `updated_at` range
                   schema:
@@ -165,6 +280,7 @@ paths:
                         * `published_at`
                         * `created_at`
                         * `updated_at`
+                        * `featured`
                      Append ` desc` to a field for descending order, e.g. `published_at desc`.
                      Defaults to ascending order when no direction is supplied.
                   schema:
@@ -374,6 +490,56 @@ paths:
                     description: OK
                     content:
                         '*/*': {}
+    /v1/assets/media/{name}:
+        get:
+            tags:
+                - MediaService
+            description: |-
+                GetImage serves an uploaded image as a raw HTTP body. Authorization:
+                 public, because covers and article bodies render for every visitor.
+            operationId: MediaService_GetImage
+            parameters:
+                - name: name
+                  in: path
+                  description: Server-generated filename embedded in MediaImage.url.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        '*/*': {}
+    /v1/auth/email-verification/confirm:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_ConfirmEmailVerification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ConfirmEmailVerificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/auth/email-verification/request:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RequestEmailVerification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RequestEmailVerificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/auth/login:
         post:
             tags:
@@ -434,6 +600,36 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.User'
+    /v1/auth/password-reset/confirm:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_ConfirmPasswordReset
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.ConfirmPasswordResetRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /v1/auth/password-reset/request:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RequestPasswordReset
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RequestPasswordResetRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/auth/refresh:
         post:
             tags:
@@ -489,9 +685,9 @@ paths:
             description: |-
                 UpdatePassword rotates the calling account's password. The current
                  password must be supplied and is verified before the change; the new
-                 password follows the same rules as account creation (at least 8
-                 characters). Existing refresh sessions keep working until their natural
-                 expiry; the next login must use the new password.
+                 password follows the same rules as account creation (8-1024 UTF-8
+                 bytes). Existing refresh sessions are revoked after the change; access
+                 JWTs can remain valid only for their configured short lifetime.
                  Authorization: any authenticated account (Authorization: Bearer).
                  Returns UNAUTHORIZED when the old password is wrong, INVALID_ARGUMENT
                  when fields are empty or the new password is too short.
@@ -720,6 +916,66 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.ChatReply'
+    /v1/collections/list:
+        get:
+            tags:
+                - CollectionService
+            operationId: CollectionService_ListCollections
+            parameters:
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CollectionSet'
+    /v1/collections/{slug}:
+        post:
+            tags:
+                - CollectionService
+            operationId: CollectionService_SaveCollection
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.SaveCollectionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Collection'
+        delete:
+            tags:
+                - CollectionService
+            operationId: CollectionService_DeleteCollection
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
     /v1/comments:
         get:
             tags:
@@ -833,6 +1089,53 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/projects/list:
+        get:
+            tags:
+                - ProjectService
+            operationId: ProjectService_ListProjects
+            parameters:
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: published
+                  in: query
+                  description: |-
+                    ADMIN-only optional filter. Anonymous callers are always restricted to
+                     published projects regardless of this value.
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ProjectSet'
+    /v1/projects/{slug}:
+        get:
+            tags:
+                - ProjectService
+            operationId: ProjectService_GetProject
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Project'
     /v1/search/articles:
         get:
             tags:
@@ -991,6 +1294,72 @@ paths:
                                 $ref: '#/components/schemas/blog.v1.User'
 components:
     schemas:
+        blog.v1.About:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                headline:
+                    type: string
+                intro:
+                    type: string
+                profileImage:
+                    type: string
+                currentFocus:
+                    type: string
+                skills:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutSkillGroup'
+                timeline:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutTimelineEntry'
+                contacts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutContact'
+                representativeLinks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.AboutLink'
+                updated_at:
+                    type: string
+                    format: date-time
+        blog.v1.AboutContact:
+            type: object
+            properties:
+                label:
+                    type: string
+                href:
+                    type: string
+                text:
+                    type: string
+        blog.v1.AboutLink:
+            type: object
+            properties:
+                label:
+                    type: string
+                href:
+                    type: string
+        blog.v1.AboutSkillGroup:
+            type: object
+            properties:
+                group:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        type: string
+        blog.v1.AboutTimelineEntry:
+            type: object
+            properties:
+                year:
+                    type: string
+                text:
+                    type: string
         blog.v1.ApproveCommentRequest:
             required:
                 - id
@@ -1068,6 +1437,15 @@ components:
                     description: |-
                         Single curated category of the article. Server-managed through
                          Create/UpdateArticle on the category field; absent when uncategorized.
+                coverUrl:
+                    type: string
+                    description: |-
+                        Optional site-relative cover image uploaded through MediaService. Empty
+                         means the article has no custom cover. Only /v1/assets/media/... paths
+                         generated by this service are accepted.
+                featured:
+                    type: boolean
+                    description: Whether editors have selected the article for featured placements.
             description: Article is the canonical representation of a blog article.
         blog.v1.ArticleSet:
             type: object
@@ -1196,6 +1574,23 @@ components:
                 summary:
                     type: string
             description: CitedArticle identifies one source article of the answer.
+        blog.v1.Collection:
+            type: object
+            properties:
+                article:
+                    $ref: '#/components/schemas/blog.v1.Article'
+                savedAt:
+                    type: string
+                    format: date-time
+        blog.v1.CollectionSet:
+            type: object
+            properties:
+                collections:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Collection'
+                next_page_token:
+                    type: string
         blog.v1.Comment:
             type: object
             properties:
@@ -1248,6 +1643,24 @@ components:
                         Token used to retrieve the next page. Empty when there are no more
                          results.
             description: CommentSet is a paginated collection of comments.
+        blog.v1.ConfirmEmailVerificationRequest:
+            required:
+                - token
+            type: object
+            properties:
+                token:
+                    type: string
+        blog.v1.ConfirmPasswordResetRequest:
+            required:
+                - token
+                - newPassword
+            type: object
+            properties:
+                token:
+                    type: string
+                newPassword:
+                    type: string
+                    description: New password; 8-1024 UTF-8 bytes.
         blog.v1.CreateCommentRequest:
             required:
                 - articleSlug
@@ -1329,6 +1742,76 @@ components:
                 MarkArticleViewedRequest is the input for ArticleService.MarkArticleViewed.
                  The client identity comes from the transport (client IP), not from the
                  message body.
+        blog.v1.MediaImage:
+            type: object
+            properties:
+                url:
+                    type: string
+                    description: Site-relative immutable URL under /v1/assets/media/.
+        blog.v1.Project:
+            required:
+                - slug
+                - name
+            type: object
+            properties:
+                id:
+                    type: string
+                slug:
+                    type: string
+                name:
+                    type: string
+                summary:
+                    type: string
+                description:
+                    type: string
+                stack:
+                    type: array
+                    items:
+                        type: string
+                role:
+                    type: string
+                repoUrl:
+                    type: string
+                liveUrl:
+                    type: string
+                emoji:
+                    type: string
+                year:
+                    type: string
+                featured:
+                    type: boolean
+                coverUrl:
+                    type: string
+                screenshots:
+                    type: array
+                    items:
+                        type: string
+                problem:
+                    type: string
+                approach:
+                    type: string
+                outcome:
+                    type: string
+                published:
+                    type: boolean
+                sort:
+                    type: integer
+                    format: int32
+                created_at:
+                    type: string
+                    format: date-time
+                updated_at:
+                    type: string
+                    format: date-time
+        blog.v1.ProjectSet:
+            type: object
+            properties:
+                projects:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.Project'
+                next_page_token:
+                    type: string
         blog.v1.RefreshRequest:
             type: object
             properties: {}
@@ -1348,19 +1831,36 @@ components:
                     description: Login email, matched case-insensitively and stored lowercased.
                 password:
                     type: string
-                    description: Plaintext password; at least 8 characters. Sent once over TLS.
+                    description: Plaintext password; 8-1024 UTF-8 bytes. Sent once over TLS.
                 displayName:
                     type: string
                     description: Public display name, 1-32 characters.
             description: |-
                 RegisterRequest is the input for AuthService.Register. The new account is
                  always a READER; ADMIN accounts exist only through the seed command.
+        blog.v1.RequestEmailVerificationRequest:
+            type: object
+            properties: {}
+        blog.v1.RequestPasswordResetRequest:
+            required:
+                - email
+            type: object
+            properties:
+                email:
+                    type: string
         blog.v1.RetryWechatSyncTaskRequest:
             required:
                 - id
             type: object
             properties:
                 id:
+                    type: string
+        blog.v1.SaveCollectionRequest:
+            required:
+                - slug
+            type: object
+            properties:
+                slug:
                     type: string
         blog.v1.SubscribeRequest:
             required:
@@ -1421,7 +1921,7 @@ components:
                     description: Current password, verified before the change.
                 newPassword:
                     type: string
-                    description: New password; at least 8 characters, same rule as account creation.
+                    description: New password; 8-1024 UTF-8 bytes, same rule as account creation.
             description: |-
                 UpdatePasswordRequest is the input for AuthService.UpdatePassword. Both
                  fields ride in the request body; the target account comes from the access
@@ -1451,6 +1951,15 @@ components:
             description: |-
                 UploadAvatarRequest is the input for UserService.UploadAvatar. The target
                  account comes from the access token, never from the payload.
+        blog.v1.UploadMediaImageRequest:
+            required:
+                - data
+            type: object
+            properties:
+                data:
+                    type: string
+                    description: Raw jpeg/png/webp bytes, at most 2 MiB after base64 JSON decoding.
+                    format: bytes
         blog.v1.User:
             type: object
             properties:
@@ -1477,6 +1986,11 @@ components:
                         Site-relative avatar path, e.g. /v1/assets/avatars/<random>.<ext>, or
                          empty when no avatar was uploaded. Clients resolve it against the API
                          origin (the Nuxt BFF prefixes /api).
+                emailVerified:
+                    type: boolean
+                    description: |-
+                        Whether control of the login email has been proven. Existing and newly
+                         registered accounts remain usable while false.
             description: |-
                 User is the public representation of an account. Credentials never appear
                  in responses.
@@ -1570,6 +2084,7 @@ components:
                 next_page_token:
                     type: string
 tags:
+    - name: AboutService
     - name: ArticleSearchService
       description: |-
         ArticleSearchService serves full-text search over published articles. The
@@ -1584,8 +2099,9 @@ tags:
       description: |-
         AuthService issues and revokes the credentials used to call privileged
          endpoints. Registration is open: anyone can create a READER account with an
-         email, a password, and a display name (no email verification yet; abuse is
-         bounded by per-IP rate limiting and comment pre-moderation). ADMIN accounts
+         email, a password, and a display name. Email verification is optional for
+         access and can be completed later; abuse remains bounded by per-IP rate
+         limiting and comment pre-moderation. ADMIN accounts
          are still created only by the seed command. The access
          token is a short-lived JWT carried in the
          Authorization header; the refresh token is an opaque secret delivered as an
@@ -1610,6 +2126,7 @@ tags:
          the question is answered from the blog's published articles, and the reply
          cites the articles the answer drew from. Generation requires the LLM config;
          retrieval reuses the hybrid article search. Authorization: public.
+    - name: CollectionService
     - name: CommentService
       description: |-
         CommentService handles article comments. Commenters are authenticated
@@ -1621,8 +2138,11 @@ tags:
          from the closed-registration era have no user and keep their stored
          display name. Admin operations require the ADMIN role; public reads stay
          open and submissions are rate limited per client IP and account.
+    - name: MediaService
+      description: MediaService stores article images on the persistent uploads volume.
     - name: OfficialAccountService
       description: Administrative delivery status only; no account credentials are exposed.
+    - name: ProjectService
     - name: SubscriberService
       description: |-
         SubscriberService registers emails for future article notifications. Actual

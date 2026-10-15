@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 )
@@ -22,13 +23,14 @@ import (
 // ArticleQuery is the builder for querying Article entities.
 type ArticleQuery struct {
 	config
-	ctx          *QueryContext
-	order        []article.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Article
-	withTags     *TagQuery
-	withCategory *CategoryQuery
-	withFKs      bool
+	ctx             *QueryContext
+	order           []article.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Article
+	withTags        *TagQuery
+	withCollections *CollectionQuery
+	withCategory    *CategoryQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +82,28 @@ func (_q *ArticleQuery) QueryTags() *TagQuery {
 			sqlgraph.From(article.Table, article.FieldID, selector),
 			sqlgraph.To(tag.Table, tag.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, article.TagsTable, article.TagsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCollections chains the current query on the "collections" edge.
+func (_q *ArticleQuery) QueryCollections() *CollectionQuery {
+	query := (&CollectionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(article.Table, article.FieldID, selector),
+			sqlgraph.To(collection.Table, collection.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, article.CollectionsTable, article.CollectionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +320,14 @@ func (_q *ArticleQuery) Clone() *ArticleQuery {
 		return nil
 	}
 	return &ArticleQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]article.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.Article{}, _q.predicates...),
-		withTags:     _q.withTags.Clone(),
-		withCategory: _q.withCategory.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]article.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Article{}, _q.predicates...),
+		withTags:        _q.withTags.Clone(),
+		withCollections: _q.withCollections.Clone(),
+		withCategory:    _q.withCategory.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -317,6 +342,17 @@ func (_q *ArticleQuery) WithTags(opts ...func(*TagQuery)) *ArticleQuery {
 		opt(query)
 	}
 	_q.withTags = query
+	return _q
+}
+
+// WithCollections tells the query-builder to eager-load the nodes that are connected to
+// the "collections" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ArticleQuery) WithCollections(opts ...func(*CollectionQuery)) *ArticleQuery {
+	query := (&CollectionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCollections = query
 	return _q
 }
 
@@ -410,8 +446,9 @@ func (_q *ArticleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Arti
 		nodes       = []*Article{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withTags != nil,
+			_q.withCollections != nil,
 			_q.withCategory != nil,
 		}
 	)
@@ -443,6 +480,13 @@ func (_q *ArticleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Arti
 		if err := _q.loadTags(ctx, query, nodes,
 			func(n *Article) { n.Edges.Tags = []*Tag{} },
 			func(n *Article, e *Tag) { n.Edges.Tags = append(n.Edges.Tags, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCollections; query != nil {
+		if err := _q.loadCollections(ctx, query, nodes,
+			func(n *Article) { n.Edges.Collections = []*Collection{} },
+			func(n *Article, e *Collection) { n.Edges.Collections = append(n.Edges.Collections, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -513,6 +557,36 @@ func (_q *ArticleQuery) loadTags(ctx context.Context, query *TagQuery, nodes []*
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (_q *ArticleQuery) loadCollections(ctx context.Context, query *CollectionQuery, nodes []*Article, init func(*Article), assign func(*Article, *Collection)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Article)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(collection.FieldArticleID)
+	}
+	query.Where(predicate.Collection(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(article.CollectionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ArticleID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "article_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
