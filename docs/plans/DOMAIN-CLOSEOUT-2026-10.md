@@ -9,7 +9,7 @@
 
 ## 当前交付状态（2026-10-16 对齐）
 
-S1 主站 HTTPS/备案展示/Secure Cookie 与 S3 受限公开状态页已交付；S2 小程序 HTTPS 地址和合法域名校验代码、公众号 HTTPS 原文已交付，客户端完整真机验收仍待完成。当前生产与 main 为 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`，以下立项证据与旧镜像标记保留其历史时点。
+S1 主站 HTTPS/备案展示/Secure Cookie 与 S3 受限公开状态页已交付；S2 小程序 HTTPS 地址和合法域名校验代码、公众号 HTTPS 原文已交付，客户端完整真机验收仍待完成。本轮最初只读核验时生产与main为 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`；后续T-017前端修复已由PR #97交付为 `b64a55c448edd6e0cd6f9b902ad02ada48d1ae3f`，后端保留30e镜像且目录等树。以下立项证据与旧镜像标记保留其历史时点，实时任务见TASKS。
 
 本轮只读核验主站200、`https://status.makerhao.cn` 最终进入 `/status/blog` 返回200，公开状态与 heartbeat API200，管理页面、其他状态页 slug 和 socket入口404。该检查不替代完整42项公开代理负向复验；最近一次 [external-probe](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 于2026-10-16北京时间01:18启动并成功（源码main30e）；本轮未额外触发工作流。
 
