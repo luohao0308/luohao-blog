@@ -87,7 +87,7 @@ current_slice: none (F1 completed; F2 prerequisites pending)
 
 ## F1 本地验收结果
 
-F1已完成本地实现，尚未远端交付或生产部署。正式项目AppID已对齐wxf27116cc66cc49a4且urlCheck保持true；没有生成新的预览或上传包。正式Secret尚未生成/保存，F2等待凭据及准确版本操作授权。
+F1本地验收时尚未远端交付；现已通过下述PR交付，仍未生产部署。正式项目AppID已对齐wxf27116cc66cc49a4且urlCheck保持true；没有生成新的预览或上传包。正式Secret尚未生成/保存，F2等待凭据及准确版本操作授权。
 
 - 关键失败测试先复现了禁用微信时Bind仍可绑定，修复后通过。
 - 后端 `go test ./...`、`go build ./...`、`go vet ./...`、`golangci-lint run ./...` 通过，lint 0 issues；小程序typecheck/test通过。变更未涉及前端Web运行代码，未重复其构建。
@@ -97,3 +97,9 @@ F1已完成本地实现，尚未远端交付或生产部署。正式项目AppID�
 - 针对性MySQL/Redis/HTTP测试的race检查通过；差异检查、本地文档链接及Git边界检查通过。仅清理本轮测试容器，共享Docker及原工作树改动保留。
 
 契约见[小程序身份](../contracts/WECHAT-IDENTITY.md)，F2执行约束见[正式切换Runbook](../operations/runbooks/formal-miniprogram.md)。生产迁移后不回退v15后端、不down/force、不覆盖恢复数据库；COMMIT结果未知须先核验，不盲目重试。
+
+## F1 远端交付
+
+用户针对源e45a5a70f1820bc8fc8444d51b96d339ecd1a527分别授权push、PR、merge及合并自动镜像发布，未包含生产或微信平台写入。[PR #99](https://github.com/luohao0308/luohao-blog/pull/99) 经guard与[CI](https://github.com/luohao0308/luohao-blog/actions/runs/38875014951)通过后合并为74411f3356a46d8f72c616a82ef74996fe7e299d，合并树0e5440934ceb9af2b9933d8a70df99c735c2084d与授权源码完全相同。真实MySQL/Redis步骤实际成功，不以被Skip的常规单测替代。
+
+[自动release](https://github.com/luohao0308/luohao-blog/actions/runs/38875269631)成功，5项job全部通过；后端/前端镜像构建输出摘要、Registry摘要、manifest和config内容哈希及linux/amd64平台均核对一致。Git及自动release一次性授权均已消费，不能据此部署、迁移回填、修改凭据/平台、生成新预览或正式发布。用户明确正式Secret稍后保存，F2仍待前置条件。

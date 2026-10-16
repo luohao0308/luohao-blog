@@ -14,7 +14,7 @@ _last-updated: 2026-10-16_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | PR #97/#98及后端90ca4f8已上线；旧wx580手机核心流程全部用户确认正常。正式目标已选wxf271；三片计划已确认，F1身份隔离v16及真实MySQL/Redis演练本地完成、审查通过；F2待正式Secret及准确版本授权。昵称头像加固与身份隔离均仅本地、未部署；正式备案仍管局审核中 |
+| T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | PR #97/#98及后端90ca4f8已上线；旧wx580手机核心流程全部用户确认正常。正式目标已选wxf271；三片计划已确认，F1身份隔离v16已随PR #99合并74411f3，CI真实驱动演练通过；自动镜像构建成功且摘要核验通过，F2待正式Secret及准确版本授权。昵称头像加固与身份隔离已合并、未部署；正式备案仍管局审核中 |
 | T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。小程序 DevTools/真机验收仍待完成 |
 | T-011 | 微信小程序阅读端：S1–S4已合并；正式目标wxf27116cc66cc49a4，旧代码/预览wx58089476f518fd3f | miniprogram + backend | [原计划](plans/MINIPROGRAM-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 旧预览阅读/筛选/搜索/收藏/AI引用/登录头像真机已确认；需完成正式AppID身份隔离、域名/凭据、正式真机及上传提审发布；没有web-view |
 
