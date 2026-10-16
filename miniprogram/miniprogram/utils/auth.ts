@@ -1,5 +1,5 @@
 import { assetUrl } from './config'
-import { http, setAccessToken, setUnauthorizedHandler, toMessage } from './request'
+import { http, setAccessToken, setUnauthorizedHandler } from './request'
 import { WECHAT_STATUS_BINDING_REQUIRED, WECHAT_STATUS_OK, type Account, type LoginReply, type UserReply } from './types'
 
 // 会话存取：access token 常驻内存 + storage，refresh token 单独存（header
@@ -52,7 +52,10 @@ function saveAccount(user: UserReply | Account): Account {
   return account
 }
 
+let sessionVersion = 0
+
 function saveSession(reply: LoginReply, refreshToken?: string) {
+  sessionVersion++
   const account = toAccount(reply.user)
   setAccessToken(reply.access_token)
   try {
@@ -67,6 +70,7 @@ function saveSession(reply: LoginReply, refreshToken?: string) {
 }
 
 export function clearSession() {
+  sessionVersion++
   setAccessToken('')
   try {
     wx.removeStorageSync(ACCESS_KEY)
@@ -90,27 +94,34 @@ function extractRefreshCookie(header: Record<string, string | string[] | undefin
 }
 
 // refreshSession 单飞刷新一次；成功返回 true 并已保存新会话。
-let refreshing: Promise<boolean> | null = null
+type RefreshAttempt = { promise: Promise<boolean>, token: string, version: number }
+let refreshing: RefreshAttempt | null = null
+let loggingOut: Promise<void> | null = null
 
 export function refreshSession(): Promise<boolean> {
-  if (refreshing) return refreshing
-  refreshing = (async () => {
-    const refresh = (wx.getStorageSync(REFRESH_KEY) as string) || ''
-    if (!refresh) return false
+  if (loggingOut) return Promise.resolve(false)
+  if (refreshing?.version === sessionVersion) return refreshing.promise
+  const version = sessionVersion
+  const attempt: RefreshAttempt = { promise: Promise.resolve(false), token: (wx.getStorageSync(REFRESH_KEY) as string) || '', version }
+  attempt.promise = (async () => {
+    if (!attempt.token) return false
     try {
-      const { res, data } = await http.postRaw<LoginReply>('/auth/refresh', {}, { 'X-Refresh-Token': refresh })
-      const newRefresh = extractRefreshCookie(res.header) || refresh
-      saveSession(data, newRefresh)
+      const { res, data } = await http.postRaw<LoginReply>('/auth/refresh', {}, { 'X-Refresh-Token': attempt.token })
+      attempt.token = extractRefreshCookie(res.header) || attempt.token
+      // A completed rotation still supplies its new token to logout, but must
+      // never restore auth after local logout or replace a newer login.
+      if (version !== sessionVersion) return false
+      saveSession(data, attempt.token)
       return true
     } catch {
-      clearSession()
+      if (version === sessionVersion) clearSession()
       return false
     }
   })()
-  const done = refreshing
-  const reset = () => { refreshing = null }
-  done.then(reset, reset)
-  return done
+  refreshing = attempt
+  const reset = () => { if (refreshing === attempt) refreshing = null }
+  attempt.promise.then(reset, reset)
+  return attempt.promise
 }
 
 // registerAuthBridge 把刷新能力接进请求层：401 → 刷新 → 重放一次。
@@ -153,14 +164,29 @@ export async function fetchMe(): Promise<Account> {
   return saveAccount(user)
 }
 
-export async function logout(): Promise<void> {
-  try {
-    await http.post('/auth/logout', {})
-  } catch (error) {
-    // 后端登出幂等；网络失败也照常清本地态。
-    console.warn('logout', toMessage(error))
-  }
+export function logout(): Promise<void> {
+  if (loggingOut) return loggingOut
+  const pendingRefresh = refreshing?.version === sessionVersion ? refreshing : null
+  const refresh = (wx.getStorageSync(REFRESH_KEY) as string) || ''
   clearSession()
+  const done = (async () => {
+    // Rotation invalidates the old token. Wait for it without restoring local
+    // auth, then revoke the returned token rather than the pre-rotation token.
+    if (pendingRefresh) await pendingRefresh.promise
+    const token = pendingRefresh?.token || refresh
+    if (!token) return
+    try {
+      await http.postRaw('/auth/logout', {}, { 'X-Refresh-Token': token })
+    } catch {
+      // Best effort: keep local auth cleared; never log credentials or retry a
+      // logout through the automatic 401 refresh path.
+      console.warn('logout revoke failed')
+    }
+  })()
+  loggingOut = done
+  const reset = () => { if (loggingOut === done) loggingOut = null }
+  done.then(reset, reset)
+  return done
 }
 
 export type { Account } from './types'

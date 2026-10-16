@@ -40,6 +40,16 @@ async function main() {
   const api = require(path.join(out, 'utils/api.js'))
   const auth = require(path.join(out, 'utils/auth.js'))
   const config = require(path.join(out, 'utils/config.js'))
+  const { decorateArticleHtml } = require(path.join(out, 'utils/html.js'))
+  // ArticleForm inserts root-relative API images. rich-text needs absolute URLs.
+  const relativeImage = '/api/v1/assets/media/image-fixture.jpg'
+  const absoluteImage = 'https://makerhao.cn' + relativeImage
+  for (const src of [relativeImage, '/v1/assets/media/image-fixture.jpg', absoluteImage]) {
+    assert.match(decorateArticleHtml(`<p>Before</p><img src="${src}" alt="正文图"><p>After</p>`), new RegExp(`src="${absoluteImage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`))
+  }
+  assert.ok(decorateArticleHtml("<IMG SRC='/api/v1/assets/media/image-fixture.jpg'>").includes(`SRC='${absoluteImage}'`))
+  assert.ok(decorateArticleHtml('<img data-src="unchanged" src="/api/v1/assets/media/image-fixture.jpg">').includes('data-src="unchanged"'))
+  assert.ok(decorateArticleHtml('<img src="https://images.example.invalid/public.jpg">').includes('src="https://images.example.invalid/public.jpg"'))
   const favorites = require(path.join(out, 'utils/favorites.js'))
   const request = require(path.join(out, 'utils/request.js'))
   const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json'), 'utf8'))
@@ -129,11 +139,149 @@ async function main() {
     : { statusCode: 401, header: {}, data: {} }
   await assert.rejects(api.createComment('fixture', 'denied'), request.UnauthorizedError)
   assert.equal(calls.length, 3)
+  // Logout revokes the refresh session over the non-cookie header channel.
+  calls = []
+  storage.set('auth:refresh', 'logout-refresh-fixture')
+  respond = () => ({ statusCode: 200, header: {}, data: {} })
+  await auth.logout()
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].header['X-Refresh-Token'], 'logout-refresh-fixture')
+  assert.equal(auth.currentAccount(), null)
+  assert.equal(request.accessToken, '')
+
+  // An in-flight rotation must not resurrect local auth or evade revocation.
+  const rotating = deferred()
+  const refreshStarted = deferred()
+  calls = []
+  storage.set('auth:refresh', 'before-rotation-fixture')
+  storage.set('auth:access', 'before-rotation-access')
+  auth.registerAuthBridge()
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      refreshStarted.resolve()
+      return rotating.promise
+    }
+    return { statusCode: 200, header: {}, data: {} }
+  }
+  const oldRefresh = auth.refreshSession()
+  await refreshStarted.promise
+  const exiting = auth.logout()
+  assert.equal(request.accessToken, '', 'logout clears local auth immediately')
+  assert.equal(storage.has('auth:refresh'), false)
+  assert.equal(await auth.refreshSession(), false, 'logout blocks new refresh attempts')
+  rotating.resolve({ statusCode: 200, header: { 'Set-Cookie': 'refresh_token=after-rotation-fixture; HttpOnly' }, data: loginReply })
+  assert.equal(await oldRefresh, false, 'old refresh cannot restore a logged-out session')
+  await exiting
+  assert.equal(calls.filter(x => x.url.endsWith('/auth/refresh')).length, 1)
+  assert.equal(calls.at(-1).header['X-Refresh-Token'], 'after-rotation-fixture', 'logout must revoke the newly rotated token')
+  assert.equal(auth.currentAccount(), null)
+  assert.equal(request.accessToken, '')
+
+  // Concurrent logout taps share one revoke, including a failed old refresh.
+  const failedRotation = deferred()
+  const failedRefreshStarted = deferred()
+  calls = []
+  storage.set('auth:refresh', 'failed-rotation-fixture')
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      failedRefreshStarted.resolve()
+      return failedRotation.promise
+    }
+    return { statusCode: 200, header: {}, data: {} }
+  }
+  const failingRefresh = auth.refreshSession()
+  await failedRefreshStarted.promise
+  const firstLogout = auth.logout()
+  assert.equal(auth.logout(), firstLogout, 'concurrent logout must not duplicate revoke')
+  failedRotation.resolve({ statusCode: 503, header: {}, data: {} })
+  assert.equal(await failingRefresh, false)
+  await firstLogout
+  assert.equal(calls.filter(x => x.url.endsWith('/auth/logout')).length, 1)
+  assert.equal(calls.at(-1).header['X-Refresh-Token'], 'failed-rotation-fixture')
+
+  // A stale refresh failure must not clear an explicit newer login.
+  const staleFailure = deferred()
+  const staleStarted = deferred()
+  storage.set('auth:refresh', 'stale-refresh-fixture')
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      staleStarted.resolve()
+      return staleFailure.promise
+    }
+    return { statusCode: 200, header: { 'Set-Cookie': 'refresh_token=new-login-fixture; HttpOnly' }, data: loginReply }
+  }
+  const staleRefresh = auth.refreshSession()
+  await staleStarted.promise
+  await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
+  staleFailure.resolve({ statusCode: 503, header: {}, data: {} })
+  assert.equal(await staleRefresh, false)
+  assert.equal(storage.get('auth:refresh'), 'new-login-fixture')
+  assert.deepEqual(auth.currentAccount(), expectedAccount)
+
+  // Logout after a new login must revoke that session, not an older rotation.
+  const unrelatedRotation = deferred()
+  const unrelatedStarted = deferred()
+  calls = []
+  storage.set('auth:refresh', 'unrelated-old-refresh-fixture')
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      unrelatedStarted.resolve()
+      return unrelatedRotation.promise
+    }
+    if (options.url.endsWith('/auth/wechat/bind')) {
+      return { statusCode: 200, header: { 'Set-Cookie': 'refresh_token=current-login-fixture; HttpOnly' }, data: loginReply }
+    }
+    return { statusCode: 200, header: {}, data: {} }
+  }
+  const unrelatedRefresh = auth.refreshSession()
+  await unrelatedStarted.promise
+  await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
+  const currentLogout = auth.logout()
+  await Promise.resolve()
+  const currentRevoke = calls.find(x => x.url.endsWith('/auth/logout'))
+  assert.ok(currentRevoke, 'logout must not wait for an unrelated old session refresh')
+  assert.equal(currentRevoke.header['X-Refresh-Token'], 'current-login-fixture')
+  unrelatedRotation.resolve({ statusCode: 200, header: { 'Set-Cookie': 'refresh_token=unrelated-rotated-fixture; HttpOnly' }, data: loginReply })
+  assert.equal(await unrelatedRefresh, false)
+  await currentLogout
+  assert.equal(auth.currentAccount(), null)
+  assert.equal(request.accessToken, '')
+  assert.equal(calls.filter(x => x.url.endsWith('/auth/logout')).length, 1)
+
+  // Transport/401 failures never trigger an auth refresh and still clear local auth.
+  const logoutWarnings = []
+  const originalWarn = console.warn
+  console.warn = (...args) => logoutWarnings.push(args)
+  try {
+    for (const failure of ['network', 'unauthorized']) {
+      calls = []
+      storage.set('auth:refresh', 'failure-refresh-fixture')
+      respond = () => {
+        if (failure === 'network') return Promise.reject(new Error('synthetic transport failure'))
+        return { statusCode: 401, header: {}, data: {} }
+      }
+      await auth.logout()
+      assert.equal(calls.length, 1)
+      assert.equal(storage.has('auth:refresh'), false)
+      assert.equal(request.accessToken, '')
+    }
+  } finally {
+    console.warn = originalWarn
+  }
+  assert.deepEqual(logoutWarnings, [['logout revoke failed'], ['logout revoke failed']], 'logout failure diagnostics must never include transport errors or credentials')
+  respond = () => ({ statusCode: 200, header: {}, data: loginReply })
+  await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
   assert.equal(favorites.toggleFavorite('fixture', 'Title'), true)
   assert.equal(favorites.isFavorite('fixture'), true)
   assert.equal(favorites.toggleFavorite('fixture', 'Title'), false)
   assert.equal(favorites.listFavorites().length, 0)
   const post = loadPage('post')
+  post.data.slug = 'image-fixture'
+  respond = () => ({ statusCode: 200, header: {}, data: { title: '正文图片测试', content_html: `<p>Before</p><img src="${relativeImage}" alt="正文图"><p>After</p>` } })
+  await post.fetch()
+  assert.equal(post.data.error, '')
+  assert.ok(post.data.html.includes(`src="${absoluteImage}"`), 'actual article fetch must normalize image URLs before rich-text receives them')
+  assert.ok(post.data.html.includes('max-width:100%'), 'body images must stay within the content width')
   post.data.slug = 'fixture'
   post.data.likeCount = 9
   respond = () => ({ statusCode: 503, header: {}, data: { message: 'unavailable' } })
@@ -383,6 +531,6 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
-  console.log('Mini logic PASS: wire account/avatar mapping, auth replay, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
+  console.log('Mini logic PASS: wire account/avatar mapping, auth replay/logout revocation and rotation races, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))
