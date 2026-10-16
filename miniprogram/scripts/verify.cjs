@@ -239,6 +239,71 @@ async function main() {
   await post.submitComment()
   assert.equal(calls.length, callsAfter1000, '1001 code points must fail before transport')
   assert.match(post.data.commentError, /1000/)
+  // Index filters must preserve literal tag/category values and ignore responses
+  // from an older selection, including old pagination tokens and failures.
+  const index = loadPage('index')
+  const oddTag = 'C++ "quoted" \\ path'
+  index.data.activeTag = oddTag
+  assert.equal(index.currentFilter(), `tag:${JSON.stringify(oddTag)}`)
+  index.data.activeCategory = 'category"\\value'
+  assert.equal(index.currentFilter(), `category:${JSON.stringify(index.data.activeCategory)}`)
+  index.data.activeCategory = ''
+  const articleReply = (slugs, token = '') => ({ statusCode: 200, header: {}, data: {
+    articles: slugs.map(slug => ({ slug, title: slug, status: 2, tags: [] })), next_page_token: token,
+  } })
+  const indexA = deferred()
+  const indexB = deferred()
+  respond = options => new URL(options.url).searchParams.get('filter') === 'tag:"A"' ? indexA.promise : indexB.promise
+  index.data.activeTag = 'A'
+  const loadA = index.loadFirst()
+  index.data.activeTag = 'B'
+  const loadB = index.loadFirst()
+  indexB.resolve(articleReply(['b'], 'b-page-2'))
+  await loadB
+  indexA.resolve(articleReply(['stale-a'], 'a-page-2'))
+  await loadA
+  assert.deepEqual(index.data.articles.map(x => x.slug), ['b'], 'old filter must not overwrite a newer list')
+  assert.equal(index.data.nextToken, 'b-page-2')
+  const failedA = deferred()
+  respond = options => new URL(options.url).searchParams.get('filter') === 'tag:"A"' ? failedA.promise : articleReply(['b'])
+  index.data.activeTag = 'A'
+  const failedLoadA = index.loadFirst()
+  index.data.activeTag = 'B'
+  await index.loadFirst()
+  failedA.resolve({ statusCode: 503, header: {}, data: { message: 'old failure' } })
+  await failedLoadA
+  assert.equal(index.data.error, '', 'old filter errors must not cover the current successful list')
+
+  index.data.nextToken = 'b-page-2'
+  index.data.finished = false
+  const staleMore = deferred()
+  const freshFirst = deferred()
+  respond = options => new URL(options.url).searchParams.get('page_token') ? staleMore.promise : freshFirst.promise
+  const oldMore = index.loadMore()
+  index.data.activeTag = 'C'
+  const freshLoad = index.loadFirst()
+  const callsBeforeBlockedMore = calls.length
+  await index.loadMore()
+  assert.equal(calls.length, callsBeforeBlockedMore, 'cannot send an old paging token while changing the filter')
+  freshFirst.resolve(articleReply(['c', 'c'], 'c-page-2'))
+  await freshLoad
+  staleMore.resolve(articleReply(['stale-b'], 'stale-page-3'))
+  await oldMore
+  assert.deepEqual(index.data.articles.map(x => x.slug), ['c'])
+  assert.equal(index.data.nextToken, 'c-page-2')
+  respond = () => articleReply(['c', 'd', 'd'])
+  await index.loadMore()
+  assert.deepEqual(index.data.articles.map(x => x.slug), ['c', 'd'], 'duplicate slugs across pages render once')
+  assert.equal(index.data.finished, true)
+  const callsWhenFinished = calls.length
+  await index.loadMore()
+  assert.equal(calls.length, callsWhenFinished)
+  respond = () => articleReply([])
+  await index.setTag({ currentTarget: { dataset: { tag: 'missing-tag' } } })
+  assert.equal(index.data.error, '')
+  assert.equal(index.data.finished, true)
+  assert.deepEqual(index.data.articles, [])
+
   const search = loadPage('search')
   search.data.query = '  Ent & Go  '
   respond = () => ({ statusCode: 200, header: {}, data: { articles: [
@@ -256,6 +321,6 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
-  console.log('Mini logic PASS: auth replay, comment status/rendering, paging races/dedup, Unicode limits, draft retention, search, chat')
+  console.log('Mini logic PASS: auth replay, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))

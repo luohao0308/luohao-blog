@@ -214,3 +214,22 @@ func TestListArticlesAcceptsFeaturedFilterAndOrder(t *testing.T) {
 		t.Fatal("anonymous featured list did not keep public boundary")
 	}
 }
+
+func TestListArticlesAcceptsTagFilter(t *testing.T) {
+	for _, expression := range []string{`tag:"Go"`, `tag:"Go" AND status:"PUBLISHED" AND category:"engineering"`, `tag:"quote\"slash\\tag"`} {
+		t.Run(expression, func(t *testing.T) {
+			repo := &stubArticleRepo{}
+			svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
+			if _, err := svc.ListArticles(context.Background(), &v1.ListArticlesRequest{Filter: expression}); err != nil {
+				t.Fatalf("tag filter rejected: %v", err)
+			}
+			var options biz.ListOptions
+			for _, opt := range repo.listOpts {
+				opt(&options)
+			}
+			if options.Filter.CheckedExpr == nil || !options.Public {
+				t.Fatal("parsed tag filter and public boundary must reach repository")
+			}
+		})
+	}
+}

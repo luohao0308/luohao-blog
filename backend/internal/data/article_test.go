@@ -3,6 +3,8 @@ package data
 import (
 	"context"
 	stdsql "database/sql"
+	"fmt"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -506,5 +508,82 @@ func TestArticleRepoIncrementViewDedup(t *testing.T) {
 	count, counted, err = repo.IncrementView(ctx, "viewed", "ip-2")
 	if err != nil || !counted || count != 2 {
 		t.Fatalf("IncrementView(second client) = (%d, %v, %v), want (2, true, nil)", count, counted, err)
+	}
+}
+
+func TestArticleRepoListTagFilter(t *testing.T) {
+	ctx := context.Background()
+	repo, db := newTestArticleRepo(t)
+	if _, err := db.Category.Create().SetSlug("engineering").SetName("Engineering").Save(ctx); err != nil {
+		t.Fatal(err)
+	}
+	special := "quote\"slash\\tag"
+	for _, fixture := range []struct {
+		slug      string
+		tags      []string
+		published bool
+		category  string
+	}{
+		{"go-public", []string{"Go", "Other"}, true, "engineering"},
+		{"go-draft", []string{"Go"}, false, "engineering"},
+		{"go-deleted", []string{"Go"}, true, "engineering"},
+		{"other-public", []string{"Other"}, true, ""},
+		{"special-public", []string{special}, true, ""},
+		{"untagged-public", nil, true, ""},
+	} {
+		a, err := repo.CreateArticle(ctx, &biz.Article{Slug: fixture.slug, Title: fixture.slug, ContentMD: "body", Tags: fixture.tags, CategorySlug: fixture.category})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fixture.published {
+			a.Status = biz.ArticleStatusPublished
+			if _, err := repo.UpdateArticle(ctx, a); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := repo.DeleteArticle(ctx, "go-deleted"); err != nil {
+		t.Fatal(err)
+	}
+	decls, err := filtering.NewDeclarations(filtering.DeclareStandardFunctions(), filtering.DeclareIdent("tag", filtering.TypeString), filtering.DeclareIdent("category", filtering.TypeString), filtering.DeclareIdent("status", filtering.TypeString))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		expression string
+		want       []string
+	}{
+		{`tag:"Go"`, []string{"go-public"}},
+		{`tag="Go"`, []string{"go-public"}},
+		{`tag:"missing"`, []string{}},
+		{`tag:"Go OR 1=1"`, []string{}},
+		{`tag!="missing"`, []string{"go-public", "other-public", "special-public", "untagged-public"}},
+		{fmt.Sprintf("tag:%q", special), []string{"special-public"}},
+		{`tag:"Go" AND category:"engineering" AND status:"PUBLISHED"`, []string{"go-public"}},
+		{`tag:"Go" AND category:"missing"`, []string{}},
+		{`tag:"Go" OR tag:"Other"`, []string{"go-public", "other-public"}},
+		{`tag:"Go" AND tag:"Other"`, []string{"go-public"}},
+		{`tag!="Go"`, []string{"other-public", "special-public", "untagged-public"}},
+		{`NOT tag:"Go"`, []string{"other-public", "special-public", "untagged-public"}},
+	} {
+		t.Run(tc.expression, func(t *testing.T) {
+			filter, err := filtering.ParseFilterString(tc.expression, decls)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := listSlugs(t, repo, biz.ListFilter(filter), biz.ListPublic())
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
+	for _, expression := range []string{`tag>"Go"`, `tag=category`} {
+		filter, err := filtering.ParseFilterString(expression, decls)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.ListArticles(ctx, biz.ListFilter(filter)); !kratoserrors.IsBadRequest(err) {
+			t.Fatalf("filter %q error = %v, want invalid argument", expression, err)
+		}
 	}
 }

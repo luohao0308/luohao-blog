@@ -118,6 +118,7 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 		// category is filtered by slug ("category:\"engineering\""); the
 		// slug-to-id translation happens in the data layer.
 		filtering.DeclareIdent("category", filtering.TypeString),
+		filtering.DeclareIdent("tag", filtering.TypeString),
 		filtering.DeclareIdent("featured", filtering.TypeBool),
 		filtering.DeclareIdent("published_at", filtering.TypeTimestamp),
 		filtering.DeclareIdent("created_at", filtering.TypeTimestamp),

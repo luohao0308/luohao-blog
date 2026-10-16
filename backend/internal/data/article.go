@@ -326,6 +326,67 @@ func categoryFilterPredicate(sel *sql.Selector, c ents.Comparison, ids map[strin
 	}
 }
 
+// validateTagFilter rejects unsupported edge comparisons before ent flattens
+// errors, preserving the client's INVALID_ARGUMENT response.
+func validateTagFilter(filter filtering.Filter) error {
+	if filter.CheckedExpr == nil || filter.CheckedExpr.Expr == nil {
+		return nil
+	}
+	var invalid error
+	filtering.Walk(func(curr, _ *expr.Expr) bool {
+		if invalid != nil {
+			return false
+		}
+		call := curr.GetCallExpr()
+		if call == nil {
+			return true
+		}
+		args := call.GetArgs()
+		for i, arg := range args {
+			if arg.GetIdentExpr().GetName() != "tag" {
+				continue
+			}
+			switch call.GetFunction() {
+			case filtering.FunctionHas, filtering.FunctionEquals, filtering.FunctionNotEquals:
+			default:
+				invalid = fmt.Errorf("%w: operator %q is not supported for tag", biz.ErrArticleInvalidArgument, call.GetFunction())
+				return false
+			}
+			value := args[len(args)-1-i].GetConstExpr()
+			if value == nil {
+				invalid = fmt.Errorf("%w: tag filter expects a name string literal", biz.ErrArticleInvalidArgument)
+				return false
+			}
+		}
+		return true
+	}, filter.CheckedExpr.Expr)
+	return invalid
+}
+
+// tagFilterPredicate matches exact tag names through the existing many-to-many
+// edge. Values remain bound parameters, including quotes and backslashes. A
+// subquery avoids duplicate article rows when several tag branches match.
+func tagFilterPredicate(sel *sql.Selector, c ents.Comparison) (*sql.Predicate, bool, error) {
+	name, ok := c.Value.(string)
+	if !ok {
+		return nil, true, fmt.Errorf("tag filter expects a name string, got %T", c.Value)
+	}
+	edges := sql.Table(article.TagsTable)
+	tags := sql.Table(tag.Table)
+	matches := sql.Select(edges.C(article.TagsPrimaryKey[0])).From(edges).
+		Join(tags).On(edges.C(article.TagsPrimaryKey[1]), tags.C(tag.FieldID)).
+		Where(sql.EQ(tags.C(tag.FieldName), name))
+	predicate := sql.In(sel.C(article.FieldID), matches)
+	switch c.Function {
+	case filtering.FunctionHas, filtering.FunctionEquals:
+		return predicate, true, nil
+	case filtering.FunctionNotEquals:
+		return sql.Not(predicate), true, nil
+	default:
+		return nil, true, fmt.Errorf("operator %q is not supported for tag", c.Function)
+	}
+}
+
 func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) ([]*biz.Article, error) {
 	options := biz.ListOptions{Limit: 20}
 	for _, opt := range opts {
@@ -335,6 +396,9 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 		return nil, biz.ErrArticleInvalidArgument
 	}
 	if err := validateStatusFilter(options.Filter); err != nil {
+		return nil, err
+	}
+	if err := validateTagFilter(options.Filter); err != nil {
 		return nil, err
 	}
 	catFilters, err := extractCategoryFilter(options.Filter)
@@ -355,6 +419,9 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 	query := r.data.db.Article.Query().
 		Where(article.StatusNEQ(biz.ArticleStatusDeleted)).
 		Where(ents.ApplyFilter(options.Filter, ents.WithFilterResolver(func(sel *sql.Selector, c ents.Comparison) (*sql.Predicate, bool, error) {
+			if c.Field == "tag" {
+				return tagFilterPredicate(sel, c)
+			}
 			if c.Field == "category" {
 				return categoryFilterPredicate(sel, c, catIDs)
 			}

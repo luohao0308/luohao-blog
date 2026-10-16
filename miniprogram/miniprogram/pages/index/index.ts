@@ -13,12 +13,22 @@ interface PostListItem {
   categoryName: string
 }
 
+function uniqueArticles(items: PostListItem[]): PostListItem[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.slug)) return false
+    seen.add(item.slug)
+    return true
+  })
+}
+
 Page({
   data: {
     articles: [] as PostListItem[],
     // next_token 非渲染数据，放在 data 里以便 Page 类型收拢。
     nextToken: '',
     loading: true,
+    requestRevision: 0,
     loadingMore: false,
     finished: false,
     error: '',
@@ -36,19 +46,22 @@ Page({
   // currentFilter 由激活的分类/标签拼出；两者互斥，分类优先。
   currentFilter(): string {
     const { activeCategory, activeTag } = this.data
-    if (activeCategory) return `category:"${activeCategory}"`
-    if (activeTag) return `tag:"${activeTag}"`
+    if (activeCategory) return `category:${JSON.stringify(activeCategory)}`
+    if (activeTag) return `tag:${JSON.stringify(activeTag)}`
     return ''
   },
 
   async loadFirst() {
-    this.setData({ loading: true, error: '' })
+    const revision = this.data.requestRevision + 1
+    const filter = this.currentFilter()
+    this.setData({ loading: true, loadingMore: false, error: '', nextToken: '', finished: false, requestRevision: revision })
     try {
-      const set = await listArticles('', 20, this.currentFilter())
+      const set = await listArticles('', 20, filter)
+      if (revision !== this.data.requestRevision) return
       // 服务端对匿名读取已限定已发布，这里按 Web 端习惯再兜底过滤一次。
-      const articles = (set.articles ?? [])
+      const articles = uniqueArticles((set.articles ?? [])
         .filter((article) => article.status === ARTICLE_STATUS_PUBLISHED)
-        .map(toListItem)
+        .map(toListItem))
       const nextToken = set.next_page_token ?? ''
       this.setData({
         articles,
@@ -58,27 +71,33 @@ Page({
       })
       this.collectTags(articles)
     } catch (error) {
+      if (revision !== this.data.requestRevision) return
       this.setData({ loading: false, error: toMessage(error) })
     }
   },
 
   async loadMore() {
-    if (this.data.loadingMore || this.data.finished || this.data.nextToken === '') return
+    if (this.data.loading || this.data.loadingMore || this.data.finished || this.data.nextToken === '') return
+    const revision = this.data.requestRevision
+    const token = this.data.nextToken
+    const filter = this.currentFilter()
     this.setData({ loadingMore: true })
     try {
-      const set = await listArticles(this.data.nextToken, 20, this.currentFilter())
+      const set = await listArticles(token, 20, filter)
+      if (revision !== this.data.requestRevision) return
       const more = (set.articles ?? [])
         .filter((article) => article.status === ARTICLE_STATUS_PUBLISHED)
         .map(toListItem)
       const nextToken = set.next_page_token ?? ''
       this.setData({
-        articles: this.data.articles.concat(more),
+        articles: uniqueArticles(this.data.articles.concat(more)),
         nextToken,
         loadingMore: false,
         finished: nextToken === '',
       })
       this.collectTags(more)
     } catch (error) {
+      if (revision !== this.data.requestRevision) return
       this.setData({ loadingMore: false })
       wx.showToast({ title: toMessage(error), icon: 'none' })
     }
