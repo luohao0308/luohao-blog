@@ -34,6 +34,15 @@ export const ARTICLE_STATUS_PUBLISHED = 2
 
 // --- 认证 wire 类型（snake_case，与后端契约一致） ---
 
+export interface UserReply {
+  id: string
+  email: string
+  display_name: string
+  role: number
+  avatar_url?: string
+}
+
+// 小程序视图与缓存使用的账号模型，由认证边界统一转换。
 export interface Account {
   id: string
   email: string
@@ -47,7 +56,7 @@ export interface LoginReply {
   token_type: string
   // uint64 同样以字符串下发。
   expires_in: number | string
-  user: Account
+  user: UserReply
 }
 
 export interface WechatLoginReply {

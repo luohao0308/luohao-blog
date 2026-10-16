@@ -1,5 +1,6 @@
+import { assetUrl } from './config'
 import { http, setAccessToken, setUnauthorizedHandler, toMessage } from './request'
-import { WECHAT_STATUS_BINDING_REQUIRED, WECHAT_STATUS_OK, type Account, type LoginReply } from './types'
+import { WECHAT_STATUS_BINDING_REQUIRED, WECHAT_STATUS_OK, type Account, type LoginReply, type UserReply } from './types'
 
 // 会话存取：access token 常驻内存 + storage，refresh token 单独存（header
 // 通道）。后端 access 15 分钟、refresh 7 天滑动旋转；旋转后的新 refresh
@@ -23,21 +24,36 @@ export function isLoggedIn(): boolean {
   return Boolean(loadAccessToken()) && Date.now() < expireAt - 30_000
 }
 
+// 同时兼容修复前缓存的 wire user；已转换的账号再次读取保持不变。
+function toAccount(user: UserReply | Account): Account {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: ('display_name' in user ? user.display_name : user.displayName) || '',
+    role: user.role,
+    avatarUrl: assetUrl('avatar_url' in user ? user.avatar_url : 'avatarUrl' in user ? user.avatarUrl : ''),
+  }
+}
+
 export function currentAccount(): Account | null {
   try {
-    return (wx.getStorageSync(ACCOUNT_KEY) as Account) || null
+    const stored = wx.getStorageSync(ACCOUNT_KEY) as UserReply | Account | undefined
+    return stored ? toAccount(stored) : null
   } catch {
     return null
   }
 }
 
-function saveAccount(account: Account) {
+function saveAccount(user: UserReply | Account): Account {
+  const account = toAccount(user)
   try {
     wx.setStorageSync(ACCOUNT_KEY, account)
   } catch { /* storage 异常不阻断登录 */ }
+  return account
 }
 
 function saveSession(reply: LoginReply, refreshToken?: string) {
+  const account = toAccount(reply.user)
   setAccessToken(reply.access_token)
   try {
     wx.setStorageSync(ACCESS_KEY, reply.access_token)
@@ -45,8 +61,9 @@ function saveSession(reply: LoginReply, refreshToken?: string) {
     if (refreshToken) {
       wx.setStorageSync(REFRESH_KEY, refreshToken)
     }
-    saveAccount(reply.user)
+    saveAccount(account)
   } catch { /* ignore */ }
+  return account
 }
 
 export function clearSession() {
@@ -112,8 +129,8 @@ export async function wechatLogin(): Promise<{ kind: 'ok', account: Account } | 
   })
   const { res, data: reply } = await http.postRaw<import('./types').WechatLoginReply>('/auth/wechat', { code })
   if (reply.status === WECHAT_STATUS_OK && reply.login) {
-    saveSession(reply.login, extractRefreshCookie(res.header))
-    return { kind: 'ok', account: reply.login.user }
+    const account = saveSession(reply.login, extractRefreshCookie(res.header))
+    return { kind: 'ok', account }
   }
   if (reply.status === WECHAT_STATUS_BINDING_REQUIRED && reply.binding_ticket) {
     return { kind: 'binding', ticket: reply.binding_ticket }
@@ -128,14 +145,12 @@ export async function bindWechat(ticket: string, email: string, password: string
     email,
     password,
   })
-  saveSession(reply, extractRefreshCookie(res.header))
-  return reply.user
+  return saveSession(reply, extractRefreshCookie(res.header))
 }
 
 export async function fetchMe(): Promise<Account> {
-  const account = await http.get<Account>('/auth/me')
-  saveAccount(account)
-  return account
+  const user = await http.get<UserReply>('/auth/me')
+  return saveAccount(user)
 }
 
 export async function logout(): Promise<void> {

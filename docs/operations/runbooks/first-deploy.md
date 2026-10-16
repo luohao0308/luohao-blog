@@ -93,9 +93,9 @@ HTTPS 证书由 Caddy 自动向 Let's Encrypt 申请；若 443 无响应，检�
 
 | 操作 | 命令 |
 |---|---|
-| 更新部署（流水线） | main 合并后 Actions 自动构建推 ghcr；建议在 `deploy/.env.prod` 设置 `IMAGE_TAG=<commit-sha>` 后执行 `cd /opt/luohao-blog/app && git pull && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod pull backend frontend && docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d backend frontend` |
+| 更新部署（流水线） | main 合并后 Actions 自动构建推 ghcr；先核验准确源码、固定镜像和当前 Compose 覆盖文件链，按 §5.2 仅更新获授权的服务。存在分服务覆盖文件时，不能仅凭基础文件与全局 `IMAGE_TAG` 重建应用 |
 | 更新部署（无网络构建回退） | `docker compose -f deploy/compose.prod.yml --env-file deploy/.env.prod up -d --build`（compose 内 build 段保留） |
-| 应用回滚 | 将 `deploy/.env.prod` 的 `IMAGE_TAG` 改为目标旧 SHA 后执行 `docker compose ... pull backend frontend && docker compose ... up -d backend frontend`；数据回滚用 restore.sh |
+| 应用回滚 | 使用发布前记录的准确旧镜像和完整覆盖文件链，仅回退获授权的服务；应用回退不自动恢复或覆盖数据库 |
 | 备份 | `deploy/backup.sh`（cron 安装见 §5.1） |
 | 恢复 | `deploy/restore.sh backups/blog-<时间戳>.sql.gz [uploads-<时间戳>.tar.gz]`——脚本自动停/启 backend（写方离线防竞态），坏包在停服前拒收；完成后按末尾提示跑 reindex 对齐 ES |
 | 日志 | `docker logs blog-backend --tail 100` / `blog-frontend` / `blog-caddy`；json-file 轮转 10MB×3 已在 compose 六服务的 `logging` 声明（改配置经 `up -d` 滚动重建生效，无需动 daemon.json） |
@@ -131,10 +131,18 @@ ls backups/ | tail -3                    # 次日 03:10 后应出现新 dump
 注意：watchdog/backup 由 root crontab 触发；服务器重建或换机后这两行必须重装，
 脚本本体已随仓库走（`deploy/watchdog.sh`、`deploy/backup.sh`）。
 
+### 5.2 分服务固定镜像发布
+
+更新前只读检查运行容器的 `com.docker.compose.project` 与 `com.docker.compose.project.config_files` 标签，确认完整且可信的 Compose 文件链。前后端可能来自不同次发布；基础文件之外的发布覆盖文件可分别固定它们的镜像摘要，不能遗漏已有覆盖文件，也不能从 Git HEAD 或全局 IMAGE_TAG 推定运行镜像。
+
+先核验源码树、原始发布摘要/平台及现有回退镜像，完成获授权的备份/完整性检查。使用相同 project、project-directory、env-file 和完整 `-f` 链，仅对目标服务执行 `up -d --no-deps --no-build --pull never <service>`；执行前必须保证批准的固定镜像已在服务器缓存。验证目标镜像、健康和关键接口，并核对其他容器ID与配置未变。传输格式转换后若摘要不同，不直接替代批准镜像；保留原始 OCI 图及摘要可避免此类差异。
+
+发布和回退均保存受控的原镜像/覆盖链/备份校验证据。一次发布的源码、镜像与文件链记录属于该次交付材料；本Runbook不硬编码一次性版本或签名URL。
+
 ## 6. 回滚
 
-- 应用回滚：`git log --oneline` 找上一个可用提交 → `git checkout <sha>` → 重新 `up -d --build`。
-- 数据回滚：`deploy/restore.sh` 最近一次备份（注意会覆盖当前数据）。
+- 应用回滚：核验已授权的准确旧镜像及配置兼容性，按 §5.2 保留完整覆盖链，仅重建目标应用服务。
+- 数据恢复会覆盖当前数据，必须另获明确授权并校验目标备份；不作为应用回退的自动步骤。
 - ES 索引是可重建的派生数据：数据库恢复后跑一次 reindex 即对齐。
 
 ## 7. 排错速查（本项目已踩过的坑）

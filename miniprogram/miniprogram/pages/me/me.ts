@@ -1,12 +1,6 @@
 import { fetchMe, isLoggedIn, logout as authLogout, refreshSession, wechatLogin, bindWechat } from '../../utils/auth'
 import type { Account } from '../../utils/types'
 import { toMessage } from '../../utils/request'
-import { assetUrl } from '../../utils/config'
-
-// withAvatar 把站内相对头像路径转成可直接加载的完整地址。
-function withAvatar(account: Account): Account {
-  return { ...account, avatarUrl: assetUrl(account.avatarUrl) }
-}
 
 Page({
   data: {
@@ -35,7 +29,7 @@ Page({
     }
     try {
       const account = await fetchMe()
-      this.setData({ mode: 'signedin', account: withAvatar(account) })
+      this.setData({ mode: 'signedin', account })
     } catch {
       this.setData({ mode: 'guest', account: null })
     }
