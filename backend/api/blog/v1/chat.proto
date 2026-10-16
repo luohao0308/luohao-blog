@@ -12,7 +12,7 @@ option java_outer_classname = "ChatProto";
 
 // ChatService answers visitor questions with retrieval-augmented generation:
 // the question is answered from the blog's published articles, and the reply
-// cites the articles the answer drew from. Generation requires the LLM config;
+// includes retrieved reference articles. Generation requires the LLM config;
 // retrieval reuses the hybrid article search. Authorization: public.
 service ChatService {
   // Chat answers one question with citations. Rate limited per client IP.
@@ -34,15 +34,25 @@ message ChatRequest {
   int32 top_k = 2;
 }
 
+enum ChatOutcome {
+ CHAT_OUTCOME_UNSPECIFIED = 0;
+ CHAT_OUTCOME_ANSWERED = 1;
+ CHAT_OUTCOME_NO_MATCH = 2;
+ CHAT_OUTCOME_RETRIEVAL_UNAVAILABLE = 3;
+ CHAT_OUTCOME_GENERATION_UNAVAILABLE = 4;
+}
+
 // ChatReply is the retrieval-augmented answer.
 message ChatReply {
   // The generated answer. Plain text, not Markdown.
   string answer = 1;
-  // The published articles the answer drew from, best-match first.
+  // Retrieved reference candidates, best-match first; not verified per-claim citations.
   repeated CitedArticle citations = 2;
+  // Explicit result, including degraded HTTP 200 responses.
+  ChatOutcome outcome = 3;
 }
 
-// CitedArticle identifies one source article of the answer.
+// CitedArticle identifies a retrieved reference candidate.
 message CitedArticle {
   string slug = 1;
   string title = 2;

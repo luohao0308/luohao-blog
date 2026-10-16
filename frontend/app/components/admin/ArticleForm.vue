@@ -2,7 +2,7 @@
 // Shared create/edit form for admin articles. The page owns the API call;
 // this component owns field state and client-side validation. Mirrors the
 // backend rules: slug is URL-safe lowercase and immutable after creation.
-import { NButton, NCheckbox, NDynamicTags, NForm, NFormItem, NInput, NRadio, NRadioGroup, NSelect } from 'naive-ui'
+import { NButton, NDynamicTags, NForm, NFormItem, NInput, NRadio, NRadioGroup, NSelect } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 
 import { ARTICLE_STATUS, type Article } from '~/composables/useArticles'
@@ -12,6 +12,7 @@ import { useAdminCategories } from '~/composables/useCategories'
 const props = defineProps<{
   initial?: Article | null
   submitting?: boolean
+  frozen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +46,31 @@ const form = reactive({
   featured: props.initial?.featured ?? false,
 })
 
+// Compare the normalized API fields, with detached arrays for in-flight saves.
+function snapshot() {
+  return { ...form, title: form.title.trim(), tags: [...form.tags] }
+}
+const saved = ref(JSON.stringify(snapshot()))
+const dirty = computed(() => JSON.stringify(snapshot()) !== saved.value)
+function markSaved(payload: ReturnType<typeof snapshot>) {
+  saved.value = JSON.stringify(payload)
+}
+defineExpose({ markSaved, dirty })
+
+function confirmLeave() {
+  return !dirty.value || window.confirm('有未保存的修改，确定离开并丢弃吗？')
+}
+onBeforeRouteLeave(confirmLeave)
+onBeforeRouteUpdate((to, from) => to.params.slug === from.params.slug || confirmLeave())
+function beforeUnload(event: BeforeUnloadEvent) {
+  if (dirty.value) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+
 const formRef = ref<FormInst | null>(null)
 
 const rules: FormRules = {
@@ -58,19 +84,11 @@ const rules: FormRules = {
 
 function submit(e: Event) {
   e.preventDefault()
+  if (props.submitting || uploadingImage.value)
+    return
   formRef.value?.validate((errors) => {
-    if (!errors)
-      emit('submit', {
-        title: form.title.trim(),
-        slug: form.slug,
-        summary: form.summary,
-        content_md: form.content_md,
-        tags: form.tags,
-        category_slug: form.category_slug,
-        status: form.status,
-        cover_url: form.cover_url,
-        featured: form.featured,
-      })
+    if (!errors && !props.submitting && !uploadingImage.value)
+      emit('submit', snapshot())
   })
 }
 
@@ -78,7 +96,7 @@ async function chooseImage(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
-  if (!file || uploadingImage.value)
+  if (!file || uploadingImage.value || props.frozen)
     return
   mediaNotice.value = null
   if (!ADMIN_MEDIA_TYPES.includes(file.type)) {
@@ -108,7 +126,7 @@ async function chooseImage(event: Event) {
 }
 
 function setCover() {
-  if (!uploadedImage.value)
+  if (!uploadedImage.value || props.frozen)
     return
   form.cover_url = uploadedImage.value
   mediaNotice.value = { kind: 'ok', text: '已设为文章封面' }
@@ -116,27 +134,28 @@ function setCover() {
 </script>
 
 <template>
-  <NForm ref="formRef" class="space-y-6" :model="form" :rules="rules" label-placement="top" :show-require-mark="false" @submit.prevent="submit">
+  <NForm ref="formRef" class="space-y-6" :disabled="frozen" :model="form" :rules="rules" label-placement="top" :show-require-mark="false" @submit.prevent="submit">
       <div class="grid gap-x-6 sm:grid-cols-2">
         <NFormItem label="标题" path="title" :show-feedback="false">
-          <NInput v-model:value="form.title" placeholder="文章标题" />
+          <NInput v-model:value="form.title" :disabled="frozen" placeholder="文章标题" />
         </NFormItem>
         <NFormItem label="Slug（创建后不可修改）" path="slug" :show-feedback="false">
-          <NInput v-model:value="form.slug" :disabled="!!props.initial" placeholder="url-safe-slug" />
+          <NInput v-model:value="form.slug" :disabled="!!props.initial || frozen" placeholder="url-safe-slug" />
         </NFormItem>
       </div>
 
       <NFormItem label="摘要（留空则从正文截取）" path="summary" :show-feedback="false">
-        <NInput v-model:value="form.summary" type="textarea" :rows="2" placeholder="显示在列表页的短摘要" />
+        <NInput v-model:value="form.summary" :disabled="frozen" type="textarea" :rows="2" placeholder="显示在列表页的短摘要" />
       </NFormItem>
 
       <div class="grid gap-x-6 sm:grid-cols-2">
         <NFormItem label="标签" path="tags" :show-feedback="false">
-          <NDynamicTags v-model:value="form.tags" />
+          <NDynamicTags v-model:value="form.tags" :disabled="frozen" />
         </NFormItem>
         <NFormItem label="分类" path="category_slug" :show-feedback="false">
           <NSelect
             v-model:value="form.category_slug"
+            :disabled="frozen"
             :options="categoryOptions"
             clearable
             placeholder="未分类"
@@ -150,15 +169,16 @@ function setCover() {
             <input
               ref="imageInput"
               data-testid="article-image-input"
+              :disabled="frozen || uploadingImage"
               class="sr-only"
               type="file"
               accept="image/jpeg,image/png,image/webp"
               @change="chooseImage"
             >
-            <NButton attr-type="button" size="small" :loading="uploadingImage" :disabled="submitting" @click="imageInput?.click()">
+            <NButton attr-type="button" size="small" :loading="uploadingImage" :disabled="frozen" @click="imageInput?.click()">
               上传图片并插入正文
             </NButton>
-            <NButton v-if="uploadedImage" attr-type="button" size="small" secondary :disabled="uploadingImage || submitting" @click="setCover">
+            <NButton v-if="uploadedImage" attr-type="button" size="small" secondary :disabled="uploadingImage || frozen" @click="setCover">
               设为封面
             </NButton>
             <span
@@ -168,7 +188,7 @@ function setCover() {
               :class="mediaNotice.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
             >{{ mediaNotice.text }}</span>
           </div>
-          <AdminMarkdownEditor ref="editorRef" v-model="form.content_md" />
+          <AdminMarkdownEditor ref="editorRef" v-model="form.content_md" :disabled="frozen" />
         </div>
       </NFormItem>
 
@@ -180,22 +200,23 @@ function setCover() {
             </div>
             <div class="flex items-center gap-3">
               <span class="text-xs text-slate-500 dark:text-slate-400">上传正文图片后可将其设为封面</span>
-              <NButton v-if="form.cover_url" attr-type="button" size="tiny" quaternary type="error" @click="form.cover_url = ''">
+              <NButton v-if="form.cover_url" :disabled="frozen" attr-type="button" size="tiny" quaternary type="error" @click="form.cover_url = ''">
                 清除封面
               </NButton>
             </div>
           </div>
         </NFormItem>
         <NFormItem label="首页展示" path="featured" :show-feedback="false">
-          <NCheckbox v-model:checked="form.featured">
-            首页精选
-          </NCheckbox>
+          <label class="inline-flex min-h-11 cursor-pointer items-center gap-2">
+            <input v-model="form.featured" type="checkbox" :disabled="frozen" class="h-4 w-4 accent-[var(--accent)]">
+            <span>首页精选</span>
+          </label>
         </NFormItem>
       </div>
     <div class="flex flex-wrap items-center gap-6">
       <!-- CreateArticle always starts as DRAFT server-side, so the status
            choice only makes sense when editing an existing article. -->
-      <NRadioGroup v-if="props.initial" v-model:value="form.status">
+      <NRadioGroup v-if="props.initial" v-model:value="form.status" :disabled="frozen">
         <NRadio :value="1">
           草稿
         </NRadio>

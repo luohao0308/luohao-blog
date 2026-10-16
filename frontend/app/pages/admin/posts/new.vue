@@ -13,7 +13,17 @@ useHead({ title: '新建文章' })
 const { authFetch } = useAuth()
 const message = useMessage()
 
+let disposed = false
+onBeforeUnmount(() => { disposed = true })
 const submitting = ref(false)
+const formRef = ref<{ markSaved: (payload: FormPayload) => void, dirty: boolean } | null>(null)
+const saveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+const saveLabel = computed(() => {
+  if (saveState.value === 'saving') return '保存中…'
+  if (saveState.value === 'error') return '保存失败，修改已保留，请重试'
+  if (formRef.value?.dirty) return '有未保存的修改'
+  return saveState.value === 'saved' ? '已保存' : '尚无修改'
+})
 
 interface FormPayload {
   title: string
@@ -34,16 +44,27 @@ function categoryOf(payload: FormPayload) {
 }
 
 async function onSubmit(payload: FormPayload) {
+  if (submitting.value)
+    return
   submitting.value = true
+  saveState.value = 'saving'
+  const owner = formRef.value
   try {
     const article = await authFetch<Article>('/api/v1/articles/create', {
       method: 'POST',
       body: { ...payload, category: categoryOf(payload) },
     })
+    if (disposed || owner !== formRef.value)
+      return
+    owner?.markSaved(payload)
+    saveState.value = 'saved'
     message.success('已创建')
-    navigateTo(`/admin/posts/${encodeURIComponent(article.slug)}/edit`)
+    await navigateTo(`/admin/posts/${encodeURIComponent(article.slug)}/edit`)
   }
   catch {
+    if (disposed || owner !== formRef.value)
+      return
+    saveState.value = 'error'
     message.error('创建失败，请检查 slug 是否重复')
   }
   finally {
@@ -63,8 +84,9 @@ async function onSubmit(payload: FormPayload) {
       </NuxtLink>
     </div>
 
-    <AdminArticleForm :submitting="submitting" @submit="onSubmit">
+    <AdminArticleForm ref="formRef" :frozen="submitting" :submitting="submitting" @submit="onSubmit">
       <template #actions>
+        <p data-testid="save-state" role="status" aria-live="polite" class="text-sm">{{ saveLabel }}</p>
         <NButton type="primary" attr-type="submit" :loading="submitting">
           创建
         </NButton>

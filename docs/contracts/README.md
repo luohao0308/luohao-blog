@@ -51,3 +51,7 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 ## 变更流程
 
 契约变更先使用 [CHANGE-CHECKLIST.md](CHANGE-CHECKLIST.md) 判断兼容性。新增契约从 [CONTRACT-TEMPLATE.md](CONTRACT-TEMPLATE.md) 建立；涉及数据 Schema 或回填时同时使用 [MIGRATION-TEMPLATE.md](MIGRATION-TEMPLATE.md)。
+
+## 搜索与问答
+
+[结果状态与兼容策略](SEARCH-CHAT-OUTCOMES.md)：增量outcome、降级语义与消费者回归入口。

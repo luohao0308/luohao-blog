@@ -1460,6 +1460,10 @@ components:
                     description: |-
                         Token used to retrieve the next page via ListArticlesRequest.page_token.
                          Empty when there are no more results.
+                search_outcome:
+                    type: integer
+                    description: Search RPC availability; unspecified for ordinary article lists.
+                    format: enum
             description: ArticleSet is a paginated collection of articles returned by ListArticles.
         blog.v1.BindWechatRequest:
             required:
@@ -1549,7 +1553,11 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/blog.v1.CitedArticle'
-                    description: The published articles the answer drew from, best-match first.
+                    description: Retrieved reference candidates, best-match first; not verified per-claim citations.
+                outcome:
+                    type: integer
+                    description: Explicit result, including degraded HTTP 200 responses.
+                    format: enum
             description: ChatReply is the retrieval-augmented answer.
         blog.v1.ChatRequest:
             required:
@@ -1573,7 +1581,7 @@ components:
                     type: string
                 summary:
                     type: string
-            description: CitedArticle identifies one source article of the answer.
+            description: CitedArticle identifies a retrieved reference candidate.
         blog.v1.Collection:
             type: object
             properties:
@@ -2090,7 +2098,8 @@ tags:
         ArticleSearchService serves full-text search over published articles. The
          index is maintained by the article write path; when the search backend is
          unavailable the endpoint returns an empty page rather than an error, so the
-         public site keeps working.
+         public site keeps working. ArticleSet.search_outcome distinguishes an outage
+         from a successful query with no matches.
     - name: ArticleService
       description: |-
         ArticleService manages blog articles. The public identifier of an article is
@@ -2124,7 +2133,7 @@ tags:
       description: |-
         ChatService answers visitor questions with retrieval-augmented generation:
          the question is answered from the blog's published articles, and the reply
-         cites the articles the answer drew from. Generation requires the LLM config;
+         includes retrieved reference articles. Generation requires the LLM config;
          retrieval reuses the hybrid article search. Authorization: public.
     - name: CollectionService
     - name: CommentService

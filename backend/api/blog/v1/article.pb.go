@@ -83,6 +83,55 @@ func (ArticleStatus) EnumDescriptor() ([]byte, []int) {
 	return file_blog_v1_article_proto_rawDescGZIP(), []int{0}
 }
 
+type SearchOutcome int32
+
+const (
+	SearchOutcome_SEARCH_OUTCOME_UNSPECIFIED SearchOutcome = 0
+	SearchOutcome_SEARCH_OUTCOME_AVAILABLE   SearchOutcome = 1
+	SearchOutcome_SEARCH_OUTCOME_UNAVAILABLE SearchOutcome = 2
+)
+
+// Enum value maps for SearchOutcome.
+var (
+	SearchOutcome_name = map[int32]string{
+		0: "SEARCH_OUTCOME_UNSPECIFIED",
+		1: "SEARCH_OUTCOME_AVAILABLE",
+		2: "SEARCH_OUTCOME_UNAVAILABLE",
+	}
+	SearchOutcome_value = map[string]int32{
+		"SEARCH_OUTCOME_UNSPECIFIED": 0,
+		"SEARCH_OUTCOME_AVAILABLE":   1,
+		"SEARCH_OUTCOME_UNAVAILABLE": 2,
+	}
+)
+
+func (x SearchOutcome) Enum() *SearchOutcome {
+	p := new(SearchOutcome)
+	*p = x
+	return p
+}
+
+func (x SearchOutcome) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SearchOutcome) Descriptor() protoreflect.EnumDescriptor {
+	return file_blog_v1_article_proto_enumTypes[1].Descriptor()
+}
+
+func (SearchOutcome) Type() protoreflect.EnumType {
+	return &file_blog_v1_article_proto_enumTypes[1]
+}
+
+func (x SearchOutcome) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SearchOutcome.Descriptor instead.
+func (SearchOutcome) EnumDescriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{1}
+}
+
 // Article is the canonical representation of a blog article.
 type Article struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -336,6 +385,8 @@ type ArticleSet struct {
 	// Token used to retrieve the next page via ListArticlesRequest.page_token.
 	// Empty when there are no more results.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Search RPC availability; unspecified for ordinary article lists.
+	SearchOutcome SearchOutcome `protobuf:"varint,3,opt,name=search_outcome,json=searchOutcome,proto3,enum=blog.v1.SearchOutcome" json:"search_outcome,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +433,13 @@ func (x *ArticleSet) GetNextPageToken() string {
 		return x.NextPageToken
 	}
 	return ""
+}
+
+func (x *ArticleSet) GetSearchOutcome() SearchOutcome {
+	if x != nil {
+		return x.SearchOutcome
+	}
+	return SearchOutcome_SEARCH_OUTCOME_UNSPECIFIED
 }
 
 // CreateArticleRequest is the input for ArticleService.CreateArticle.
@@ -489,24 +547,23 @@ type ListArticlesRequest struct {
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Optional. The standard list filter.
 	// Supported fields:
-	//   - `slug` (i.e. `slug:"m0-scaffold"`)
-	//   - `title` (i.e. `title:"kratos"`)
-	//   - `status` (i.e. `status:"PUBLISHED"`)
-	//   - `tag` (i.e. `tag:"go"`)
-	//   - `category` (i.e. `category:"engineering"`)
-	//   - `featured` (i.e. `featured`; use `NOT featured` for regular items)
-	//   - `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
-	//   - `created_at` range, `updated_at` range
+	//    * `slug` (i.e. `slug:"m0-scaffold"`)
+	//    * `title` (i.e. `title:"kratos"`)
+	//    * `status` (i.e. `status:"PUBLISHED"`)
+	//    * `tag` (i.e. `tag:"go"`)
+	//    * `category` (i.e. `category:"engineering"`)
+	//    * `featured` (i.e. `featured`; use `NOT featured` for regular items)
+	//    * `published_at` range (i.e. `published_at>="2026-01-01T00:00:00Z"`)
+	//    * `created_at` range, `updated_at` range
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// Optional. A comma-separated list of fields to order by.
 	// Supported fields:
-	//   - `slug`
-	//   - `title`
-	//   - `published_at`
-	//   - `created_at`
-	//   - `updated_at`
-	//   - `featured`
-	//
+	//    * `slug`
+	//    * `title`
+	//    * `published_at`
+	//    * `created_at`
+	//    * `updated_at`
+	//    * `featured`
 	// Append ` desc` to a field for descending order, e.g. `published_at desc`.
 	// Defaults to ascending order when no direction is supplied.
 	OrderBy       string `protobuf:"bytes,4,opt,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
@@ -807,11 +864,12 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\t_featured\"7\n" +
 	"\rCategoryBrief\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"b\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\xa1\x01\n" +
 	"\n" +
 	"ArticleSet\x12,\n" +
 	"\barticles\x18\x01 \x03(\v2\x10.blog.v1.ArticleR\barticles\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"G\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12=\n" +
+	"\x0esearch_outcome\x18\x03 \x01(\x0e2\x16.blog.v1.SearchOutcomeR\rsearchOutcome\"G\n" +
 	"\x14CreateArticleRequest\x12/\n" +
 	"\aarticle\x18\x01 \x01(\v2\x10.blog.v1.ArticleB\x03\xe0A\x02R\aarticle\",\n" +
 	"\x11GetArticleRequest\x12\x17\n" +
@@ -836,7 +894,11 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\x1aARTICLE_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ARTICLE_STATUS_DRAFT\x10\x01\x12\x1c\n" +
 	"\x18ARTICLE_STATUS_PUBLISHED\x10\x02\x12\x1a\n" +
-	"\x16ARTICLE_STATUS_DELETED\x10\x032\xe4\x05\n" +
+	"\x16ARTICLE_STATUS_DELETED\x10\x03*m\n" +
+	"\rSearchOutcome\x12\x1e\n" +
+	"\x1aSEARCH_OUTCOME_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18SEARCH_OUTCOME_AVAILABLE\x10\x01\x12\x1e\n" +
+	"\x1aSEARCH_OUTCOME_UNAVAILABLE\x10\x022\xe4\x05\n" +
 	"\x0eArticleService\x12f\n" +
 	"\rCreateArticle\x12\x1d.blog.v1.CreateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\"\x13/v1/articles/create\x12\\\n" +
 	"\fListArticles\x12\x1c.blog.v1.ListArticlesRequest\x1a\x13.blog.v1.ArticleSet\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/articles/list\x12W\n" +
@@ -860,53 +922,55 @@ func file_blog_v1_article_proto_rawDescGZIP() []byte {
 	return file_blog_v1_article_proto_rawDescData
 }
 
-var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_blog_v1_article_proto_goTypes = []any{
 	(ArticleStatus)(0),               // 0: blog.v1.ArticleStatus
-	(*Article)(nil),                  // 1: blog.v1.Article
-	(*CategoryBrief)(nil),            // 2: blog.v1.CategoryBrief
-	(*ArticleSet)(nil),               // 3: blog.v1.ArticleSet
-	(*CreateArticleRequest)(nil),     // 4: blog.v1.CreateArticleRequest
-	(*GetArticleRequest)(nil),        // 5: blog.v1.GetArticleRequest
-	(*ListArticlesRequest)(nil),      // 6: blog.v1.ListArticlesRequest
-	(*UpdateArticleRequest)(nil),     // 7: blog.v1.UpdateArticleRequest
-	(*DeleteArticleRequest)(nil),     // 8: blog.v1.DeleteArticleRequest
-	(*MarkArticleViewedRequest)(nil), // 9: blog.v1.MarkArticleViewedRequest
-	(*MarkArticleLikedRequest)(nil),  // 10: blog.v1.MarkArticleLikedRequest
-	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),    // 12: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),            // 13: google.protobuf.Empty
+	(SearchOutcome)(0),               // 1: blog.v1.SearchOutcome
+	(*Article)(nil),                  // 2: blog.v1.Article
+	(*CategoryBrief)(nil),            // 3: blog.v1.CategoryBrief
+	(*ArticleSet)(nil),               // 4: blog.v1.ArticleSet
+	(*CreateArticleRequest)(nil),     // 5: blog.v1.CreateArticleRequest
+	(*GetArticleRequest)(nil),        // 6: blog.v1.GetArticleRequest
+	(*ListArticlesRequest)(nil),      // 7: blog.v1.ListArticlesRequest
+	(*UpdateArticleRequest)(nil),     // 8: blog.v1.UpdateArticleRequest
+	(*DeleteArticleRequest)(nil),     // 9: blog.v1.DeleteArticleRequest
+	(*MarkArticleViewedRequest)(nil), // 10: blog.v1.MarkArticleViewedRequest
+	(*MarkArticleLikedRequest)(nil),  // 11: blog.v1.MarkArticleLikedRequest
+	(*timestamppb.Timestamp)(nil),    // 12: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),    // 13: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),            // 14: google.protobuf.Empty
 }
 var file_blog_v1_article_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.Article.status:type_name -> blog.v1.ArticleStatus
-	11, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
-	11, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
-	11, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
-	2,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
-	1,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
-	1,  // 6: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
-	1,  // 7: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
-	12, // 8: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
-	4,  // 9: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
-	6,  // 10: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
-	5,  // 11: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
-	7,  // 12: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
-	8,  // 13: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
-	9,  // 14: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
-	10, // 15: blog.v1.ArticleService.MarkArticleLiked:input_type -> blog.v1.MarkArticleLikedRequest
-	1,  // 16: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
-	3,  // 17: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
-	1,  // 18: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
-	1,  // 19: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
-	13, // 20: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
-	13, // 21: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
-	13, // 22: blog.v1.ArticleService.MarkArticleLiked:output_type -> google.protobuf.Empty
-	16, // [16:23] is the sub-list for method output_type
-	9,  // [9:16] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	12, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
+	12, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
+	12, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
+	2,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
+	1,  // 6: blog.v1.ArticleSet.search_outcome:type_name -> blog.v1.SearchOutcome
+	2,  // 7: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
+	2,  // 8: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
+	13, // 9: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	5,  // 10: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
+	7,  // 11: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
+	6,  // 12: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
+	8,  // 13: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
+	9,  // 14: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
+	10, // 15: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
+	11, // 16: blog.v1.ArticleService.MarkArticleLiked:input_type -> blog.v1.MarkArticleLikedRequest
+	2,  // 17: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
+	4,  // 18: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
+	2,  // 19: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
+	2,  // 20: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
+	14, // 21: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
+	14, // 22: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
+	14, // 23: blog.v1.ArticleService.MarkArticleLiked:output_type -> google.protobuf.Empty
+	17, // [17:24] is the sub-list for method output_type
+	10, // [10:17] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_article_proto_init() }
@@ -920,7 +984,7 @@ func file_blog_v1_article_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_article_proto_rawDesc), len(file_blog_v1_article_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,

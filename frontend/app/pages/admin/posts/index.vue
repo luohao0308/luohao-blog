@@ -234,22 +234,25 @@ const columns: DataTableColumns<Article> = [
       <h1 class="text-xl font-semibold">
         文章管理
       </h1>
-      <div class="flex items-center gap-3">
-        <NSelect v-model:value="statusFilter" :options="filterOptions" class="w-32 shrink-0" size="small" placeholder="全部状态" />
+      <div class="flex flex-wrap items-center gap-3">
+        <NSelect v-model:value="statusFilter" :options="filterOptions" style="width: 8rem" size="small" placeholder="全部状态" />
         <NButton type="primary" tag="a" href="/admin/posts/new" @click.prevent="navigateTo('/admin/posts/new')">
           新建文章
         </NButton>
       </div>
     </div>
 
+    <div class="max-w-full overflow-x-auto" tabindex="0" role="region" aria-label="文章管理表格">
     <NDataTable
       :columns="columns"
+      :scroll-x="760"
       :data="articles"
       :loading="loading"
       :bordered="false"
       size="small"
       :row-key="(row: Article) => row.slug"
     />
+    </div>
 
     <div v-if="failedRequest" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300" role="alert">
       <span>文章列表暂时无法加载。</span>

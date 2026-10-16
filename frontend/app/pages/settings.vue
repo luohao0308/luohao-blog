@@ -265,8 +265,8 @@ async function savePassword() {
   }
 }
 
-const inputClass = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900'
-const primaryButtonClass = 'shrink-0 whitespace-nowrap rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
+const inputClass = 'ui-field w-full px-3 py-2 text-sm'
+const primaryButtonClass = 'ui-button shrink-0 whitespace-nowrap px-5 py-2 text-sm font-medium'
 const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.avatar_url) : ''))
 </script>
 
@@ -282,7 +282,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
         </p>
       </header>
 
-      <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="邮箱验证">
+      <section class="ui-panel space-y-4 p-6" aria-label="邮箱验证">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div><h2 class="font-medium">邮箱验证</h2><p class="mt-1 text-sm text-slate-500">{{ user.email }}</p></div>
           <span class="rounded-full px-3 py-1 text-xs" :class="user.email_verified ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'">{{ user.email_verified ? '已验证' : '待验证' }}</span>
@@ -293,7 +293,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
       </section>
 
       <!-- 头像 -->
-      <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="头像">
+      <section class="ui-panel space-y-4 p-6" aria-label="头像">
         <h2 class="font-medium">
           头像
         </h2>
@@ -329,7 +329,7 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
       </section>
 
       <!-- 昵称 -->
-      <section class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="昵称">
+      <section class="ui-panel space-y-4 p-6" aria-label="昵称">
         <h2 class="font-medium">
           昵称
         </h2>
@@ -345,14 +345,14 @@ const avatarSrc = computed(() => (user.value?.avatar_url ? assetUrl(user.value.a
       </section>
 
       <!-- 密码 -->
-      <section id="password" class="space-y-4 rounded-xl border border-slate-200 p-6 dark:border-slate-800" aria-label="密码">
+      <section id="password" class="ui-panel space-y-4 p-6" aria-label="密码">
         <h2 class="font-medium">
           修改密码
         </h2>
         <form class="space-y-3" @submit.prevent="savePassword">
-          <input v-model="oldPassword" type="password" autocomplete="current-password" placeholder="当前密码" :class="inputClass">
-          <input v-model="newPassword" type="password" autocomplete="new-password" placeholder="新密码（至少 8 位）" :class="inputClass">
-          <input v-model="confirmPassword" type="password" autocomplete="new-password" placeholder="确认新密码" :class="inputClass">
+          <input v-model="oldPassword" type="password" autocomplete="current-password" aria-label="当前密码" placeholder="当前密码" :class="inputClass">
+          <input v-model="newPassword" type="password" autocomplete="new-password" aria-label="新密码（至少 8 位）" placeholder="新密码（至少 8 位）" :class="inputClass">
+          <input v-model="confirmPassword" type="password" autocomplete="new-password" aria-label="确认新密码" placeholder="确认新密码" :class="inputClass">
           <p v-if="passwordNotice" :class="passwordNotice.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'" class="text-sm" role="status">
             {{ passwordNotice.text }}
           </p>

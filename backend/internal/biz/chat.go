@@ -13,7 +13,7 @@ import (
 
 // Chat domain errors.
 var (
-	ErrChatUnavailable = errors.ServiceUnavailable(v1.ErrorReason_CHAT_UNAVAILABLE.String(), "chat is not configured")
+	ErrChatUnavailable     = errors.ServiceUnavailable(v1.ErrorReason_CHAT_UNAVAILABLE.String(), "chat is not configured")
 	ErrChatInvalidArgument = errors.BadRequest(v1.ErrorReason_CHAT_INVALID_ARGUMENT.String(), "invalid chat argument")
 	// ErrChatTooManyAttempts guards the LLM budget: chat is public but every
 	// call costs tokens on a paid endpoint.
@@ -39,9 +39,20 @@ type ChatLLM interface {
 	Generate(ctx context.Context, system, user string) (string, error)
 }
 
-// ChatAnswer is a retrieval-augmented reply: the generated text plus the
-// published articles it drew from, best-match first.
+// ChatOutcome describes generation and retrieval independently of display text.
+type ChatOutcome int32
+
+const (
+	ChatOutcomeUnspecified ChatOutcome = iota
+	ChatOutcomeAnswered
+	ChatOutcomeNoMatch
+	ChatOutcomeRetrievalUnavailable
+	ChatOutcomeGenerationUnavailable
+)
+
+// ChatAnswer carries plain text and retrieved reference candidates, best-match first.
 type ChatAnswer struct {
+	Outcome   ChatOutcome
 	Answer    string
 	Citations []*Article
 }
@@ -94,19 +105,20 @@ func (uc *ChatUsecase) Ask(ctx context.Context, query string, topK int, clientIP
 		// limiter failure fails open: an outage in the counter must not take
 		// the chat down, mirroring the login and comment throttlers.
 	}
-	articles, err := uc.search.SearchArticles(ctx, query, topK, 0)
-	if err != nil {
-		return nil, err
+	result := uc.search.SearchArticlesWithOutcome(ctx, query, topK, 0)
+	if !result.Available {
+		return &ChatAnswer{Answer: "文章检索暂时不可用，请稍后重试。", Outcome: ChatOutcomeRetrievalUnavailable}, nil
 	}
+	articles := result.Articles
 	if len(articles) == 0 {
-		return &ChatAnswer{Answer: noResultAnswer}, nil
+		return &ChatAnswer{Answer: noResultAnswer, Outcome: ChatOutcomeNoMatch}, nil
 	}
 	answer, err := uc.llm.Generate(ctx, chatSystemPrompt(), chatUserPrompt(query, articles))
-	if err != nil {
+	if err != nil || strings.TrimSpace(answer) == "" {
 		log.Warn("chat: llm generation failed, answering with citations only", err)
-		return &ChatAnswer{Answer: llmFailureAnswer, Citations: articles}, nil
+		return &ChatAnswer{Answer: llmFailureAnswer, Citations: articles, Outcome: ChatOutcomeGenerationUnavailable}, nil
 	}
-	return &ChatAnswer{Answer: answer, Citations: articles}, nil
+	return &ChatAnswer{Answer: answer, Citations: articles, Outcome: ChatOutcomeAnswered}, nil
 }
 
 // chatSystemPrompt fixes the assistant's role and output shape: grounded in

@@ -47,21 +47,22 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-white text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
-    <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+  <div class="flex min-h-screen flex-col site-shell antialiased transition-colors duration-[var(--motion-standard)]">
+    <a href="#main-content" class="skip-link">跳到主要内容</a>
+    <header class="sticky top-0 z-40 border-b site-header backdrop-blur">
       <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
         <NuxtLink to="/" class="text-lg font-bold tracking-tight">
-          luohao<span class="text-blue-600 dark:text-blue-400">.blog</span>
+          luohao<span class="text-[var(--accent)]">.blog</span>
         </NuxtLink>
         <nav class="hidden items-center gap-6 text-sm sm:flex">
           <NuxtLink
             v-for="link in navLinks"
             :key="link.to"
             :to="link.to"
-            class="rounded-full px-3 py-1.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/70"
+            class="rounded-full px-3 py-1.5 transition-colors hover:bg-[var(--surface-hover)]"
             :class="isActive(link.to)
-              ? 'font-medium text-slate-900 dark:text-slate-100'
-              : 'text-slate-600 dark:text-slate-400'"
+              ? 'font-medium text-[var(--text-primary)]'
+              : 'text-[var(--text-muted)]'"
             :aria-current="isActive(link.to) ? 'page' : undefined"
           >
             {{ link.label }}
@@ -73,15 +74,15 @@ function isActive(to: string) {
         </div>
       </div>
       <!-- mobile nav: flat destinations, no hamburger -->
-      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-slate-100 px-6 py-2 text-sm sm:hidden dark:border-slate-800/70">
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-[var(--border-default)] px-6 py-2 text-sm sm:hidden">
         <NuxtLink
           v-for="link in mobileLinks"
           :key="link.to"
           :to="link.to"
           class="transition-colors"
           :class="isActive(link.to)
-            ? 'font-medium text-slate-900 dark:text-slate-100'
-            : 'text-slate-600 dark:text-slate-400'"
+            ? 'font-medium text-[var(--text-primary)]'
+            : 'text-[var(--text-muted)]'"
           :aria-current="isActive(link.to) ? 'page' : undefined"
         >
           {{ link.label }}
@@ -89,16 +90,16 @@ function isActive(to: string) {
       </nav>
     </header>
 
-    <main class="mx-auto w-full flex-1 px-6 py-10" :class="wide ? 'max-w-6xl' : 'max-w-4xl'">
+    <main id="main-content" tabindex="-1" class="site-main mx-auto w-full flex-1 px-6 py-10" :class="wide ? 'max-w-6xl' : 'max-w-4xl'">
       <slot />
     </main>
 
-    <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
+    <footer class="border-t border-[var(--border-default)] py-6 text-center text-sm text-[var(--text-muted)]">
       <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
-        <NuxtLink to="/collections" class="transition-colors hover:text-slate-700 dark:hover:text-slate-300">收藏</NuxtLink>
+        <NuxtLink to="/collections" class="transition-colors hover:text-[var(--accent)]">收藏</NuxtLink>
         <a
           href="https://github.com/luohao0308/luohao-blog"
-          class="transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+          class="transition-colors hover:text-[var(--accent)]"
           target="_blank"
           rel="noopener"
         >GitHub</a>
@@ -107,7 +108,7 @@ function isActive(to: string) {
       <a
         v-if="publicConfig.icpNumber"
         href="https://beian.miit.gov.cn/"
-        class="mt-2 inline-block transition-colors hover:text-slate-700 dark:hover:text-slate-300"
+        class="mt-2 inline-block transition-colors hover:text-[var(--accent)]"
         target="_blank"
         rel="noopener"
       >{{ publicConfig.icpNumber }}</a>

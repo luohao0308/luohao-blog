@@ -66,12 +66,14 @@ func (s *ArticleSearchService) SearchArticles(ctx context.Context, req *v1.Searc
 		req.PageSize = defaultPageSize
 	}
 	clampPageSize(&req.PageSize)
-	articles, err := s.uc.SearchArticles(ctx, req.GetQuery(), int(req.PageSize), int(pageToken.Offset))
-	if err != nil {
-		return nil, err
-	}
+	result := s.uc.SearchArticlesWithOutcome(ctx, req.GetQuery(), int(req.PageSize), int(pageToken.Offset))
+	articles := result.Articles
 	set := &v1.ArticleSet{
-		Articles: make([]*v1.Article, 0, len(articles)),
+		Articles:      make([]*v1.Article, 0, len(articles)),
+		SearchOutcome: v1.SearchOutcome_SEARCH_OUTCOME_AVAILABLE,
+	}
+	if !result.Available {
+		set.SearchOutcome = v1.SearchOutcome_SEARCH_OUTCOME_UNAVAILABLE
 	}
 	if len(articles) >= int(req.PageSize) {
 		set.NextPageToken = pageToken.Next(req).String()

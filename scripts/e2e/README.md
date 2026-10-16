@@ -128,3 +128,33 @@ SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_C
 收藏专项：`collections_e2e.cjs`模拟接口检查登录恢复门禁、错误重试、延迟列表/身份变化、localStorage配额失败、显式部分导入和105条分页。`collections_live_e2e.cjs`不拦截API，使用实际JWT/BFF/SQL、两浏览器同账号、另一账号与游客；验证105条50/50/5、首次收藏时间幂等、服务端身份边界、部分导入只删成功项、跨浏览器SPA重验、草稿/软删除/下架隔离、隐藏记录取消、退出保留游客数据、390px和noindex。
 
 先build前端，再在backend启动 `BLOG_COLLECTION_BROWSER_FIXTURE=/tmp/blog-collection-fixture.url go test ./internal/data -run '^TestCollectionHTTPLifecycle$' -count=1 -v -timeout=12m`；测试种子有105篇public（collection-fixture-000..104）和一篇draft/一篇softdeleted。用该URL启动NUXT_BACKEND_BASE preview，再运行live；成功或失败都停自有preview并创建精确URL文件的`.stop`。fixture10分钟退出不替代独立script PASS。MySQL14→15/11→15 runner还要求TestCollectionRepoMySQL实际运行，覆盖8并发幂等、过滤先于分页、稳定排序和租户隔离；升前/升后SQL备份恢复涵盖旧账号、目的token、封面/精选及收藏日期，不处理真实生产数据。
+
+## 博客视觉与交互回归（T-018）
+
+新套件仅支持本地前端，使用只读假后端/模拟账号与剪贴板，不调用真实模型、邮件或微信服务。复用现有 Playwright 环境，通过 `NODE_PATH` 指定其 node_modules；浏览器版本与包不一致时用 `BLOG_E2E_CHROMIUM` 指定已安装的 Chromium/Chrome，不需要增加项目依赖。
+
+1. 在 frontend 构建并启动本任务预览（不要同时运行 dev 和 build）：
+
+   ```bash
+   pnpm build
+   NUXT_BACKEND_BASE=http://127.0.0.1:13001 NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs
+   ```
+
+2. 保持预览运行，在仓库根按顺序执行：
+
+   ```bash
+   node scripts/e2e/ui_foundations_e2e.cjs
+   node scripts/e2e/ui_search_chat_e2e.cjs
+   node scripts/e2e/ui_reading_e2e.cjs
+   node scripts/e2e/ui_editor_e2e.cjs
+   ```
+
+   套件默认前端13000，可用 `BLOG_E2E_BASE_URL` 设置其他localhost地址。搜索/阅读脚本自行启动并关闭13001只读SSR fixture，不能并行运行。截图输出 `output/ui-refinement/`，仅作本地证据。
+
+3. 阅读语言栏使用后端真实渲染的 `backend/internal/biz/article/render/testdata/code-language.html`，其源Markdown与生成结果由Go测试校验；不要用手写 `language-go` 独占验收。旧正文无语言信息时保留通用“代码”标签，无数据回填。
+
+4. 前端纯逻辑回归：frontend目录 `node --test tests/*.test.cjs`；后端结果契约及渲染：backend目录 `go test ./internal/biz/article/render ./internal/biz ./internal/service ./internal/server`。小程序mock回归：miniprogram目录 `npm run typecheck && npm test`。
+
+5. 完成后停止自己启动的前端预览。浏览器模拟不替代小程序真机验收。`blog_e2e.py` 的 t11 是另一条真实模型集成检查，需要真实检索/模型环境；它现要求“回答已生成”和参考链接，不再把非空降级提示视为模型成功，本轮mock套件不证明外部模型可用性。
+
+编辑器快速路径回归在同一浏览器任务内完成正文输入与保存/离开，避免200ms等待掩盖Milkdown防抖窗口。媒体补充回归 `article_experience_e2e.cjs` 使用ADMIN角色1，覆盖无title初始图、上传插入、继续输入、undo/redo、保存与刷新保图；Crepe图片块的alt会规范为比例，验收以真实DOM节点与URL为准。对应适配只规范AST的nullish title，不改变HTML/URL安全边界。

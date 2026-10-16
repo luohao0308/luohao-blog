@@ -8,8 +8,9 @@
       <view class="bubble {{item.role === 'user' ? 'bubble-user' : ''}} {{item.error ? 'bubble-error' : ''}}">
         <text>{{item.text}}</text>
       </view>
+      <button wx:if="{{item.error}}" size="mini" disabled="{{busy}}" bindtap="retry" data-index="{{index}}">重试这个问题</button>
       <view wx:if="{{item.citations.length}}" class="citations">
-        <view class="citations-title">来源文章：</view>
+        <view class="citations-title">参考文章：</view>
         <view
           wx:for="{{item.citations}}"
           wx:for-item="cite"
@@ -22,7 +23,7 @@
         </view>
       </view>
     </view>
-    <view wx:if="{{busy}}" class="typing">正在检索文章并作答…</view>
+    <view wx:if="{{busy}}" class="typing">正在生成回答…</view>
   </view>
 
   <view class="composer">
@@ -31,6 +32,7 @@
       placeholder="问点和文章相关的问题…"
       placeholder-class="composer-placeholder"
       value="{{input}}"
+      maxlength="500"
       confirm-type="send"
       bindinput="onInput"
       bindconfirm="send"

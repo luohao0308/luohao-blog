@@ -28,6 +28,7 @@ func (s *ChatService) Chat(ctx context.Context, req *v1.ChatRequest) (*v1.ChatRe
 	}
 	reply := &v1.ChatReply{
 		Answer:    answer.Answer,
+		Outcome:   v1.ChatOutcome(answer.Outcome),
 		Citations: make([]*v1.CitedArticle, 0, len(answer.Citations)),
 	}
 	for _, a := range answer.Citations {

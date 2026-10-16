@@ -31,6 +31,10 @@ Page({
     this.setData({ loading: true, error: '', searched: true })
     try {
       const set = await searchArticles(query)
+      if (set.search_outcome === 2 || set.search_outcome === 'SEARCH_OUTCOME_UNAVAILABLE') {
+        this.setData({ loading: false, error: '文章检索暂时不可用，请稍后手动重试。' })
+        return
+      }
       const results = (set.articles ?? [])
         .filter((article: Article) => article.status === ARTICLE_STATUS_PUBLISHED)
         .map((article: Article) => ({

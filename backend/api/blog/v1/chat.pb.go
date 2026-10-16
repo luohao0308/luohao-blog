@@ -22,6 +22,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ChatOutcome int32
+
+const (
+	ChatOutcome_CHAT_OUTCOME_UNSPECIFIED            ChatOutcome = 0
+	ChatOutcome_CHAT_OUTCOME_ANSWERED               ChatOutcome = 1
+	ChatOutcome_CHAT_OUTCOME_NO_MATCH               ChatOutcome = 2
+	ChatOutcome_CHAT_OUTCOME_RETRIEVAL_UNAVAILABLE  ChatOutcome = 3
+	ChatOutcome_CHAT_OUTCOME_GENERATION_UNAVAILABLE ChatOutcome = 4
+)
+
+// Enum value maps for ChatOutcome.
+var (
+	ChatOutcome_name = map[int32]string{
+		0: "CHAT_OUTCOME_UNSPECIFIED",
+		1: "CHAT_OUTCOME_ANSWERED",
+		2: "CHAT_OUTCOME_NO_MATCH",
+		3: "CHAT_OUTCOME_RETRIEVAL_UNAVAILABLE",
+		4: "CHAT_OUTCOME_GENERATION_UNAVAILABLE",
+	}
+	ChatOutcome_value = map[string]int32{
+		"CHAT_OUTCOME_UNSPECIFIED":            0,
+		"CHAT_OUTCOME_ANSWERED":               1,
+		"CHAT_OUTCOME_NO_MATCH":               2,
+		"CHAT_OUTCOME_RETRIEVAL_UNAVAILABLE":  3,
+		"CHAT_OUTCOME_GENERATION_UNAVAILABLE": 4,
+	}
+)
+
+func (x ChatOutcome) Enum() *ChatOutcome {
+	p := new(ChatOutcome)
+	*p = x
+	return p
+}
+
+func (x ChatOutcome) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChatOutcome) Descriptor() protoreflect.EnumDescriptor {
+	return file_blog_v1_chat_proto_enumTypes[0].Descriptor()
+}
+
+func (ChatOutcome) Type() protoreflect.EnumType {
+	return &file_blog_v1_chat_proto_enumTypes[0]
+}
+
+func (x ChatOutcome) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChatOutcome.Descriptor instead.
+func (ChatOutcome) EnumDescriptor() ([]byte, []int) {
+	return file_blog_v1_chat_proto_rawDescGZIP(), []int{0}
+}
+
 // ChatRequest is the input for ChatService.Chat.
 type ChatRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -82,8 +137,10 @@ type ChatReply struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The generated answer. Plain text, not Markdown.
 	Answer string `protobuf:"bytes,1,opt,name=answer,proto3" json:"answer,omitempty"`
-	// The published articles the answer drew from, best-match first.
-	Citations     []*CitedArticle `protobuf:"bytes,2,rep,name=citations,proto3" json:"citations,omitempty"`
+	// Retrieved reference candidates, best-match first; not verified per-claim citations.
+	Citations []*CitedArticle `protobuf:"bytes,2,rep,name=citations,proto3" json:"citations,omitempty"`
+	// Explicit result, including degraded HTTP 200 responses.
+	Outcome       ChatOutcome `protobuf:"varint,3,opt,name=outcome,proto3,enum=blog.v1.ChatOutcome" json:"outcome,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -132,7 +189,14 @@ func (x *ChatReply) GetCitations() []*CitedArticle {
 	return nil
 }
 
-// CitedArticle identifies one source article of the answer.
+func (x *ChatReply) GetOutcome() ChatOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return ChatOutcome_CHAT_OUTCOME_UNSPECIFIED
+}
+
+// CitedArticle identifies a retrieved reference candidate.
 type CitedArticle struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
@@ -200,14 +264,21 @@ const file_blog_v1_chat_proto_rawDesc = "" +
 	"\x12blog/v1/chat.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\"=\n" +
 	"\vChatRequest\x12\x19\n" +
 	"\x05query\x18\x01 \x01(\tB\x03\xe0A\x02R\x05query\x12\x13\n" +
-	"\x05top_k\x18\x02 \x01(\x05R\x04topK\"X\n" +
+	"\x05top_k\x18\x02 \x01(\x05R\x04topK\"\x88\x01\n" +
 	"\tChatReply\x12\x16\n" +
 	"\x06answer\x18\x01 \x01(\tR\x06answer\x123\n" +
-	"\tcitations\x18\x02 \x03(\v2\x15.blog.v1.CitedArticleR\tcitations\"R\n" +
+	"\tcitations\x18\x02 \x03(\v2\x15.blog.v1.CitedArticleR\tcitations\x12.\n" +
+	"\aoutcome\x18\x03 \x01(\x0e2\x14.blog.v1.ChatOutcomeR\aoutcome\"R\n" +
 	"\fCitedArticle\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
-	"\asummary\x18\x03 \x01(\tR\asummary2T\n" +
+	"\asummary\x18\x03 \x01(\tR\asummary*\xb2\x01\n" +
+	"\vChatOutcome\x12\x1c\n" +
+	"\x18CHAT_OUTCOME_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15CHAT_OUTCOME_ANSWERED\x10\x01\x12\x19\n" +
+	"\x15CHAT_OUTCOME_NO_MATCH\x10\x02\x12&\n" +
+	"\"CHAT_OUTCOME_RETRIEVAL_UNAVAILABLE\x10\x03\x12'\n" +
+	"#CHAT_OUTCOME_GENERATION_UNAVAILABLE\x10\x042T\n" +
 	"\vChatService\x12E\n" +
 	"\x04Chat\x12\x14.blog.v1.ChatRequest\x1a\x12.blog.v1.ChatReply\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v1/chatBa\n" +
 	"\x18io.grpc.examples.blog.v1B\tChatProtoP\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1b\x06proto3"
@@ -224,21 +295,24 @@ func file_blog_v1_chat_proto_rawDescGZIP() []byte {
 	return file_blog_v1_chat_proto_rawDescData
 }
 
+var file_blog_v1_chat_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_blog_v1_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_blog_v1_chat_proto_goTypes = []any{
-	(*ChatRequest)(nil),  // 0: blog.v1.ChatRequest
-	(*ChatReply)(nil),    // 1: blog.v1.ChatReply
-	(*CitedArticle)(nil), // 2: blog.v1.CitedArticle
+	(ChatOutcome)(0),     // 0: blog.v1.ChatOutcome
+	(*ChatRequest)(nil),  // 1: blog.v1.ChatRequest
+	(*ChatReply)(nil),    // 2: blog.v1.ChatReply
+	(*CitedArticle)(nil), // 3: blog.v1.CitedArticle
 }
 var file_blog_v1_chat_proto_depIdxs = []int32{
-	2, // 0: blog.v1.ChatReply.citations:type_name -> blog.v1.CitedArticle
-	0, // 1: blog.v1.ChatService.Chat:input_type -> blog.v1.ChatRequest
-	1, // 2: blog.v1.ChatService.Chat:output_type -> blog.v1.ChatReply
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 0: blog.v1.ChatReply.citations:type_name -> blog.v1.CitedArticle
+	0, // 1: blog.v1.ChatReply.outcome:type_name -> blog.v1.ChatOutcome
+	1, // 2: blog.v1.ChatService.Chat:input_type -> blog.v1.ChatRequest
+	2, // 3: blog.v1.ChatService.Chat:output_type -> blog.v1.ChatReply
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_chat_proto_init() }
@@ -251,13 +325,14 @@ func file_blog_v1_chat_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_chat_proto_rawDesc), len(file_blog_v1_chat_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_blog_v1_chat_proto_goTypes,
 		DependencyIndexes: file_blog_v1_chat_proto_depIdxs,
+		EnumInfos:         file_blog_v1_chat_proto_enumTypes,
 		MessageInfos:      file_blog_v1_chat_proto_msgTypes,
 	}.Build()
 	File_blog_v1_chat_proto = out.File

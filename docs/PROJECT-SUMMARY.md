@@ -138,3 +138,12 @@ _更新方式：只在稳定事实、仓库拓扑、模块边界、技术决策�
 ## 小程序身份边界
 
 本地F1实现引入v16 `wechat_identities` 与AppID范围票据；旧 `users.wechat_openid` 保留，实际回填必须指定已验证旧AppID。配置 `wechat.enabled` 默认false同时控制登录/绑定；`official_account`独立。具体契约及验证见[小程序身份](contracts/WECHAT-IDENTITY.md)，生产切换见[Runbook](operations/runbooks/formal-miniprogram.md)。这不表示v16已生产部署。
+
+## 10. 视觉、阅读与编辑交互
+
+- `frontend/app/assets/css/main.css` 管理明暗语义变量、公共表单控件、键盘焦点与减少动态偏好；后台 Naive 色值显式映射同一配色（库会计算颜色，不能直接传CSS var）。`plugins/naive-ssr.server.ts` 将现有模块收集的CSS交给Nuxt4 Unhead，后台身份节点延迟至挂载，避免匿名SSR与客户端会话树不一致。
+- `ArticleContent.vue` 复用服务端正文和既有目录ID，增强移动折叠目录、代码复制与原生dialog图片预览；`utils/reading.ts` 在SSR映射后台图片路径。后端安全渲染附加转义的语言元数据；旧存量HTML无元数据时显示通用“代码”，不自动回填。
+- 问答仍为单轮、整包纯文本，新增兼容结果状态区分无匹配、检索故障与生成故障；参考文章是检索候选，非逐句证据。见[结果契约](contracts/SEARCH-CHAT-OUTCOMES.md)。
+- Milkdown正文通过同步ProseMirror事务维护，不依赖200ms防抖回调；文章表单保存快照、离开提醒和保存中继续编辑彼此隔离。初始化失败可在Markdown源码退路继续编辑/保存，无持久草稿或自动发布。
+- 本地浏览器入口与共享真实Go渲染fixture见[scripts/e2e/README.md](../scripts/e2e/README.md)的T-018章节；前端纯逻辑测试 `node --test tests/*.test.cjs` 已纳入现有CI通配入口。
+- 当前Crepe图片块会规范化Markdown图片alt为比例；本地Remark适配将缺省title转为空字符串，修复无title图片被schema静默丢弃。媒体回归按真实节点、URL及编辑/撤销/保存/刷新验证，不以alt字面量替代保图验收。

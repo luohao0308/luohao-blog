@@ -67,3 +67,22 @@ func TestSearchLimiterFailsOpen(t *testing.T) {
 		t.Fatalf("set = %+v, want empty page", set)
 	}
 }
+
+func TestSearchReportsAvailability(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		index biz.ArticleSearchIndex
+		want  v1.SearchOutcome
+	}{
+		{"absent", nil, v1.SearchOutcome_SEARCH_OUTCOME_UNAVAILABLE},
+		{"empty", &stubSearchIndex{}, v1.SearchOutcome_SEARCH_OUTCOME_AVAILABLE},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewArticleSearchService(biz.NewArticleUsecase(&stubArticleRepo{}, tt.index), nil)
+			set, err := svc.SearchArticles(context.Background(), &v1.SearchArticlesRequest{Query: "go"})
+			if err != nil || set.SearchOutcome != tt.want || len(set.Articles) != 0 || set.NextPageToken != "" {
+				t.Fatalf("result: %+v, %v", set, err)
+			}
+		})
+	}
+}

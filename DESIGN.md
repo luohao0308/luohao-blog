@@ -2,100 +2,75 @@
 
 ## Source of truth
 
-- Status: Active draft
-- Last refreshed: 2026-09-30
-- Primary product surfaces: Nuxt 前台首页、文章列表与详情、作品集、关于页、全局导航与页脚
-- Evidence reviewed:
-  - 现有 Nuxt 页面与组件：`frontend/app/layouts/default.vue`、`frontend/app/pages/index.vue`、`frontend/app/pages/archives.vue`、`frontend/app/pages/posts/`、`frontend/app/components/ArticleCard.vue`
-  - 改版计划：[docs/plans/SITE-REVAMP.md](docs/plans/SITE-REVAMP.md)
-  - 用户提供的原型目录：`/Users/luohao/Downloads/Revamp Personal Blog Design/`
-  - 原型路由：`/`、`/writing`、`/writing/:slug`、`/work`、`/work/:slug`、`/about`
-- Implementation contract: 本文件约束视觉语言和接入边界；路由与后端契约以当前 Nuxt 代码和 proto 为准。
+- Status: Active
+- Updated: 2026-10-16
+- Surfaces: Nuxt公开阅读端、账号菜单、RAG问答、Naive UI管理端、Milkdown文章编辑器。
+- Evidence: 当前main bd762c2的布局/组件/文章工具与proto；[已批准优化计划](docs/plans/UI-REFINEMENT-2026-10.md)。
+- Reference: [open-claude-ui固定版本文档](https://github.com/Caho1/open-claude-ui/tree/02d021fceaf2a907f9e63a8125621bdda1b85d60/docs)，v1八篇、v2六章与合并版差异全文阅读并核对相关示例。参考设计原则，行为以本项目代码和测试为准，不以第三方逆向叙述代替官方事实。
 
 ## Brand
 
-- Personality: 安静、克制、清楚，有个人工作痕迹；偏编辑感而不是营销站。
-- Trust signals: 真实文章、明确日期和标签、项目的技术栈与角色、可访问的 GitHub/邮箱。
-- Avoid: 大面积渐变、装饰性玻璃拟态、过重阴影、虚构文章或项目数据、将原型中的示例身份直接带入产品。
+安静、克制、清楚，有真实个人工程实践痕迹。保留蓝灰主色、薄荷辅助色与中性表面；以真实文章、日期、项目和作者身份建立信任。避免大片渐变、厚重投影、装饰性玻璃、虚构内容或照搬Claude品牌。
 
 ## Product goals
 
-- Goals:
-  - 让访客在首屏理解作者是谁、关注什么、最近在做什么。
-  - 让文章和项目成为可扫描、可继续阅读的内容入口。
-  - 保留 SSR、真实 API 数据和暗色模式的现有能力。
-- Non-goals:
-  - 不把 Figma Make 原型整体迁移为独立 Vite 应用。
-  - 不在 P2/P3 提前实现管理后台、评论、AI 侧栏或后端 projects 模块。
-- Success signals: 首页、文章、作品集、关于四类入口可达；真实文章渲染；移动端可用；`pnpm lint && pnpm typecheck && pnpm build` 全绿。
+- 阅读、搜索和参考文章之间可自然跳转；单轮问答的等待、降级与失败可理解、可恢复。
+- 作者编辑内容可保留，保存结果可信；全站明暗、键盘、触摸均可用。
+- 非目标：新UI框架/依赖、流式或多轮会话、模型选择、音频、MCP/Artifacts沙箱、离线自动重发、自动发布、持久草稿。
 
-## Users, actors and jobs
+## Personas and jobs
 
-| Actor | Need | Success signal |
+| 用户 | 任务 | 完成信号 |
 |---|---|---|
-| 技术读者 | 快速判断作者方向并找到相关文章 | 首屏定位清楚，文章可按标签和时间扫描 |
-| 潜在合作方 | 了解作者能力、项目经验和联系方式 | 关于页提供简介、技能、经历和联系入口 |
-| 作者本人 | 持续发布内容并展示项目 | 文章来自 API，项目先由类型化占位数据驱动 |
+| 技术读者 | 搜索、阅读、查看代码和架构图、问博客内容 | 命中结果可见，长文可定位，代码/图片操作可恢复 |
+| 潜在合作方 | 查看真实项目、作者介绍和联系方式 | 信息清晰、入口可访问 |
+| 作者 | 在现有管理端编辑/保存文章 | 初始化/保存失败保留输入，未保存离开有提醒 |
 
-## Information and system flow
+## Information architecture
 
-- 全局导航映射：`/` 首页、`/posts` 文章、`/projects` 作品集、`/archives` 归档、`/about` 关于。
-- 原型的 `/writing` 映射到现有 `/posts`；原型的 `/work` 映射到现有 `/projects`。原型英文路径和“林叙 Lin Xu”身份仅作参考，不直接复制。
-- 首页：作者定位 → 当前状态/进行中 → 精选文章 → 精选项目 → 快捷入口。
-- 文章列表：筛选/标签 → 卡片列表；详情：元信息 → 正文 → 上一篇/下一篇。
-- 作品集：类型化占位数据 → 列表 → 详情；后端 projects 保留给 P4。
+保持首页、/posts、/tags、/categories、/archives、/projects、/about、账号页面和现有/admin路由。文章详情保留元信息、正文/目录、问答、评论、相关文章和上下篇。作品和关于已使用真实后端数据；不恢复旧原型占位数据和/writing、/work路由。
 
 ## Design principles
 
-- 内容优先：标题、摘要、日期和标签比装饰更重要。
-- 低噪声层级：使用大留白、细边框、轻底色和少量彩色表面建立层次。
-- 真实数据优先：文章不使用原型静态示例替代 API；空状态要明确说明。
-- 渐进增强：动效只辅助进入和 hover，`prefers-reduced-motion` 下必须可读、可操作。
-- 复用现有 Tailwind 与 Nuxt 组件，不引入新的 UI 框架。
+内容优先；使用留白、轻底色和细分隔建立层级；减少嵌套边框但保留可辨识控件和焦点。SSR原文先可读，客户端增强。只有真实服务端信号才展示阶段/成功；失败可就地恢复。
 
-## Key decisions
+## Visual language
 
-| Decision | Choice | Reason/evidence | Consequence |
-|---|---|---|---|
-| 原型接入方式 | 提取视觉语言和页面结构，重写为 Nuxt 页面 | 当前项目已有 SSR/API/路由，原型是独立 Vite 静态应用 | 不复制原型的 `src/App.tsx` 或路由实现 |
-| 文章图片 | 首期允许使用稳定的本地视觉资源或无图版卡片 | 当前 Article API 没有封面字段，不能伪造内容 | 后续有媒体契约后再接 cover 字段 |
-| 色彩 | 白底/墨色文字为主，蓝灰、淡紫、薄荷、沙色作为小面积表面色 | 原型的层次感来自低饱和表面色 | 所有颜色同时提供 `dark:` 语义值 |
-| 形状 | `rounded-lg` 以下的小圆角，细边框，克制阴影 | 符合原型的编辑感和仓库前端约束 | 避免卡片套卡片 |
-| 主题 | 延续现有 `html.dark` + CSS variables + localStorage | P1 已完成并在计划中固定 | 新页面必须覆盖暗色、focus、空状态 |
+- Color: main.css拥有surface-page/panel/input/overlay、text-primary/muted、border-default/strong、accent/hover/on-accent、status与focus语义变量，html.dark配对覆盖。蓝灰#3c5d85与暗色浅蓝延续；Naive主题映射同一组变量。
+- Typography: 系统中文字体与等宽代码字体；阅读端舒适行距，长词安全换行；日期/计数tabular-nums。不给系统字体机械施加专有可变轴。
+- Spacing: 小控件紧凑，正文大留白，后台表格密度独立于阅读端；不新增密度开关。
+- Shape/elevation: 标准控件约8px、卡片/代码约12px、浮层轻投影；不复制全部参考组件。
+- Motion: 短颜色/opacity/transform反馈；统一时长/缓动。减少动态偏好下移除非必要动画和平滑滚动，不以CSS本身保证帧率。
+- Imagery/iconography: 真实封面/媒体、alt与尺寸；使用现有图标。正文不套滚动渐隐遮罩。
 
-## States and failure behavior
+## Components
 
-| State/failure | User/system behavior | Recovery |
-|---|---|---|
-| 文章加载中 | 保持布局稳定，显示简洁占位 | 请求完成后替换内容 |
-| 无文章 | 显示“暂无文章/第一篇文章正在路上” | 提供文章入口，不渲染空卡片 |
-| API 错误 | 页面显示可理解的失败提示 | 保留导航，允许重新进入或刷新 |
-| 不存在的文章/项目 | 使用 Nuxt 404 | 提供返回文章/作品集入口 |
-| 移动端导航 | 折叠为菜单或可横向扫描的入口 | 键盘和触摸均可操作 |
+复用ArticleCard/ProjectCard/ThemeToggle/UserMenu/ArticleCollection、Naive UI和Milkdown。账号菜单采用disclosure与自然Tab链接；新增阅读增强组件只拥有目录/复制/图片交互，不引入第二套正文渲染。问答回复保持纯文本，参考卡片来源于真实API。共享样式由main.css管理，组件负责业务状态。
 
-## Accessibility, security and privacy
+## Accessibility
 
-- Accessibility: 目标 WCAG 2.1 AA；语义标题、`nav`/`main`/`article`、可见 focus、跳过导航链接。
-- Security/privacy: 外链使用 `noopener`；文章 HTML 继续由受信任后端渲染；不在前端写入凭据。
+目标WCAG 2.1 AA；语义标题/nav/main/article、跳过导航、可见focus覆盖textarea/select/contenteditable。主要触控目标44px为产品舒适度目标，不误引为2.1 AA要求。Escape关闭浮层并归还焦点，模态预览限制焦点在弹窗内，Tab能退出普通导航组。状态除颜色外有文字，错误可播报，IME合成中的回车/Escape不被误消费。
+
+## Responsive behavior
+
+保持现有断点，卡片与工具栏可按容器实际宽度折行，min-width:0和安全断词；320px不出现页面横向溢出。长代码/表格内部滚动，手机目录折叠，桌面目录旁栏；关键操作不只依赖hover。浏览器新特性仅渐进增强。
+
+## Interaction states
+
+- 搜索：保留服务端相关性顺序；只有本地降级才字面过滤；加载不清空已有列表，空结果/不可用区分。
+- 问答：每次问题独立，保留请求快照，等待/失败/返回结果明确；不凭HTTP200或文案猜结果，不重复添加同一重试问题。参考文章不是逐句证据。先手动重试，不自动重发计费请求。
+- 阅读：复制Promise成功才显示成功；拒绝可恢复且保留原始空白。图片适屏、Escape关闭、焦点归还；禁用JS正文仍可读。
+- 编辑：加载/失败重试、编辑/保存中/失败/成功；初始化重试和保存失败保留正文；有改动离开提醒，保存成功重置dirty。
+
+## Content voice
+
+简体中文、短句、可操作；“参考文章”“每次问题独立回答”。不伪造“正在检索/推理中”等后台阶段；不暴露实现细节、权限凭据或模型内部推理。
 
 ## Implementation constraints
 
-- Framework/styling: Nuxt 4 + Vue 3 + Tailwind CSS 4，保持当前 SSR 和 server API proxy。
-- Data: 文章使用 `useArticleList`/`useArticleBySlug`；项目使用 `frontend/app/data/projects.ts`，直到 P4。
-- Route mapping: 使用当前 `/posts`、`/posts/[slug]`、`/projects`、`/projects/[slug]`，不新增 `/writing` 或 `/work` 别名，除非 SEO 迁移另立任务。
-- Performance: 首屏不加载大体积图库；图片若使用，必须有尺寸、`alt` 和 lazy loading。
-- Test/screenshot expectations: 页面级 SSR 冒烟；前端 lint/typecheck/build；关键页面至少检查桌面和窄屏布局。
-
-## Acceptance criteria
-
-- [ ] 首页采用“作者定位 + 当前状态 + 精选内容”的原型结构，并接入真实文章与现有项目数据。
-- [ ] `/posts` 卡片化展示文章，支持标签入口；详情页提供上下篇导航。
-- [x] `/projects` 与 `/projects/[slug]` 延续原型的项目展示层级，数据来自类型化占位文件。
-- [ ] `/about` 提供简介、技能/关注方向、经历和联系方式。
-- [ ] 全部页面支持现有暗色模式、键盘 focus、加载/空/错误/404 状态。
-- [ ] `pnpm lint && pnpm typecheck && pnpm build` 通过。
+Nuxt4/Vue3/Tailwind4，Naive UI后台，Milkdown编辑器；保留BFF/SSR和后端安全HTML/高亮。proto为契约源，新增结果字段向后兼容并生成代码，同步Web/小程序。无新依赖、无DB迁移、无远端/生产操作。测试先行，逐片lint/typecheck/build与浏览器检查；契约变化再加Go与小程序回归。截图为本地证据，不提交。
 
 ## Open questions
 
-- [ ] 是否为文章引入封面图字段和媒体存储契约？影响文章卡片的图像版式，留给后端/内容模型变更时决定。
-- [ ] 项目占位数据的真实项目名称、链接和截图由谁提供？在 P3 开工前补齐。
+- 本地持久草稿恢复、流式/多轮、图片高级缩放：本轮不做，未来需独立范围与验收。
+- 真实移动设备上的键盘与触控：本轮自动浏览器模拟不等于真机验收，最终报告保留此边界。

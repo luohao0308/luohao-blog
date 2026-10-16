@@ -203,25 +203,41 @@ func (uc *ArticleUsecase) dropIndex(ctx context.Context, slug string) {
 // hydrating the hits through the repo. Unavailable or empty indexes yield an
 // empty page: the public site keeps working without search.
 func (uc *ArticleUsecase) SearchArticles(ctx context.Context, query string, limit, offset int) ([]*Article, error) {
+	result := uc.SearchArticlesWithOutcome(ctx, query, limit, offset)
+	return result.Articles, nil
+}
+
+// ArticleSearchResult distinguishes an empty successful query from an outage.
+type ArticleSearchResult struct {
+	Articles  []*Article
+	Available bool
+}
+
+// SearchArticlesWithOutcome preserves availability for callers that need recovery.
+func (uc *ArticleUsecase) SearchArticlesWithOutcome(ctx context.Context, query string, limit, offset int) ArticleSearchResult {
 	if uc.indexer == nil {
-		return []*Article{}, nil
+		return ArticleSearchResult{Articles: []*Article{}}
 	}
 	slugs, err := uc.indexer.Search(ctx, query, limit, offset)
 	if err != nil {
 		log.Warn("article: search query failed", err)
-		return []*Article{}, nil
+		return ArticleSearchResult{Articles: []*Article{}}
 	}
 	out := make([]*Article, 0, len(slugs))
 	for _, slug := range slugs {
 		a, err := uc.repo.FindBySlug(ctx, slug)
 		if err != nil {
+			if !errors.IsNotFound(err) {
+				log.Warn("article: search hydration failed for "+slug, err)
+				return ArticleSearchResult{Articles: []*Article{}}
+			}
 			continue
 		}
 		if a.Status == ArticleStatusPublished {
 			out = append(out, a)
 		}
 	}
-	return out, nil
+	return ArticleSearchResult{Articles: out, Available: true}
 }
 
 // CreateArticle creates an article. New articles always start as DRAFT:

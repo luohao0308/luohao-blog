@@ -1,6 +1,8 @@
 package render
 
 import (
+	stdhtml "html"
+	"os"
 	"strings"
 	"testing"
 )
@@ -105,11 +107,11 @@ func TestHTMLRawHTMLOmitted(t *testing.T) {
 // allowlisted schemes and relative URLs render normally.
 func TestHTMLUnsafeDestinationsUnwrapped(t *testing.T) {
 	out, err := HTML(
-		"[点我](javascript:alert(1))\n\n"+
-			"[数据](data:text/html;base64,AAAA)\n\n"+
-			"[正常](https://example.com)\n\n"+
-			"[相对](/posts/other)\n\n"+
-			"[锚点](#section)\n\n"+
+		"[点我](javascript:alert(1))\n\n" +
+			"[数据](data:text/html;base64,AAAA)\n\n" +
+			"[正常](https://example.com)\n\n" +
+			"[相对](/posts/other)\n\n" +
+			"[锚点](#section)\n\n" +
 			"![图](javascript:alert(2))\n",
 	)
 	if err != nil {
@@ -128,6 +130,42 @@ func TestHTMLUnsafeDestinationsUnwrapped(t *testing.T) {
 	for _, want := range []string{`href="https://example.com"`, `href="/posts/other"`, `href="#section"`} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("HTML() = %q, want %q to render", out, want)
+		}
+	}
+}
+
+func TestHTMLCodeLanguageMetadata(t *testing.T) {
+	for _, language := range []string{"go", "unknown-language", "go\"onmouseover=\"alert(1)"} {
+		out, err := HTML("```" + language + "\nvalue < tag\n```\n")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out, `data-code-language="`+stdhtml.EscapeString(language)+`"`) {
+			t.Fatalf("missing escaped language metadata: %s", out)
+		}
+	}
+}
+
+// The frontend reads this exact backend-rendered fixture in its reading E2E.
+func TestHTMLCodeLanguageFixture(t *testing.T) {
+	source, err := os.ReadFile("testdata/code-language.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile("testdata/code-language.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := HTML(string(source))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output != string(want) {
+		t.Fatalf("backend code-language fixture drift: regenerate testdata/code-language.html from HTML(testdata/code-language.md)")
+	}
+	for _, fragment := range []string{`data-code-language="go"><pre class="chroma"><code>`, `data-code-language="sh">`, `data-code-language="unknown-language"><pre><code>value &lt; tag &amp; text`, "<div><pre><code>plain code &lt; text\n</code></pre>"} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("missing %q in %s", fragment, output)
 		}
 	}
 }
