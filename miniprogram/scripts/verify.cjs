@@ -11,6 +11,7 @@ let respond = () => ({ statusCode: 200, data: {}, header: {} })
 let calls = []
 let page
 let navigation
+let previewedImage
 function loadPage(name) {
   require(path.join(out, 'pages', name, name + '.js'))
   const instance = { ...page, data: structuredClone(page.data) }
@@ -33,6 +34,7 @@ global.wx = {
     queueMicrotask(() => Promise.resolve(respond(options)).then(options.success, options.fail))
   },
   showToast() {}, setNavigationBarTitle() {}, pageScrollTo() {},
+  previewImage: options => { previewedImage = options },
   navigateTo: options => { navigation = options.url },
 }
 async function main() {
@@ -40,7 +42,7 @@ async function main() {
   const api = require(path.join(out, 'utils/api.js'))
   const auth = require(path.join(out, 'utils/auth.js'))
   const config = require(path.join(out, 'utils/config.js'))
-  const { decorateArticleHtml } = require(path.join(out, 'utils/html.js'))
+  const { decorateArticleHtml, articleContentBlocks } = require(path.join(out, 'utils/html.js'))
   // ArticleForm inserts root-relative API images. rich-text needs absolute URLs.
   const relativeImage = '/api/v1/assets/media/image-fixture.jpg'
   const absoluteImage = 'https://makerhao.cn' + relativeImage
@@ -50,6 +52,34 @@ async function main() {
   assert.ok(decorateArticleHtml("<IMG SRC='/api/v1/assets/media/image-fixture.jpg'>").includes(`SRC='${absoluteImage}'`))
   assert.ok(decorateArticleHtml('<img data-src="unchanged" src="/api/v1/assets/media/image-fixture.jpg">').includes('data-src="unchanged"'))
   assert.ok(decorateArticleHtml('<img src="https://images.example.invalid/public.jpg">').includes('src="https://images.example.invalid/public.jpg"'))
+  const noImageHtml = '<h2>Title</h2><ul><li>First</li><li>Second</li></ul><pre><code>&lt;img&gt;</code></pre>'
+  assert.equal(articleContentBlocks(noImageHtml)[0].html, noImageHtml, 'text-only article HTML must remain unchanged')
+  const twoImages = articleContentBlocks(decorateArticleHtml(`<p>Before</p><p><img src="${relativeImage}" alt="first > image"></p><p>Between</p><p><a href="https://example.invalid"><img src='https://images.example.invalid/second.jpg?x=1&amp;y=2'></a></p><p>After</p>`))
+  assert.deepEqual(twoImages.map(block => block.type), ['html', 'image', 'html', 'image', 'html'])
+  assert.deepEqual(twoImages.filter(block => block.type === 'html').map(block => block.html.replace(/<[^>]*>/g, '')), ['Before', 'Between', 'After'])
+  assert.equal(twoImages[1].src, absoluteImage)
+  assert.equal(twoImages[3].src, 'https://images.example.invalid/second.jpg?x=1&y=2')
+  assert.deepEqual(twoImages.map(block => block.key), [0, 1, 2, 3, 4])
+  const inlineImageHtml = `<p>Before<img src="${absoluteImage}">After</p>`
+  assert.equal(articleContentBlocks(inlineImageHtml)[0].html, inlineImageHtml, 'mixed inline paragraphs retain layout and get an explicit preview action')
+  const complexHtml = decorateArticleHtml(`<ol><li>First<img src="${absoluteImage}">continued</li><li>Second</li></ol><table><tr><td>Before<img src="${absoluteImage}">After</td><td>Other</td></tr></table><blockquote>Quote<img src="${absoluteImage}">continued</blockquote>`)
+  const nestedImages = articleContentBlocks(complexHtml)
+  assert.equal(nestedImages.length, 1)
+  assert.equal(nestedImages[0].html, complexHtml, 'list numbering, table cells and quote containers must not be split or duplicated')
+  assert.deepEqual(nestedImages[0].imageUrls, [absoluteImage], 'repeated sources need one stable preview action')
+  const mixedImages = articleContentBlocks(`<p><img src="${absoluteImage}"></p>${complexHtml}<p><img src="${absoluteImage}"></p>`)
+  assert.deepEqual(mixedImages.map(block => block.type), ['image', 'html', 'image'])
+  assert.equal(mixedImages[1].html, complexHtml, 'surrounding native images must leave the complex fragment byte-identical')
+  const imageOnlyTable = `<table><tr><td><img src="${absoluteImage}"></td></tr></table>`
+  assert.equal(articleContentBlocks(`<img src="${absoluteImage}">${imageOnlyTable}<img src="${absoluteImage}">`)[1].html, imageOnlyTable, 'image-only complex fragments must not disappear between native images')
+  const unknownContainer = `<figure><img src="${absoluteImage}"></figure>`
+  assert.equal(articleContentBlocks(`<img src="${absoluteImage}">${unknownContainer}`)[1].html, unknownContainer, 'unknown containers are preserved, including image-only content')
+  assert.equal(articleContentBlocks(`<p><a href="https://example.invalid"><img src="${absoluteImage}"></a></p>`).length, 1, 'standalone linked image must not create empty rich-text fragments')
+  const misleadingAlt = articleContentBlocks(`<img alt="src='https://wrong.example.invalid/a.jpg'" src="${absoluteImage}">`)
+  assert.equal(misleadingAlt[0].src, absoluteImage, 'src text in an alt attribute is not an image URL')
+  for (const src of ['', 'javascript:alert(1)', 'data:image/png;base64,test', '//example.invalid/a.jpg']) {
+    assert.equal(articleContentBlocks(`<img src="${src}">`).some(block => block.type === 'image'), false)
+  }
   const favorites = require(path.join(out, 'utils/favorites.js'))
   const request = require(path.join(out, 'utils/request.js'))
   const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json'), 'utf8'))
@@ -282,6 +312,17 @@ async function main() {
   assert.equal(post.data.error, '')
   assert.ok(post.data.html.includes(`src="${absoluteImage}"`), 'actual article fetch must normalize image URLs before rich-text receives them')
   assert.ok(post.data.html.includes('max-width:100%'), 'body images must stay within the content width')
+  assert.deepEqual(post.data.imageUrls, [absoluteImage])
+  assert.equal(post.data.contentBlocks[1].type, 'image')
+  previewedImage = undefined
+  post.previewPostImage({ currentTarget: { dataset: { src: 'https://not-in-article.example.invalid/a.jpg' } } })
+  assert.equal(previewedImage, undefined, 'unknown or text taps must never open a preview')
+  post.data.imageUrls = [absoluteImage, 'https://images.example.invalid/second.jpg']
+  post.previewPostImage({ currentTarget: { dataset: { src: post.data.imageUrls[1] } } })
+  assert.deepEqual(previewedImage, { current: post.data.imageUrls[1], urls: post.data.imageUrls }, 'the tapped image must open at its correct gallery position')
+  const postMarkup = fs.readFileSync(path.join(root, 'miniprogram/pages/post/post.wxml'), 'utf8')
+  assert.match(postMarkup, /<image[^>]*data-src="{{item.src}}"[^>]*bindtap="previewPostImage"/)
+  assert.match(postMarkup, /wx:elif="{{commentAuthLoading}}"[^>]*class="composer-status"/)
   post.data.slug = 'fixture'
   post.data.likeCount = 9
   respond = () => ({ statusCode: 503, header: {}, data: { message: 'unavailable' } })
@@ -293,6 +334,122 @@ async function main() {
   await post.toggleLike()
   assert.equal(post.data.likeCount, 10)
   assert.equal(favorites.isLiked('fixture'), true)
+  // First article entry silently restores an expired access session once.
+  const composerRotation = deferred()
+  const composerStarted = deferred()
+  calls = []
+  storage.set('auth:expireAt', 0)
+  storage.set('auth:refresh', 'composer-refresh-fixture')
+  respond = options => {
+    assert.ok(options.url.endsWith('/auth/refresh'))
+    composerStarted.resolve()
+    return composerRotation.promise
+  }
+  const firstComposer = post.refreshComposer()
+  assert.equal(post.data.commentAuthLoading, true, 'expired session must display restoration rather than the guest prompt')
+  assert.equal(post.data.canComment, false)
+  const duplicateComposer = post.refreshComposer()
+  await composerStarted.promise
+  assert.equal(calls.length, 1, 'onLoad/onShow must share one refresh')
+  composerRotation.resolve({ statusCode: 200, header: {}, data: loginReply })
+  await Promise.all([firstComposer, duplicateComposer])
+  assert.equal(post.data.commentAuthLoading, false)
+  assert.equal(post.data.canComment, true, 'successful restoration enables the composer without re-entering the article')
+  assert.equal(post.data.commentAccountId, wireUser.id)
+
+  storage.set('auth:expireAt', 0)
+  respond = () => ({ statusCode: 401, header: {}, data: {} })
+  await post.refreshComposer()
+  assert.equal(post.data.canComment, false, 'expired refresh becomes guest')
+  assert.equal(post.data.commentAuthLoading, false)
+  calls = []
+  await post.refreshComposer()
+  assert.equal(calls.length, 0, 'a guest without a refresh token must not send a refresh request')
+  assert.equal(post.data.commentAuthLoading, false)
+
+  // A late restoration from A must not overwrite a newer B login or private draft.
+  const composerOld = deferred()
+  const composerOldStarted = deferred()
+  storage.set('auth:access', 'composer-old-access')
+  storage.set('auth:refresh', 'composer-old-refresh')
+  storage.set('auth:expireAt', 0)
+  storage.set('auth:account', wireUser)
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      composerOldStarted.resolve()
+      return composerOld.promise
+    }
+    return { statusCode: 200, header: { 'Set-Cookie': 'refresh_token=composer-new-refresh; HttpOnly' }, data: { ...loginReply, user: { ...wireUser, id: 'composer-b' } } }
+  }
+  const oldComposer = post.refreshComposer()
+  await composerOldStarted.promise
+  await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
+  await post.refreshComposer()
+  post.data.commentInput = 'B draft'
+  composerOld.resolve({ statusCode: 200, header: {}, data: loginReply })
+  await oldComposer
+  assert.equal(post.data.commentAccountId, 'composer-b')
+  assert.equal(post.data.canComment, true)
+  assert.equal(post.data.commentInput, 'B draft')
+
+  // Navigating away invalidates view callbacks; returning reads the restored auth.
+  const hiddenRotation = deferred()
+  const hiddenStarted = deferred()
+  storage.set('auth:expireAt', 0)
+  respond = () => {
+    hiddenStarted.resolve()
+    return hiddenRotation.promise
+  }
+  const hiddenComposer = post.refreshComposer()
+  await hiddenStarted.promise
+  post.onHide()
+  const hiddenSnapshot = structuredClone(post.data)
+  hiddenRotation.resolve({ statusCode: 200, header: {}, data: { ...loginReply, user: { ...wireUser, id: 'composer-b' } } })
+  await hiddenComposer
+  assert.deepEqual(post.data, hiddenSnapshot, 'a hidden page must not receive its stale restoration callback')
+  await post.refreshComposer()
+  assert.equal(post.data.canComment, true)
+
+  const unloadedRotation = deferred()
+  const unloadedStarted = deferred()
+  storage.set('auth:expireAt', 0)
+  respond = () => {
+    unloadedStarted.resolve()
+    return unloadedRotation.promise
+  }
+  const unloadedComposer = post.refreshComposer()
+  await unloadedStarted.promise
+  post.onUnload()
+  const unloadedSnapshot = structuredClone(post.data)
+  unloadedRotation.resolve({ statusCode: 200, header: {}, data: { ...loginReply, user: { ...wireUser, id: 'composer-b' } } })
+  await unloadedComposer
+  assert.deepEqual(post.data, unloadedSnapshot, 'an unloaded page must not be updated by restoration')
+  await post.refreshComposer()
+
+  // Logout wins over an article restoration that is already on the wire.
+  const composerExitRotation = deferred()
+  const composerExitStarted = deferred()
+  storage.set('auth:expireAt', 0)
+  respond = options => {
+    if (options.url.endsWith('/auth/refresh')) {
+      composerExitStarted.resolve()
+      return composerExitRotation.promise
+    }
+    return { statusCode: 200, header: {}, data: {} }
+  }
+  const exitedComposer = post.refreshComposer()
+  await composerExitStarted.promise
+  const composerLogout = auth.logout()
+  await post.refreshComposer()
+  composerExitRotation.resolve({ statusCode: 200, header: { 'Set-Cookie': 'refresh_token=composer-exit-rotated; HttpOnly' }, data: loginReply })
+  await Promise.all([exitedComposer, composerLogout])
+  assert.equal(post.data.canComment, false)
+  assert.equal(post.data.commentAccountId, '')
+  assert.equal(post.data.commentAuthLoading, false)
+  assert.equal(post.data.commentInput, '')
+  respond = () => ({ statusCode: 200, header: {}, data: loginReply })
+  await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
+
   storage.set('auth:account', { id: 'account-a', displayName: 'A' })
   storage.set('auth:expireAt', Date.now() + 60_000)
   post.refreshComposer()
@@ -531,6 +688,6 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
-  console.log('Mini logic PASS: wire account/avatar mapping, auth replay/logout revocation and rotation races, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
+  console.log('Mini logic PASS: wire account/avatar mapping, auth replay/logout revocation and rotation races, comment auth restoration/status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))

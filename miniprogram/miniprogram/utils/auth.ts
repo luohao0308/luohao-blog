@@ -24,6 +24,15 @@ export function isLoggedIn(): boolean {
   return Boolean(loadAccessToken()) && Date.now() < expireAt - 30_000
 }
 
+// Only exposes whether silent restoration is possible, never the token itself.
+export function hasRefreshSession(): boolean {
+  try {
+    return Boolean(wx.getStorageSync(REFRESH_KEY))
+  } catch {
+    return false
+  }
+}
+
 // 同时兼容修复前缓存的 wire user；已转换的账号再次读取保持不变。
 function toAccount(user: UserReply | Account): Account {
   return {

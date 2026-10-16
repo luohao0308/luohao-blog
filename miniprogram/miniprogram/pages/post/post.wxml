@@ -16,7 +16,17 @@
     <view wx:if="{{tags.length}}" class="post-tags">
       <text wx:for="{{tags}}" wx:key="*this" class="chip">{{item}}</text>
     </view>
-    <rich-text class="post-content" nodes="{{html}}"></rich-text>
+    <view class="post-content">
+      <block wx:for="{{contentBlocks}}" wx:key="key">
+        <image wx:if="{{item.type === 'image'}}" class="post-image" src="{{item.src}}" mode="widthFix" data-src="{{item.src}}" bindtap="previewPostImage" aria-label="正文图片，点击查看大图" />
+        <view wx:else>
+          <rich-text nodes="{{item.html}}"></rich-text>
+          <view wx:if="{{item.imageUrls.length}}" class="post-image-links">
+            <text wx:for="{{item.imageUrls}}" wx:for-item="imageSrc" wx:for-index="imageIndex" wx:key="*this" data-src="{{imageSrc}}" bindtap="previewPostImage">查看文中图片 {{imageIndex + 1}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
 
     <!-- 互动条：点赞 / 收藏 -->
     <view class="action-bar">
@@ -73,6 +83,9 @@
         <text class="composer-count {{commentLength > 1000 ? 'composer-count-error' : ''}}">{{commentLength}}/1000</text>
         <button class="composer-send" size="mini" loading="{{commentBusy}}" disabled="{{commentBusy || !commentInput || commentLength > 1000}}" bindtap="submitComment">发送</button>
       </block>
+      <view wx:elif="{{commentAuthLoading}}" class="composer-status">
+        正在恢复登录状态…
+      </view>
       <view wx:else class="composer-login" bindtap="goLogin">
         登录后参与讨论 →
       </view>

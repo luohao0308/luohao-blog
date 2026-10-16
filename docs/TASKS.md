@@ -14,9 +14,9 @@ _last-updated: 2026-10-16_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
-| T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | PR #97/#98及后端90ca4f8已上线；旧wx580手机核心流程全部用户确认正常。正式目标已选wxf271；三片计划已确认，F1身份隔离v16已随PR #99合并74411f3，CI真实驱动演练通过；自动镜像构建成功且摘要核验通过，F2经独立恢复授权后已完成v16迁移/旧身份回填与正式号凭据启用，站点公开入口正常；request域名已保存，正式号QQ站长首绑/再次登录及头像、阅读、Go筛选、搜索、收藏、AI与来源跳转已由用户确认；正文图片无样本，覆盖待补。隐私完整指引及补充TXT已按单独授权提交，平台确认审核中；UGC资料/文本及人工审核声明草稿已准备，待准确授权提交，备案本轮核对仍管局审核中。退出令牌/刷新竞态及正文图相对地址问题已本地修复并通过独立审查，待准确版本交付和正式手机补验 |
-| T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。正式号核心真机流程已用户确认；正文图片和平台发布准备仍待完成 |
-| T-011 | 微信小程序阅读端：S1–S4已合并；正式目标wxf27116cc66cc49a4，旧代码/预览wx58089476f518fd3f | miniprogram + backend | [原计划](plans/MINIPROGRAM-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式AppID身份隔离、域名/凭据及核心真机已完成；正文图片覆盖待补，隐私/UGC声明、备案结果及上传提审发布尚待完成；没有web-view |
+| T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式后端744/v16与身份绑定、域名和核心真机已验收；PR #100退出会话/正文图地址修复已合并8feb334且CI/release通过，新29e预览手机确认图片显示。UGC已声明，隐私最新为已更新，备案仍管局审核中。手机新增发现首次文章登录提示失步、正文图无点击预览；已本地修复并通过测试/独立复核和模拟器点击链路，待新准确版本交付与手机复验。专属测试文章已回草稿、公开404，正文/精选未变；服务器退出撤销真机验收尚未进行 |
+| T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。正式号核心真机流程已用户确认；正文图片显示已手机确认；点击预览、会话复验和平台发布准备仍待完成 |
+| T-011 | 微信小程序阅读端：S1–S4已合并；正式目标wxf27116cc66cc49a4，旧代码/预览wx58089476f518fd3f | miniprogram + backend | [原计划](plans/MINIPROGRAM-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式AppID身份隔离、域名/凭据及核心真机已完成；正文图片显示已确认，点击预览/会话补丁待交付；隐私已更新、UGC已声明，备案结果及上传提审发布尚待完成；没有web-view |
 
 ## 待办 (Todo)
 
@@ -114,7 +114,7 @@ _第二轮 review（2026-10-04，全量记录见 `docs/plans/REVIEW-ROUND2-2026-
 
 | 项目 | 风险 | 说明 |
 |---|---|---|
-| 小程序退出未撤销服务器刷新会话 | 中 | 本地已修：退出携带当前刷新令牌，按会话版本等待对应旋转，阻止旧刷新恢复登录或撤销错误会话；固定失败诊断不附令牌。先失败后修复的回归、typecheck/test及独立复审通过，尚未交付或正式手机验收，生产行为未变。 |
+| 小程序退出未撤销服务器刷新会话 | 中 | 本地已修：退出携带当前刷新令牌，按会话版本等待对应旋转，阻止旧刷新恢复登录或撤销错误会话；固定失败诊断不附令牌。先失败后修复的回归、typecheck/test及独立复审通过，PR #100已交付并生成正式号预览；手机退出撤销尚未实测，本轮服务器版本未变。 |
 | ~~useAuth 登出与 in-flight 刷新竞态~~ | 已修复 | #29：logout 先 await 在途 refreshOnce 再撤销会话（`useAuth.ts` logout）；2026-10-06 复核代码在位 |
 | ~~运维资产在版本库外~~ | 已修复 | #29：docs/、AGENTS.md、deploy/watchdog.sh 入库，runbook §5.1 补定时任务节（backup 03:10 + watchdog */5 真相源）；本地备份心跳已有 Kuma；异地同步失败/超过 26h 未成功的告警配置本轮验证通过，服务器生效待 S4 |
 | ~~LLM 120s vs HTTP server 60s 超时错配~~ | 已修复 | #29：HTTP deadline 提至 150s 并文档化与 llm.timeout 的耦合 |
