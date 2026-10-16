@@ -28,7 +28,7 @@ const (
 //
 // ChatService answers visitor questions with retrieval-augmented generation:
 // the question is answered from the blog's published articles, and the reply
-// cites the articles the answer drew from. Generation requires the LLM config;
+// includes retrieved reference articles. Generation requires the LLM config;
 // retrieval reuses the hybrid article search. Authorization: public.
 type ChatServiceClient interface {
 	// Chat answers one question with citations. Rate limited per client IP.
@@ -61,7 +61,7 @@ func (c *chatServiceClient) Chat(ctx context.Context, in *ChatRequest, opts ...g
 //
 // ChatService answers visitor questions with retrieval-augmented generation:
 // the question is answered from the blog's published articles, and the reply
-// cites the articles the answer drew from. Generation requires the LLM config;
+// includes retrieved reference articles. Generation requires the LLM config;
 // retrieval reuses the hybrid article search. Authorization: public.
 type ChatServiceServer interface {
 	// Chat answers one question with citations. Rate limited per client IP.

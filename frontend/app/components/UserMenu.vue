@@ -7,6 +7,22 @@
 const { user, logout } = useAuth()
 
 const menuOpen = ref(false)
+const route = useRoute()
+const triggerEl = ref<HTMLButtonElement | null>(null)
+const navigationId = useId()
+watch(() => route.fullPath, () => { menuOpen.value = false })
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229 || !menuOpen.value) return
+  event.preventDefault()
+  menuOpen.value = false
+  triggerEl.value?.focus()
+}
+
+function onFocusout(event: FocusEvent) {
+  if (event.relatedTarget && !rootEl.value?.contains(event.relatedTarget as Node)) menuOpen.value = false
+}
+
 const rootEl = ref<HTMLElement | null>(null)
 
 function onDocumentClick(event: MouseEvent) {
@@ -37,17 +53,18 @@ async function signOut() {
   <NuxtLink
     v-if="!user"
     to="/login"
-    class="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-500 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
+    class="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
   >
     登录
   </NuxtLink>
 
-  <div v-else ref="rootEl" class="relative">
+  <div v-else ref="rootEl" class="relative" @keydown="onKeydown" @focusout="onFocusout">
     <button
+      ref="triggerEl"
       type="button"
-      class="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+      class="flex h-11 w-11 items-center justify-center rounded-full transition-opacity hover:opacity-80"
       :aria-expanded="menuOpen"
-      aria-haspopup="menu"
+      :aria-controls="navigationId"
       :aria-label="`${user.display_name} 的账号菜单`"
       @click="menuOpen = !menuOpen"
     >
@@ -59,31 +76,30 @@ async function signOut() {
       >
       <span
         v-else
-        class="flex h-8 w-8 items-center justify-center rounded-full bg-[#3c5d85] text-sm font-semibold text-white dark:bg-blue-600"
+        class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-semibold text-[var(--on-accent)]"
       >{{ initial }}</span>
     </button>
 
-    <div
+    <nav
       v-if="menuOpen"
-      role="menu"
-      class="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+      :id="navigationId"
+      aria-label="账号导航"
+      class="absolute right-0 top-full z-50 mt-2 w-56 rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-overlay)] shadow-lg"
     >
-      <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div class="border-b border-[var(--border-default)] px-4 py-3">
         <p class="truncate text-sm font-medium">{{ user.display_name }}</p>
-        <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+        <p class="truncate text-xs text-[var(--text-muted)]">{{ user.email }}</p>
       </div>
       <NuxtLink
         to="/settings"
-        role="menuitem"
-        class="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+        class="account-item px-4 py-2.5 text-sm transition-colors"
         @click="menuOpen = false"
       >
         个人设置（头像 / 昵称）
       </NuxtLink>
       <NuxtLink
         to="/login?switch=1"
-        role="menuitem"
-        class="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+        class="account-item px-4 py-2.5 text-sm transition-colors"
         @click="menuOpen = false"
       >
         切换账号
@@ -91,20 +107,18 @@ async function signOut() {
       <NuxtLink
         v-if="isAdmin"
         to="/admin"
-        role="menuitem"
-        class="block px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+        class="account-item px-4 py-2.5 text-sm transition-colors"
         @click="menuOpen = false"
       >
         进入后台
       </NuxtLink>
       <button
         type="button"
-        role="menuitem"
-        class="block w-full px-4 py-2.5 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+        class="account-item w-full px-4 py-2.5 text-left text-sm transition-colors"
         @click="signOut"
       >
         退出登录
       </button>
-    </div>
+    </nav>
   </div>
 </template>

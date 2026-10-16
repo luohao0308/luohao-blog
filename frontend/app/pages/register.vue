@@ -69,10 +69,10 @@ async function submit() {
 
 <template>
   <div class="mx-auto max-w-sm pt-12">
-    <div class="space-y-6 rounded-xl border border-slate-200 p-6 dark:border-slate-800">
+    <div class="ui-panel space-y-6 p-6">
       <header class="space-y-3">
         <h1 class="text-2xl font-bold tracking-tight">
-          注册 <span class="text-blue-600 dark:text-blue-400">luohao</span><span>.blog</span>
+          注册 <span class="text-[var(--accent)]">luohao</span><span>.blog</span>
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">一分钟注册，登录后即可发表评论（评论先审后显）。</p>
       </header>
@@ -82,22 +82,22 @@ async function submit() {
           type="text"
           maxlength="32"
           autocomplete="nickname"
-          placeholder="昵称（1-32 个字，评论区展示）"
-          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          aria-label="昵称（1-32 个字，评论区展示）" placeholder="昵称（1-32 个字，评论区展示）"
+          class="ui-field w-full px-3 py-2 text-sm"
         >
         <input
           v-model="email"
           type="email"
           autocomplete="username"
-          placeholder="邮箱"
-          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          aria-label="邮箱" placeholder="邮箱"
+          class="ui-field w-full px-3 py-2 text-sm"
         >
         <input
           v-model="password"
           type="password"
           autocomplete="new-password"
-          placeholder="密码（至少 8 位）"
-          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-900"
+          aria-label="密码（至少 8 位）" placeholder="密码（至少 8 位）"
+          class="ui-field w-full px-3 py-2 text-sm"
         >
         <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400" role="alert">
           {{ errorMsg }}
@@ -105,14 +105,14 @@ async function submit() {
         <button
           type="submit"
           :disabled="pending"
-          class="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+          class="ui-button w-full px-4 py-2 text-sm font-medium"
         >
           {{ pending ? '注册中…' : '注册并登录' }}
         </button>
       </form>
       <p class="text-center text-sm text-slate-500 dark:text-slate-400">
         已有账号？
-        <NuxtLink :to="`/login?redirect=${encodeURIComponent(redirect)}`" class="text-blue-600 hover:underline dark:text-blue-400">
+        <NuxtLink :to="`/login?redirect=${encodeURIComponent(redirect)}`" class="ui-link hover:underline">
           登录
         </NuxtLink>
       </p>

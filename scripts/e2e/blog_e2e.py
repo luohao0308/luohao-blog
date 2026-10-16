@@ -242,15 +242,16 @@ def t11(page, ctx):
     page.goto(f"{BASE_URL}/posts/ai-delivery-guard", wait_until="networkidle")
     box = page.locator('section[aria-label="AI 问答"]')
     assert box.is_visible(), "AI 问答组件未渲染"
-    fill_hydrated(box.locator("input"), "415 行的交付守卫是怎么工作的？")
-    box.locator('button:has-text("提问")').click()
-    # 提问后输入框被清空、按钮合理保持禁用；等待「回答气泡」出现而非按钮恢复。
-    # 第 1 个气泡是用户提问，第 2 个是助手回答（或兜底/错误文案）。
-    # 气泡类名曾被 rounded-lg→rounded-xl 统一改版，选择器按 class*="rounded" 保持与改版无关
-    page.wait_for_selector('section[aria-label="AI 问答"] div[class*="rounded"] >> nth=1', timeout=60_000)
-    reply = box.locator('div[class*="rounded"]').nth(1).inner_text()
+    fill_hydrated(box.get_by_label("你的问题", exact=True), "415 行的交付守卫是怎么工作的？")
+    box.get_by_role("button", name="提问", exact=True).click()
+    # Require real generation and reference links; a nonempty fallback alone
+    # does not prove that the LLM is reachable.
+    box.get_by_role("status").filter(has_text="回答已生成").wait_for(timeout=130_000)
+    reply = box.get_by_test_id("chat-answer").first.inner_text()
     assert reply.strip(), "助手回答为空"
-    assert "出处：" in box.inner_text() or reply.strip(), "回答既无出处也无内容"
+    assert box.get_by_role("heading", name="参考文章", exact=True).is_visible()
+    assert box.locator('a[href^="/posts/"]').count() > 0, "缺少检索参考链接"
+
 
 
 # ---------------------------------------------------------------- 管理后台

@@ -45,6 +45,7 @@ export interface Article {
 export interface ArticleSet {
   articles: Article[]
   next_page_token?: string
+  search_outcome?: number | string
 }
 
 export function useArticleList(opts?: { pageSize?: number, filter?: string, orderBy?: string }) {
@@ -86,6 +87,8 @@ export async function searchPublishedArticles(query: string, pageSize = 100): Pr
   const page = await requestFetch<ArticleSet>('/api/v1/search/articles', {
     query: { query, page_size: pageSize },
   })
+  if (page.search_outcome === 2 || page.search_outcome === 'SEARCH_OUTCOME_UNAVAILABLE')
+    throw createError({ statusCode: 503, message: '搜索服务暂不可用' })
   return (page.articles ?? []).filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
 }
 

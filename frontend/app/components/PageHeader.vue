@@ -14,7 +14,7 @@ defineProps<{
     <h1 class="break-words text-2xl font-bold tracking-tight">
       {{ title }}
     </h1>
-    <p v-if="description" class="text-sm leading-6 text-slate-500 dark:text-slate-400">
+    <p v-if="description" class="text-sm leading-6 text-[var(--text-muted)]">
       {{ description }}
     </p>
   </header>

@@ -31,6 +31,8 @@ _last-updated: 2026-10-16_
 
 ## 已完成 (Done)
 
+- [x] T-018 博客视觉与交互优化 S1–S4 本地完成：统一主题/键盘基线、搜索与单轮问答结果状态、阅读复制/图片预览、编辑器恢复/同步保存与离开保护；前端/Go/小程序检查、最终六套生产模式浏览器及独立复核通过。分支 `codex/blog-ui-refinement`，未推送/PR/部署，真实LLM与小程序真机未验；详见[计划](plans/UI-REFINEMENT-2026-10.md)。
+
 - [x] T-015 头像入口/编码修复、RSS 与首页邮件订阅入口移除、公众号自动草稿同步已生产交付；保留既有订阅数据。永久封面与 HTTPS 原文地址已配置，真实草稿联调通过。个人主体上次公开发表接口返回 48001，现采用自动同步草稿后人工发表，未声称已具备公开发表/群发权限；当前权限如需改变须重新核实。文章/作品/关于页的后续实现归 T-016。计划见 `docs/plans/ACCOUNT-AVATAR-WECHAT-2026-10.md`。
 
 - [x] T-016 网站能力补齐六片已上线：[PR #95](https://github.com/luohao0308/luohao-blog/pull/95) 与并发测试通知修复 [PR #96](https://github.com/luohao0308/luohao-blog/pull/96)，生产版本 `30e291dc2167229e6018bd3cd3e1a540a7607ea0`；CI 与 [release](https://github.com/luohao0308/luohao-blog/actions/runs/38772498032) 通过。SQL/uploads/配置备份校验、v11→v15（dirty=false）、原账号/文章/头像保留、42 项公开/API/SEO/负向检查及 8 个桌面/手机页面通过；看门狗已改用容器健康状态。DirectMail 唯一配置测试邮件已由用户确认进入收件箱；随后以自有 READER 账号完成生产验证邮件、密码找回与新密码登录，旧密码和原刷新会话均返回401；账号按授权保留，其他账号不变。管理员写入未在本轮重复执行。计划见 `docs/plans/WEBSITE-COMPLETION-2026-10.md`。

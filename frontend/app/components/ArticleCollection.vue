@@ -43,6 +43,7 @@ watch(query, (value) => {
 })
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer)
+  searchRequest++
 })
 const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags ?? []))].sort())
 const articles = computed(() => (searchResults.value ?? data.value ?? []).filter(article => {
@@ -51,12 +52,12 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
   const text = `${article.title} ${article.summary ?? ''} ${tagList.join(' ')}`.toLocaleLowerCase()
   return (!props.categorySlug || article.category?.slug === props.categorySlug)
     && (!props.tag || tagList.includes(props.tag))
-    && text.includes(query.value.trim().toLocaleLowerCase())
+    && (!searchError.value || text.includes(query.value.trim().toLocaleLowerCase()))
 }))
 </script>
 
 <template>
-  <section class="space-y-6" aria-label="文章列表" :aria-busy="status === 'pending'">
+  <section class="space-y-6" aria-label="文章列表" :aria-busy="status === 'pending' || searchPending">
     <div class="flex flex-col gap-5 border-y border-slate-200 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
       <nav aria-label="文章标签" class="flex min-w-0 flex-wrap gap-2 text-xs">
         <NuxtLink to="/posts" :aria-current="!tag ? 'page' : undefined" class="rounded-full px-3.5 py-1.5" :class="!tag ? 'bg-[#3c5d85] text-white dark:bg-blue-300 dark:text-slate-950' : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'">全部</NuxtLink>
@@ -64,15 +65,16 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
       </nav>
       <div class="w-full shrink-0 sm:w-56">
         <label for="article-search" class="sr-only">搜索文章</label>
-        <input id="article-search" v-model="query" type="search" placeholder="搜索文章" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+        <input id="article-search" v-model="query" type="search" placeholder="搜索文章" class="ui-field w-full text-sm">
       </div>
     </div>
     <div v-if="error" role="alert" class="space-y-3 py-12 text-center">
       <p class="text-sm text-slate-600 dark:text-slate-400">文章加载失败，请稍后重试。</p>
       <button type="button" class="text-sm text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>
     </div>
-    <p v-else-if="status === 'pending' || searchPending" role="status" class="py-12 text-center text-sm text-slate-500">正在加载文章…</p>
+    <p v-else-if="status === 'pending'" role="status" class="py-12 text-center text-sm text-slate-500">正在加载文章…</p>
     <template v-else>
+      <p v-if="searchPending" role="status" class="text-sm text-[var(--text-muted)]">正在搜索，结果即将更新…</p>
       <p v-if="searchError" class="text-xs text-slate-500 dark:text-slate-400">搜索服务暂不可用，已显示本地匹配结果。</p>
       <p role="status" class="text-xs text-slate-500 dark:text-slate-400">{{ articles.length }} 篇文章</p>
       <div v-if="articles.length" class="grid auto-rows-fr gap-5 sm:grid-cols-2">

@@ -29,7 +29,8 @@ const (
 // ArticleSearchService serves full-text search over published articles. The
 // index is maintained by the article write path; when the search backend is
 // unavailable the endpoint returns an empty page rather than an error, so the
-// public site keeps working.
+// public site keeps working. ArticleSet.search_outcome distinguishes an outage
+// from a successful query with no matches.
 type ArticleSearchServiceClient interface {
 	// SearchArticles full-text searches published articles (BM25, Chinese
 	// analyzed) and returns them best-match first. Only PUBLISHED articles are
@@ -63,7 +64,8 @@ func (c *articleSearchServiceClient) SearchArticles(ctx context.Context, in *Sea
 // ArticleSearchService serves full-text search over published articles. The
 // index is maintained by the article write path; when the search backend is
 // unavailable the endpoint returns an empty page rather than an error, so the
-// public site keeps working.
+// public site keeps working. ArticleSet.search_outcome distinguishes an outage
+// from a successful query with no matches.
 type ArticleSearchServiceServer interface {
 	// SearchArticles full-text searches published articles (BM25, Chinese
 	// analyzed) and returns them best-match first. Only PUBLISHED articles are

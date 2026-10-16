@@ -11,7 +11,7 @@ def camel_to_snake(s):
 targets = [
     "pageSize","pageToken","orderBy","updateMask",
     "contentMd","contentHtml","publishedAt",
-    "createdAt","updatedAt","viewCount","nextPageToken"
+    "createdAt","updatedAt","viewCount","nextPageToken","searchOutcome"
 ]
 
 for t in sorted(targets, key=len, reverse=True):

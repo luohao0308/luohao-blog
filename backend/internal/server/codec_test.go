@@ -99,3 +99,30 @@ func TestEmptyMarshal(t *testing.T) {
 		t.Fatalf("Empty should marshal to {}, got %s", data)
 	}
 }
+
+func TestJSONCodecResultOutcomes(t *testing.T) {
+	for outcome := v1.ChatOutcome_CHAT_OUTCOME_UNSPECIFIED; outcome <= v1.ChatOutcome_CHAT_OUTCOME_GENERATION_UNAVAILABLE; outcome++ {
+		data, err := hybridJSONCodec.Marshal(&v1.ChatReply{Answer: "legacy", Outcome: outcome})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body map[string]any
+		if err := json.Unmarshal(data, &body); err != nil {
+			t.Fatal(err)
+		}
+		if body["outcome"] != float64(outcome) || body["answer"] != "legacy" {
+			t.Fatalf("wire result: %s", data)
+		}
+	}
+	data, err := hybridJSONCodec.Marshal(&v1.ArticleSet{SearchOutcome: v1.SearchOutcome_SEARCH_OUTCOME_UNAVAILABLE})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		t.Fatal(err)
+	}
+	if body["search_outcome"] != float64(2) {
+		t.Fatalf("wire result: %s", data)
+	}
+}

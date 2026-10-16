@@ -5,10 +5,11 @@ package render
 
 import (
 	"bytes"
+	stdhtml "html"
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
-	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer/html"
@@ -32,6 +33,7 @@ var md = goldmark.New(
 	goldmark.WithExtensions(
 		extension.GFM,
 		highlighting.NewHighlighting(
+			highlighting.WithWrapperRenderer(renderCodeWrapper),
 			highlighting.WithFormatOptions(
 				chromahtml.WithClasses(true),
 				chromahtml.WithLineNumbers(false),
@@ -56,4 +58,25 @@ func HTML(source string) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// renderCodeWrapper preserves the declared fence language without changing Chroma's
+// highlighted markup. Unhighlighted fences still need the default pre/code shell
+// because WithWrapperRenderer replaces that shell on the fallback path.
+func renderCodeWrapper(w util.BufWriter, context highlighting.CodeBlockContext, entering bool) {
+	if entering {
+		_, _ = w.WriteString("<div")
+		if language, ok := context.Language(); ok {
+			_, _ = w.WriteString(` data-code-language="` + stdhtml.EscapeString(string(language)) + `"`)
+		}
+		_, _ = w.WriteString(">")
+		if !context.Highlighted() {
+			_, _ = w.WriteString("<pre><code>")
+		}
+		return
+	}
+	if !context.Highlighted() {
+		_, _ = w.WriteString("</code></pre>\n")
+	}
+	_, _ = w.WriteString("</div>\n")
 }

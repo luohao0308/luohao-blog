@@ -688,6 +688,31 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
+  respond = () => ({statusCode:200, header:{}, data:{articles:[],search_outcome:2}})
+  await search.doSearch()
+  assert.match(search.data.error, /暂时不可用/)
+  chat.data.input = 'Retry question'
+  respond = () => ({statusCode:200, header:{}, data:{answer:'degraded',outcome:4,citations:[]}})
+  await chat.send()
+  assert.equal(chat.data.messages.at(-1).error, true)
+  const failedIndex=chat.data.messages.length-1
+  const count=chat.data.messages.length
+  respond = () => ({statusCode:200,header:{},data:{answer:'Recovered',outcome:1,citations:[]}})
+  await chat.retry({currentTarget:{dataset:{index:failedIndex}}})
+  assert.equal(chat.data.messages.length,count,'retry replaces the existing answer')
+  assert.equal(chat.data.messages.at(-1).text,'Recovered')
+  for (const outcome of [3, 'CHAT_OUTCOME_GENERATION_UNAVAILABLE']) {
+    chat.data.input='Another failure'
+    respond = () => ({statusCode:200,header:{},data:{answer:'Unavailable',outcome,citations:[{slug:'public',title:'Public'}]}})
+    await chat.send()
+    assert.equal(chat.data.messages.at(-1).error,true)
+    assert.equal(chat.data.messages.at(-1).citations[0].slug,'public')
+  }
+  chat.data.input='Network question'
+  respond = () => ({statusCode:503,header:{},data:{message:'Temporarily unavailable'}})
+  await chat.send()
+  assert.equal(chat.data.messages.at(-1).question,'Network question')
+  assert.equal(chat.data.messages.at(-1).error,true)
   console.log('Mini logic PASS: wire account/avatar mapping, auth replay/logout revocation and rotation races, comment auth restoration/status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))

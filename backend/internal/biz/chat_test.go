@@ -15,6 +15,7 @@ type chatRecordingIndex struct {
 	limit  int
 	offset int
 	slugs  []string
+	err    error
 }
 
 func (c *chatRecordingIndex) IndexArticle(context.Context, *Article) error { return nil }
@@ -22,7 +23,7 @@ func (c *chatRecordingIndex) RemoveArticle(context.Context, string) error  { ret
 func (c *chatRecordingIndex) RecreateIndex(context.Context) error          { return nil }
 func (c *chatRecordingIndex) Search(_ context.Context, query string, limit, offset int) ([]string, error) {
 	c.query, c.limit, c.offset = query, limit, offset
-	return c.slugs, nil
+	return c.slugs, c.err
 }
 
 // chatFakeLLM records prompts and returns a canned answer or error.
@@ -162,5 +163,54 @@ func TestChatAskLLMFailureKeepsCitations(t *testing.T) {
 	}
 	if len(answer.Citations) != 1 || answer.Citations[0].Slug != "pub-a" {
 		t.Fatalf("degraded citations = %+v", answer.Citations)
+	}
+}
+
+func TestChatOutcomes(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		index ArticleSearchIndex
+		llm   *chatFakeLLM
+		want  ChatOutcome
+	}{
+		{"answered", &chatRecordingIndex{slugs: []string{"pub-a"}}, &chatFakeLLM{answer: "answer"}, ChatOutcomeAnswered},
+		{"no match", &chatRecordingIndex{}, &chatFakeLLM{}, ChatOutcomeNoMatch},
+		{"missing index", nil, &chatFakeLLM{}, ChatOutcomeRetrievalUnavailable},
+		{"failed index", &chatRecordingIndex{err: context.DeadlineExceeded}, &chatFakeLLM{}, ChatOutcomeRetrievalUnavailable},
+		{"generation failed", &chatRecordingIndex{slugs: []string{"pub-a"}}, &chatFakeLLM{err: context.DeadlineExceeded}, ChatOutcomeGenerationUnavailable},
+		{"empty generation", &chatRecordingIndex{slugs: []string{"pub-a"}}, &chatFakeLLM{answer: "  "}, ChatOutcomeGenerationUnavailable},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			uc, _ := newChatTestUsecase(t, tt.index, tt.llm, nil)
+			answer, err := uc.Ask(context.Background(), "question", 4, "ip")
+			if err != nil || answer.Outcome != tt.want {
+				t.Fatalf("got %+v, %v; want %v", answer, err, tt.want)
+			}
+			if tt.want == ChatOutcomeRetrievalUnavailable && tt.llm.calls != 0 {
+				t.Fatal("generation must not run without retrieval")
+			}
+		})
+	}
+}
+
+type failingHydrationRepo struct{ ArticleRepo }
+
+func (f failingHydrationRepo) FindBySlug(context.Context, string) (*Article, error) {
+	return nil, context.DeadlineExceeded
+}
+func TestSearchAvailabilityAndLegacyWrapper(t *testing.T) {
+	uc := NewArticleUsecase(failingHydrationRepo{}, &chatRecordingIndex{slugs: []string{"pub-a"}})
+	result := uc.SearchArticlesWithOutcome(context.Background(), "q", 4, 0)
+	if result.Available || len(result.Articles) != 0 {
+		t.Fatalf("hydration outage: %+v", result)
+	}
+	legacy, err := uc.SearchArticles(context.Background(), "q", 4, 0)
+	if err != nil || len(legacy) != 0 {
+		t.Fatalf("legacy degraded page: %+v, %v", legacy, err)
+	}
+	uc = NewArticleUsecase(newFakeArticleRepo(), &chatRecordingIndex{slugs: []string{"deleted"}})
+	result = uc.SearchArticlesWithOutcome(context.Background(), "q", 4, 0)
+	if !result.Available || len(result.Articles) != 0 {
+		t.Fatalf("stale index should remain available: %+v", result)
 	}
 }

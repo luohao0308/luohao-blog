@@ -28,6 +28,7 @@ export interface Article {
 export interface ArticleSet {
   articles: Article[]
   next_page_token?: string
+  search_outcome?: number | string
 }
 
 export const ARTICLE_STATUS_PUBLISHED = 2
@@ -100,6 +101,7 @@ export interface CitedArticle {
 }
 
 export interface ChatReply {
+  outcome?: number | string
   answer: string
   citations: CitedArticle[]
 }

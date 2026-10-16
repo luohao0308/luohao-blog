@@ -154,22 +154,7 @@ usePageSeo({
       >
     </header>
 
-    <div class="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
-      <nav
-        v-if="preparedContent.headings.length"
-        aria-label="文章目录"
-        class="order-1 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:order-2 lg:sticky lg:top-24 dark:border-slate-800 dark:bg-slate-900/60"
-      >
-        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">目录</p>
-        <ol class="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-          <li v-for="heading in preparedContent.headings" :key="heading.id" :class="heading.level === 3 ? 'pl-3' : ''">
-            <a :href="`#${heading.id}`" class="block break-words hover:text-[#3c5d85] hover:underline dark:hover:text-blue-300">{{ heading.text }}</a>
-          </li>
-        </ol>
-      </nav>
-      <!-- eslint-disable-next-line vue/no-v-html -- trusted backend-rendered HTML with deterministic heading ids -->
-      <div class="markdown-body order-2 min-w-0 space-y-4 leading-7 lg:order-1" v-html="preparedContent.html" />
-    </div>
+    <ArticleContent :html="preparedContent.html" :headings="preparedContent.headings" />
     <ChatWindow />
     <CommentSection :slug="slug" />
     <section v-if="related.length" class="space-y-4 border-t border-slate-200 pt-8 dark:border-slate-800">

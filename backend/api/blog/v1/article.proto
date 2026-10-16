@@ -168,6 +168,12 @@ message CategoryBrief {
   string name = 2;
 }
 
+enum SearchOutcome {
+ SEARCH_OUTCOME_UNSPECIFIED = 0;
+ SEARCH_OUTCOME_AVAILABLE = 1;
+ SEARCH_OUTCOME_UNAVAILABLE = 2;
+}
+
 // ArticleSet is a paginated collection of articles returned by ListArticles.
 message ArticleSet {
   // The page of articles in the order requested by ListArticlesRequest.order_by.
@@ -175,6 +181,8 @@ message ArticleSet {
   // Token used to retrieve the next page via ListArticlesRequest.page_token.
   // Empty when there are no more results.
   string next_page_token = 2;
+  // Search RPC availability; unspecified for ordinary article lists.
+  SearchOutcome search_outcome = 3;
 }
 
 // CreateArticleRequest is the input for ArticleService.CreateArticle.
