@@ -38,6 +38,8 @@ const (
 	FieldWechatOpenid = "wechat_openid"
 	// EdgeCollections holds the string denoting the collections edge name in mutations.
 	EdgeCollections = "collections"
+	// EdgeWechatIdentities holds the string denoting the wechat_identities edge name in mutations.
+	EdgeWechatIdentities = "wechat_identities"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// CollectionsTable is the table that holds the collections relation/edge.
@@ -47,6 +49,13 @@ const (
 	CollectionsInverseTable = "collections"
 	// CollectionsColumn is the table column denoting the collections relation/edge.
 	CollectionsColumn = "user_id"
+	// WechatIdentitiesTable is the table that holds the wechat_identities relation/edge.
+	WechatIdentitiesTable = "wechat_identities"
+	// WechatIdentitiesInverseTable is the table name for the WechatIdentity entity.
+	// It exists in this package in order to avoid circular dependency with the "wechatidentity" package.
+	WechatIdentitiesInverseTable = "wechat_identities"
+	// WechatIdentitiesColumn is the table column denoting the wechat_identities relation/edge.
+	WechatIdentitiesColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -170,10 +179,31 @@ func ByCollections(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newCollectionsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByWechatIdentitiesCount orders the results by wechat_identities count.
+func ByWechatIdentitiesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWechatIdentitiesStep(), opts...)
+	}
+}
+
+// ByWechatIdentities orders the results by wechat_identities terms.
+func ByWechatIdentities(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWechatIdentitiesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newCollectionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CollectionsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CollectionsTable, CollectionsColumn),
+	)
+}
+func newWechatIdentitiesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WechatIdentitiesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WechatIdentitiesTable, WechatIdentitiesColumn),
 	)
 }

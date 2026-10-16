@@ -26,6 +26,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
@@ -54,6 +55,8 @@ type Client struct {
 	Tag *TagClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// WechatIdentity is the client for interacting with the WechatIdentity builders.
+	WechatIdentity *WechatIdentityClient
 	// WechatSyncTask is the client for interacting with the WechatSyncTask builders.
 	WechatSyncTask *WechatSyncTaskClient
 }
@@ -77,6 +80,7 @@ func (c *Client) init() {
 	c.Subscriber = NewSubscriberClient(c.config)
 	c.Tag = NewTagClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.WechatIdentity = NewWechatIdentityClient(c.config)
 	c.WechatSyncTask = NewWechatSyncTaskClient(c.config)
 }
 
@@ -180,6 +184,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Subscriber:        NewSubscriberClient(cfg),
 		Tag:               NewTagClient(cfg),
 		User:              NewUserClient(cfg),
+		WechatIdentity:    NewWechatIdentityClient(cfg),
 		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
@@ -210,6 +215,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Subscriber:        NewSubscriberClient(cfg),
 		Tag:               NewTagClient(cfg),
 		User:              NewUserClient(cfg),
+		WechatIdentity:    NewWechatIdentityClient(cfg),
 		WechatSyncTask:    NewWechatSyncTaskClient(cfg),
 	}, nil
 }
@@ -241,7 +247,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
-		c.Project, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
+		c.Project, c.Subscriber, c.Tag, c.User, c.WechatIdentity, c.WechatSyncTask,
 	} {
 		n.Use(hooks...)
 	}
@@ -252,7 +258,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
-		c.Project, c.Subscriber, c.Tag, c.User, c.WechatSyncTask,
+		c.Project, c.Subscriber, c.Tag, c.User, c.WechatIdentity, c.WechatSyncTask,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -281,6 +287,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Tag.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *WechatIdentityMutation:
+		return c.WechatIdentity.mutate(ctx, m)
 	case *WechatSyncTaskMutation:
 		return c.WechatSyncTask.mutate(ctx, m)
 	default:
@@ -1721,6 +1729,22 @@ func (c *UserClient) QueryCollections(_m *User) *CollectionQuery {
 	return query
 }
 
+// QueryWechatIdentities queries the wechat_identities edge of a User.
+func (c *UserClient) QueryWechatIdentities(_m *User) *WechatIdentityQuery {
+	query := (&WechatIdentityClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(wechatidentity.Table, wechatidentity.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.WechatIdentitiesTable, user.WechatIdentitiesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1743,6 +1767,155 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 		return (&UserDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown User mutation op: %q", m.Op())
+	}
+}
+
+// WechatIdentityClient is a client for the WechatIdentity schema.
+type WechatIdentityClient struct {
+	config
+}
+
+// NewWechatIdentityClient returns a client for the WechatIdentity from the given config.
+func NewWechatIdentityClient(c config) *WechatIdentityClient {
+	return &WechatIdentityClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `wechatidentity.Hooks(f(g(h())))`.
+func (c *WechatIdentityClient) Use(hooks ...Hook) {
+	c.hooks.WechatIdentity = append(c.hooks.WechatIdentity, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `wechatidentity.Intercept(f(g(h())))`.
+func (c *WechatIdentityClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WechatIdentity = append(c.inters.WechatIdentity, interceptors...)
+}
+
+// Create returns a builder for creating a WechatIdentity entity.
+func (c *WechatIdentityClient) Create() *WechatIdentityCreate {
+	mutation := newWechatIdentityMutation(c.config, OpCreate)
+	return &WechatIdentityCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WechatIdentity entities.
+func (c *WechatIdentityClient) CreateBulk(builders ...*WechatIdentityCreate) *WechatIdentityCreateBulk {
+	return &WechatIdentityCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WechatIdentityClient) MapCreateBulk(slice any, setFunc func(*WechatIdentityCreate, int)) *WechatIdentityCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WechatIdentityCreateBulk{err: fmt.Errorf("calling to WechatIdentityClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WechatIdentityCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WechatIdentityCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WechatIdentity.
+func (c *WechatIdentityClient) Update() *WechatIdentityUpdate {
+	mutation := newWechatIdentityMutation(c.config, OpUpdate)
+	return &WechatIdentityUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WechatIdentityClient) UpdateOne(_m *WechatIdentity) *WechatIdentityUpdateOne {
+	mutation := newWechatIdentityMutation(c.config, OpUpdateOne, withWechatIdentity(_m))
+	return &WechatIdentityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WechatIdentityClient) UpdateOneID(id uuid.UUID) *WechatIdentityUpdateOne {
+	mutation := newWechatIdentityMutation(c.config, OpUpdateOne, withWechatIdentityID(id))
+	return &WechatIdentityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WechatIdentity.
+func (c *WechatIdentityClient) Delete() *WechatIdentityDelete {
+	mutation := newWechatIdentityMutation(c.config, OpDelete)
+	return &WechatIdentityDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WechatIdentityClient) DeleteOne(_m *WechatIdentity) *WechatIdentityDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WechatIdentityClient) DeleteOneID(id uuid.UUID) *WechatIdentityDeleteOne {
+	builder := c.Delete().Where(wechatidentity.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WechatIdentityDeleteOne{builder}
+}
+
+// Query returns a query builder for WechatIdentity.
+func (c *WechatIdentityClient) Query() *WechatIdentityQuery {
+	return &WechatIdentityQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWechatIdentity},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WechatIdentity entity by its id.
+func (c *WechatIdentityClient) Get(ctx context.Context, id uuid.UUID) (*WechatIdentity, error) {
+	return c.Query().Where(wechatidentity.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WechatIdentityClient) GetX(ctx context.Context, id uuid.UUID) *WechatIdentity {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a WechatIdentity.
+func (c *WechatIdentityClient) QueryUser(_m *WechatIdentity) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(wechatidentity.Table, wechatidentity.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, wechatidentity.UserTable, wechatidentity.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WechatIdentityClient) Hooks() []Hook {
+	return c.hooks.WechatIdentity
+}
+
+// Interceptors returns the client interceptors.
+func (c *WechatIdentityClient) Interceptors() []Interceptor {
+	return c.inters.WechatIdentity
+}
+
+func (c *WechatIdentityClient) mutate(ctx context.Context, m *WechatIdentityMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WechatIdentityCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WechatIdentityUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WechatIdentityUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WechatIdentityDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WechatIdentity mutation op: %q", m.Op())
 	}
 }
 
@@ -1883,10 +2056,10 @@ func (c *WechatSyncTaskClient) mutate(ctx context.Context, m *WechatSyncTaskMuta
 type (
 	hooks struct {
 		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
-		Subscriber, Tag, User, WechatSyncTask []ent.Hook
+		Subscriber, Tag, User, WechatIdentity, WechatSyncTask []ent.Hook
 	}
 	inters struct {
 		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
-		Subscriber, Tag, User, WechatSyncTask []ent.Interceptor
+		Subscriber, Tag, User, WechatIdentity, WechatSyncTask []ent.Interceptor
 	}
 )

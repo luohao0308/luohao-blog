@@ -18,6 +18,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
@@ -491,6 +492,55 @@ func init() {
 	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	wechatidentityMixin := schema.WechatIdentity{}.Mixin()
+	wechatidentityMixinFields0 := wechatidentityMixin[0].Fields()
+	_ = wechatidentityMixinFields0
+	wechatidentityFields := schema.WechatIdentity{}.Fields()
+	_ = wechatidentityFields
+	// wechatidentityDescAppID is the schema descriptor for app_id field.
+	wechatidentityDescAppID := wechatidentityFields[1].Descriptor()
+	// wechatidentity.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
+	wechatidentity.AppIDValidator = func() func(string) error {
+		validators := wechatidentityDescAppID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(app_id string) error {
+			for _, fn := range fns {
+				if err := fn(app_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatidentityDescOpenid is the schema descriptor for openid field.
+	wechatidentityDescOpenid := wechatidentityFields[2].Descriptor()
+	// wechatidentity.OpenidValidator is a validator for the "openid" field. It is called by the builders before save.
+	wechatidentity.OpenidValidator = func() func(string) error {
+		validators := wechatidentityDescOpenid.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(openid string) error {
+			for _, fn := range fns {
+				if err := fn(openid); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// wechatidentityDescCreatedAt is the schema descriptor for created_at field.
+	wechatidentityDescCreatedAt := wechatidentityFields[3].Descriptor()
+	// wechatidentity.DefaultCreatedAt holds the default value on creation for the created_at field.
+	wechatidentity.DefaultCreatedAt = wechatidentityDescCreatedAt.Default.(func() time.Time)
+	// wechatidentityDescID is the schema descriptor for id field.
+	wechatidentityDescID := wechatidentityMixinFields0[0].Descriptor()
+	// wechatidentity.DefaultID holds the default value on creation for the id field.
+	wechatidentity.DefaultID = wechatidentityDescID.Default.(func() uuid.UUID)
 	wechatsynctaskMixin := schema.WechatSyncTask{}.Mixin()
 	wechatsynctaskMixinFields0 := wechatsynctaskMixin[0].Fields()
 	_ = wechatsynctaskMixinFields0

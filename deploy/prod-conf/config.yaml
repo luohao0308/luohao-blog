@@ -76,6 +76,13 @@ llm:
   timeout: 120s
   reasoning_effort: ${LLM_REASONING_EFFORT:}
 
+wechat:
+  # Explicitly keep login AND binding disabled through migration/backfill.
+  # Enable only with the verified AppID/Secret pair after identity acceptance.
+  enabled: false
+  app_id: ${WECHAT_APP_ID:}
+  app_secret: ${WECHAT_APP_SECRET:}
+
 # Official account delivery is independent of mini-program login.
 # Keep disabled until credentials, public origin and permanent cover are set.
 official_account:

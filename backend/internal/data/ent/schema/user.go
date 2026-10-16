@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
@@ -15,7 +16,9 @@ type User struct {
 	ent.Schema
 }
 
-func (User) Edges() []ent.Edge { return []ent.Edge{edge.To("collections", Collection.Type)} }
+func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("collections", Collection.Type), edge.To("wechat_identities", WechatIdentity.Type).Annotations(entsql.OnDelete(entsql.Cascade))}
+}
 
 // Mixin of the User.
 func (User) Mixin() []ent.Mixin {
@@ -40,10 +43,8 @@ func (User) Fields() []ent.Field {
 		field.String("avatar_url").Default(""),
 		field.Bool("email_verified").Default(false),
 		field.Uint64("credential_version").Default(0),
-		// WeChat mini-program identity (openid). NULL until the account is
-		// bound through the wechat login flow; the unique index guarantees one
-		// openid maps to exactly one account. Must stay in sync with
-		// migrations/000010_user_wechat_openid (schema drift debt).
+		// Legacy identity retained unchanged for explicit, verified-AppID backfill.
+		// Runtime authentication uses WechatIdentity and never falls back here.
 		field.String("wechat_openid").Optional().Unique(),
 	}
 }

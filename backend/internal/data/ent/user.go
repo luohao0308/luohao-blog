@@ -49,9 +49,11 @@ type User struct {
 type UserEdges struct {
 	// Collections holds the value of the collections edge.
 	Collections []*Collection `json:"collections,omitempty"`
+	// WechatIdentities holds the value of the wechat_identities edge.
+	WechatIdentities []*WechatIdentity `json:"wechat_identities,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CollectionsOrErr returns the Collections value or an error if the edge
@@ -61,6 +63,15 @@ func (e UserEdges) CollectionsOrErr() ([]*Collection, error) {
 		return e.Collections, nil
 	}
 	return nil, &NotLoadedError{edge: "collections"}
+}
+
+// WechatIdentitiesOrErr returns the WechatIdentities value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) WechatIdentitiesOrErr() ([]*WechatIdentity, error) {
+	if e.loadedTypes[1] {
+		return e.WechatIdentities, nil
+	}
+	return nil, &NotLoadedError{edge: "wechat_identities"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -175,6 +186,11 @@ func (_m *User) Value(name string) (ent.Value, error) {
 // QueryCollections queries the "collections" edge of the User entity.
 func (_m *User) QueryCollections() *CollectionQuery {
 	return NewUserClient(_m.config).QueryCollections(_m)
+}
+
+// QueryWechatIdentities queries the "wechat_identities" edge of the User entity.
+func (_m *User) QueryWechatIdentities() *WechatIdentityQuery {
+	return NewUserClient(_m.config).QueryWechatIdentities(_m)
 }
 
 // Update returns a builder for updating this User.

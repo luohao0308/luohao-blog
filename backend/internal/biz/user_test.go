@@ -11,11 +11,12 @@ import (
 
 // fakeUserRepo keeps users in memory for usecase tests.
 type fakeUserRepo struct {
-	users map[string]*User
+	users      map[string]*User
+	identities map[string]uuid.UUID
 }
 
 func newFakeUserRepo() *fakeUserRepo {
-	return &fakeUserRepo{users: map[string]*User{}}
+	return &fakeUserRepo{users: map[string]*User{}, identities: map[string]uuid.UUID{}}
 }
 
 func (f *fakeUserRepo) FindByEmail(_ context.Context, email string) (*User, error) {
@@ -95,31 +96,37 @@ func (f *fakeUserRepo) UpdateAvatar(_ context.Context, id uuid.UUID, avatarURL s
 	return ErrUserNotFound
 }
 
-func (f *fakeUserRepo) FindByWechatOpenID(_ context.Context, openid string) (*User, error) {
-	if openid == "" {
+func (f *fakeUserRepo) FindByWechatIdentity(ctx context.Context, appID, openid string) (*User, error) {
+	id, ok := f.identities[appID+":"+openid]
+	if !ok {
 		return nil, ErrUserNotFound
 	}
-	for _, u := range f.users {
-		if u.WechatOpenID == openid {
-			return u, nil
-		}
+	u, err := f.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
-	return nil, ErrUserNotFound
+	copy := *u
+	return &copy, nil
 }
-
-func (f *fakeUserRepo) BindWechat(_ context.Context, id uuid.UUID, openid string) error {
-	for _, u := range f.users {
-		if u.WechatOpenID == openid && u.ID != id {
+func (f *fakeUserRepo) BindWechatIdentity(ctx context.Context, id uuid.UUID, version uint64, appID, openid string) error {
+	u, err := f.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if u.CredentialVersion != version {
+		return ErrUserInvalidCredentials
+	}
+	key := appID + ":" + openid
+	if owner, ok := f.identities[key]; ok && owner != id {
+		return ErrUserWechatConflict
+	}
+	for identity, owner := range f.identities {
+		if owner == id && strings.HasPrefix(identity, appID+":") && identity != key {
 			return ErrUserWechatConflict
 		}
 	}
-	for _, u := range f.users {
-		if u.ID == id {
-			u.WechatOpenID = openid
-			return nil
-		}
-	}
-	return ErrUserNotFound
+	f.identities[key] = id
+	return nil
 }
 
 func TestHashPasswordRoundTrip(t *testing.T) {

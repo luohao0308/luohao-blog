@@ -22,6 +22,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
@@ -93,6 +94,7 @@ func checkColumn(t, c string) error {
 			subscriber.Table:        subscriber.ValidColumn,
 			tag.Table:               tag.ValidColumn,
 			user.Table:              user.ValidColumn,
+			wechatidentity.Table:    wechatidentity.ValidColumn,
 			wechatsynctask.Table:    wechatsynctask.ValidColumn,
 		})
 	})

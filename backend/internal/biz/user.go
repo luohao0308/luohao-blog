@@ -75,8 +75,8 @@ type User struct {
 	// AvatarURL is the site-relative avatar path served by the GetAvatar
 	// route (/v1/assets/avatars/<name>), or "" when no avatar was uploaded.
 	AvatarURL string
-	// WechatOpenID is the mini-program identity attached through the wechat
-	// login flow, or "" when the account has never been bound.
+	// WechatOpenID is the retained legacy column, used only for explicit
+	// backfill. Current login/binding uses AppID-scoped identities instead.
 	WechatOpenID      string
 	EmailVerified     bool
 	CredentialVersion uint64
@@ -98,12 +98,11 @@ type UserRepository interface {
 	UpdateProfile(context.Context, uuid.UUID, string) error
 	// UpdateAvatar replaces the site-relative avatar path ("" clears it).
 	UpdateAvatar(context.Context, uuid.UUID, string) error
-	// FindByWechatOpenID returns the account bound to the mini-program
-	// openid, or ErrUserNotFound when no account carries it.
-	FindByWechatOpenID(context.Context, string) (*User, error)
-	// BindWechat attaches a WeChat openid to the account. An openid already
-	// held by another account fails with ErrUserWechatConflict.
-	BindWechat(context.Context, uuid.UUID, string) error
+	// FindByWechatIdentity resolves only the identity owned by this AppID.
+	FindByWechatIdentity(context.Context, string, string) (*User, error)
+	// BindWechatIdentity atomically checks the authenticated credential version
+	// and inserts an identity; it never replaces an existing binding.
+	BindWechatIdentity(context.Context, uuid.UUID, uint64, string, string) error
 }
 
 // HashPassword derives an argon2id PHC string for a plaintext password:
@@ -316,14 +315,14 @@ func (uc *UserUsecase) UpdateAvatar(ctx context.Context, id uuid.UUID, avatarURL
 	return uc.repo.FindByID(ctx, id)
 }
 
-// ByWechatOpenID resolves the account bound to a mini-program openid.
-func (uc *UserUsecase) ByWechatOpenID(ctx context.Context, openid string) (*User, error) {
-	return uc.repo.FindByWechatOpenID(ctx, openid)
+// ByWechatIdentity resolves an AppID-scoped identity without legacy fallback.
+func (uc *UserUsecase) ByWechatIdentity(ctx context.Context, appID, openid string) (*User, error) {
+	return uc.repo.FindByWechatIdentity(ctx, appID, openid)
 }
 
-// BindWechat attaches a WeChat openid to an existing account.
-func (uc *UserUsecase) BindWechat(ctx context.Context, id uuid.UUID, openid string) error {
-	return uc.repo.BindWechat(ctx, id, openid)
+// BindWechatIdentity preserves all existing identities and website credentials.
+func (uc *UserUsecase) BindWechatIdentity(ctx context.Context, id uuid.UUID, version uint64, appID, openid string) error {
+	return uc.repo.BindWechatIdentity(ctx, id, version, appID, openid)
 }
 
 // MaxDisplayNameLen bounds the public display name, matching the comment

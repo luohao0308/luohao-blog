@@ -49,6 +49,10 @@ jobs:
         run: go build ./...
       - name: Test
         run: go test ./...
+      - name: Real MySQL and Redis identity migration and auth tests
+        run: |
+          python3 -m unittest discover -s ../scripts -p test_wechat_identity_test.py
+          python3 ../scripts/test_wechat_identity.py
 
   frontend:
     name: Frontend lint & typecheck & build

@@ -134,3 +134,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 ---
 
 _更新方式：只在稳定事实、仓库拓扑、模块边界、技术决策、命令或路径发生变化并完成验证后更新。_
+
+## 小程序身份边界
+
+本地F1实现引入v16 `wechat_identities` 与AppID范围票据；旧 `users.wechat_openid` 保留，实际回填必须指定已验证旧AppID。配置 `wechat.enabled` 默认false同时控制登录/绑定；`official_account`独立。具体契约及验证见[小程序身份](contracts/WECHAT-IDENTITY.md)，生产切换见[Runbook](operations/runbooks/formal-miniprogram.md)。这不表示v16已生产部署。
