@@ -50,7 +50,7 @@ function isActive(to: string) {
   <div class="flex min-h-screen flex-col site-shell antialiased transition-colors duration-[var(--motion-standard)]">
     <a href="#main-content" class="skip-link">跳到主要内容</a>
     <header class="sticky top-0 z-40 border-b site-header backdrop-blur">
-      <div class="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <NuxtLink to="/" class="text-lg font-bold tracking-tight">
           luohao<span class="text-[var(--accent)]">.blog</span>
         </NuxtLink>

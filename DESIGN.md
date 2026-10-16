@@ -3,10 +3,12 @@
 ## Source of truth
 
 - Status: Active
-- Updated: 2026-10-16
+- Updated: 2026-10-17
 - Surfaces: Nuxt公开阅读端、账号菜单、RAG问答、Naive UI管理端、Milkdown文章编辑器。
 - Evidence: 当前main bd762c2的布局/组件/文章工具与proto；[已批准优化计划](docs/plans/UI-REFINEMENT-2026-10.md)。
 - Reference: [open-claude-ui固定版本文档](https://github.com/Caho1/open-claude-ui/tree/02d021fceaf2a907f9e63a8125621bdda1b85d60/docs)，v1八篇、v2六章与合并版差异全文阅读并核对相关示例。参考设计原则，行为以本项目代码和测试为准，不以第三方逆向叙述代替官方事实。
+- Visual proposal: 用户未采用暖纸色视觉稿；[原视觉计划](docs/plans/archive/VISUAL-REDESIGN-2026-10.md)已标为superseded。用户已确认白底融合版；当前实现以[首页动效计划](docs/plans/HOME-MOTION-2026-10.md)为准，Active交互规范继续有效。
+- Visual reference audit: 2026-10-17重新核验，最新固定版本为[ddf3aea](https://github.com/Caho1/open-claude-ui/tree/ddf3aea1711db62fd6d24343bbab500a5ae69f64)，较旧版本增加6次提交；新设计依据v1 §1.3–1.5、cds-theme.css与SegmentedControl示例。新版修订表面阶梯、强调色角色与分段控件内边距，不能继续把旧数值称为最新规范。
 
 ## Brand
 
@@ -74,3 +76,11 @@ Nuxt4/Vue3/Tailwind4，Naive UI后台，Milkdown编辑器；保留BFF/SSR和后�
 
 - 本地持久草稿恢复、流式/多轮、图片高级缩放：本轮不做，未来需独立范围与验收。
 - 真实移动设备上的键盘与触控：本轮自动浏览器模拟不等于真机验收，最终报告保留此边界。
+
+## Approved home motion integration
+
+- Status: Active，2026-10-17用户确认白底融合版02文章扇开＋04分层组装；[实施范围](docs/plans/HOME-MOTION-2026-10.md)。原暖纸视觉稿与其三页重构计划未采用，不作为实现依据。
+- 首页：1120px级容器、白底/浅灰蓝细边/柔和阴影、系统无衬线大标题、介绍与代码/立体几何分栏。保留真实文章、项目和原有公开入口；不要把演示工作台或模拟浏览器外框做进产品。
+- 动效：真实DOM分层与最多三张真实文章卡片扇开交叠，约2.7秒落定；同一标签页会话只播一次。普通列表只轻展开，阅读页无整屏3D。暗色延续显式主题选择，不强制覆盖偏好。
+- 恢复：SSR不隐藏内容、无JS仍可读；WAAPI/存储错误/减少动态/跳过/交互/路由离开立即恢复可用静态页面。不要复制文章或账号DOM、不要重复ID，不夺焦点或拦截原始点击。
+- 证据：已确认参考与范围冻结于本机output/visual-redesign/approved；实现与本地浏览器逐帧/归位截图对比；只把真实产品与真实数据作为完成依据。
