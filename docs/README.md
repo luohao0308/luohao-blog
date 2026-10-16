@@ -23,6 +23,8 @@
 | [PROJECT-SUMMARY.md](PROJECT-SUMMARY.md) | 稳定项目事实、拓扑、命令、模块、边界和路径速查 | 需要项目概览或路径定位时 |
 | [project-memory/](project-memory/) | 本机/Agent 的长期记忆，不作为团队项目事实源 | 仅本机检索；不提交 |
 
+当前小程序正式号接入按[正式接入与身份隔离计划](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md)读取；涉及正式AppID、旧绑定保留、迁移和平台发布时使用，状态以TASKS及该计划为准。
+
 ## 默认开发闭环
 
 Core 的默认路径保持轻量：

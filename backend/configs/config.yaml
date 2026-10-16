@@ -93,8 +93,9 @@ embedding:
 
 wechat:
   # Mini program AppID (public by design). The AppSecret lives in the
-  # git-ignored secrets file. Either field empty disables the wechat auth
-  # endpoints with FAILED_PRECONDITION.
+  # git-ignored secrets file. Both login and binding require enabled=true
+  # and complete credentials; deployments default to disabled.
+  enabled: false # Override with KRATOS_WECHAT_ENABLED after typed config scan.
   app_id: ${WECHAT_APP_ID:}
   app_secret: ${WECHAT_APP_SECRET:}
 

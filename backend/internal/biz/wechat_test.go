@@ -7,14 +7,24 @@ import (
 	"time"
 
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
+	"github.com/google/uuid"
 )
 
 // fakeWechatClient maps codes to openids or a fixed error, standing in for
 // the jscode2session round trip.
 type fakeWechatClient struct {
+	appID string
 	codes map[string]string
 	err   error
 }
+
+func (f *fakeWechatClient) AppID() string {
+	if f.appID != "" {
+		return f.appID
+	}
+	return "wx-fixture"
+}
+func (f *fakeWechatClient) Configured() bool { return !kratoserrors.Is(f.err, ErrWechatNotConfigured) }
 
 func (f *fakeWechatClient) Code2Session(_ context.Context, code string) (string, error) {
 	if f.err != nil {
@@ -37,19 +47,19 @@ func newFakeBindingStore() *fakeBindingStore {
 	return &fakeBindingStore{tickets: map[string]string{}}
 }
 
-func (f *fakeBindingStore) Save(_ context.Context, openid string, _ time.Duration) (string, error) {
+func (f *fakeBindingStore) Save(_ context.Context, appID, openid string, _ time.Duration) (string, error) {
 	f.next++
 	ticket := "ticket-" + strings.Repeat("t", f.next)
-	f.tickets[ticket] = openid
+	f.tickets[appID+":"+ticket] = openid
 	return ticket, nil
 }
 
-func (f *fakeBindingStore) Consume(_ context.Context, ticket string) (string, error) {
-	openid, ok := f.tickets[ticket]
+func (f *fakeBindingStore) Consume(_ context.Context, appID, ticket string) (string, error) {
+	openid, ok := f.tickets[appID+":"+ticket]
 	if !ok {
 		return "", ErrWechatTicketInvalid
 	}
-	delete(f.tickets, ticket)
+	delete(f.tickets, appID+":"+ticket)
 	return openid, nil
 }
 
@@ -66,7 +76,9 @@ func TestWechatLoginBoundOpenidSignsIn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u.WechatOpenID = "openid-1"
+	if err := repo.BindWechatIdentity(ctx, u.ID, 0, "wx-fixture", "openid-1"); err != nil {
+		t.Fatal(err)
+	}
 	uc := newWechatUsecase(repo, &fakeWechatClient{codes: map[string]string{"good-code": "openid-1"}}, newFakeBindingStore(), &fakeLimiter{n: 100})
 
 	res, err := uc.Login(ctx, "good-code", "1.2.3.4")
@@ -135,7 +147,7 @@ func TestWechatBindSuccess(t *testing.T) {
 	bindings := newFakeBindingStore()
 	uc := newWechatUsecase(repo, &fakeWechatClient{codes: map[string]string{"c": "openid-new"}}, bindings, &fakeLimiter{n: 100})
 
-	ticket, err := bindings.Save(ctx, "openid-new", DefaultWechatBindingTTL)
+	ticket, err := bindings.Save(ctx, "wx-fixture", "openid-new", DefaultWechatBindingTTL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +158,7 @@ func TestWechatBindSuccess(t *testing.T) {
 	if pair == nil {
 		t.Fatal("Bind(ok) returned no token pair")
 	}
-	if u.WechatOpenID != "openid-new" {
+	if bound, err := repo.FindByWechatIdentity(ctx, "wx-fixture", "openid-new"); err != nil || bound.ID != u.ID {
 		t.Fatalf("Bind(ok) openid = %q, want it attached", u.WechatOpenID)
 	}
 	// The consumed ticket must be burned even after success.
@@ -173,7 +185,7 @@ func TestWechatBindWrongPasswordBurnsTicket(t *testing.T) {
 	bindings := newFakeBindingStore()
 	uc := newWechatUsecase(repo, &fakeWechatClient{codes: map[string]string{"c": "openid-new"}}, bindings, &fakeLimiter{n: 100})
 
-	ticket, err := bindings.Save(ctx, "openid-new", DefaultWechatBindingTTL)
+	ticket, err := bindings.Save(ctx, "wx-fixture", "openid-new", DefaultWechatBindingTTL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,13 +213,13 @@ func TestWechatBindConflictWithAnotherAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Account A already carries the openid.
-	if err := repo.BindWechat(ctx, repo.users["a@example.com"].ID, "openid-taken"); err != nil {
+	if err := repo.BindWechatIdentity(ctx, repo.users["a@example.com"].ID, 0, "wx-fixture", "openid-taken"); err != nil {
 		t.Fatal(err)
 	}
 	bindings := newFakeBindingStore()
 	uc := newWechatUsecase(repo, &fakeWechatClient{codes: map[string]string{"c": "openid-taken"}}, bindings, &fakeLimiter{n: 100})
 
-	ticket, err := bindings.Save(ctx, "openid-taken", DefaultWechatBindingTTL)
+	ticket, err := bindings.Save(ctx, "wx-fixture", "openid-taken", DefaultWechatBindingTTL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,5 +235,87 @@ func TestWechatBindEmptyTicket(t *testing.T) {
 
 	if _, _, err := uc.Bind(ctx, "", "a@example.com", "longenough1", "1.2.3.4"); !kratoserrors.IsUnauthorized(err) {
 		t.Fatalf("Bind(empty ticket) error = %v, want unauthorized", err)
+	}
+}
+
+func TestWechatBindDisabledMustNotConsumeOrBind(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	users := NewUserUsecase(repo)
+	if _, err := users.CreateAccount(ctx, "disabled@example.com", "longenough1", "Fixture", UserRoleReader); err != nil {
+		t.Fatal(err)
+	}
+	store := newFakeBindingStore()
+	ticket, err := store.Save(ctx, "wx-fixture", "openid-disabled", DefaultWechatBindingTTL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	uc := newWechatUsecase(repo, &fakeWechatClient{err: ErrWechatNotConfigured}, store, nil)
+	if _, _, err := uc.Bind(ctx, ticket, "disabled@example.com", "longenough1", "local"); !kratoserrors.Is(err, ErrWechatNotConfigured) {
+		t.Fatalf("disabled bind must reject before consuming: %v", err)
+	}
+	if _, err := store.Consume(ctx, "wx-fixture", ticket); err != nil {
+		t.Fatal("disabled bind burned ticket")
+	}
+}
+
+func TestWechatLoginIsolatesAppAndIgnoresLegacyColumn(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	u, err := repo.Create(ctx, &User{Email: "isolation@example.invalid", PasswordHash: "fixture", Role: UserRoleReader, WechatOpenID: "same-openid"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := &fakeWechatClient{appID: "wx-old", codes: map[string]string{"code": "same-openid"}}
+	formal := &fakeWechatClient{appID: "wx-formal", codes: map[string]string{"code": "same-openid"}}
+	if err := repo.BindWechatIdentity(ctx, u.ID, 0, old.AppID(), "same-openid"); err != nil {
+		t.Fatal(err)
+	}
+	for _, client := range []*fakeWechatClient{formal, old} {
+		result, err := newWechatUsecase(repo, client, newFakeBindingStore(), nil).Login(ctx, "code", "local")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if client == formal && (result.User != nil || result.Pair != nil || result.BindingTicket == "") {
+			t.Fatal("formal app reused old or bare identity")
+		}
+		if client == old && (result.User == nil || result.User.ID != u.ID || result.Pair == nil) {
+			t.Fatal("old AppID identity no longer resolves")
+		}
+	}
+	if u.WechatOpenID != "same-openid" {
+		t.Fatal("legacy column changed")
+	}
+}
+
+type resetBeforeIdentityBind struct{ UserRepository }
+
+func (r resetBeforeIdentityBind) BindWechatIdentity(ctx context.Context, id uuid.UUID, version uint64, appID, openid string) error {
+	if _, ok, err := r.UpdatePasswordState(ctx, id, version, "fixture-new-hash", false); err != nil || !ok {
+		return ErrUserInvalidCredentials
+	}
+	return r.UserRepository.BindWechatIdentity(ctx, id, version, appID, openid)
+}
+func TestWechatBindRejectsPasswordResetAfterAuthentication(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	users := NewUserUsecase(resetBeforeIdentityBind{repo})
+	u, err := users.CreateAccount(ctx, "reset-race@example.invalid", "longenough1", "Fixture", UserRoleReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := newFakeBindingStore()
+	ticket, err := store.Save(ctx, "wx-fixture", "fresh-openid", DefaultWechatBindingTTL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions := newFakeSessionRepo()
+	auth := NewAuthUsecase(users, sessions, newFakeIssuer(), nil, nil, 0)
+	uc := NewWechatUsecase(users, auth, &fakeWechatClient{}, store, nil)
+	if _, pair, err := uc.Bind(ctx, ticket, u.Email, "longenough1", "local"); !kratoserrors.IsUnauthorized(err) || pair != nil {
+		t.Fatal("stale password result created identity/session")
+	}
+	if len(repo.identities) != 0 || len(sessions.sessions) != 0 {
+		t.Fatal("failed bind left identity or session")
 	}
 }

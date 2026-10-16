@@ -5,5 +5,7 @@ export const API_BASE = 'https://makerhao.cn/api/v1'
 // 加载的完整地址：走与 API 同一条 BFF 反代链路。
 export function assetUrl(path?: string): string {
   if (!path) return ''
-  return API_BASE.replace(/\/v1$/, '') + path
+  // 仅允许已有资源路由的单个图片文件名；不解码任意输入，避免路径跳转。
+  const match = /^(?:https:\/\/makerhao\.cn\/api|\/api)?\/v1\/assets\/(avatars|media)\/([A-Za-z0-9_-]+\.(?:jpg|png|webp))$/.exec(path)
+  return match && match[0] === path ? API_BASE + '/assets/' + match[1] + '/' + match[2] : ''
 }

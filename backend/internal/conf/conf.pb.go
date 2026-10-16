@@ -373,11 +373,13 @@ func (x *OfficialAccount) GetAccountId() string {
 
 type Wechat struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Mini program AppID, e.g. wx58089476f518fd3f. Public by design.
+	// Mini program AppID, e.g. wxf27116cc66cc49a4. Public by design.
 	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Mini program AppSecret from the mp.weixin.qq.com console. Provide it via
 	// the git-ignored secrets file, never in source control.
-	AppSecret     string `protobuf:"bytes,2,opt,name=app_secret,json=appSecret,proto3" json:"app_secret,omitempty"`
+	AppSecret string `protobuf:"bytes,2,opt,name=app_secret,json=appSecret,proto3" json:"app_secret,omitempty"`
+	// Explicitly enables login and binding only when both credentials are set.
+	Enabled       bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -424,6 +426,13 @@ func (x *Wechat) GetAppSecret() string {
 		return x.AppSecret
 	}
 	return ""
+}
+
+func (x *Wechat) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
 }
 
 type Llm struct {
@@ -1402,11 +1411,12 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\faccount_name\x18\t \x01(\tR\vaccountName\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\n" +
-	" \x01(\tR\taccountId\">\n" +
+	" \x01(\tR\taccountId\"X\n" +
 	"\x06Wechat\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x1d\n" +
 	"\n" +
-	"app_secret\x18\x02 \x01(\tR\tappSecret\"\xaf\x01\n" +
+	"app_secret\x18\x02 \x01(\tR\tappSecret\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\"\xaf\x01\n" +
 	"\x03Llm\x12\x19\n" +
 	"\bbase_url\x18\x01 \x01(\tR\abaseUrl\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x14\n" +

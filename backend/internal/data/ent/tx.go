@@ -32,6 +32,8 @@ type Tx struct {
 	Tag *TagClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// WechatIdentity is the client for interacting with the WechatIdentity builders.
+	WechatIdentity *WechatIdentityClient
 	// WechatSyncTask is the client for interacting with the WechatSyncTask builders.
 	WechatSyncTask *WechatSyncTaskClient
 
@@ -175,6 +177,7 @@ func (tx *Tx) init() {
 	tx.Subscriber = NewSubscriberClient(tx.config)
 	tx.Tag = NewTagClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.WechatIdentity = NewWechatIdentityClient(tx.config)
 	tx.WechatSyncTask = NewWechatSyncTaskClient(tx.config)
 }
 

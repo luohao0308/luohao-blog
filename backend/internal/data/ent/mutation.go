@@ -24,6 +24,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
 
@@ -46,6 +47,7 @@ const (
 	TypeSubscriber        = "Subscriber"
 	TypeTag               = "Tag"
 	TypeUser              = "User"
+	TypeWechatIdentity    = "WechatIdentity"
 	TypeWechatSyncTask    = "WechatSyncTask"
 )
 
@@ -7710,28 +7712,31 @@ func (m *TagMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *uuid.UUID
-	created_at            *time.Time
-	updated_at            *time.Time
-	email                 *string
-	password_hash         *string
-	display_name          *string
-	role                  *biz.UserRole
-	addrole               *biz.UserRole
-	avatar_url            *string
-	email_verified        *bool
-	credential_version    *uint64
-	addcredential_version *int64
-	wechat_openid         *string
-	clearedFields         map[string]struct{}
-	collections           map[uuid.UUID]struct{}
-	removedcollections    map[uuid.UUID]struct{}
-	clearedcollections    bool
-	done                  bool
-	oldValue              func(context.Context) (*User, error)
-	predicates            []predicate.User
+	op                       Op
+	typ                      string
+	id                       *uuid.UUID
+	created_at               *time.Time
+	updated_at               *time.Time
+	email                    *string
+	password_hash            *string
+	display_name             *string
+	role                     *biz.UserRole
+	addrole                  *biz.UserRole
+	avatar_url               *string
+	email_verified           *bool
+	credential_version       *uint64
+	addcredential_version    *int64
+	wechat_openid            *string
+	clearedFields            map[string]struct{}
+	collections              map[uuid.UUID]struct{}
+	removedcollections       map[uuid.UUID]struct{}
+	clearedcollections       bool
+	wechat_identities        map[uuid.UUID]struct{}
+	removedwechat_identities map[uuid.UUID]struct{}
+	clearedwechat_identities bool
+	done                     bool
+	oldValue                 func(context.Context) (*User, error)
+	predicates               []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -8305,6 +8310,60 @@ func (m *UserMutation) ResetCollections() {
 	m.removedcollections = nil
 }
 
+// AddWechatIdentityIDs adds the "wechat_identities" edge to the WechatIdentity entity by ids.
+func (m *UserMutation) AddWechatIdentityIDs(ids ...uuid.UUID) {
+	if m.wechat_identities == nil {
+		m.wechat_identities = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.wechat_identities[ids[i]] = struct{}{}
+	}
+}
+
+// ClearWechatIdentities clears the "wechat_identities" edge to the WechatIdentity entity.
+func (m *UserMutation) ClearWechatIdentities() {
+	m.clearedwechat_identities = true
+}
+
+// WechatIdentitiesCleared reports if the "wechat_identities" edge to the WechatIdentity entity was cleared.
+func (m *UserMutation) WechatIdentitiesCleared() bool {
+	return m.clearedwechat_identities
+}
+
+// RemoveWechatIdentityIDs removes the "wechat_identities" edge to the WechatIdentity entity by IDs.
+func (m *UserMutation) RemoveWechatIdentityIDs(ids ...uuid.UUID) {
+	if m.removedwechat_identities == nil {
+		m.removedwechat_identities = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.wechat_identities, ids[i])
+		m.removedwechat_identities[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedWechatIdentities returns the removed IDs of the "wechat_identities" edge to the WechatIdentity entity.
+func (m *UserMutation) RemovedWechatIdentitiesIDs() (ids []uuid.UUID) {
+	for id := range m.removedwechat_identities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// WechatIdentitiesIDs returns the "wechat_identities" edge IDs in the mutation.
+func (m *UserMutation) WechatIdentitiesIDs() (ids []uuid.UUID) {
+	for id := range m.wechat_identities {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetWechatIdentities resets all changes to the "wechat_identities" edge.
+func (m *UserMutation) ResetWechatIdentities() {
+	m.wechat_identities = nil
+	m.clearedwechat_identities = false
+	m.removedwechat_identities = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -8627,9 +8686,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.collections != nil {
 		edges = append(edges, user.EdgeCollections)
+	}
+	if m.wechat_identities != nil {
+		edges = append(edges, user.EdgeWechatIdentities)
 	}
 	return edges
 }
@@ -8644,15 +8706,24 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeWechatIdentities:
+		ids := make([]ent.Value, 0, len(m.wechat_identities))
+		for id := range m.wechat_identities {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedcollections != nil {
 		edges = append(edges, user.EdgeCollections)
+	}
+	if m.removedwechat_identities != nil {
+		edges = append(edges, user.EdgeWechatIdentities)
 	}
 	return edges
 }
@@ -8667,15 +8738,24 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeWechatIdentities:
+		ids := make([]ent.Value, 0, len(m.removedwechat_identities))
+		for id := range m.removedwechat_identities {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedcollections {
 		edges = append(edges, user.EdgeCollections)
+	}
+	if m.clearedwechat_identities {
+		edges = append(edges, user.EdgeWechatIdentities)
 	}
 	return edges
 }
@@ -8686,6 +8766,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeCollections:
 		return m.clearedcollections
+	case user.EdgeWechatIdentities:
+		return m.clearedwechat_identities
 	}
 	return false
 }
@@ -8705,8 +8787,559 @@ func (m *UserMutation) ResetEdge(name string) error {
 	case user.EdgeCollections:
 		m.ResetCollections()
 		return nil
+	case user.EdgeWechatIdentities:
+		m.ResetWechatIdentities()
+		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// WechatIdentityMutation represents an operation that mutates the WechatIdentity nodes in the graph.
+type WechatIdentityMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	app_id        *string
+	openid        *string
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	user          *uuid.UUID
+	cleareduser   bool
+	done          bool
+	oldValue      func(context.Context) (*WechatIdentity, error)
+	predicates    []predicate.WechatIdentity
+}
+
+var _ ent.Mutation = (*WechatIdentityMutation)(nil)
+
+// wechatidentityOption allows management of the mutation configuration using functional options.
+type wechatidentityOption func(*WechatIdentityMutation)
+
+// newWechatIdentityMutation creates new mutation for the WechatIdentity entity.
+func newWechatIdentityMutation(c config, op Op, opts ...wechatidentityOption) *WechatIdentityMutation {
+	m := &WechatIdentityMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWechatIdentity,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWechatIdentityID sets the ID field of the mutation.
+func withWechatIdentityID(id uuid.UUID) wechatidentityOption {
+	return func(m *WechatIdentityMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WechatIdentity
+		)
+		m.oldValue = func(ctx context.Context) (*WechatIdentity, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WechatIdentity.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWechatIdentity sets the old WechatIdentity of the mutation.
+func withWechatIdentity(node *WechatIdentity) wechatidentityOption {
+	return func(m *WechatIdentityMutation) {
+		m.oldValue = func(context.Context) (*WechatIdentity, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WechatIdentityMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WechatIdentityMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of WechatIdentity entities.
+func (m *WechatIdentityMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WechatIdentityMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WechatIdentityMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WechatIdentity.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *WechatIdentityMutation) SetUserID(u uuid.UUID) {
+	m.user = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *WechatIdentityMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the WechatIdentity entity.
+// If the WechatIdentity object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatIdentityMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *WechatIdentityMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *WechatIdentityMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *WechatIdentityMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the WechatIdentity entity.
+// If the WechatIdentity object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatIdentityMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *WechatIdentityMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetOpenid sets the "openid" field.
+func (m *WechatIdentityMutation) SetOpenid(s string) {
+	m.openid = &s
+}
+
+// Openid returns the value of the "openid" field in the mutation.
+func (m *WechatIdentityMutation) Openid() (r string, exists bool) {
+	v := m.openid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOpenid returns the old "openid" field's value of the WechatIdentity entity.
+// If the WechatIdentity object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatIdentityMutation) OldOpenid(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOpenid is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOpenid requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOpenid: %w", err)
+	}
+	return oldValue.Openid, nil
+}
+
+// ResetOpenid resets all changes to the "openid" field.
+func (m *WechatIdentityMutation) ResetOpenid() {
+	m.openid = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WechatIdentityMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WechatIdentityMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the WechatIdentity entity.
+// If the WechatIdentity object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatIdentityMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WechatIdentityMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *WechatIdentityMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[wechatidentity.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *WechatIdentityMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *WechatIdentityMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *WechatIdentityMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the WechatIdentityMutation builder.
+func (m *WechatIdentityMutation) Where(ps ...predicate.WechatIdentity) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WechatIdentityMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WechatIdentityMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WechatIdentity, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WechatIdentityMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WechatIdentityMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WechatIdentity).
+func (m *WechatIdentityMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WechatIdentityMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.user != nil {
+		fields = append(fields, wechatidentity.FieldUserID)
+	}
+	if m.app_id != nil {
+		fields = append(fields, wechatidentity.FieldAppID)
+	}
+	if m.openid != nil {
+		fields = append(fields, wechatidentity.FieldOpenid)
+	}
+	if m.created_at != nil {
+		fields = append(fields, wechatidentity.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WechatIdentityMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case wechatidentity.FieldUserID:
+		return m.UserID()
+	case wechatidentity.FieldAppID:
+		return m.AppID()
+	case wechatidentity.FieldOpenid:
+		return m.Openid()
+	case wechatidentity.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WechatIdentityMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case wechatidentity.FieldUserID:
+		return m.OldUserID(ctx)
+	case wechatidentity.FieldAppID:
+		return m.OldAppID(ctx)
+	case wechatidentity.FieldOpenid:
+		return m.OldOpenid(ctx)
+	case wechatidentity.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown WechatIdentity field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatIdentityMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case wechatidentity.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case wechatidentity.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case wechatidentity.FieldOpenid:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOpenid(v)
+		return nil
+	case wechatidentity.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WechatIdentity field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WechatIdentityMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WechatIdentityMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatIdentityMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown WechatIdentity numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WechatIdentityMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WechatIdentityMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WechatIdentityMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown WechatIdentity nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WechatIdentityMutation) ResetField(name string) error {
+	switch name {
+	case wechatidentity.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case wechatidentity.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case wechatidentity.FieldOpenid:
+		m.ResetOpenid()
+		return nil
+	case wechatidentity.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatIdentity field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WechatIdentityMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, wechatidentity.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WechatIdentityMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case wechatidentity.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WechatIdentityMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WechatIdentityMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WechatIdentityMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, wechatidentity.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WechatIdentityMutation) EdgeCleared(name string) bool {
+	switch name {
+	case wechatidentity.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WechatIdentityMutation) ClearEdge(name string) error {
+	switch name {
+	case wechatidentity.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatIdentity unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WechatIdentityMutation) ResetEdge(name string) error {
+	switch name {
+	case wechatidentity.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatIdentity edge %s", name)
 }
 
 // WechatSyncTaskMutation represents an operation that mutates the WechatSyncTask nodes in the graph.

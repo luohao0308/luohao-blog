@@ -34,6 +34,8 @@ const DefaultWechatBindingTTL = 10 * time.Minute
 // openid. The implementation lives in the data layer next to the other
 // outbound HTTP clients.
 type WechatClient interface {
+	AppID() string
+	Configured() bool
 	// Code2Session validates the code and returns the openid. Config-missing
 	// setups return ErrWechatNotConfigured; WeChat-side rejections return
 	// ErrWechatCodeInvalid.
@@ -44,10 +46,10 @@ type WechatClient interface {
 // follows, addressed by a single-use random ticket.
 type WechatBindingStore interface {
 	// Save issues a fresh ticket for the openid; the ticket expires after ttl.
-	Save(ctx context.Context, openid string, ttl time.Duration) (string, error)
+	Save(ctx context.Context, appID, openid string, ttl time.Duration) (string, error)
 	// Consume atomically redeems the ticket and returns the openid. Unknown
 	// or replayed tickets return ErrWechatTicketInvalid.
-	Consume(ctx context.Context, ticket string) (string, error)
+	Consume(ctx context.Context, appID, ticket string) (string, error)
 }
 
 // WechatLoginResult is the outcome of WechatUsecase.Login: either a signed-in
@@ -81,6 +83,9 @@ func NewWechatUsecase(users *UserUsecase, auth *AuthUsecase, wechat WechatClient
 // binding ticket. Throttling shares the login budget: both endpoints are
 // anonymous and WeChat-side rate limits make hammering pointless anyway.
 func (uc *WechatUsecase) Login(ctx context.Context, code, clientIP string) (*WechatLoginResult, error) {
+	if uc.wechat == nil || !uc.wechat.Configured() {
+		return nil, ErrWechatNotConfigured
+	}
 	if uc.limiter != nil {
 		ok, err := uc.limiter.Allow(ctx, "login:"+clientIP)
 		if err != nil {
@@ -93,9 +98,9 @@ func (uc *WechatUsecase) Login(ctx context.Context, code, clientIP string) (*Wec
 	if err != nil {
 		return nil, err
 	}
-	u, err := uc.users.ByWechatOpenID(ctx, openid)
+	u, err := uc.users.ByWechatIdentity(ctx, uc.wechat.AppID(), openid)
 	if err == nil {
-		pair, err := uc.auth.issuePair(ctx, u)
+		pair, err := uc.issueVerifiedPair(ctx, u)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +109,7 @@ func (uc *WechatUsecase) Login(ctx context.Context, code, clientIP string) (*Wec
 	if !errors.IsNotFound(err) {
 		return nil, err
 	}
-	ticket, err := uc.bindings.Save(ctx, openid, uc.bindingTTL)
+	ticket, err := uc.bindings.Save(ctx, uc.wechat.AppID(), openid, uc.bindingTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +121,9 @@ func (uc *WechatUsecase) Login(ctx context.Context, code, clientIP string) (*Wec
 // a wrong password burns it, so each bind attempt needs a fresh wx.login —
 // deliberate, it keeps a captured ticket from being re-armed after a failure.
 func (uc *WechatUsecase) Bind(ctx context.Context, ticket, email, password, clientIP string) (*User, *TokenPair, error) {
+	if uc.wechat == nil || !uc.wechat.Configured() {
+		return nil, nil, ErrWechatNotConfigured
+	}
 	if uc.limiter != nil {
 		ok, err := uc.limiter.Allow(ctx, "login:"+clientIP)
 		if err != nil {
@@ -127,7 +135,7 @@ func (uc *WechatUsecase) Bind(ctx context.Context, ticket, email, password, clie
 	if ticket == "" {
 		return nil, nil, ErrWechatTicketInvalid
 	}
-	openid, err := uc.bindings.Consume(ctx, ticket)
+	openid, err := uc.bindings.Consume(ctx, uc.wechat.AppID(), ticket)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,12 +143,27 @@ func (uc *WechatUsecase) Bind(ctx context.Context, ticket, email, password, clie
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := uc.users.BindWechat(ctx, u.ID, openid); err != nil {
+	if err := uc.users.BindWechatIdentity(ctx, u.ID, u.CredentialVersion, uc.wechat.AppID(), openid); err != nil {
 		return nil, nil, err
 	}
-	pair, err := uc.auth.issuePair(ctx, u)
+	pair, err := uc.issueVerifiedPair(ctx, u)
 	if err != nil {
 		return nil, nil, err
 	}
 	return u, pair, nil
+}
+
+// issueVerifiedPair closes the password-reset race after refresh creation.
+func (uc *WechatUsecase) issueVerifiedPair(ctx context.Context, u *User) (*TokenPair, error) {
+	version := u.CredentialVersion
+	pair, err := uc.auth.issuePair(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	latest, err := uc.users.ByID(ctx, u.ID)
+	if err != nil || latest.CredentialVersion != version {
+		_ = uc.auth.sessions.Delete(ctx, pair.Refresh.Token)
+		return nil, ErrAuthInvalidRefreshToken
+	}
+	return pair, nil
 }

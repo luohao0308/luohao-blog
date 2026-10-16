@@ -14,6 +14,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -174,6 +175,21 @@ func (_c *UserCreate) AddCollections(v ...*Collection) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddCollectionIDs(ids...)
+}
+
+// AddWechatIdentityIDs adds the "wechat_identities" edge to the WechatIdentity entity by IDs.
+func (_c *UserCreate) AddWechatIdentityIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddWechatIdentityIDs(ids...)
+	return _c
+}
+
+// AddWechatIdentities adds the "wechat_identities" edges to the WechatIdentity entity.
+func (_c *UserCreate) AddWechatIdentities(v ...*WechatIdentity) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddWechatIdentityIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -368,6 +384,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(collection.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.WechatIdentitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.WechatIdentitiesTable,
+			Columns: []string{user.WechatIdentitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wechatidentity.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

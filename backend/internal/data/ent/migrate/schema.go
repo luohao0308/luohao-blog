@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -335,6 +336,40 @@ var (
 			},
 		},
 	}
+	// WechatIdentitiesColumns holds the columns for the "wechat_identities" table.
+	WechatIdentitiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "app_id", Type: field.TypeString, Size: 32},
+		{Name: "openid", Type: field.TypeString, Size: 64},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// WechatIdentitiesTable holds the schema information for the "wechat_identities" table.
+	WechatIdentitiesTable = &schema.Table{
+		Name:       "wechat_identities",
+		Columns:    WechatIdentitiesColumns,
+		PrimaryKey: []*schema.Column{WechatIdentitiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "wechat_identities_users_wechat_identities",
+				Columns:    []*schema.Column{WechatIdentitiesColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "wechat_identity_app_openid",
+				Unique:  true,
+				Columns: []*schema.Column{WechatIdentitiesColumns[1], WechatIdentitiesColumns[2]},
+			},
+			{
+				Name:    "wechat_identity_user_app",
+				Unique:  true,
+				Columns: []*schema.Column{WechatIdentitiesColumns[4], WechatIdentitiesColumns[1]},
+			},
+		},
+	}
 	// WechatSyncTasksColumns holds the columns for the "wechat_sync_tasks" table.
 	WechatSyncTasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -418,6 +453,7 @@ var (
 		SubscribersTable,
 		TagsTable,
 		UsersTable,
+		WechatIdentitiesTable,
 		WechatSyncTasksTable,
 		ArticleTagsTable,
 	}
@@ -427,6 +463,10 @@ func init() {
 	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
 	CollectionsTable.ForeignKeys[0].RefTable = ArticlesTable
 	CollectionsTable.ForeignKeys[1].RefTable = UsersTable
+	WechatIdentitiesTable.ForeignKeys[0].RefTable = UsersTable
+	WechatIdentitiesTable.Annotation = &entsql.Annotation{
+		Collation: "utf8mb4_bin",
+	}
 	ArticleTagsTable.ForeignKeys[0].RefTable = ArticlesTable
 	ArticleTagsTable.ForeignKeys[1].RefTable = TagsTable
 }

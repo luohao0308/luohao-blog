@@ -102,17 +102,25 @@ func scanBootstrap(c config.Config) (*conf.Bootstrap, error) {
 	if err := c.Scan(&bc); err != nil {
 		return nil, err
 	}
-	value, ok := os.LookupEnv("KRATOS_AUTH_SECURE_COOKIE")
-	if !ok {
-		return &bc, nil
+	if value, ok := os.LookupEnv("KRATOS_AUTH_SECURE_COOKIE"); ok {
+		secure, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, fmt.Errorf("KRATOS_AUTH_SECURE_COOKIE must be a boolean: %w", err)
+		}
+		if bc.Auth == nil {
+			bc.Auth = &conf.Auth{}
+		}
+		bc.Auth.SecureCookie = secure
 	}
-	secure, err := strconv.ParseBool(value)
-	if err != nil {
-		return nil, fmt.Errorf("KRATOS_AUTH_SECURE_COOKIE must be a boolean: %w", err)
+	if value, ok := os.LookupEnv("KRATOS_WECHAT_ENABLED"); ok {
+		enabled, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, fmt.Errorf("KRATOS_WECHAT_ENABLED must be a boolean: %w", err)
+		}
+		if bc.Wechat == nil {
+			bc.Wechat = &conf.Wechat{}
+		}
+		bc.Wechat.Enabled = enabled
 	}
-	if bc.Auth == nil {
-		bc.Auth = &conf.Auth{}
-	}
-	bc.Auth.SecureCookie = secure
 	return &bc, nil
 }

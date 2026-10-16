@@ -27,6 +27,7 @@ global.wx = {
   getStorageSync: key => storage.get(key),
   setStorageSync: (key, value) => storage.set(key, structuredClone(value)),
   removeStorageSync: key => storage.delete(key),
+  login: options => queueMicrotask(() => options.success({ code: 'synthetic-wechat-code' })),
   request: options => {
     calls.push(options)
     queueMicrotask(() => Promise.resolve(respond(options)).then(options.success, options.fail))
@@ -43,8 +44,69 @@ async function main() {
   const request = require(path.join(out, 'utils/request.js'))
   const projectConfig = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json'), 'utf8'))
   assert.equal(config.API_BASE, 'https://makerhao.cn/api/v1')
-  assert.equal(config.assetUrl('/v1/assets/avatar/fixture.png'), 'https://makerhao.cn/api/v1/assets/avatar/fixture.png')
+  assert.equal(config.assetUrl('/v1/assets/avatars/fixture.png'), 'https://makerhao.cn/api/v1/assets/avatars/fixture.png')
   assert.equal(projectConfig.setting.urlCheck, true, 'production domain validation must be enabled by default')
+  // Actual protojson wire DTOs must map consistently on all profile/session paths.
+  const wireUser = { id: 'profile-fixture', email: 'profile@example.invalid', display_name: '测试昵称', role: 2, avatar_url: '/v1/assets/avatars/fixture.webp' }
+  const avatar = 'https://makerhao.cn/api/v1/assets/avatars/fixture.webp'
+  const expectedAccount = { id: wireUser.id, email: wireUser.email, displayName: wireUser.display_name, role: 2, avatarUrl: avatar }
+  const loginReply = { access_token: 'profile-access-fixture', token_type: 'Bearer', expires_in: '900', user: wireUser }
+  const me = loadPage('me')
+  respond = options => ({ statusCode: 200, header: { 'Set-Cookie': 'refresh_token=profile-refresh-fixture; HttpOnly' }, data: options.url.endsWith('/auth/wechat') ? { status: 1, login: loginReply } : loginReply })
+  await me.startWechatLogin()
+  assert.deepEqual(me.data.account, expectedAccount, 'first WeChat login must map actual wire nickname and final image src')
+  assert.equal(me.data.mode, 'signedin')
+  assert.deepEqual(auth.currentAccount(), expectedAccount)
+  assert.deepEqual(storage.get('auth:account'), expectedAccount)
+  assert.equal(storage.get('auth:refresh'), 'profile-refresh-fixture')
+  me.data.mode = 'binding'
+  me.data.bindTicket = 'synthetic-binding-ticket'
+  me.data.email = 'profile@example.invalid'
+  me.data.password = 'synthetic-test-only-password'
+  await me.submitBind()
+  assert.deepEqual(me.data.account, expectedAccount, 'binding must map actual wire nickname/avatar')
+  assert.equal(me.data.password, '')
+  respond = () => ({ statusCode: 200, header: {}, data: wireUser })
+  assert.deepEqual(await auth.fetchMe(), expectedAccount)
+  await me.restore()
+  assert.deepEqual(me.data.account, expectedAccount, 'restore must not double-prefix normalized avatar')
+  respond = () => ({ statusCode: 200, header: { 'Set-Cookie': 'refresh_token=rotated-profile-fixture; HttpOnly' }, data: loginReply })
+  assert.equal(await auth.refreshSession(), true)
+  assert.deepEqual(auth.currentAccount(), expectedAccount, 'refresh must normalize before caching')
+  assert.equal(storage.get('auth:refresh'), 'rotated-profile-fixture')
+  storage.set('auth:account', wireUser)
+  assert.deepEqual(auth.currentAccount(), expectedAccount, 'legacy snake_case cached user must restore')
+  storage.set('auth:account', expectedAccount)
+  assert.deepEqual(auth.currentAccount(), expectedAccount, 'normalized cache must remain idempotent')
+  assert.equal(config.assetUrl(avatar), avatar)
+  assert.equal(config.assetUrl('/api/v1/assets/avatars/fixture.webp'), avatar)
+  for (const route of ['avatars', 'media']) {
+    for (const filename of ['fixture.png', 'a123456789abcdef0123456789abcdef.jpg', 'a123456789abcdef0123456789abcdef.webp']) {
+      for (const prefix of ['/v1/assets/', '/api/v1/assets/', 'https://makerhao.cn/api/v1/assets/']) {
+        assert.equal(config.assetUrl(prefix + route + '/' + filename), 'https://makerhao.cn/api/v1/assets/' + route + '/' + filename)
+      }
+    }
+  }
+  for (const prefix of ['/v1/assets/', '/api/v1/assets/', 'https://makerhao.cn/api/v1/assets/']) {
+    for (const suffix of ['../auth/me', 'avatars/./fixture.png', 'avatars/../auth/me', 'avatars/%2e%2e/auth/me', 'avatars/%2E%2E%2Fauth%2Fme', 'avatars/fixture%2epng', 'avatars/fixture%zz.png', 'avatars/fixture.png?x=1', 'avatars/fixture.png#fragment', 'avatars/nested/fixture.png', 'avatar/fixture.png', 'avatars/fixture.svg', 'avatars/fixture.png/']) {
+      assert.equal(config.assetUrl(prefix + suffix), '', 'asset URL must reject traversal/encoding/query/hash and unknown routes: ' + suffix)
+    }
+    assert.equal(config.assetUrl(prefix + 'avatars/' + String.fromCharCode(92) + 'fixture.png'), '')
+    assert.equal(config.assetUrl(prefix + 'avatars/fixture.png' + String.fromCharCode(10)), '')
+  }
+  assert.equal(config.assetUrl(''), '')
+  for (const unsafe of ['http://makerhao.cn/api/v1/assets/a.png', '//other.example/a.png', 'javascript:alert(1)', 'https://other.example/a.png']) assert.equal(config.assetUrl(unsafe), '')
+  respond = () => ({ statusCode: 200, header: {}, data: { ...wireUser, avatar_url: '' } })
+  await me.restore()
+  assert.equal(me.data.account.avatarUrl, '')
+  assert.equal(me.data.account.displayName, wireUser.display_name)
+  storage.set('auth:expireAt', 0)
+  respond = options => ({ statusCode: 200, header: {}, data: options.url.endsWith('/auth/refresh') ? loginReply : wireUser })
+  await me.restore()
+  assert.deepEqual(me.data.account, expectedAccount, 'expired session restore must map both refresh and getMe responses')
+  assert.match(fs.readFileSync(path.join(root, 'miniprogram/pages/me/me.wxml'), 'utf8'), /src="{{account\.avatarUrl}}"/)
+  auth.clearSession()
+  calls = []
   storage.set('auth:access', 'expired-fixture')
   storage.set('auth:refresh', 'refresh-fixture')
   auth.registerAuthBridge()
@@ -321,6 +383,6 @@ async function main() {
   assert.equal(calls.at(-1).timeout, 60000)
   chat.openCitation({ currentTarget: { dataset: { slug: 'public' } } })
   assert.equal(navigation, '/pages/post/post?slug=public')
-  console.log('Mini logic PASS: auth replay, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
+  console.log('Mini logic PASS: wire account/avatar mapping, auth replay, comment status/rendering, index/comment paging races/dedup, Unicode limits, draft retention, search, chat')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 }).finally(() => fs.rmSync(out, { recursive: true, force: true }))

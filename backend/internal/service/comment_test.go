@@ -193,11 +193,11 @@ func (s *stubUserRepo) UpdateProfile(context.Context, uuid.UUID, string) error {
 	return biz.ErrUserNotFound
 }
 
-func (s *stubUserRepo) FindByWechatOpenID(context.Context, string) (*biz.User, error) {
+func (s *stubUserRepo) FindByWechatIdentity(context.Context, string, string) (*biz.User, error) {
 	return nil, biz.ErrUserNotFound
 }
 
-func (s *stubUserRepo) BindWechat(context.Context, uuid.UUID, string) error {
+func (s *stubUserRepo) BindWechatIdentity(context.Context, uuid.UUID, uint64, string, string) error {
 	return nil
 }
 
