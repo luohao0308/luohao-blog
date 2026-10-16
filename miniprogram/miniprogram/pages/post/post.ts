@@ -1,9 +1,9 @@
 import { getArticle, listComments, createComment, likeArticle, reportArticleViewed } from '../../utils/api'
 import { toMessage } from '../../utils/request'
 import { formatDate } from '../../utils/format'
-import { decorateArticleHtml } from '../../utils/html'
+import { articleContentBlocks, decorateArticleHtml, type ArticleContentBlock } from '../../utils/html'
 import { isFavorite, toggleFavorite, isLiked, markLiked, unmarkLiked } from '../../utils/favorites'
-import { currentAccount, isLoggedIn } from '../../utils/auth'
+import { currentAccount, hasRefreshSession, isLoggedIn, refreshSession } from '../../utils/auth'
 import { assetUrl } from '../../utils/config'
 import { COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, type Comment } from '../../utils/types'
 
@@ -51,6 +51,8 @@ Page({
     categoryName: '',
     tags: [] as string[],
     html: '',
+    contentBlocks: [] as ArticleContentBlock[],
+    imageUrls: [] as string[],
     likeCount: 0,
     liked: false,
     favorited: false,
@@ -69,6 +71,8 @@ Page({
     commentBusy: false,
     commentError: '',
     canComment: false,
+    commentAuthLoading: false,
+    commentAuthRevision: 0,
   },
 
   onLoad(options: Record<string, string | undefined>) {
@@ -88,13 +92,38 @@ Page({
     this.refreshComposer()
   },
 
-  refreshComposer() {
+  onHide() {
+    this.setData({ commentAuthRevision: this.data.commentAuthRevision + 1, commentAuthLoading: false })
+  },
+
+  onUnload() {
+    // Invalidate callbacks without updating the destroyed view.
+    this.data.commentAuthRevision += 1
+  },
+
+  async refreshComposer() {
+    const revision = this.data.commentAuthRevision + 1
+    this.setData({ commentAuthRevision: revision })
+    if (!isLoggedIn() && hasRefreshSession()) {
+      this.setData({ canComment: false, commentAuthLoading: true })
+      try {
+        // onLoad/onShow and request-layer 401 recovery share auth's single flight.
+        await refreshSession()
+      } catch { /* Failed restoration falls back to the current local auth state. */ }
+      if (revision !== this.data.commentAuthRevision) return
+    }
+    // Read current state after waiting: a newer login/logout always wins.
+    this.applyComposerState()
+  },
+
+  applyComposerState() {
     const accountId = currentAccount()?.id ?? ''
     const accountChanged = this.data.commentAccountId !== '' && this.data.commentAccountId !== accountId
     if (accountChanged) {
       const comments = uniqueComments(this.data.publicComments)
       this.setData({
         canComment: isLoggedIn(),
+        commentAuthLoading: false,
         commentAccountId: accountId,
         commentSubmitRevision: this.data.commentSubmitRevision + 1,
         sessionComments: [],
@@ -107,7 +136,7 @@ Page({
       })
       return
     }
-    this.setData({ canComment: isLoggedIn(), commentAccountId: accountId })
+    this.setData({ canComment: isLoggedIn(), commentAccountId: accountId, commentAuthLoading: false })
   },
 
   async fetch() {
@@ -115,6 +144,8 @@ Page({
     this.setData({ loading: true, error: '' })
     try {
       const article = await getArticle(slug)
+      const html = decorateArticleHtml(article.content_html ?? '')
+      const contentBlocks = articleContentBlocks(html)
       wx.setNavigationBarTitle({ title: article.title })
       this.setData({
         loading: false,
@@ -124,7 +155,9 @@ Page({
         likeCount: Number(article.like_count ?? 0),
         categoryName: article.category?.name ?? '',
         tags: article.tags ?? [],
-        html: decorateArticleHtml(article.content_html ?? ''),
+        html,
+        contentBlocks,
+        imageUrls: Array.from(new Set(contentBlocks.flatMap(block => block.imageUrls))),
         liked: isLiked(slug),
         favorited: isFavorite(slug),
       })
@@ -138,6 +171,12 @@ Page({
   retry() {
     this.fetch()
     this.fetchComments()
+  },
+
+  previewPostImage(event: WechatMiniprogram.TouchEvent) {
+    const src: unknown = event.currentTarget.dataset.src
+    if (typeof src !== 'string' || !this.data.imageUrls.includes(src)) return
+    wx.previewImage({ current: src, urls: this.data.imageUrls })
   },
 
   async toggleLike() {

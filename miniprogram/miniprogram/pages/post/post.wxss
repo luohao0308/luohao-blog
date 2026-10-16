@@ -29,6 +29,22 @@
   margin-top: 24rpx;
 }
 
+.post-image {
+  display: block;
+  width: 100%;
+  margin: 16rpx 0;
+  border-radius: 8px;
+}
+
+.post-image-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+  margin: 12rpx 0;
+  color: #2563eb;
+  font-size: 26rpx;
+}
+
 /* --- 互动条 --- */
 
 .action-bar {
@@ -213,6 +229,14 @@
   flex: 1;
   text-align: center;
   color: #2563eb;
+  font-size: 28rpx;
+  padding: 14rpx 0;
+}
+
+.composer-status {
+  flex: 1;
+  text-align: center;
+  color: #64748b;
   font-size: 28rpx;
   padding: 14rpx 0;
 }
