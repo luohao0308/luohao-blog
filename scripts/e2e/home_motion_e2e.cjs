@@ -57,7 +57,9 @@ async function main() {
       return { peakSpread: Math.max(...centers) - Math.min(...centers), restingSpread: Math.max(...resting) - Math.min(...resting) }
     })
     assert(geometry.peakSpread < geometry.restingSpread * .8, 'peak must visibly concentrate real cards into a fan')
-    await page.screenshot({ path: path.join(output, 'home-1440-mid.png'), fullPage: true })
+    // Full-page capture may resize the viewport and intentionally cancel motion.
+    await page.screenshot({ path: path.join(output, 'home-1440-mid.png'), fullPage: false })
+    assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'playing', 'peak capture must not cancel the effect')
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
     assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')

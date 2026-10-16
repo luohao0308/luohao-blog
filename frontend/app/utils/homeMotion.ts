@@ -158,6 +158,12 @@ export function startArticleReveal(root: HTMLElement, env: MotionEnvironment): M
   if (!canPlay(elements, env)) return { playing: false, stop: () => {} }
   return play(elements.map((element, index) => ({
     element, duration: 420, delay: index * 55,
-    frames: [{ transform: `translateY(${env.compact ? 8 : 14}px)`, opacity: 0.5 }, { transform: 'translateY(0)', opacity: 1 }],
+    frames: [
+      {
+        transform: `perspective(1100px) translate3d(${index % 2 ? 4 : -4}px,${env.compact ? 8 : 14}px,0) rotateX(4deg) rotateZ(${(index % 2 ? 1 : -1) * (env.compact ? 0.8 : 1.5)}deg) scale(0.98)`,
+        opacity: 0.5, easing: 'ease-out',
+      },
+      { transform: 'none', opacity: 1 },
+    ],
   })), env, () => {})
 }

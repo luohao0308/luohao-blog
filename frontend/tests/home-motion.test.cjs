@@ -242,3 +242,43 @@ test('gesture without click has a release fallback and cancel removes its timer'
     assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
   }
 })
+
+test('list fan touches only selected items with bounded alternating motion and restores on cancellation', () => {
+  const { startArticleReveal } = load()
+  for (const compact of [false, true]) {
+    const f = fixture(); f.env.compact = compact
+    const elements = f.root.querySelectorAll()
+    const originalTransforms = elements.map((element, index) => {
+      element.style = { transform: `translateX(${index}px)`, opacity: '1' }
+      return { ...element.style }
+    })
+    f.root.querySelectorAll = selector => {
+      assert.equal(selector, '[data-article-reveal]')
+      return elements
+    }
+    f.env.storage = () => { assert.fail('list animation must not read or consume home session') }
+    const controller = startArticleReveal(f.root, f.env)
+    assert.equal(f.animations.length, 6)
+    let previousAngle
+    f.animations.forEach((animation, index) => {
+      const start = animation.frames[0].transform
+      const angle = Number(start.match(/rotateZ\(([-.\d]+)deg/)[1])
+      const x = Number(start.match(/translate3d\(([-.\d]+)px/)[1])
+      const y = Number(start.match(/translate3d\([-.\d]+px,([-.\d]+)px/)[1])
+      assert.ok(Math.abs(angle) > 0 && Math.abs(angle) <= (compact ? 1 : 2))
+      assert.ok(Math.abs(x) <= 4 && y <= 14 && y > 0)
+      if (previousAngle !== undefined) assert.ok(previousAngle * angle < 0)
+      previousAngle = angle
+      assert.equal(animation.frames.at(-1).transform, 'none')
+      assert.equal(animation.frames.at(-1).opacity, 1)
+      assert.ok(animation.timing.duration + animation.timing.delay < 750)
+      assert.deepEqual(elements[index].style, originalTransforms[index])
+    })
+    f.events.fire('keydown', { key: 'Escape' })
+    assert.equal(controller.playing, false)
+    assert.ok(f.animations.every(animation => animation.cancelled))
+    elements.forEach((element, index) => assert.deepEqual(element.style, originalTransforms[index]))
+    assert.equal(f.memory.value, false)
+    assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
+  }
+})

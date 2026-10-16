@@ -70,7 +70,7 @@ const featuredProjects = computed(() => {
 
     <section class="home-section" aria-label="首页文章推荐">
       <div class="home-section-heading" data-home-layer="subtle">
-        <div><p class="home-kicker">WRITING / NOTES</p><h2>{{ hasFeaturedArticles ? '精选文章' : '最近的记录' }}</h2></div>
+        <div><p class="home-kicker">WRITING / NOTES</p><h2>{{ hasFeaturedArticles ? '精选文章' : '最新文章' }}</h2></div>
         <NuxtLink to="/posts" class="home-text-link">全部文章 <span aria-hidden="true">↗</span></NuxtLink>
       </div>
       <div v-if="homeArticles.length" class="home-articles">

@@ -145,6 +145,8 @@ NODE_PATH=<已有Playwright所在node_modules> BLOG_E2E_CHROMIUM=<已有Chrome�
 
 该脚本自动启动/关闭13001端口的只读fixture，不要与其它使用同端口的浏览器套件并行。输出位于本机`output/visual-redesign/implementation/`；正常浏览器和测试账号只在fixture中存在，不访问真实账号、评论写入或模型服务。动效控制器单元回归通过`cd frontend && node --test tests/*.test.cjs`执行，并由现有CI前端单元测试步骤覆盖。
 
+在同一个前端产物上串行执行`node scripts/e2e/article_reveal_e2e.cjs`，检查列表八篇文章中最多前六篇轻展开、减少动态时不播放、服务端语义排序保持、搜索与清空不重播。这个脚本也自行管理13001只读fixture；同样需要已有Playwright/Chrome环境变量。
+
 1. 在 frontend 构建并启动本任务预览（不要同时运行 dev 和 build）：
 
    ```bash

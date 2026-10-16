@@ -16,7 +16,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | `backend/` | Go 服务 | Kratos v3 单体，proto 契约源，模块 `github.com/luohao0308/luohao-blog/backend` | 否 | 分层契约见 `backend/AGENTS.md` |
 | `frontend/` | Nuxt 应用 | Vue 3 + Nuxt 4，SSR/SSG，pnpm 11 | 否 | 前端目录内自洽 |
 | `deploy/` | 基础设施 | 本地依赖编排（compose）+ 生产反代模板（Caddy，M5 启用） | 否 | 端口/卷变更需同步文档 |
-| `.github/` | CI | backend lint+build+test / frontend lint+typecheck+build | 否 | 质量门，慎重修改 |
+| `.github/` | CI | backend lint+build+test / frontend lint+typecheck+unit+build | 否 | 质量门，慎重修改 |
 | `AGENTS.md` / `docs/` | 流程文件 | dev-workflow 0.5.0（9 包，本机排除，不进 Git） | 否 | 规则变更需说明理由 |
 | `.dev-workflow/` | 本机元数据 | manifest 与授权记录（Git exclude） | 否 | 仅本机 |
 
@@ -44,7 +44,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 数据访问 | `backend/internal/data/` | repo 实现、存储客户端、ent | data→biz | `auth.go`：JWT 签发/校验、Redis 会话、限流器 |
 | 配置 | `backend/internal/conf/` `backend/configs/` | 配置 proto 与 yaml | 无凭据入库 | `make config` 生成 |
 | API 契约 | `backend/api/<domain>/<version>/` | proto 源 + 生成物 | 唯一对外契约 | M1 起按领域新增 |
-| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 文章搜索、标签筛选、相邻文章；项目技术栈筛选；前台头部 5 项导航（文章▾ 下拉）+ 登录/头像菜单（`components/UserMenu.vue`） |
+| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 桌面4项扁平导航+主题/登录/头像菜单，移动另有分类/标签/归档；白底首页融合动效，文章列表轻展开，搜索/标签/相邻文章及项目技术栈筛选保留 |
 | 公众号同步（默认关闭） | biz/official_account.go、data/official_account_client/repo、admin/wechat-sync.vue | 文章发布原子入队、版本/账号幂等，草稿/公开发表/群发三模式，状态查询与持久退避 | 独立official_account配置，MySQL任务表v11，admin-only状态/重试/显式同步；真实启用见Runbook | 与小程序wechat登录配置独立；不存凭据、不盲重试未知写操作 |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
 | 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
@@ -70,7 +70,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 创建 ADMIN 账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一 ADMIN 建号入口（READER 走前台注册）；先幂等执行迁移 |
 | 演示文章 seed | `go run ./cmd/seed -conf ./configs -demo-articles`（`-reset` 覆写） | backend/ | 内嵌 markdown（`cmd/seed/demoarticles/`）；幂等补缺，默认不覆盖后台编辑 |
 | 认证冒烟 | `./scripts/smoke-auth.sh` / `./scripts/smoke-account.sh` | backend/ | 需 compose 依赖服务 + jq；auth 覆盖 login/me/refresh/logout/负向/限流；account 覆盖 register/profile/avatar/静态资源/穿越/429 |
-| 前端验证 | `pnpm lint && pnpm typecheck && pnpm build` | frontend/ | Nuxt SSR 构建，结果见当前任务与 CI |
+| 前端验证 | `pnpm lint && pnpm typecheck && node --test tests/*.test.cjs && pnpm build` | frontend/ | Nuxt SSR 构建，结果见当前任务与 CI |
 | 小程序验证 | `npm run typecheck && npm test` | miniprogram/ | mocked wx 逻辑回归；不替代 DevTools/真机验收 |
 | 看门狗验证 | `python3 scripts/test_watchdog.py` | 仓库根 | fake Docker 正负场景；探针使用容器健康状态 |
 | 前端启动 | `pnpm dev` | frontend/ | :3000 |
@@ -140,6 +140,8 @@ _更新方式：只在稳定事实、仓库拓扑、模块边界、技术决策�
 本地F1实现引入v16 `wechat_identities` 与AppID范围票据；旧 `users.wechat_openid` 保留，实际回填必须指定已验证旧AppID。配置 `wechat.enabled` 默认false同时控制登录/绑定；`official_account`独立。具体契约及验证见[小程序身份](contracts/WECHAT-IDENTITY.md)，生产切换见[Runbook](operations/runbooks/formal-miniprogram.md)。这不表示v16已生产部署。
 
 ## 10. 视觉、阅读与编辑交互
+
+- 首页通过`useHomeEntrance`与`utils/homeMotion.ts`对真实DOM播放约2.7秒白底分层/文章扇开，同标签页会话仅一次；减少动态、跳过、路由卸载和窗口改变恢复静态。动画内容指针按下先冻结，原生点击分发后再取消，避免链接首击失效。文章列表`useArticleReveal`只在组件初挂载对最多6项轻展开，搜索更新不重播。无JS仍SSR可读；未引入3D/动效依赖。计划与验证入口见[首页动效计划](plans/HOME-MOTION-2026-10.md)、`scripts/e2e/home_motion_e2e.cjs`及`article_reveal_e2e.cjs`。
 
 - `frontend/app/assets/css/main.css` 管理明暗语义变量、公共表单控件、键盘焦点与减少动态偏好；后台 Naive 色值显式映射同一配色（库会计算颜色，不能直接传CSS var）。`plugins/naive-ssr.server.ts` 将现有模块收集的CSS交给Nuxt4 Unhead，后台身份节点延迟至挂载，避免匿名SSR与客户端会话树不一致。
 - `ArticleContent.vue` 复用服务端正文和既有目录ID，增强移动折叠目录、代码复制与原生dialog图片预览；`utils/reading.ts` 在SSR映射后台图片路径。后端安全渲染附加转义的语言元数据；旧存量HTML无元数据时显示通用“代码”，不自动回填。
