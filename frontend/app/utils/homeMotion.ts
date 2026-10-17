@@ -1,4 +1,7 @@
+import { createReferenceAssembly } from './referenceAssembly'
+
 export const HOME_ENTRANCE_KEY = 'blog:home-entrance:v1'
+const HOME_PLAYBACK_RATE = 1.75
 
 export interface MotionEnvironment {
   events: EventTarget
@@ -15,12 +18,12 @@ export interface MotionController {
   stop: () => void
 }
 
-type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number }
+type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number, easing?: string, surface?: 'layer' | 'card' }
 const resting: Keyframe = { transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateZ(0deg)', opacity: 1 }
 
-// Only WAAPI effects are written. Cancelling them restores the original CSS,
-// including any existing inline styles, without guessing which declarations to remove.
-function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: boolean) => void): MotionController {
+// Effects and their temporary presentation share one cleanup path. Existing
+// inline styles on real content are never overwritten.
+function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: boolean) => void, release?: () => void): MotionController {
   const animations: Animation[] = []
   const removers: (() => void)[] = []
   let playing = false
@@ -29,8 +32,11 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
   const stop = () => {
     pointerActive = false
     if (releaseTimer !== undefined) { clearTimeout(releaseTimer); releaseTimer = undefined }
-    for (const remove of removers.splice(0)) remove()
+    for (const remove of removers.splice(0).reverse()) remove()
     for (const animation of animations.splice(0)) animation.cancel()
+    const cleanup = release
+    release = undefined
+    cleanup?.()
     if (playing) { playing = false; changed(false) }
   }
   const listen = (target: EventTarget, type: string, listener: EventListener) => {
@@ -39,7 +45,15 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
   }
   try {
     for (const step of steps) {
-      const animation = step.element.animate(step.frames, { duration: step.duration, delay: step.delay, easing: 'linear', fill: 'both' })
+      if (step.surface) {
+        const previous = step.element.dataset.homeMotionSurface
+        step.element.dataset.homeMotionSurface = step.surface
+        removers.push(() => {
+          if (previous === undefined) delete step.element.dataset.homeMotionSurface
+          else step.element.dataset.homeMotionSurface = previous
+        })
+      }
+      const animation = step.element.animate(step.frames, { duration: step.duration, delay: step.delay, easing: step.easing ?? 'linear', fill: 'both' })
       animations.push(animation)
       // Attach rejection handlers immediately, including before a later animate() throws.
       void animation.finished.then(() => {
@@ -59,7 +73,10 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
         if (releaseTimer !== undefined) { clearTimeout(releaseTimer); releaseTimer = undefined }
         try { for (const animation of animations) animation.pause() } catch { stop() }
       })
-      listen(env.events, 'focusin', () => { if (!pointerActive) stop() })
+      listen(env.events, 'focusin', event => {
+        const target = event.target as HTMLElement | null
+        if (!pointerActive && !target?.closest?.('[data-home-skip]')) stop()
+      })
       listen(env.events, 'click', stop)
       listen(env.events, 'auxclick', stop)
       listen(env.events, 'pointerup', () => {
@@ -83,6 +100,24 @@ function canPlay(elements: HTMLElement[], env: MotionEnvironment) {
 }
 
 export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
+  const idle = { playing: false, stop: () => {} }
+  if (!canPlay([root], env) || env.memory.value) return idle
+  try { if (env.storage().getItem(HOME_ENTRANCE_KEY)) return idle } catch { /* Client memory remains the fallback. */ }
+  let scene: ReturnType<typeof createReferenceAssembly> | undefined
+  try {
+    scene = createReferenceAssembly(root, env.viewportWidth ?? root.ownerDocument.defaultView!.innerWidth)
+    const controller = play(scene.steps, env, changed, scene.cleanup)
+    if (controller.playing) {
+      env.memory.value = true
+      try { env.storage().setItem(HOME_ENTRANCE_KEY, '1') } catch { /* SPA memory prevents replay. */ }
+    }
+    return controller
+  } catch { scene?.cleanup(); return idle }
+}
+
+// Retain the previously approved fan as a separate variant; the reference
+// assembly entrance above deliberately does not blend it into the scene.
+export function startHybridEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
   const shellLayers = [...(root.closest?.('[data-home-shell]')?.querySelectorAll<HTMLElement>('[data-home-shell-layer]') ?? [])]
   const layers = [
     ...shellLayers.filter(element => element.dataset.homeShellLayer === 'nav'),
@@ -98,45 +133,56 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
   const first = rectangles[0]
   const multiRow = !!first && rectangles.some(rectangle => Math.abs(rectangle.top - first.top) > 1)
   const strength = env.compact ? 0.45 : 1
-  const shadow = '0 20px 38px rgb(45 65 95 / 0.16)'
-  const clearShadow = '0 0 0 rgb(45 65 95 / 0)'
   const steps: MotionStep[] = layers.map((element, index) => {
     const shell = element.dataset.homeShellLayer
-    const subtle = element.dataset.homeLayer === 'subtle'
-    const layerStrength = strength * (subtle ? 0.65 : 1)
-    const tilt = (shell ? 8 : 10) * layerStrength
-    const yaw = (index % 2 ? 2 : -4) * layerStrength
-    const depth = (shell === 'nav' ? 24 : shell === 'footer' ? 36 : 52 + Math.min(index, 5) * 10) * strength
-    const lift = (shell === 'nav' ? 14 : shell === 'footer' ? 32 : 6 + Math.min(index, 5) * 14) * strength
+    // Layer presentation follows the larger 04 study. Card strength and its
+    // timeline below remain independent, including on compact screens.
+    const layerStrength = env.compact ? 0.72 : 1
+    const spread = env.compact ? 32 : 62
+    const depth = (2 - index) * 42
+    const lift = shell === 'nav' ? 38 : 52 + (index - 1) * spread
     const rectangle = element.getBoundingClientRect()
     const width = rectangle.width || rectangle.right - rectangle.left
     const height = rectangle.height || 0
     const radians = Math.PI / 180
-    // Bound all corners including perspective. This also protects full-width
-    // shell surfaces, whose viewport margin differs from the content root.
-    const projectedWidth = width + height * Math.sin(tilt * radians) * Math.sin(Math.abs(yaw) * radians)
-    const maxDepth = depth + width / 2 * Math.sin(Math.abs(yaw) * radians) + height / 2 * Math.sin(tilt * radians)
     const availableWidth = env.viewportWidth === undefined ? width : Math.max(0, 2 * Math.min(rectangle.left + width / 2, env.viewportWidth - rectangle.left - width / 2) - 8)
     const parentPerspective = element.parentElement === root
       ? Number.parseFloat(root.ownerDocument?.defaultView?.getComputedStyle(root).perspective ?? '')
       : 0
     const effectivePerspective = parentPerspective > 0 ? 1 / (1 / 1100 + 1 / parentPerspective) : 1100
-    const safeScale = projectedWidth > 0 ? availableWidth / projectedWidth * Math.max(0.1, 1 - maxDepth / effectivePerspective) : 1
-    const scale = Math.max(0.1, Math.min(shell ? 0.94 : 0.97, safeScale))
-    const floating = {
-      transform: `perspective(1100px) translate3d(0,${lift}px,${depth}px) rotateX(${tilt}deg) rotateY(${yaw}deg) scale(${scale})`,
-      transformOrigin: '50% 50%', borderRadius: shell ? '12px' : '20px',
-      boxShadow: subtle ? '0 12px 24px rgb(45 65 95 / 0.08), 0 0 0 1px rgb(100 116 139 / 0.10)' : '0 22px 44px rgb(45 65 95 / 0.10), 0 0 0 1px rgb(100 116 139 / 0.14)', opacity: 1,
+    const pose = (tilt: number, yaw: number, roll: number, z: number, y: number, preferredScale: number): Keyframe => {
+      const pitch = Math.sin(tilt * radians)
+      const turn = Math.abs(Math.sin(yaw * radians))
+      const bank = Math.abs(Math.sin(roll * radians))
+      // Conservative corner bounds cover roll as well as both perspectives.
+      // Each pose is bounded separately; depth arrival needs a different scale.
+      const projectedWidth = width + height * (bank + pitch * turn)
+      const maxDepth = z + width / 2 * (turn + bank * pitch) + height / 2 * (pitch + bank * turn)
+      const safeScale = projectedWidth > 0 ? availableWidth / projectedWidth * Math.max(0.08, 1 - maxDepth / effectivePerspective) : 1
+      const scale = Math.max(0.08, Math.min(preferredScale, safeScale))
+      return {
+        transform: `perspective(1100px) translate3d(0,${y}px,${z}px) rotateX(${tilt}deg) rotateY(${yaw}deg) rotateZ(${roll}deg) scale(${scale})`,
+        opacity: 1,
+      }
     }
-    const delay = Math.min(index, 7) * 35
+    const arriving = pose(54 * layerStrength, -15 * layerStrength, -5 * layerStrength, -420, (lift + 60) * layerStrength, 0.72)
+    const opened = pose(36 * layerStrength, -11 * layerStrength, -4 * layerStrength, depth * layerStrength, lift * layerStrength, 0.86)
+    const travelling = pose(29 * layerStrength, 8 * layerStrength, 2 * layerStrength, depth * layerStrength, lift * layerStrength, 0.88)
+    const delay = Math.min(index, 7) * 65 / HOME_PLAYBACK_RATE
+    const settled: Keyframe = {
+      transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)',
+      opacity: 1,
+    }
     return {
-      element, duration: 2700 - delay, delay,
+      element, duration: 3100 / HOME_PLAYBACK_RATE - delay, delay,
+      surface: 'layer',
+      easing: 'cubic-bezier(0.25, 0.55, 0.25, 1)',
       frames: [
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
-        { ...floating, offset: 0.25 },
-        { ...floating, offset: 0.55, easing: 'ease-in-out' },
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0.90 },
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 1 },
+        { ...arriving, offset: 0 },
+        { ...opened, offset: 0.24 },
+        { ...travelling, offset: 0.60 },
+        { ...settled, offset: 0.92 },
+        { ...settled, offset: 1 },
       ],
     }
   })
@@ -154,16 +200,17 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
     const y = anchorY - (rectangle.top + rectangle.height / 2) + Math.abs(side) * 12 * strength
     const floating = {
       transform: `perspective(1100px) translate3d(${x}px,${y}px,${(45 + index * 45) * strength}px) rotateX(${10 * strength}deg) rotateZ(${side * 10 * strength}deg) scale(${fanScale})`,
-      opacity: 1, boxShadow: shadow,
+      opacity: 1,
     }
     steps.push({
-      element, duration: 2700, delay: 0,
+      element, duration: 2700 / HOME_PLAYBACK_RATE, delay: 0,
+      surface: 'card',
       frames: [
-        { ...resting, boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
+        { ...resting, offset: 0, easing: 'ease-out' },
         { ...floating, offset: 0.25 },
         { ...floating, offset: 0.55, easing: 'ease-in-out' },
-        { ...resting, boxShadow: clearShadow, offset: 0.90 },
-        { ...resting, boxShadow: clearShadow, offset: 1 },
+        { ...resting, offset: 0.90 },
+        { ...resting, offset: 1 },
       ],
     })
   })

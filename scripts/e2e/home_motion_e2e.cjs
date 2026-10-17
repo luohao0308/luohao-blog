@@ -1,4 +1,4 @@
-// Local production-build regression. No real account, model or production calls.
+// Read-only local production-build checks for the approved original assembly scene.
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -6,7 +6,8 @@ const { chromium } = require('playwright')
 const { startFixture, makeArticle } = require('./ui_fixture.cjs')
 const base = process.env.BLOG_E2E_BASE_URL || 'http://127.0.0.1:13000'
 if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(base).hostname)) throw new Error('Local frontend only')
-const output = path.resolve(process.env.BLOG_E2E_OUTPUT || 'output/visual-redesign/implementation')
+const output = path.resolve(process.env.BLOG_E2E_OUTPUT || 'output/visual-redesign/reference-assembly')
+const overlay = '.home-assembly-overlay'
 async function main() {
   fs.mkdirSync(output, { recursive: true })
   const fixture = await startFixture({ articles: [
@@ -15,211 +16,184 @@ async function main() {
     makeArticle({ id: '3', slug: 'fixture-nuxt', title: '真实文章：Nuxt 服务端渲染' }),
   ] })
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BLOG_E2E_CHROMIUM || undefined })
-  const errors = []
-  const checks = []
-  async function context(options = {}) {
-    const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'light', ...options })
-    // Session restore is a harmless fixture; no real login or POST is sent.
-    await ctx.route('**/api/v1/auth/**', route => route.fulfill({ json: { access_token: 'fixture', user: { id: '2', email: 'reader@example.com', display_name: '测试读者', role: 2 } } }))
+  const errors = [], checks = []
+  async function session(options = {}, init) {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'light', reducedMotion: 'no-preference', ...options })
+    if (init) await ctx.addInitScript(init)
     const page = await ctx.newPage()
     page.setDefaultTimeout(7000)
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (/hydration/i.test(message.text())) errors.push(message.text()) })
     return { ctx, page }
   }
-  function hitPoint(link) {
-    return link.evaluate((element) => {
-      for (const bounds of element.getClientRects()) {
-        for (const ratio of [.1, .25, .5, .75, .9]) {
-          const x = bounds.left + bounds.width * ratio
-          const y = bounds.top + bounds.height / 2
-          const hit = document.elementFromPoint(x, y)
-          if (hit && element.contains(hit)) return { x, y }
-        }
+  async function enter(page) {
+    await page.goto(base, { waitUntil: 'domcontentloaded' })
+    await page.locator(`${overlay} .ad-piece`).first().waitFor({ state: 'attached' })
+  }
+  async function restored(page) {
+    await page.locator(overlay).waitFor({ state: 'detached' })
+    assert.equal(await page.locator('.site-shell [inert]').count(), 0, 'real page inert states restored')
+    assert.equal(await page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
+  }
+  async function freeze(page, time) {
+    await page.evaluate(({ selector, time }) => {
+      for (const animation of document.getAnimations()) if (animation.effect?.target?.closest(selector)) {
+        animation.pause(); animation.currentTime = time
       }
-      return null
-    })
+    }, { selector: overlay, time })
   }
   try {
-    const { ctx, page } = await context({ reducedMotion: 'no-preference' })
-    await page.goto(base, { waitUntil: 'domcontentloaded' })
-    assert.equal(await page.getByRole('heading', { level: 1, name: /把想法写成代码/ }).count(), 1, 'approved homepage replaces the old splash')
-    await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-    assert.equal(await page.locator('[data-home-card]').count(), 3, 'real API articles are the animated cards')
-    assert.deepEqual(await page.locator('[data-home-shell-layer]').evaluateAll(elements => elements.map(element => element.dataset.homeShellLayer)), ['nav', 'footer'])
-    assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 2, 'real navigation and footer join the assembly')
-    await page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 650 }
-      }
+    const first = await session()
+    await enter(first.page)
+    await freeze(first.page, 1100)
+    assert.equal(await first.page.locator(`${overlay} .ad-piece`).count(), 5)
+    assert.equal(await first.page.locator(`${overlay} .ad-tag`).count(), 5)
+    assert.equal(await first.page.locator(`${overlay} .assembly-fan-card`).count(), 3, 'approved fan overlays the unchanged original scene')
+    assert.equal(await first.page.locator(`${overlay} .screen-wrap > .screen > .hero`).count(), 1)
+    assert(await first.page.locator('[data-home-root] h1').textContent(), 'real SSR homepage remains in DOM')
+    assert.equal(await first.page.locator('[data-home-card]').count(), 3)
+    assert(await first.page.locator(overlay).evaluate(el => el.inert && el.getAttribute('aria-hidden') === 'true'))
+    assert(await first.page.locator(`${overlay} a`).evaluateAll(links => links.every(link => link.closest('[inert]'))), 'all decorative cloned links are inert')
+    assert.deepEqual(await first.page.evaluate(() => {
+      const ids = Array.from(document.querySelectorAll('[id]'), node => node.id)
+      return ids.filter((id, index) => ids.indexOf(id) !== index)
+    }), [], 'no repeated ids')
+    const timings = await first.page.evaluate(selector => document.getAnimations()
+      .filter(animation => animation.effect?.target?.matches(`${selector} .ad-piece`))
+      .map(animation => ({ timing: animation.effect.getTiming(), frames: animation.effect.getKeyframes() })), overlay)
+    assert.equal(timings.length, 5)
+    timings.forEach(({ timing, frames }, index) => {
+      assert.equal(timing.duration, 2900)
+      assert.equal(timing.delay, index * 65)
+      assert.equal(timing.easing, 'cubic-bezier(0.25, 0.55, 0.25, 1)')
+      assert.deepEqual(frames.map(frame => frame.computedOffset), [0, .24, .6, .92, 1])
+      assert.match(frames[0].transform, /rotateX\(54deg\)/)
+      assert.match(frames[1].transform, /rotateX\(36deg\)/)
+      assert.match(frames[2].transform, /rotateX\(29deg\)/)
     })
-    await page.screenshot({ path: path.join(output, 'home-1440-layers.png'), fullPage: false })
-    await page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
-      }
-    })
-    const geometry = await page.locator('[data-home-card]').evaluateAll((elements) => {
-      const centers = elements.map(element => { const rect = element.getBoundingClientRect(); return rect.x + rect.width / 2 })
-      const resting = elements.map(element => element.offsetLeft + element.offsetWidth / 2)
-      return { peakSpread: Math.max(...centers) - Math.min(...centers), restingSpread: Math.max(...resting) - Math.min(...resting) }
-    })
-    assert(geometry.peakSpread < geometry.restingSpread * .8, 'peak must visibly concentrate real cards into a fan')
-    // Full-page capture may resize the viewport and intentionally cancel motion.
-    await page.screenshot({ path: path.join(output, 'home-1440-mid.png'), fullPage: false })
-    assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'playing', 'peak capture must not cancel the effect')
-    await page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) animation.currentTime = 2200
-      }
-    })
-    await page.screenshot({ path: path.join(output, 'home-1440-assembling.png'), fullPage: false })
-    await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
-    assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 0, 'skip restores shared layout layers')
-    assert.equal(await page.locator('[data-home-root] [inert]').count(), 0)
-    assert.equal(await page.locator('[data-home-root] #layers, [data-home-root] .fan-card').count(), 0, 'production animates real DOM without preview clones')
-    await page.reload({ waitUntil: 'networkidle' })
-    assert.equal(await page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0, 'same session reload is static')
-    await page.getByRole('link', { name: '阅读文章', exact: true }).click()
-    await page.waitForURL('**/posts')
-    await page.getByRole('link', { name: '首页', exact: true }).first().click()
-    await page.waitForURL(base + '/')
-    await page.getByRole('heading', { level: 1, name: /把想法写成代码/ }).waitFor()
-    assert.equal(await page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0, 'returning home does not replay')
-    await page.screenshot({ path: path.join(output, 'home-1440-settled.png'), fullPage: true })
-    checks.push('real content, hybrid, Escape, SSR hydration, no clones, once per session')
-    await ctx.close()
+    await first.page.screenshot({ path: path.join(output, 'home-1440-reference-peak.png'), fullPage: false })
+    await first.page.getByRole('button', { name: '跳过开场', exact: true }).click()
+    await restored(first.page)
+    await first.page.reload({ waitUntil: 'networkidle' })
+    assert.equal(await first.page.locator(overlay).count(), 0, 'same session reload does not replay')
+    await first.page.getByRole('link', { name: '阅读文章', exact: true }).click()
+    await first.page.waitForURL('**/posts')
+    await first.page.getByRole('link', { name: '首页', exact: true }).first().click()
+    await first.page.waitForURL(base + '/')
+    assert.equal(await first.page.locator(overlay).count(), 0, 'same session route return does not replay')
+    await first.page.locator('[data-home-card] a[href="/posts/fixture-article"]').first().click()
+    await first.page.waitForURL('**/posts/fixture-article')
+    assert.equal(await first.page.locator(overlay).count(), 0)
+    await first.ctx.close()
+    checks.push('five original pieces, original timing/keyframes, inert decorative scene, SSR content, skip, once per session, list/article navigation')
 
-    const reduced = await context({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 } })
-    await reduced.page.goto(base, { waitUntil: 'networkidle' })
-    assert.equal(await reduced.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
-    assert.equal(await reduced.page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    assert(await reduced.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
-    await reduced.page.screenshot({ path: path.join(output, 'home-390-reduced.png'), fullPage: true })
-    await reduced.ctx.close()
-    checks.push('reduced motion remains immediately readable on mobile')
+    const natural = await session()
+    await enter(natural.page)
+    await natural.page.getByRole('button', { name: '跳过开场', exact: true }).focus()
+    assert.equal(await natural.page.locator(overlay).count(), 1, 'skip focus does not dismiss the scene')
+    const started = Date.now()
+    await restored(natural.page)
+    assert.equal(await natural.page.evaluate(() => document.activeElement.id), 'main-content', 'focused skip returns to real content on completion')
+    const elapsed = Date.now() - started
+    assert(elapsed > 2300 && elapsed < 4000, `natural completion about 3.2s: ${elapsed}ms`)
+    await natural.ctx.close()
+    checks.push(`natural completion ${elapsed}ms after scene observed`)
 
-    for (const width of [320, 390, 768, 900, 1024, 1280, 1440]) {
-      const mobile = await context({ viewport: { width, height: 900 }, reducedMotion: 'no-preference' })
-      await mobile.page.goto(base, { waitUntil: 'domcontentloaded' })
-      await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-      await mobile.page.evaluate(() => {
-        for (const animation of document.getAnimations()) {
-          if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
-        }
-      })
-      assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no peak overflow at ${width}`)
-      assert(await mobile.page.locator('[data-home-layer], [data-home-shell-layer]').evaluateAll(elements => elements.every(element => {
-        const bounds = element.getBoundingClientRect()
-        return bounds.left >= -1 && bounds.right <= innerWidth + 1
-      })), `assembly layers fit the viewport at ${width}`)
-      assert(await mobile.page.locator('[data-home-card]').evaluateAll(elements => elements.every((element) => {
-        const bounds = element.getBoundingClientRect()
-        return bounds.left >= -1 && bounds.right <= innerWidth + 1
-      })), `all fanned cards remain in view at ${width}`)
-      await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).click()
-      await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
-      assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no page overflow at ${width}`)
-      await mobile.page.getByRole('link', { name: '阅读文章', exact: true }).click()
-      await mobile.page.waitForURL('**/posts')
-      await mobile.page.getByLabel('搜索文章', { exact: true }).fill('一致性')
-      await mobile.page.waitForTimeout(600)
-      assert.equal(await mobile.page.getByRole('link', { name: /真实文章：并发与一致性/ }).count(), 1)
-      await mobile.page.goto(`${base}/posts/fixture-article`, { waitUntil: 'networkidle' })
-      assert.equal(await mobile.page.locator('[data-home-root]').count(), 0, 'reading page never mounts the home animation')
-      assert.equal(await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
-      await mobile.ctx.close()
+    for (const key of ['Enter', 'Space']) {
+      const keyboard = await session()
+      await enter(keyboard.page)
+      await keyboard.page.getByRole('button', { name: '跳过开场', exact: true }).focus()
+      await keyboard.page.keyboard.press(key)
+      await restored(keyboard.page)
+      assert.equal(await keyboard.page.evaluate(() => document.activeElement.id), 'main-content')
+      await keyboard.ctx.close()
     }
-    checks.push('320/390/768/900/1024/1280/1440 peak bounds, skip, navigation, search and stable reading')
+    checks.push('keyboard Enter/Space skip retains focus and returns to content')
 
-    const blocked = await context({ reducedMotion: 'no-preference' })
-    await blocked.ctx.addInitScript(() => {
-      const original = Storage.prototype.setItem
-      Storage.prototype.setItem = function (key, value) { if (key.startsWith('blog:home-entrance')) throw new DOMException('Fixture storage denied', 'SecurityError'); return original.call(this, key, value) }
-    })
-    await blocked.page.goto(base, { waitUntil: 'domcontentloaded' })
-    await blocked.page.getByRole('button', { name: '跳过开场', exact: true }).click()
-    assert.equal(await blocked.page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    await blocked.ctx.close()
-    checks.push('storage write refusal never blocks content')
+    const dark = await session({ colorScheme: 'dark' })
+    await enter(dark.page)
+    assert(await dark.page.locator('html').evaluate(element => element.classList.contains('dark')))
+    assert.equal(await dark.page.locator(`${overlay} .screen-wrap > .screen .site-header`).evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)', 'site theme does not recolor reference artwork')
+    await dark.page.keyboard.press('Escape')
+    await restored(dark.page)
+    assert(await dark.page.locator('html').evaluate(element => element.classList.contains('dark')))
+    await dark.ctx.close()
+    checks.push('reference artwork remains white and the real dark preference is preserved')
 
-    const unsupported = await context({ reducedMotion: 'no-preference' })
-    await unsupported.ctx.addInitScript(() => { Element.prototype.animate = undefined })
-    await unsupported.page.goto(base, { waitUntil: 'networkidle' })
-    assert.equal(await unsupported.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
-    assert.equal(await unsupported.page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    await unsupported.ctx.close()
-    checks.push('unsupported WAAPI shows static content')
-
-    const changed = await context({ reducedMotion: 'no-preference' })
-    await changed.page.goto(base, { waitUntil: 'domcontentloaded' })
-    await changed.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-    await changed.page.emulateMedia({ reducedMotion: 'reduce' })
-    await changed.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
-    assert.equal(await changed.page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    await changed.ctx.close()
-    checks.push('changing reduced-motion cancels a running entrance')
-
-    const resized = await context({ reducedMotion: 'no-preference' })
-    await resized.page.goto(base, { waitUntil: 'domcontentloaded' })
-    await resized.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-    await resized.page.setViewportSize({ width: 768, height: 900 })
-    await resized.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
-    assert.equal(await resized.page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
-    assert(await resized.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
-    await resized.ctx.close()
-    checks.push('resize cancels obsolete animation geometry')
-
-    // Real coordinates avoid locator.click's retries masking pointer target loss.
-    for (const index of [0, 1, 2, 'hero']) {
-      const active = await context({ reducedMotion: 'no-preference' })
-      await active.page.goto(base, { waitUntil: 'domcontentloaded' })
-      await active.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-      await active.page.evaluate(() => {
-        for (const animation of document.getAnimations()) {
-          if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
-        }
+    for (const action of ['escape', 'pointer', 'resize', 'dynamic-reduce', 'hidden', 'route']) {
+      const current = await session()
+      await enter(current.page)
+      if (action === 'escape') await current.page.keyboard.press('Escape')
+      if (action === 'pointer') await current.page.mouse.click(20, 100)
+      if (action === 'resize') await current.page.setViewportSize({ width: 1024, height: 900 })
+      if (action === 'dynamic-reduce') await current.page.emulateMedia({ reducedMotion: 'reduce' })
+      if (action === 'hidden') await current.page.evaluate(() => {
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+        document.dispatchEvent(new Event('visibilitychange'))
       })
-      const link = index === 'hero'
-        ? active.page.getByRole('link', { name: '阅读文章', exact: true })
-        : active.page.locator('[data-home-card]').nth(index).locator('h2 a')
-      const point = await hitPoint(link)
-      assert(point, `animated link ${index} has a visible hit area`)
-      const target = new URL(await link.getAttribute('href'), base).href
-      await active.page.mouse.click(point.x, point.y)
-      await active.page.waitForURL(target)
-      assert.equal(active.page.url(), target, `first physical click activates ${index}`)
-      await active.ctx.close()
-    }
-    checks.push('first physical mouse click activates all three fanned titles and hero CTA')
-
-    const touch = await context({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 }, reducedMotion: 'no-preference' })
-    await touch.page.goto(base, { waitUntil: 'domcontentloaded' })
-    await touch.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-    await touch.page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
+      if (action === 'route') {
+        await current.page.evaluate(async () => {
+          const app = document.querySelector('#__nuxt').__vue_app__
+          const router = app?.config.globalProperties.$router
+          if (!router) throw new Error('Nuxt router unavailable for route-dispose check')
+          await router.push('/posts')
+        })
+        await current.page.waitForURL('**/posts')
       }
-    })
-    const touchPoint = await hitPoint(touch.page.getByRole('link', { name: '阅读文章', exact: true }))
-    assert(touchPoint)
-    await touch.page.touchscreen.tap(touchPoint.x, touchPoint.y)
-    await touch.page.waitForURL('**/posts')
-    await touch.ctx.close()
-    checks.push('mobile native touch tap activates the moving hero CTA')
+      await restored(current.page)
+      await current.ctx.close()
+      checks.push(`${action} restores the real page`)
+    }
 
-    const nojs = await context({ javaScriptEnabled: false })
-    await nojs.page.goto(base)
-    assert.equal(await nojs.page.getByRole('heading', { level: 1, name: /把想法写成代码/ }).count(), 1)
-    assert.equal(await nojs.page.getByRole('link', { name: /真实文章：并发与一致性/ }).count(), 1)
-    assert.equal(await nojs.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
-    await nojs.ctx.close()
-    checks.push('no-JavaScript SSR has real content and links')
-    assert.deepEqual(errors, [])
-    fs.writeFileSync(path.join(output, 'checks.json'), JSON.stringify({ checks, errors }, null, 2))
-    console.log('PASS', checks)
-  } finally { await browser.close(); await fixture.close() }
+    for (const width of [320, 390, 657, 768, 1024, 1440]) {
+      const current = await session({ viewport: { width, height: 1000 } })
+      await enter(current.page)
+      for (const time of [0, 500, 1100, 1800, 2700, 3100]) {
+        await freeze(current.page, time)
+        assert(await current.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no document overflow ${width}px at ${time}ms`)
+      }
+      await freeze(current.page, 1100)
+      if (width === 390) await current.page.screenshot({ path: path.join(output, 'home-390-reference-peak.png'), fullPage: false })
+      await current.page.keyboard.press('Escape')
+      await restored(current.page)
+      assert(await current.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no settled overflow ${width}px`)
+      await current.ctx.close()
+    }
+    checks.push('320/390/657/768/1024/1440 stage clipping without document overflow')
+
+    for (const variant of ['reduce', 'unsupported', 'no-js', 'storage-denied']) {
+      const options = variant === 'reduce' ? { reducedMotion: 'reduce' } : variant === 'no-js' ? { javaScriptEnabled: false } : {}
+      const init = variant === 'unsupported' ? () => { Element.prototype.animate = undefined } : variant === 'storage-denied' ? () => {
+        const get = Storage.prototype.getItem, set = Storage.prototype.setItem
+        Storage.prototype.getItem = function (key) { if (key.startsWith('blog:home-entrance')) throw new DOMException('Fixture denied', 'SecurityError'); return get.call(this, key) }
+        Storage.prototype.setItem = function (key, value) { if (key.startsWith('blog:home-entrance')) throw new DOMException('Fixture denied', 'SecurityError'); return set.call(this, key, value) }
+      } : undefined
+      const current = await session(options, init)
+      if (variant === 'storage-denied') {
+        await enter(current.page)
+        await current.page.keyboard.press('Escape')
+        await restored(current.page)
+        await current.page.getByRole('link', { name: '阅读文章', exact: true }).click()
+        await current.page.waitForURL('**/posts')
+        await current.page.getByRole('link', { name: '首页', exact: true }).first().click()
+        await current.page.waitForURL(base + '/')
+        assert.equal(await current.page.locator(overlay).count(), 0, 'memory fallback prevents route replay')
+      } else {
+        await current.page.goto(base, { waitUntil: 'networkidle' })
+        assert.equal(await current.page.locator(overlay).count(), 0)
+        assert.equal(await current.page.locator('[data-home-root] [inert]').count(), 0)
+        assert(await current.page.locator('[data-home-root] h1').textContent())
+        assert.equal(await current.page.locator('[data-home-card]').count(), 3)
+      }
+      await current.ctx.close()
+      checks.push(`${variant} fallback`)
+    }
+    assert.deepEqual(errors, [], 'no runtime or hydration errors')
+    fs.writeFileSync(path.join(output, 'results.json'), JSON.stringify({ checks, errors, base, reference: 'output/visual-redesign/motion/white-layers-original.html' }, null, 2))
+    console.log(JSON.stringify({ ok: true, checks, output }))
+  } finally {
+    await browser.close()
+    await fixture.close()
+  }
 }
 main().catch(error => { console.error(error); process.exitCode = 1 })
