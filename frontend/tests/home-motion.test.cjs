@@ -122,7 +122,7 @@ test('home peak holds floating layers and converges real grid cards around one a
   assert.deepEqual(centers, [505, 660, 815])
   assert.match(cards[0].frames[1].transform, /rotateZ\(-10deg\)/)
   assert.match(cards[2].frames[1].transform, /rotateZ\(10deg\)/)
-  assert.match(f.animations[0].frames[2].transform, /rotateX\(18deg\)/)
+  assert.match(f.animations[0].frames[2].transform, /rotateX\(10deg\)/)
   f.events.fire('pointerdown')
   assert.ok(f.animations.every(animation => animation.cancelled))
 })
@@ -145,7 +145,7 @@ test('hero anchors the fan near its lower edge and subtle layers remain restrain
   assert.equal(850 + y, 550 + 200 * 0.22)
   const hero = f.animations[0], subtle = f.animations[1]
   assert.match(hero.frames[1].boxShadow, /0\.10/)
-  assert.match(subtle.frames[1].boxShadow, /0\.05/)
+  assert.match(subtle.frames[1].boxShadow, /0\.08/)
   const angle = Number(subtle.frames[1].transform.match(/rotateX\(([-.\d]+)deg/)[1])
   assert.ok(angle > 0 && angle < 8)
   assert.equal(subtle.frames[4].transform, subtle.frames[0].transform)
@@ -199,7 +199,7 @@ test('narrow viewport edges constrain layers while retaining the desktop fan', (
     f.env.viewportWidth = viewport
     f.root.getBoundingClientRect = () => ({ left: margin, right: viewport - margin })
     const controller = startHomeEntrance(f.root, f.env)
-    assert.match(f.animations[0].frames[1].transform, viewport === 1440 ? /scale\(1\)/ : /scale\(0\.86\)/)
+    assert.ok(Number(f.animations[0].frames[1].transform.match(/scale\(([-.\d]+)\)/)[1]) <= 0.97)
     assert.match(f.animations.at(-1).frames[1].transform, /scale\(0\.92\)/)
     f.events.fire('resize')
     assert.equal(controller.playing, false)
@@ -281,4 +281,70 @@ test('list fan touches only selected items with bounded alternating motion and r
     assert.equal(f.memory.value, false)
     assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
   }
+})
+
+
+test('shell layers bracket content with separate depth, lift and stagger and cancel together', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const content = f.root.querySelectorAll()
+  const nav = { ...content[0], dataset: { homeShellLayer: 'nav' } }
+  const footer = { ...content[0], dataset: { homeShellLayer: 'footer' } }
+  f.root.closest = () => ({ querySelectorAll: () => [footer, nav] })
+  const controller = startHomeEntrance(f.root, f.env)
+  const layers = f.animations.slice(0, -3)
+  assert.equal(layers.length, content.length + 2)
+  assert.ok(Number(layers[0].frames[1].transform.match(/scale\(([-.\d]+)\)/)[1]) <= 0.94)
+  const vectors = layers.map(a => a.frames[1].transform.match(/translate3d\(0,([-.\d]+)px,([-.\d]+)px\)/))
+  assert.ok(new Set(vectors.map(vector => vector[1])).size > 3)
+  assert.ok(new Set(vectors.map(vector => vector[2])).size > 3)
+  assert.match(layers[0].frames[1].transform, /24px\) rotateX\(8deg\)/)
+  assert.match(layers.at(-1).frames[1].transform, /36px\) rotateX\(8deg\)/)
+  assert.ok(new Set(layers.map(a => a.timing.delay)).size > 3)
+  for (const layer of layers) {
+    assert.equal(layer.timing.duration + layer.timing.delay, 2700)
+    assert.equal(layer.frames.at(-1).transform, layer.frames[0].transform)
+    assert.equal(layer.frames[1].transformOrigin, '50% 50%')
+  }
+  f.events.fire('resize')
+  assert.equal(controller.playing, false)
+  assert.ok(f.animations.every(a => a.cancelled))
+})
+
+
+test('article fan keyframes and timing retain the approved values exactly', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const controller = startHomeEntrance(f.root, f.env)
+  const cards = f.animations.slice(-3)
+  cards.forEach((animation, index) => {
+    assert.deepEqual(JSON.parse(JSON.stringify(animation.timing)), { duration: 2700, delay: 0, easing: 'linear', fill: 'both' })
+    const side = index - 1
+    const expected = `perspective(1100px) translate3d(${225 - index * 225}px,${Math.abs(side) * 12}px,${45 + index * 45}px) rotateX(10deg) rotateZ(${side * 10}deg) scale(0.92)`
+    assert.equal(animation.frames[1].transform, expected)
+    assert.equal(animation.frames[2].transform, expected)
+    assert.deepEqual(Array.from(animation.frames, frame => frame.offset), [0, 0.25, 0.55, 0.9, 1])
+  })
+  controller.stop()
+})
+
+
+test('direct root layers account for parent perspective and navigation floats below the top edge', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const content = f.root.querySelectorAll()
+  f.env.viewportWidth = 768
+  f.root.ownerDocument = { defaultView: { getComputedStyle: () => ({ perspective: '1600px' }) } }
+  content[0].parentElement = f.root
+  content[0].getBoundingClientRect = () => ({ left: 24, right: 744, width: 720, height: 400, top: 100 })
+  const nav = { ...content[1], dataset: { homeShellLayer: 'nav' } }
+  f.root.closest = () => ({ querySelectorAll: () => [nav] })
+  const controller = startHomeEntrance(f.root, f.env)
+  const navLift = Number(f.animations[0].frames[1].transform.match(/translate3d\(0,([-.\d]+)px/)[1])
+  assert.ok(navLift >= 12)
+  const transform = f.animations[1].frames[1].transform
+  const scale = Number(transform.match(/scale\(([-.\d]+)\)/)[1])
+  const radians = Math.PI / 180
+  const maxDepth = 62 + 360 * Math.sin(2 * radians) + 200 * Math.sin(10 * radians)
+  const projectedWidth = 720 + 400 * Math.sin(10 * radians) * Math.sin(2 * radians)
+  const effectivePerspective = 1 / (1 / 1100 + 1 / 1600)
+  assert.ok(scale * projectedWidth / (1 - maxDepth / effectivePerspective) <= 760.001)
+  controller.stop()
 })

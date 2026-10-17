@@ -83,7 +83,12 @@ function canPlay(elements: HTMLElement[], env: MotionEnvironment) {
 }
 
 export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
-  const layers = [...root.querySelectorAll<HTMLElement>('[data-home-layer]')]
+  const shellLayers = [...(root.closest?.('[data-home-shell]')?.querySelectorAll<HTMLElement>('[data-home-shell-layer]') ?? [])]
+  const layers = [
+    ...shellLayers.filter(element => element.dataset.homeShellLayer === 'nav'),
+    ...root.querySelectorAll<HTMLElement>('[data-home-layer]'),
+    ...shellLayers.filter(element => element.dataset.homeShellLayer === 'footer'),
+  ]
   const cards = [...root.querySelectorAll<HTMLElement>('[data-home-card]')].slice(0, 3)
   const elements = [...layers, ...cards]
   const idle = { playing: false, stop: () => {} }
@@ -92,29 +97,46 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
   const rectangles = cards.map(element => element.getBoundingClientRect())
   const first = rectangles[0]
   const multiRow = !!first && rectangles.some(rectangle => Math.abs(rectangle.top - first.top) > 1)
-  const rootRectangle = root.getBoundingClientRect()
-  const narrowEdges = env.viewportWidth !== undefined && Math.min(rootRectangle.left, env.viewportWidth - rootRectangle.right) < 112
-  const constrained = env.compact || multiRow || narrowEdges
   const strength = env.compact ? 0.45 : 1
   const shadow = '0 20px 38px rgb(45 65 95 / 0.16)'
   const clearShadow = '0 0 0 rgb(45 65 95 / 0)'
   const steps: MotionStep[] = layers.map((element, index) => {
+    const shell = element.dataset.homeShellLayer
     const subtle = element.dataset.homeLayer === 'subtle'
-    const layerStrength = strength * (subtle ? 0.35 : 1)
-    const tilt = (18 + Math.min(index, 4) * 1.75) * layerStrength
-    const lift = (-22 + (index % 3) * 18) * layerStrength
+    const layerStrength = strength * (subtle ? 0.65 : 1)
+    const tilt = (shell ? 8 : 10) * layerStrength
+    const yaw = (index % 2 ? 2 : -4) * layerStrength
+    const depth = (shell === 'nav' ? 24 : shell === 'footer' ? 36 : 52 + Math.min(index, 5) * 10) * strength
+    const lift = (shell === 'nav' ? 14 : shell === 'footer' ? 32 : 6 + Math.min(index, 5) * 14) * strength
+    const rectangle = element.getBoundingClientRect()
+    const width = rectangle.width || rectangle.right - rectangle.left
+    const height = rectangle.height || 0
+    const radians = Math.PI / 180
+    // Bound all corners including perspective. This also protects full-width
+    // shell surfaces, whose viewport margin differs from the content root.
+    const projectedWidth = width + height * Math.sin(tilt * radians) * Math.sin(Math.abs(yaw) * radians)
+    const maxDepth = depth + width / 2 * Math.sin(Math.abs(yaw) * radians) + height / 2 * Math.sin(tilt * radians)
+    const availableWidth = env.viewportWidth === undefined ? width : Math.max(0, 2 * Math.min(rectangle.left + width / 2, env.viewportWidth - rectangle.left - width / 2) - 8)
+    const parentPerspective = element.parentElement === root
+      ? Number.parseFloat(root.ownerDocument?.defaultView?.getComputedStyle(root).perspective ?? '')
+      : 0
+    const effectivePerspective = parentPerspective > 0 ? 1 / (1 / 1100 + 1 / parentPerspective) : 1100
+    const safeScale = projectedWidth > 0 ? availableWidth / projectedWidth * Math.max(0.1, 1 - maxDepth / effectivePerspective) : 1
+    const scale = Math.max(0.1, Math.min(shell ? 0.94 : 0.97, safeScale))
     const floating = {
-      transform: `perspective(1100px) translate3d(0,${lift}px,${24 * layerStrength}px) rotateX(${tilt}deg) rotateZ(${(index % 2 ? 0.7 : -0.7) * layerStrength}deg) scale(${constrained ? (subtle ? 0.98 : narrowEdges ? 0.86 : 0.90) : 1})`,
-      boxShadow: subtle ? '0 7px 14px rgb(45 65 95 / 0.05)' : '0 20px 38px rgb(45 65 95 / 0.10)', opacity: 1,
+      transform: `perspective(1100px) translate3d(0,${lift}px,${depth}px) rotateX(${tilt}deg) rotateY(${yaw}deg) scale(${scale})`,
+      transformOrigin: '50% 50%', borderRadius: shell ? '12px' : '20px',
+      boxShadow: subtle ? '0 12px 24px rgb(45 65 95 / 0.08), 0 0 0 1px rgb(100 116 139 / 0.10)' : '0 22px 44px rgb(45 65 95 / 0.10), 0 0 0 1px rgb(100 116 139 / 0.14)', opacity: 1,
     }
+    const delay = Math.min(index, 7) * 35
     return {
-      element, duration: 2700, delay: 0,
+      element, duration: 2700 - delay, delay,
       frames: [
-        { ...resting, boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
+        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
         { ...floating, offset: 0.25 },
         { ...floating, offset: 0.55, easing: 'ease-in-out' },
-        { ...resting, boxShadow: clearShadow, offset: 0.90 },
-        { ...resting, boxShadow: clearShadow, offset: 1 },
+        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0.90 },
+        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 1 },
       ],
     }
   })

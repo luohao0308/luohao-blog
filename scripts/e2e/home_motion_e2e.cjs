@@ -6,7 +6,7 @@ const { chromium } = require('playwright')
 const { startFixture, makeArticle } = require('./ui_fixture.cjs')
 const base = process.env.BLOG_E2E_BASE_URL || 'http://127.0.0.1:13000'
 if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(base).hostname)) throw new Error('Local frontend only')
-const output = path.resolve('output/visual-redesign/implementation')
+const output = path.resolve(process.env.BLOG_E2E_OUTPUT || 'output/visual-redesign/implementation')
 async function main() {
   fs.mkdirSync(output, { recursive: true })
   const fixture = await startFixture({ articles: [
@@ -46,9 +46,17 @@ async function main() {
     assert.equal(await page.getByRole('heading', { level: 1, name: /把想法写成代码/ }).count(), 1, 'approved homepage replaces the old splash')
     await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
     assert.equal(await page.locator('[data-home-card]').count(), 3, 'real API articles are the animated cards')
+    assert.deepEqual(await page.locator('[data-home-shell-layer]').evaluateAll(elements => elements.map(element => element.dataset.homeShellLayer)), ['nav', 'footer'])
+    assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 2, 'real navigation and footer join the assembly')
     await page.evaluate(() => {
       for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 650 }
+      }
+    })
+    await page.screenshot({ path: path.join(output, 'home-1440-layers.png'), fullPage: false })
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
       }
     })
     const geometry = await page.locator('[data-home-card]').evaluateAll((elements) => {
@@ -60,9 +68,16 @@ async function main() {
     // Full-page capture may resize the viewport and intentionally cancel motion.
     await page.screenshot({ path: path.join(output, 'home-1440-mid.png'), fullPage: false })
     assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'playing', 'peak capture must not cancel the effect')
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) animation.currentTime = 2200
+      }
+    })
+    await page.screenshot({ path: path.join(output, 'home-1440-assembling.png'), fullPage: false })
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
     assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
+    assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 0, 'skip restores shared layout layers')
     assert.equal(await page.locator('[data-home-root] [inert]').count(), 0)
     assert.equal(await page.locator('[data-home-root] #layers, [data-home-root] .fan-card').count(), 0, 'production animates real DOM without preview clones')
     await page.reload({ waitUntil: 'networkidle' })
@@ -92,10 +107,14 @@ async function main() {
       await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
       await mobile.page.evaluate(() => {
         for (const animation of document.getAnimations()) {
-          if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
+          if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
         }
       })
       assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no peak overflow at ${width}`)
+      assert(await mobile.page.locator('[data-home-layer], [data-home-shell-layer]').evaluateAll(elements => elements.every(element => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.left >= -1 && bounds.right <= innerWidth + 1
+      })), `assembly layers fit the viewport at ${width}`)
       assert(await mobile.page.locator('[data-home-card]').evaluateAll(elements => elements.every((element) => {
         const bounds = element.getBoundingClientRect()
         return bounds.left >= -1 && bounds.right <= innerWidth + 1
