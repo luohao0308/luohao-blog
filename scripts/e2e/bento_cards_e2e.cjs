@@ -165,7 +165,8 @@ async function main() {
       const card = s.page.locator('article.bento-card').first()
       await card.scrollIntoViewIfNeeded()
       const box = await card.boundingBox()
-      if (mode === 'touch') await s.page.touchscreen.tap(box.x + 12, box.y + 12)
+      // Card taps now navigate; this suite samples the static touch surface.
+      if (mode === 'touch') await s.page.touchscreen.tap(4, 4)
       else await s.page.mouse.move(box.x + 30, box.y + 30)
       await s.page.waitForTimeout(550)
       const style = await surface(card)

@@ -99,3 +99,34 @@
   .site-shell :is(.bento-card, .ui-panel)::before,
   .site-shell :is(.bento-card, .ui-panel)::after { transition: none; }
 }
+
+/* Expand the real destination from the selected card, like the reference's
+   fullscreen clip reveal. The route/SSR document remains the source of truth. */
+html[data-article-expanding]::view-transition-group(root) { animation: none; }
+html[data-article-expanding]::view-transition-old(root) { animation: none; }
+html[data-article-expanding]::view-transition-new(root) {
+  animation: article-expand 750ms cubic-bezier(.7, 0, .2, 1) both;
+  mix-blend-mode: normal;
+}
+@keyframes article-expand {
+  from { clip-path: var(--article-expand-from); }
+  to { clip-path: inset(0px 0px 0px 0px round 0px); }
+}
+
+html[data-article-expanding]::view-transition-group(article-content) {
+  animation-duration: 750ms;
+  animation-timing-function: cubic-bezier(.7, 0, .2, 1);
+  overflow: clip;
+  border-radius: 24px;
+}
+html[data-article-expanding]::view-transition-old(article-content) {
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  animation: article-content-out 220ms ease both;
+}
+html[data-article-expanding]::view-transition-new(article-content) {
+  animation: article-content-in 400ms 200ms ease both;
+}
+@keyframes article-content-out { to { opacity: 0; } }
+@keyframes article-content-in { from { opacity: 0; } to { opacity: 1; } }
