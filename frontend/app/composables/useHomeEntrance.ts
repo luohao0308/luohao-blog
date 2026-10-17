@@ -23,7 +23,14 @@ export function useHomeEntrance(root: Ref<HTMLElement | null>) {
   onMounted(async () => {
     await nextTick()
     if (disposed || !root.value) return
-    controller = startHomeEntrance(root.value, homeMotionEnvironment(memory), value => { playing.value = value })
+    controller = startHomeEntrance(root.value, homeMotionEnvironment(memory), value => {
+      const skipButton = !value && document.activeElement?.matches('[data-home-skip]') ? document.activeElement : null
+      playing.value = value
+      if (skipButton) void nextTick(() => {
+        if (document.activeElement === skipButton || document.activeElement === document.body)
+          document.getElementById('main-content')?.focus({ preventScroll: true })
+      })
+    })
   })
   onBeforeUnmount(dispose)
   onBeforeRouteLeave(dispose)

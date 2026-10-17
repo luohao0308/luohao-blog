@@ -6,7 +6,9 @@ const { test } = require('node:test')
 const ts = require('typescript')
 function load() {
   const exports = {}
-  vm.runInNewContext(ts.transpileModule(readFileSync(path.resolve(__dirname, '../app/utils/homeMotion.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Promise, setTimeout, clearTimeout })
+  vm.runInNewContext(ts.transpileModule(readFileSync(path.resolve(__dirname, '../app/utils/homeMotion.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Promise, setTimeout, clearTimeout, require: () => ({ createReferenceAssembly: () => assert.fail('hybrid variant must not mount the reference presentation') }) })
+  // Frozen regression coverage for the separate, previously approved fan.
+  exports.startHomeEntrance = exports.startHybridEntrance
   return exports
 }
 class Events {

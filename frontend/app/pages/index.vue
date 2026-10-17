@@ -95,7 +95,7 @@ const featuredProjects = computed(() => {
 
     <div class="home-follow"><WechatFollow /></div>
     <Teleport to="body">
-      <button v-if="playing" type="button" class="home-skip" @click="skip">跳过开场 <span aria-hidden="true">→</span></button>
+      <button v-if="playing" data-home-skip type="button" class="home-skip" @click="skip">跳过开场 <span aria-hidden="true">→</span></button>
     </Teleport>
   </div>
 </template>

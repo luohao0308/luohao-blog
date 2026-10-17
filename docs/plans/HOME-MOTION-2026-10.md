@@ -7,7 +7,15 @@
 - Scope: Nuxt公开布局、首页、文章列表与动效工具；不改后端/契约/数据库/小程序。
 - Reference: 本机已确认的 `output/visual-redesign/motion/index.html` 中“融合版02＋04”，对应 `hybrid-1440-in-motion.png`、手机截图及归位状态。
 
-## 完成口径
+## 当前规格：原版五层＋独立文章扇开
+
+用户要求white-layers原版效果一模一样，并明确选择保留文章扇开叠加。新assemblyReference.ts/assembly.css从用户实际标签页冻结的fixtures/white-layers-original.html提取，referenceAssembly逐字移植五片2900ms/65ms、原关键帧/透明度/1800px共享透视与裁切克隆。撤销默认路径的倍速、缩角度、单片透视与直接拉伸真实网页；旧hybrid导出单独保留回归。
+
+文章扇开采用原融合演示1900ms/530+i*65ms，独立叠加真实文章标题/标签，不影响五片几何。广告模板是可信静态品牌快照，不克隆账号或用户HTML；真实主页继续SSR，短暂inert并在所有退出路径恢复。Skip为body Teleport，键盘焦点获得豁免，结束后仅恢复原Skip焦点到main。完成广告后揭示原真实首页，非静态页面复制。
+
+验收：原版golden与移植版同尺寸舞台下所有native geometry/timing/keyframes逐项相等；1440/657/390浅色与657暗色共四场景、各七个时间点比较像素，额外扇开有意隐藏以隔离五层。另验收扇开叠加、自然完成、Skip/Escape/Enter/Space、各种取消、会话、motion storage拒绝、无JS/WAAPI/reduced-motion及六档视口。仅本地实施，新SHA须另行交付。最终验证：34/34前端单测、lint/typecheck/build通过；原版分层28张同时间点比较最大差0.0297%，几何/时序/关键帧逐项相同。组合浏览器验收通过，自然结束约3.35秒（含观测开销），键盘Enter/Space及所有取消恢复路径通过，独立代码审查APPROVE。证据：output/visual-redesign/reference-parity/results.json与reference-assembly/results.json。
+
+## 历史迭代记录（不作为当前参数）
 
 渲染性能修正（用户“一个像60帧一个像120”）：对照原版静态阴影与正式版本boxShadow/borderRadius插值，记录同Chrome、1440×1000/DPR1的隔离trace。首页WAAPI仅保留transform/opacity，圆角/阴影/原点改为临时静态surface CSS；统一stop逆序还原标记。未添加will-change、未改导航模糊/根透视、速度/轨迹/列表行为，保持最小变量。28单测、lint/typecheck/build与七档九时点/点击/自然完成/样式恢复回归通过；独立代码审查APPROVE。两轮最终trace均Paint71（修前426）、Raster27（修前388）；按时长归一Paint约239→38次/秒，P95帧间隔33.3→16.8ms。记录属于受控Chrome测试，不代表实际IAB或显示器已达到120fps；用户主观流畅度仍以当前预览实播为准。证据output/visual-redesign/layer-performance，未上线。
 

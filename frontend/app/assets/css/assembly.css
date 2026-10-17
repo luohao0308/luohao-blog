@@ -1,0 +1,229 @@
+/* Faithful scoped cascade from motion/white-layers-original.html. */
+.home-assembly-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 36px 24px;
+  background: #fff;
+  pointer-events: none;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  text-align: left;
+}
+.home-assembly-overlay { color-scheme:dark;--bg:#0b0c10;--panel:#14161d;--text:#f2f4fa;--muted:#a5adbf;--line:#2b303d;--accent:#a5c2ff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif }
+.home-assembly-overlay, .home-assembly-overlay * { box-sizing:border-box }
+.home-assembly-overlay { margin:0;background:var(--bg);color:var(--text) }
+.home-assembly-overlay button, .home-assembly-overlay a { -webkit-tap-highlight-color:transparent }
+.home-assembly-overlay button { font:inherit;cursor:pointer;color:inherit }
+.home-assembly-overlay a { color:inherit;text-decoration:none }
+.home-assembly-overlay button:focus-visible, .home-assembly-overlay a:focus-visible { outline:2px solid #bad1ff;outline-offset:5px }
+.home-assembly-overlay button:disabled { cursor:default }
+.home-assembly-overlay .workbench { max-width:1320px;margin:auto;padding:28px 36px 24px }
+.home-assembly-overlay .top { display:flex;justify-content:space-between;gap:20px;align-items:center }
+.home-assembly-overlay .lab { font:11px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:.14em;color:#a5adbf }
+.home-assembly-overlay .top a { font-size:12px;color:#b7c0d3;min-height:44px;display:flex;align-items:center }
+.home-assembly-overlay .title { margin:26px 0 8px;font-size:clamp(25px,3vw,34px);font-weight:550;letter-spacing:-.04em }
+.home-assembly-overlay .description { color:var(--muted);font-size:14px;line-height:1.8;margin:0 }
+.home-assembly-overlay .controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:24px 0 14px }
+.home-assembly-overlay .modes { display:flex;gap:5px;padding:5px;background:#151820;border:1px solid var(--line);border-radius:12px }
+.home-assembly-overlay .modes button { border:0;border-radius:8px;min-height:44px;padding:10px 17px;background:transparent;color:#b1b9cb;font-size:13px;transition:background .2s,color .2s }
+.home-assembly-overlay .modes button[aria-pressed=true] { background:#e1e9fc;color:#171e30;box-shadow:0 1px 4px #0004 }
+.home-assembly-overlay .replay, .home-assembly-overlay .skip { min-height:44px;padding:10px 17px;border:1px solid #394356;background:#1a2130;border-radius:9px;font-size:13px }
+.home-assembly-overlay .skip { margin-left:auto;background:transparent;color:#b7c0d3 }
+.home-assembly-overlay .replay:hover, .home-assembly-overlay .skip:hover { border-color:#8da8db }
+.home-assembly-overlay .stage { position:relative;perspective:1700px;perspective-origin:50% 40%;padding:42px 32px 50px;isolation:isolate;overflow:hidden;border-radius:20px;background:radial-gradient(ellipse at 50% 70%,#263c6950,transparent 67%),linear-gradient(#11141c,#0d1018);border:1px solid #272e3b }
+.home-assembly-overlay .grid { position:absolute;inset:35% -20% -80%;z-index:-1;background-image:linear-gradient(#658bcf13 1px,transparent 1px),linear-gradient(90deg,#658bcf13 1px,transparent 1px);background-size:64px 64px;transform:perspective(500px) rotateX(62deg);mask-image:linear-gradient(transparent,#000 30%,transparent 85%) }
+.home-assembly-overlay .screen-wrap { position:relative;max-width:1120px;margin:auto;transform-style:preserve-3d }
+.home-assembly-overlay .screen { position:relative;background:#11151d;border:1px solid #46516a;border-radius:12px;box-shadow:0 32px 90px #0007,0 0 0 1px #829dc110;overflow:hidden;transform-style:preserve-3d;will-change:transform,opacity,filter }
+.home-assembly-overlay .chrome { height:35px;display:flex;align-items:center;padding:0 15px;border-bottom:1px solid #2a3242;background:#1a202d;gap:6px }
+.home-assembly-overlay .dot { width:7px;height:7px;border-radius:50%;background:#69758c }
+.home-assembly-overlay .dot:first-child { background:#bb7881 }
+.home-assembly-overlay .dot:nth-child(2) { background:#c1aa77 }
+.home-assembly-overlay .dot:nth-child(3) { background:#80a594 }
+.home-assembly-overlay .address { font:10px ui-monospace,SFMono-Regular,monospace;color:#9aa7bd;margin:auto;padding-right:34px }
+.home-assembly-overlay .site-header { height:65px;padding:0 38px;display:flex;align-items:center;border-bottom:1px solid #29324480;gap:35px }
+.home-assembly-overlay .brand { font-size:18px;font-weight:600;letter-spacing:-.8px }
+.home-assembly-overlay .brand span { color:#a4c1fd }
+.home-assembly-overlay .site-nav { display:flex;gap:24px;color:#9fabbe;font-size:12px }
+.home-assembly-overlay .site-nav a { min-height:44px;display:flex;align-items:center }
+.home-assembly-overlay .site-nav a:first-child { color:#edf3ff }
+.home-assembly-overlay .site-link { margin-left:auto;font-size:11px;color:#b8c9e6;display:flex;min-height:44px;align-items:center }
+.home-assembly-overlay .hero { display:grid;grid-template-columns:1.1fr .9fr;min-height:340px;align-items:center;gap:30px;padding:35px 48px 33px }
+.home-assembly-overlay .eyebrow { display:flex;align-items:center;gap:9px;color:#b7c7e1;letter-spacing:.12em;font-size:10px }
+.home-assembly-overlay .signal { width:5px;height:5px;border-radius:50%;background:#9ac9b6;box-shadow:0 0 12px #94dfbe60 }
+.home-assembly-overlay .hero h2 { font-size:clamp(29px,3.4vw,49px);font-weight:520;line-height:1.35;letter-spacing:-2px;margin:19px 0 15px }
+.home-assembly-overlay .hero h2 span { color:#adc7ff }
+.home-assembly-overlay .hero p { font-size:12px;line-height:1.9;color:#acb7ca;max-width:360px;margin:0 }
+.home-assembly-overlay .hero .cta { display:inline-flex;min-height:44px;align-items:center;gap:23px;font-size:12px;padding:10px 16px;background:#dce7ff;color:#182238;border-radius:7px;margin-top:24px }
+.home-assembly-overlay .scene { height:260px;position:relative;perspective:900px;display:grid;place-items:center }
+.home-assembly-overlay .orbit { position:absolute;width:260px;height:260px;border:1px solid #526d9b3a;border-radius:50%;transform:rotateX(66deg) rotateZ(-20deg) }
+.home-assembly-overlay .orbit.two { width:330px;height:330px;transform:rotateX(68deg) rotateY(23deg) rotateZ(36deg);border-style:dashed;border-color:#698dca22 }
+.home-assembly-overlay .cube { width:112px;height:112px;position:absolute;top:38px;left:calc(50% - 56px);transform-style:preserve-3d;transform:rotateX(-22deg) rotateY(-32deg);animation:home-assembly-float 6s ease-in-out infinite }
+.home-assembly-overlay .face { position:absolute;inset:0;border:1px solid #a6c7ff88;background:linear-gradient(135deg,#6d9ce524,#9ac0ff09);box-shadow:inset 0 0 24px #91b8ff07 }
+.home-assembly-overlay .front { transform:translateZ(56px) }
+.home-assembly-overlay .back { transform:rotateY(180deg) translateZ(56px) }
+.home-assembly-overlay .left { transform:rotateY(-90deg) translateZ(56px) }
+.home-assembly-overlay .right { transform:rotateY(90deg) translateZ(56px) }
+.home-assembly-overlay .up { transform:rotateX(90deg) translateZ(56px) }
+.home-assembly-overlay .down { transform:rotateX(-90deg) translateZ(56px) }
+.home-assembly-overlay .face.front:before, .home-assembly-overlay .face.front:after { content:'';position:absolute;background:#9bc0ff45 }
+.home-assembly-overlay .face.front:before { width:1px;height:100%;left:50% }
+.home-assembly-overlay .face.front:after { height:1px;width:100%;top:50% }
+.home-assembly-overlay .code-card { position:absolute;bottom:10px;left:12%;right:2%;padding:13px 17px;border:1px solid #5f769b80;border-radius:9px;background:#182235ed;box-shadow:0 16px 40px #0005;transform:rotateY(-12deg) rotateX(8deg) rotateZ(-3deg);font:11px/1.9 ui-monospace,SFMono-Regular,monospace;color:#a1b4d5;backdrop-filter:blur(10px) }
+.home-assembly-overlay .code-card .kw { color:#b7a5df }
+.home-assembly-overlay .code-card .val { color:#afd6c8 }
+.home-assembly-overlay .code-card .punct { color:#778da9 }
+.home-assembly-overlay .code-dots { display:flex;gap:4px;margin-bottom:7px }
+.home-assembly-overlay .code-dots i { width:4px;height:4px;border-radius:50%;background:#50627e }
+.home-assembly-overlay .mini-label { position:absolute;border:1px solid #5c73934d;background:#192132e6;padding:6px 9px;font:10px ui-monospace,SFMono-Regular,monospace;border-radius:5px;color:#d3e0f6 }
+.home-assembly-overlay .mini-label.go { left:0;top:30px }
+.home-assembly-overlay .mini-label.ai { right:-3px;top:78px }
+.home-assembly-overlay .notes { border-top:1px solid #2e394b80;padding:20px 40px 23px;display:grid;grid-template-columns:1.1fr .9fr;gap:28px }
+.home-assembly-overlay .notes .note-label { font:9px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;color:#8e9bb2;margin-bottom:9px }
+.home-assembly-overlay .note-title { font-size:12px;line-height:1.7;color:#d5deed;display:block }
+.home-assembly-overlay .note-tags { margin-top:6px;font-size:10px;color:#9baac0 }
+.home-assembly-overlay .notes .second { border-left:1px solid #303b4c;padding-left:28px }
+.home-assembly-overlay .screen-footer { padding:10px 40px;border-top:1px solid #29324480;display:flex;justify-content:space-between;color:#8392aa;font-size:9px }
+.home-assembly-overlay .layer-host { position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none }
+.home-assembly-overlay .leaf, .home-assembly-overlay .tile { position:absolute;inset:0;transform-style:preserve-3d;will-change:transform,opacity,filter }
+.home-assembly-overlay .leaf .screen, .home-assembly-overlay .tile .screen { width:100%;height:100%;box-shadow:0 12px 45px #0005 }
+.home-assembly-overlay .tile { inset:auto;overflow:hidden;border-radius:2px }
+.home-assembly-overlay .tile-inner { position:absolute;top:0;left:0 }
+.home-assembly-overlay .tile-inner .screen { box-shadow:none }
+.home-assembly-overlay .layer-host .cube { animation:none }
+.home-assembly-overlay .status-line { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;color:#a9b5cb;font-size:12px;line-height:1.7 }
+.home-assembly-overlay .status-line #status { min-height:21px }
+.home-assembly-overlay .badge { font:10px ui-monospace,SFMono-Regular,monospace;color:#8192b1;white-space:nowrap }
+.home-assembly-overlay .bottom { display:flex;justify-content:space-between;gap:20px;margin-top:22px;font-size:12px;color:#98a3b8;line-height:1.8 }
+.home-assembly-overlay .bottom p { margin:0 }
+.home-assembly-overlay .bottom strong { color:#c4cfe3;font-weight:500 }
+@keyframes home-assembly-float {0%,100%{transform:rotateX(-22deg) rotateY(-32deg) translateY(0)}50%{transform:rotateX(-18deg) rotateY(-20deg) translateY(-10px)}}
+@media(max-width:850px) {
+.home-assembly-overlay .workbench { padding:22px }
+.home-assembly-overlay .stage { padding:32px 15px 40px }
+.home-assembly-overlay .hero { padding:25px 28px;gap:5px }
+.home-assembly-overlay .scene { transform:scale(.85) }
+.home-assembly-overlay .site-header { padding:0 25px;gap:22px }
+.home-assembly-overlay .site-nav { gap:16px }
+.home-assembly-overlay .notes { padding:20px 28px }
+.home-assembly-overlay .hero h2 { font-size:35px }
+}
+@media(max-width:600px) {
+.home-assembly-overlay .workbench { padding:18px 14px }
+.home-assembly-overlay .top { gap:8px }
+.home-assembly-overlay .lab { font-size:9px;letter-spacing:.06em }
+.home-assembly-overlay .top a { font-size:11px }
+.home-assembly-overlay .title { font-size:27px;margin-top:18px }
+.home-assembly-overlay .description { font-size:13px }
+.home-assembly-overlay .controls { gap:8px;margin:18px 0 12px }
+.home-assembly-overlay .modes { width:100%;gap:3px }
+.home-assembly-overlay .modes button { flex:1;padding:9px 6px;font-size:12px }
+.home-assembly-overlay .replay, .home-assembly-overlay .skip { font-size:12px;padding:9px 13px }
+.home-assembly-overlay .stage { padding:22px 9px 28px;border-radius:14px;perspective:1000px }
+.home-assembly-overlay .screen { border-radius:8px }
+.home-assembly-overlay .chrome { height:26px;padding:0 9px }
+.home-assembly-overlay .dot { width:5px;height:5px }
+.home-assembly-overlay .address { font-size:8px }
+.home-assembly-overlay .site-header { height:54px;padding:0 17px;gap:10px }
+.home-assembly-overlay .brand { font-size:16px }
+.home-assembly-overlay .site-nav { gap:12px;margin-left:auto }
+.home-assembly-overlay .site-nav a { font-size:10px }
+.home-assembly-overlay .site-nav a:nth-child(n+3), .home-assembly-overlay .site-link { display:none }
+.home-assembly-overlay .hero { display:block;padding:26px 23px 10px }
+.home-assembly-overlay .hero h2 { font-size:34px;letter-spacing:-1px;margin:14px 0 12px }
+.home-assembly-overlay .hero p { font-size:11px }
+.home-assembly-overlay .eyebrow { font-size:9px }
+.home-assembly-overlay .hero .cta { margin-top:16px;font-size:11px }
+.home-assembly-overlay .scene { height:215px;transform:scale(.84);margin:-5px 0 -12px }
+.home-assembly-overlay .cube { top:24px }
+.home-assembly-overlay .code-card { bottom:-4px;left:6%;right:2% }
+.home-assembly-overlay .notes { grid-template-columns:1fr;padding:17px 22px;gap:14px }
+.home-assembly-overlay .notes .second { border-left:0;border-top:1px solid #303b4c;padding:13px 0 0 }
+.home-assembly-overlay .note-title { font-size:11px }
+.home-assembly-overlay .note-tags { font-size:9px }
+.home-assembly-overlay .screen-footer { padding:10px 20px;font-size:8px }
+.home-assembly-overlay .status-line { display:block }
+.home-assembly-overlay .badge { display:block;margin-top:5px }
+.home-assembly-overlay .bottom { display:block;font-size:11px }
+.home-assembly-overlay .bottom p+p { margin-top:7px }
+}
+@media(prefers-reduced-motion:reduce) {
+.home-assembly-overlay, .home-assembly-overlay *, .home-assembly-overlay *:before, .home-assembly-overlay *:after { animation:none!important;scroll-behavior:auto!important }
+.home-assembly-overlay .screen { will-change:auto }
+}
+.home-assembly-overlay { color-scheme:light;--bg:#fff;--panel:#f6f8fc;--text:#1e293b;--muted:#5e6c82;--line:#dce3ef;--accent:#365fb5 }
+.home-assembly-overlay .lab, .home-assembly-overlay .top a { color:#66748b }
+.home-assembly-overlay button:focus-visible, .home-assembly-overlay a:focus-visible { outline-color:#456fc5 }
+.home-assembly-overlay .modes { background:#f4f6fa;border-color:#dce3ee }
+.home-assembly-overlay .modes button { color:#5c6b82 }
+.home-assembly-overlay .modes button[aria-pressed=true] { background:#fff;color:#1e3c76;box-shadow:0 2px 8px #283c5b14 }
+.home-assembly-overlay .replay, .home-assembly-overlay .skip { background:white;border-color:#d4ddec;color:#334b72 }
+.home-assembly-overlay .replay:hover, .home-assembly-overlay .skip:hover { border-color:#7b9bd5 }
+.home-assembly-overlay .stage { padding-top:65px;padding-bottom:65px;background:radial-gradient(ellipse at 50% 80%,#dee8f650,transparent 70%),#fff;border-color:#e1e6ef;perspective:1800px }
+.home-assembly-overlay .grid { opacity:.55;background-image:linear-gradient(#6c8fb218 1px,transparent 1px),linear-gradient(90deg,#6c8fb218 1px,transparent 1px) }
+.home-assembly-overlay .screen { background:#fff;border-color:#d5deeb;box-shadow:0 24px 70px #304c7717,0 3px 12px #304c7709 }
+.home-assembly-overlay .chrome { background:#f5f7fb;border-color:#e3e9f2 }
+.home-assembly-overlay .dot { background:#a9b6c9 }
+.home-assembly-overlay .address { color:#71829b }
+.home-assembly-overlay .site-header { border-color:#e5eaf2 }
+.home-assembly-overlay .brand { color:#182337 }
+.home-assembly-overlay .brand span { color:#4568b0 }
+.home-assembly-overlay .site-nav { color:#65748b }
+.home-assembly-overlay .site-nav a:first-child { color:#1f365c }
+.home-assembly-overlay .site-link { color:#58749f }
+.home-assembly-overlay .eyebrow { color:#647795 }
+.home-assembly-overlay .signal { background:#508a76;box-shadow:0 0 10px #70ac8720 }
+.home-assembly-overlay .hero h2 { color:#1a2639 }
+.home-assembly-overlay .hero h2 span { color:#4568af }
+.home-assembly-overlay .hero p { color:#62718a }
+.home-assembly-overlay .hero .cta { background:#294c8e;color:#fff }
+.home-assembly-overlay .orbit { border-color:#698ab32c }
+.home-assembly-overlay .orbit.two { border-color:#698ab326 }
+.home-assembly-overlay .face { border-color:#759acf88;background:linear-gradient(135deg,#aac6ee30,#dbe6fb16);box-shadow:inset 0 0 24px #91b8ff0b }
+.home-assembly-overlay .face.front:before, .home-assembly-overlay .face.front:after { background:#8ca9d14a }
+.home-assembly-overlay .code-card { background:#fbfcffed;border-color:#cfdbed;box-shadow:0 15px 35px #385a8820;color:#526d97 }
+.home-assembly-overlay .code-card .kw { color:#8064a6 }
+.home-assembly-overlay .code-card .val { color:#347f6b }
+.home-assembly-overlay .code-card .punct { color:#6b809f }
+.home-assembly-overlay .code-dots i { background:#bdcbde }
+.home-assembly-overlay .mini-label { background:#fff;border-color:#d7e1ef;color:#536c91;box-shadow:0 5px 15px #385a880b }
+.home-assembly-overlay .notes { border-color:#dfe6f1 }
+.home-assembly-overlay .notes .note-label { color:#6c7e98 }
+.home-assembly-overlay .note-title { color:#304662 }
+.home-assembly-overlay .note-tags { color:#647895 }
+.home-assembly-overlay .notes .second { border-color:#e0e7f1 }
+.home-assembly-overlay .screen-footer { border-color:#e3e9f2;color:#6a7d99 }
+.home-assembly-overlay .leaf .screen { box-shadow:0 14px 40px #304c7718 }
+.home-assembly-overlay .status-line { color:#5b6e8d }
+.home-assembly-overlay .badge { color:#70819c }
+.home-assembly-overlay .bottom { color:#63728b }
+.home-assembly-overlay .bottom strong { color:#354d75 }
+.home-assembly-overlay .ad-piece { position:absolute;transform-style:preserve-3d;background:#fff;border:1px solid #cfd9e8;border-radius:8px;box-shadow:0 14px 28px #2d507c25;will-change:transform,opacity;isolation:isolate }
+.home-assembly-overlay .ad-piece:before { content:'';position:absolute;inset:-1px;transform:translateZ(-9px);border:1px solid #b7c9e2;border-radius:inherit;background:#e6edf8;box-shadow:0 10px 25px #274a7c23 }
+.home-assembly-overlay .ad-piece .ad-clip { position:absolute;inset:0;overflow:hidden;border-radius:inherit;background:#fff }
+.home-assembly-overlay .ad-piece .tile-inner .screen { border-color:transparent;border-radius:0 }
+.home-assembly-overlay .ad-piece .ad-tag { position:absolute;left:10px;top:-26px;white-space:nowrap;color:#5b7295;font:10px ui-monospace,SFMono-Regular,monospace;letter-spacing:.08em;background:#fffffff0;padding:3px 7px;border:1px solid #dbe5f3;border-radius:4px;opacity:0 }
+.home-assembly-overlay .ad-piece .cube { animation:none }
+.home-assembly-overlay .ad-stage .grid { opacity:.8 }
+.home-assembly-overlay .ad-stage { padding-top:65px;padding-bottom:65px }
+@media(max-width:600px) {
+.home-assembly-overlay .modes { display:grid;grid-template-columns:1fr 1fr }
+.home-assembly-overlay .modes button { min-height:44px }
+.home-assembly-overlay .stage, .home-assembly-overlay .ad-stage { padding-top:45px;padding-bottom:45px }
+}
+/* Match the original max-width:1320px workbench's available content width. */
+.home-assembly-overlay > .stage { width: 100%; max-width: 1248px; flex-shrink: 0; margin: auto; }
+@media (max-width:850px) { .home-assembly-overlay { padding: 22px; } }
+@media (max-width:600px) { .home-assembly-overlay { padding: 18px 14px; } }
+/* Original hybrid's independent fan; it never changes the five base planes. */
+.home-assembly-overlay .assembly-fan-card { position: absolute; isolation: isolate; left: 50%; border: 1px solid #c6d6ef; border-radius: 12px; background: linear-gradient(#fff,#f7faff); box-shadow: 0 18px 42px #2c518e25; transform-style: preserve-3d; will-change: transform,opacity; }
+.home-assembly-overlay .assembly-fan-card .fan-label { font: 10px ui-monospace,SFMono-Regular,monospace; letter-spacing: .1em; color: #6680a9; margin-bottom: 10px; }
+.home-assembly-overlay .assembly-fan-card h3 { font-weight: 550; line-height: 1.6; margin: 0; color: #293c5d; }
+.home-assembly-overlay .assembly-fan-card .fan-tags { font-size: 10px; color: #68809f; margin-top: 12px; }
+/* The real site's themed header background must not recolor the reference. */
+.home-assembly-overlay .site-header { background: transparent; }

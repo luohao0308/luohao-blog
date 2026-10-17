@@ -1,3 +1,5 @@
+import { createReferenceAssembly } from './referenceAssembly'
+
 export const HOME_ENTRANCE_KEY = 'blog:home-entrance:v1'
 const HOME_PLAYBACK_RATE = 1.75
 
@@ -19,9 +21,9 @@ export interface MotionController {
 type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number, easing?: string, surface?: 'layer' | 'card' }
 const resting: Keyframe = { transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateZ(0deg)', opacity: 1 }
 
-// Only WAAPI effects are written. Cancelling them restores the original CSS,
-// including any existing inline styles, without guessing which declarations to remove.
-function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: boolean) => void): MotionController {
+// Effects and their temporary presentation share one cleanup path. Existing
+// inline styles on real content are never overwritten.
+function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: boolean) => void, release?: () => void): MotionController {
   const animations: Animation[] = []
   const removers: (() => void)[] = []
   let playing = false
@@ -32,6 +34,9 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
     if (releaseTimer !== undefined) { clearTimeout(releaseTimer); releaseTimer = undefined }
     for (const remove of removers.splice(0).reverse()) remove()
     for (const animation of animations.splice(0)) animation.cancel()
+    const cleanup = release
+    release = undefined
+    cleanup?.()
     if (playing) { playing = false; changed(false) }
   }
   const listen = (target: EventTarget, type: string, listener: EventListener) => {
@@ -68,7 +73,10 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
         if (releaseTimer !== undefined) { clearTimeout(releaseTimer); releaseTimer = undefined }
         try { for (const animation of animations) animation.pause() } catch { stop() }
       })
-      listen(env.events, 'focusin', () => { if (!pointerActive) stop() })
+      listen(env.events, 'focusin', event => {
+        const target = event.target as HTMLElement | null
+        if (!pointerActive && !target?.closest?.('[data-home-skip]')) stop()
+      })
       listen(env.events, 'click', stop)
       listen(env.events, 'auxclick', stop)
       listen(env.events, 'pointerup', () => {
@@ -92,6 +100,24 @@ function canPlay(elements: HTMLElement[], env: MotionEnvironment) {
 }
 
 export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
+  const idle = { playing: false, stop: () => {} }
+  if (!canPlay([root], env) || env.memory.value) return idle
+  try { if (env.storage().getItem(HOME_ENTRANCE_KEY)) return idle } catch { /* Client memory remains the fallback. */ }
+  let scene: ReturnType<typeof createReferenceAssembly> | undefined
+  try {
+    scene = createReferenceAssembly(root, env.viewportWidth ?? root.ownerDocument.defaultView!.innerWidth)
+    const controller = play(scene.steps, env, changed, scene.cleanup)
+    if (controller.playing) {
+      env.memory.value = true
+      try { env.storage().setItem(HOME_ENTRANCE_KEY, '1') } catch { /* SPA memory prevents replay. */ }
+    }
+    return controller
+  } catch { scene?.cleanup(); return idle }
+}
+
+// Retain the previously approved fan as a separate variant; the reference
+// assembly entrance above deliberately does not blend it into the scene.
+export function startHybridEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
   const shellLayers = [...(root.closest?.('[data-home-shell]')?.querySelectorAll<HTMLElement>('[data-home-shell-layer]') ?? [])]
   const layers = [
     ...shellLayers.filter(element => element.dataset.homeShellLayer === 'nav'),

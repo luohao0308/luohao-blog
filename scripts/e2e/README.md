@@ -134,42 +134,10 @@ SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_C
 
 新套件仅支持本地前端，使用只读假后端/模拟账号与剪贴板，不调用真实模型、邮件或微信服务。复用现有 Playwright 环境，通过 `NODE_PATH` 指定其 node_modules；浏览器版本与包不一致时用 `BLOG_E2E_CHROMIUM` 指定已安装的 Chromium/Chrome，不需要增加项目依赖。
 
-### 白底首页融合动效（T-019）
+### 原版分层与独立扇开（T-019）
 
-`home_motion_e2e.cjs` 验证真实Nuxt生产产物的首页分层/前三篇真实fixture卡片集中扇开、同标签页会话一次、跳过/Escape、resize与reduced-motion变化取消、存储拒绝、无WAAPI及禁JS SSR；同时检查320/390/768/900/1024/1280/1440px动画峰值和归位均无水平溢出，阅读页不挂载首页动效。
+`home_motion_e2e.cjs`验证当前首页原版五片/五tag/三扇开、时间线、SSR、临时inert恢复、Skip焦点、自然结束、会话/路由/reduced-motion/存储拒绝/无WAAPI/无JS和320–1440px舞台裁切。默认前端13000/fixture13001，可用BLOG_E2E_BASE_URL/BLOG_E2E_FIXTURE_PORT与人工预览隔离；测试前端NUXT_BACKEND_BASE须指向fixture端口。
 
-先在`frontend/`完成`pnpm build`，使用`NUXT_BACKEND_BASE=http://127.0.0.1:13001 NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs`启动本地产物；再从仓库根运行：
+`reference_parity_e2e.cjs`验证冻结原版：五层geometry、native timing/keyframes严格相等，1440/657/390px各七帧生成像素差；额外扇开有意隐藏以隔离五层。golden为fixtures/white-layers-original.html，不使用后来覆盖的motion/index.html。可另启前端13008指向fixture13009运行。两个套件均为只读本地fixture，不访问真实账号/模型或写生产；输出在output/visual-redesign。
 
-```bash
-NODE_PATH=<已有Playwright所在node_modules> BLOG_E2E_CHROMIUM=<已有Chrome路径> node scripts/e2e/home_motion_e2e.cjs
-```
-
-该脚本自动启动/关闭13001端口的只读fixture，不要与其它使用同端口的浏览器套件并行。输出位于本机`output/visual-redesign/implementation/`；正常浏览器和测试账号只在fixture中存在，不访问真实账号、评论写入或模型服务。动效控制器单元回归通过`cd frontend && node --test tests/*.test.cjs`执行，并由现有CI前端单元测试步骤覆盖。
-
-在同一个前端产物上串行执行`node scripts/e2e/article_reveal_e2e.cjs`，检查列表八篇文章中最多前六篇轻展开、减少动态时不播放、服务端语义排序保持、搜索与清空不重播。这个脚本也自行管理13001只读fixture；同样需要已有Playwright/Chrome环境变量。
-
-1. 在 frontend 构建并启动本任务预览（不要同时运行 dev 和 build）：
-
-   ```bash
-   pnpm build
-   NUXT_BACKEND_BASE=http://127.0.0.1:13001 NITRO_HOST=127.0.0.1 NITRO_PORT=13000 node .output/server/index.mjs
-   ```
-
-2. 保持预览运行，在仓库根按顺序执行：
-
-   ```bash
-   node scripts/e2e/ui_foundations_e2e.cjs
-   node scripts/e2e/ui_search_chat_e2e.cjs
-   node scripts/e2e/ui_reading_e2e.cjs
-   node scripts/e2e/ui_editor_e2e.cjs
-   ```
-
-   套件默认前端13000，可用 `BLOG_E2E_BASE_URL` 设置其他localhost地址。搜索/阅读脚本自行启动并关闭13001只读SSR fixture，不能并行运行。截图输出 `output/ui-refinement/`，仅作本地证据。
-
-3. 阅读语言栏使用后端真实渲染的 `backend/internal/biz/article/render/testdata/code-language.html`，其源Markdown与生成结果由Go测试校验；不要用手写 `language-go` 独占验收。旧正文无语言信息时保留通用“代码”标签，无数据回填。
-
-4. 前端纯逻辑回归：frontend目录 `node --test tests/*.test.cjs`；后端结果契约及渲染：backend目录 `go test ./internal/biz/article/render ./internal/biz ./internal/service ./internal/server`。小程序mock回归：miniprogram目录 `npm run typecheck && npm test`。
-
-5. 完成后停止自己启动的前端预览。浏览器模拟不替代小程序真机验收。`blog_e2e.py` 的 t11 是另一条真实模型集成检查，需要真实检索/模型环境；它现要求“回答已生成”和参考链接，不再把非空降级提示视为模型成功，本轮mock套件不证明外部模型可用性。
-
-编辑器快速路径回归在同一浏览器任务内完成正文输入与保存/离开，避免200ms等待掩盖Milkdown防抖窗口。媒体补充回归 `article_experience_e2e.cjs` 使用ADMIN角色1，覆盖无title初始图、上传插入、继续输入、undo/redo、保存与刷新保图；Crepe图片块的alt会规范为比例，验收以真实DOM节点与URL为准。对应适配只规范AST的nullish title，不改变HTML/URL安全边界。
+单测仍为`cd frontend && node --test tests/*.test.cjs`；home-motion.test.cjs锁定独立hybrid变体，reference-assembly.test.cjs验证默认参考场景。
