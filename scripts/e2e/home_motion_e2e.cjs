@@ -50,13 +50,13 @@ async function main() {
     assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 2, 'real navigation and footer join the assembly')
     await page.evaluate(() => {
       for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 650 }
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 370 }
       }
     })
     await page.screenshot({ path: path.join(output, 'home-1440-layers.png'), fullPage: false })
     await page.evaluate(() => {
       for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 630 }
       }
     })
     const geometry = await page.locator('[data-home-card]').evaluateAll((elements) => {
@@ -70,7 +70,7 @@ async function main() {
     assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'playing', 'peak capture must not cancel the effect')
     await page.evaluate(() => {
       for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) animation.currentTime = 2200
+        if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) animation.currentTime = 1260
       }
     })
     await page.screenshot({ path: path.join(output, 'home-1440-assembling.png'), fullPage: false })
@@ -92,6 +92,16 @@ async function main() {
     checks.push('real content, hybrid, Escape, SSR hydration, no clones, once per session')
     await ctx.close()
 
+    const timed = await context({ reducedMotion: 'no-preference' })
+    await timed.page.goto(base, { waitUntil: 'domcontentloaded' })
+    await timed.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
+    const started = Date.now()
+    await timed.page.locator('[data-home-root][data-home-motion="idle"]').waitFor({ timeout: 2200 })
+    assert(Date.now() - started < 2200, 'the entire entrance settles naturally in about 1.8s')
+    assert.equal(await timed.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
+    await timed.ctx.close()
+    checks.push('natural completion within 2.2s, including layers and article fan')
+
     const reduced = await context({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 } })
     await reduced.page.goto(base, { waitUntil: 'networkidle' })
     assert.equal(await reduced.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
@@ -105,7 +115,7 @@ async function main() {
       const mobile = await context({ viewport: { width, height: 900 }, reducedMotion: 'no-preference' })
       await mobile.page.goto(base, { waitUntil: 'domcontentloaded' })
       await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
-      for (const time of [0, 180, 450, 750, 1100, 1600, 2200, 2700, 3000]) {
+      for (const time of [0, 100, 250, 430, 630, 910, 1260, 1540, 1760]) {
         await mobile.page.evaluate(time => {
           for (const animation of document.getAnimations()) {
             if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = time }
@@ -119,7 +129,7 @@ async function main() {
       }
       await mobile.page.evaluate(() => {
         for (const animation of document.getAnimations()) {
-          if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
+          if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 630 }
         }
       })
       assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no peak overflow at ${width}`)
@@ -192,7 +202,7 @@ async function main() {
       await active.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
       await active.page.evaluate(() => {
         for (const animation of document.getAnimations()) {
-          if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
+          if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 630 }
         }
       })
       const link = index === 'hero'
@@ -213,7 +223,7 @@ async function main() {
     await touch.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
     await touch.page.evaluate(() => {
       for (const animation of document.getAnimations()) {
-        if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 1100 }
+        if (animation.effect?.target?.closest('[data-home-root]')) { animation.pause(); animation.currentTime = 630 }
       }
     })
     const touchPoint = await hitPoint(touch.page.getByRole('link', { name: '阅读文章', exact: true }))

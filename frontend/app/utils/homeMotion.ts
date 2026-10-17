@@ -1,4 +1,5 @@
 export const HOME_ENTRANCE_KEY = 'blog:home-entrance:v1'
+const HOME_PLAYBACK_RATE = 1.75
 
 export interface MotionEnvironment {
   events: EventTarget
@@ -136,9 +137,9 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
     const arriving = pose(54 * layerStrength, -15 * layerStrength, -5 * layerStrength, -420, (lift + 60) * layerStrength, 0.72)
     const opened = pose(36 * layerStrength, -11 * layerStrength, -4 * layerStrength, depth * layerStrength, lift * layerStrength, 0.86)
     const travelling = pose(29 * layerStrength, 8 * layerStrength, 2 * layerStrength, depth * layerStrength, lift * layerStrength, 0.88)
-    const delay = Math.min(index, 7) * 65
+    const delay = Math.min(index, 7) * 65 / HOME_PLAYBACK_RATE
     return {
-      element, duration: 3100 - delay, delay,
+      element, duration: 3100 / HOME_PLAYBACK_RATE - delay, delay,
       frames: [
         { ...arriving, offset: 0, easing: 'ease-out' },
         { ...opened, offset: 0.24 },
@@ -165,7 +166,7 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
       opacity: 1, boxShadow: shadow,
     }
     steps.push({
-      element, duration: 2700, delay: 0,
+      element, duration: 2700 / HOME_PLAYBACK_RATE, delay: 0,
       frames: [
         { ...resting, boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
         { ...floating, offset: 0.25 },

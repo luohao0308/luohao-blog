@@ -301,7 +301,7 @@ test('shell layers bracket content with separate depth, lift and stagger and can
   assert.match(layers.at(-1).frames[1].transform, /rotateX\(36deg\)/)
   assert.ok(new Set(layers.map(a => a.timing.delay)).size > 3)
   for (const layer of layers) {
-    assert.equal(layer.timing.duration + layer.timing.delay, 3100)
+    assert.ok(Math.abs(layer.timing.duration + layer.timing.delay - 3100 / 1.75) < 0.001)
     assert.match(layer.frames.at(-1).transform, /translate3d\(0,0,0\)/)
     assert.equal(layer.frames[1].transformOrigin, '50% 50%')
   }
@@ -330,12 +330,12 @@ test('assembly restores the approved large unfold and travelling perspective on 
 })
 
 
-test('article fan keyframes and timing retain the approved values exactly', () => {
+test('article fan preserves its approved trajectory and shares the faster home playback rate', () => {
   const { startHomeEntrance } = load(), f = fixture()
   const controller = startHomeEntrance(f.root, f.env)
   const cards = f.animations.slice(-3)
   cards.forEach((animation, index) => {
-    assert.deepEqual(JSON.parse(JSON.stringify(animation.timing)), { duration: 2700, delay: 0, easing: 'linear', fill: 'both' })
+    assert.deepEqual(JSON.parse(JSON.stringify(animation.timing)), { duration: 2700 / 1.75, delay: 0, easing: 'linear', fill: 'both' })
     const side = index - 1
     const expected = `perspective(1100px) translate3d(${225 - index * 225}px,${Math.abs(side) * 12}px,${45 + index * 45}px) rotateX(10deg) rotateZ(${side * 10}deg) scale(0.92)`
     assert.equal(animation.frames[1].transform, expected)
