@@ -102,40 +102,48 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
   const clearShadow = '0 0 0 rgb(45 65 95 / 0)'
   const steps: MotionStep[] = layers.map((element, index) => {
     const shell = element.dataset.homeShellLayer
-    const subtle = element.dataset.homeLayer === 'subtle'
-    const layerStrength = strength * (subtle ? 0.65 : 1)
-    const tilt = (shell ? 8 : 10) * layerStrength
-    const yaw = (index % 2 ? 2 : -4) * layerStrength
-    const depth = (shell === 'nav' ? 24 : shell === 'footer' ? 36 : 52 + Math.min(index, 5) * 10) * strength
-    const lift = (shell === 'nav' ? 14 : shell === 'footer' ? 32 : 6 + Math.min(index, 5) * 14) * strength
+    // Layer presentation follows the larger 04 study. Card strength and its
+    // timeline below remain independent, including on compact screens.
+    const layerStrength = env.compact ? 0.72 : 1
+    const spread = env.compact ? 32 : 62
+    const depth = (2 - index) * 42
+    const lift = shell === 'nav' ? 38 : 52 + (index - 1) * spread
     const rectangle = element.getBoundingClientRect()
     const width = rectangle.width || rectangle.right - rectangle.left
     const height = rectangle.height || 0
     const radians = Math.PI / 180
-    // Bound all corners including perspective. This also protects full-width
-    // shell surfaces, whose viewport margin differs from the content root.
-    const projectedWidth = width + height * Math.sin(tilt * radians) * Math.sin(Math.abs(yaw) * radians)
-    const maxDepth = depth + width / 2 * Math.sin(Math.abs(yaw) * radians) + height / 2 * Math.sin(tilt * radians)
     const availableWidth = env.viewportWidth === undefined ? width : Math.max(0, 2 * Math.min(rectangle.left + width / 2, env.viewportWidth - rectangle.left - width / 2) - 8)
     const parentPerspective = element.parentElement === root
       ? Number.parseFloat(root.ownerDocument?.defaultView?.getComputedStyle(root).perspective ?? '')
       : 0
     const effectivePerspective = parentPerspective > 0 ? 1 / (1 / 1100 + 1 / parentPerspective) : 1100
-    const safeScale = projectedWidth > 0 ? availableWidth / projectedWidth * Math.max(0.1, 1 - maxDepth / effectivePerspective) : 1
-    const scale = Math.max(0.1, Math.min(shell ? 0.94 : 0.97, safeScale))
-    const floating = {
-      transform: `perspective(1100px) translate3d(0,${lift}px,${depth}px) rotateX(${tilt}deg) rotateY(${yaw}deg) scale(${scale})`,
-      transformOrigin: '50% 50%', borderRadius: shell ? '12px' : '20px',
-      boxShadow: subtle ? '0 12px 24px rgb(45 65 95 / 0.08), 0 0 0 1px rgb(100 116 139 / 0.10)' : '0 22px 44px rgb(45 65 95 / 0.10), 0 0 0 1px rgb(100 116 139 / 0.14)', opacity: 1,
+    const pose = (tilt: number, yaw: number, roll: number, z: number, y: number, preferredScale: number): Keyframe => {
+      const pitch = Math.sin(tilt * radians)
+      const turn = Math.abs(Math.sin(yaw * radians))
+      const bank = Math.abs(Math.sin(roll * radians))
+      // Conservative corner bounds cover roll as well as both perspectives.
+      // Each pose is bounded separately; depth arrival needs a different scale.
+      const projectedWidth = width + height * (bank + pitch * turn)
+      const maxDepth = z + width / 2 * (turn + bank * pitch) + height / 2 * (pitch + bank * turn)
+      const safeScale = projectedWidth > 0 ? availableWidth / projectedWidth * Math.max(0.08, 1 - maxDepth / effectivePerspective) : 1
+      const scale = Math.max(0.08, Math.min(preferredScale, safeScale))
+      return {
+        transform: `perspective(1100px) translate3d(0,${y}px,${z}px) rotateX(${tilt}deg) rotateY(${yaw}deg) rotateZ(${roll}deg) scale(${scale})`,
+        transformOrigin: '50% 50%', borderRadius: shell ? '12px' : '16px',
+        boxShadow: '0 28px 52px rgb(45 65 95 / 0.18), 0 0 0 1px rgb(100 116 139 / 0.18)', opacity: 1,
+      }
     }
-    const delay = Math.min(index, 7) * 35
+    const arriving = pose(54 * layerStrength, -15 * layerStrength, -5 * layerStrength, -420, (lift + 60) * layerStrength, 0.72)
+    const opened = pose(36 * layerStrength, -11 * layerStrength, -4 * layerStrength, depth * layerStrength, lift * layerStrength, 0.86)
+    const travelling = pose(29 * layerStrength, 8 * layerStrength, 2 * layerStrength, depth * layerStrength, lift * layerStrength, 0.88)
+    const delay = Math.min(index, 7) * 65
     return {
-      element, duration: 2700 - delay, delay,
+      element, duration: 3100 - delay, delay,
       frames: [
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
-        { ...floating, offset: 0.25 },
-        { ...floating, offset: 0.55, easing: 'ease-in-out' },
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0.90 },
+        { ...arriving, offset: 0, easing: 'ease-out' },
+        { ...opened, offset: 0.24 },
+        { ...travelling, offset: 0.60, easing: 'ease-in-out' },
+        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0.92 },
         { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 1 },
       ],
     }

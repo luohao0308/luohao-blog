@@ -105,6 +105,18 @@ async function main() {
       const mobile = await context({ viewport: { width, height: 900 }, reducedMotion: 'no-preference' })
       await mobile.page.goto(base, { waitUntil: 'domcontentloaded' })
       await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
+      for (const time of [0, 180, 450, 750, 1100, 1600, 2200, 2700, 3000]) {
+        await mobile.page.evaluate(time => {
+          for (const animation of document.getAnimations()) {
+            if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = time }
+          }
+        }, time)
+        assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no unfolding overflow at ${width}px/${time}ms`)
+        assert(await mobile.page.locator('[data-home-layer], [data-home-shell-layer]').evaluateAll(elements => elements.every(element => {
+          const bounds = element.getBoundingClientRect()
+          return bounds.left >= -1 && bounds.right <= innerWidth + 1
+        })), `unfolding layers fit at ${width}px/${time}ms`)
+      }
       await mobile.page.evaluate(() => {
         for (const animation of document.getAnimations()) {
           if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 1100 }
@@ -119,6 +131,7 @@ async function main() {
         const bounds = element.getBoundingClientRect()
         return bounds.left >= -1 && bounds.right <= innerWidth + 1
       })), `all fanned cards remain in view at ${width}`)
+      if (width === 390) await mobile.page.screenshot({ path: path.join(output, 'home-390-mid.png'), fullPage: false })
       await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).click()
       await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
       assert(await mobile.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no page overflow at ${width}`)
@@ -132,7 +145,7 @@ async function main() {
       assert.equal(await mobile.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
       await mobile.ctx.close()
     }
-    checks.push('320/390/768/900/1024/1280/1440 peak bounds, skip, navigation, search and stable reading')
+    checks.push('320/390/768/900/1024/1280/1440 unfolding bounds at nine timestamps, peak fan, skip, navigation, search and stable reading')
 
     const blocked = await context({ reducedMotion: 'no-preference' })
     await blocked.ctx.addInitScript(() => {

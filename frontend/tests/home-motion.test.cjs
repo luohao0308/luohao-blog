@@ -122,7 +122,7 @@ test('home peak holds floating layers and converges real grid cards around one a
   assert.deepEqual(centers, [505, 660, 815])
   assert.match(cards[0].frames[1].transform, /rotateZ\(-10deg\)/)
   assert.match(cards[2].frames[1].transform, /rotateZ\(10deg\)/)
-  assert.match(f.animations[0].frames[2].transform, /rotateX\(10deg\)/)
+  assert.match(f.animations[0].frames[2].transform, /rotateX\(29deg\)/)
   f.events.fire('pointerdown')
   assert.ok(f.animations.every(animation => animation.cancelled))
 })
@@ -135,7 +135,7 @@ test('home handles layer-only roots without article geometry', () => {
   controller.stop()
 })
 
-test('hero anchors the fan near its lower edge and subtle layers remain restrained', async () => {
+test('hero still anchors the fan while secondary surfaces join the strong assembly', async () => {
   const { startHomeEntrance } = load(), f = fixture()
   f.root.querySelector = () => ({ getBoundingClientRect: () => ({ bottom: 550 }) })
   f.root.querySelectorAll()[1].dataset.homeLayer = 'subtle'
@@ -144,11 +144,11 @@ test('hero anchors the fan near its lower edge and subtle layers remain restrain
   const y = Number(card.frames[1].transform.match(/translate3d\([-.\d]+px,([-.\d]+)px/)[1])
   assert.equal(850 + y, 550 + 200 * 0.22)
   const hero = f.animations[0], subtle = f.animations[1]
-  assert.match(hero.frames[1].boxShadow, /0\.10/)
-  assert.match(subtle.frames[1].boxShadow, /0\.08/)
+  assert.match(hero.frames[1].boxShadow, /0\.18/)
+  assert.match(subtle.frames[1].boxShadow, /0\.18/)
   const angle = Number(subtle.frames[1].transform.match(/rotateX\(([-.\d]+)deg/)[1])
-  assert.ok(angle > 0 && angle < 8)
-  assert.equal(subtle.frames[4].transform, subtle.frames[0].transform)
+  assert.equal(angle, 36)
+  assert.match(subtle.frames[4].transform, /translate3d\(0,0,0\)/)
   assert.equal(card.frames[4].transform, card.frames[0].transform)
   controller.stop()
   await Promise.resolve()
@@ -297,17 +297,36 @@ test('shell layers bracket content with separate depth, lift and stagger and can
   const vectors = layers.map(a => a.frames[1].transform.match(/translate3d\(0,([-.\d]+)px,([-.\d]+)px\)/))
   assert.ok(new Set(vectors.map(vector => vector[1])).size > 3)
   assert.ok(new Set(vectors.map(vector => vector[2])).size > 3)
-  assert.match(layers[0].frames[1].transform, /24px\) rotateX\(8deg\)/)
-  assert.match(layers.at(-1).frames[1].transform, /36px\) rotateX\(8deg\)/)
+  assert.match(layers[0].frames[1].transform, /84px\) rotateX\(36deg\)/)
+  assert.match(layers.at(-1).frames[1].transform, /rotateX\(36deg\)/)
   assert.ok(new Set(layers.map(a => a.timing.delay)).size > 3)
   for (const layer of layers) {
-    assert.equal(layer.timing.duration + layer.timing.delay, 2700)
-    assert.equal(layer.frames.at(-1).transform, layer.frames[0].transform)
+    assert.equal(layer.timing.duration + layer.timing.delay, 3100)
+    assert.match(layer.frames.at(-1).transform, /translate3d\(0,0,0\)/)
     assert.equal(layer.frames[1].transformOrigin, '50% 50%')
   }
   f.events.fire('resize')
   assert.equal(controller.playing, false)
   assert.ok(f.animations.every(a => a.cancelled))
+})
+
+test('assembly restores the approved large unfold and travelling perspective on desktop and mobile', () => {
+  const { startHomeEntrance } = load()
+  for (const compact of [false, true]) {
+    const f = fixture(); f.env.compact = compact
+    const controller = startHomeEntrance(f.root, f.env)
+    const layer = f.animations[0]
+    const angle = frame => Number(frame.transform.match(/rotateX\(([-.\d]+)deg/)[1])
+    assert.ok(angle(layer.frames[0]) >= (compact ? 38 : 54), 'visible unfold from depth')
+    assert.match(layer.frames[0].transform, /-420px/)
+    assert.ok(angle(layer.frames[1]) >= (compact ? 25 : 36), 'strong floating presentation')
+    assert.ok(angle(layer.frames[2]) < angle(layer.frames[1]), 'perspective travels during the hold')
+    assert.notEqual(layer.frames[1].transform, layer.frames[2].transform)
+    assert.equal(layer.frames[0].opacity, 1, 'SSR content stays visible')
+    assert.equal(layer.frames.at(-1).opacity, 1)
+    controller.stop()
+    assert.ok(f.animations.every(a => a.cancelled))
+  }
 })
 
 
@@ -342,8 +361,9 @@ test('direct root layers account for parent perspective and navigation floats be
   const transform = f.animations[1].frames[1].transform
   const scale = Number(transform.match(/scale\(([-.\d]+)\)/)[1])
   const radians = Math.PI / 180
-  const maxDepth = 62 + 360 * Math.sin(2 * radians) + 200 * Math.sin(10 * radians)
-  const projectedWidth = 720 + 400 * Math.sin(10 * radians) * Math.sin(2 * radians)
+  const pitch = Math.sin(36 * radians), turn = Math.sin(11 * radians), bank = Math.sin(4 * radians)
+  const maxDepth = 42 + 360 * (turn + bank * pitch) + 200 * (pitch + bank * turn)
+  const projectedWidth = 720 + 400 * (bank + pitch * turn)
   const effectivePerspective = 1 / (1 / 1100 + 1 / 1600)
   assert.ok(scale * projectedWidth / (1 - maxDepth / effectivePerspective) <= 760.001)
   controller.stop()
