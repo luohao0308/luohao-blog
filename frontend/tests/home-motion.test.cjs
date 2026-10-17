@@ -144,8 +144,8 @@ test('hero still anchors the fan while secondary surfaces join the strong assemb
   const y = Number(card.frames[1].transform.match(/translate3d\([-.\d]+px,([-.\d]+)px/)[1])
   assert.equal(850 + y, 550 + 200 * 0.22)
   const hero = f.animations[0], subtle = f.animations[1]
-  assert.match(hero.frames[1].boxShadow, /0\.18/)
-  assert.match(subtle.frames[1].boxShadow, /0\.18/)
+  assert.equal(hero.frames[1].boxShadow, undefined)
+  assert.equal(subtle.frames[1].boxShadow, undefined)
   const angle = Number(subtle.frames[1].transform.match(/rotateX\(([-.\d]+)deg/)[1])
   assert.equal(angle, 36)
   assert.match(subtle.frames[4].transform, /translate3d\(0,0,0\)/)
@@ -303,7 +303,7 @@ test('shell layers bracket content with separate depth, lift and stagger and can
   for (const layer of layers) {
     assert.ok(Math.abs(layer.timing.duration + layer.timing.delay - 3100 / 1.75) < 0.001)
     assert.match(layer.frames.at(-1).transform, /translate3d\(0,0,0\)/)
-    assert.equal(layer.frames[1].transformOrigin, '50% 50%')
+    assert.equal(layer.frames[1].transformOrigin, undefined, 'origin is a static surface style')
   }
   f.events.fire('resize')
   assert.equal(controller.playing, false)
@@ -341,6 +341,26 @@ test('assembly uses the original continuous easing without restarting it at phas
   }
   assert.ok(f.animations.slice(-3).every(card => card.timing.easing === 'linear'), 'fan keeps its existing easing')
   controller.stop()
+})
+
+test('home keyframes avoid paint properties and temporary surfaces restore on every exit', async () => {
+  const { startHomeEntrance } = load()
+  for (const reason of ['stop', 'resize', 'finish', 'reject']) {
+    const f = fixture(), elements = f.root.querySelectorAll()
+    elements[0].dataset.homeMotionSurface = 'previous'
+    const controller = startHomeEntrance(f.root, f.env)
+    for (const animation of f.animations) {
+      assert.ok(animation.frames.every(frame => Object.keys(frame).every(key => ['transform', 'opacity', 'offset', 'easing'].includes(key))))
+    }
+    assert.equal(elements[0].dataset.homeMotionSurface, 'card')
+    if (reason === 'stop') controller.stop()
+    if (reason === 'resize') f.events.fire('resize')
+    if (reason === 'finish') f.animations.forEach(animation => animation.resolve())
+    if (reason === 'reject') f.animations[0].reject()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(elements[0].dataset.homeMotionSurface, 'previous')
+    assert.ok(elements.slice(1).every(element => element.dataset.homeMotionSurface === undefined))
+  }
 })
 
 

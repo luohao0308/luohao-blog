@@ -9,6 +9,8 @@
 
 ## 完成口径
 
+渲染性能修正（用户“一个像60帧一个像120”）：对照原版静态阴影与正式版本boxShadow/borderRadius插值，记录同Chrome、1440×1000/DPR1的隔离trace。首页WAAPI仅保留transform/opacity，圆角/阴影/原点改为临时静态surface CSS；统一stop逆序还原标记。未添加will-change、未改导航模糊/根透视、速度/轨迹/列表行为，保持最小变量。28单测、lint/typecheck/build与七档九时点/点击/自然完成/样式恢复回归通过；独立代码审查APPROVE。两轮最终trace均Paint71（修前426）、Raster27（修前388）；按时长归一Paint约239→38次/秒，P95帧间隔33.3→16.8ms。记录属于受控Chrome测试，不代表实际IAB或显示器已达到120fps；用户主观流畅度仍以当前预览实播为准。证据output/visual-redesign/layer-performance，未上线。
+
 连贯性修正：用户再次指定http://127.0.0.1:13020/motion/?v=white-layers，当前浏览器实际保留的是旧版“01分层组装”，与磁盘后续融合演示不是同一文档。已从用户原标签页保存white-layers-original.html/live.png并重播核对；其分层全程使用cubic-bezier(.25,.55,.25,1)。正式分层改为该全局曲线，去掉各阶段ease-out/linear/ease-in-out切换，归位保持相同transform函数序列。速度、空间参数和扇开/列表缓动不变。验收增加连续缓动/变换序列回归及现有七档九时点浏览器。仅本地修正，未改变生产。
 
 连贯性验证：27单测、lint/typecheck/build、七档九时点和自然完成<=2.2秒、鼠标/触摸/取消/减少动态/无JS回归通过。本机13004审阅代理只在本地加入重播及原版对照入口，每次重播创建新的页面播放；此代理不进入仓库构建/生产、不转发凭据、仅允许GET。真实公开内容与重播冒烟通过，无水合/脚本错误。证据位于output/visual-redesign/layer-smooth。

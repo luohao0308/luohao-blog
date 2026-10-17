@@ -48,6 +48,7 @@ async function main() {
     assert.equal(await page.locator('[data-home-card]').count(), 3, 'real API articles are the animated cards')
     assert.deepEqual(await page.locator('[data-home-shell-layer]').evaluateAll(elements => elements.map(element => element.dataset.homeShellLayer)), ['nav', 'footer'])
     assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 2, 'real navigation and footer join the assembly')
+    assert(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')).every(animation => animation.effect.getKeyframes().every(frame => Object.keys(frame).every(key => ['transform', 'opacity', 'offset', 'computedOffset', 'easing', 'composite'].includes(key))))), 'home effects animate only transform and opacity')
     await page.evaluate(() => {
       for (const animation of document.getAnimations()) {
         if (animation.effect?.target?.closest('[data-home-root], [data-home-shell-layer]')) { animation.pause(); animation.currentTime = 370 }
@@ -77,6 +78,7 @@ async function main() {
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '跳过开场', exact: true }).waitFor({ state: 'hidden' })
     assert.equal(await page.locator('[data-home-root]').getAttribute('data-home-motion'), 'idle')
+    assert.equal(await page.locator('[data-home-motion-surface]').count(), 0, 'skip restores static surface styling')
     assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.effect?.target?.matches('[data-home-shell-layer]')).length), 0, 'skip restores shared layout layers')
     assert.equal(await page.locator('[data-home-root] [inert]').count(), 0)
     assert.equal(await page.locator('[data-home-root] #layers, [data-home-root] .fan-card').count(), 0, 'production animates real DOM without preview clones')
@@ -97,6 +99,7 @@ async function main() {
     await timed.page.getByRole('button', { name: '跳过开场', exact: true }).waitFor()
     const started = Date.now()
     await timed.page.locator('[data-home-root][data-home-motion="idle"]').waitFor({ timeout: 2200 })
+    assert.equal(await timed.page.locator('[data-home-motion-surface]').count(), 0, 'natural completion releases surface styling')
     assert(Date.now() - started < 2200, 'the entire entrance settles naturally in about 1.8s')
     assert.equal(await timed.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
     await timed.ctx.close()

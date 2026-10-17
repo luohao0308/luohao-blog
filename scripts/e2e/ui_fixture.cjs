@@ -30,7 +30,7 @@ async function startFixture(options = {}) {
     if (pathname.includes('/categories')) return json({ categories: [] })
     return json({ message: `Unknown fixture route: ${pathname}` }, 404)
   })
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(13001, '127.0.0.1', resolve) })
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(Number(process.env.BLOG_E2E_FIXTURE_PORT || 13001), '127.0.0.1', resolve) })
   return { articles, close: () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())) }
 }
 module.exports = { startFixture, makeArticle, pixelPng }

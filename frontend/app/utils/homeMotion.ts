@@ -16,7 +16,7 @@ export interface MotionController {
   stop: () => void
 }
 
-type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number, easing?: string }
+type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number, easing?: string, surface?: 'layer' | 'card' }
 const resting: Keyframe = { transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateZ(0deg)', opacity: 1 }
 
 // Only WAAPI effects are written. Cancelling them restores the original CSS,
@@ -30,7 +30,7 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
   const stop = () => {
     pointerActive = false
     if (releaseTimer !== undefined) { clearTimeout(releaseTimer); releaseTimer = undefined }
-    for (const remove of removers.splice(0)) remove()
+    for (const remove of removers.splice(0).reverse()) remove()
     for (const animation of animations.splice(0)) animation.cancel()
     if (playing) { playing = false; changed(false) }
   }
@@ -40,6 +40,14 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
   }
   try {
     for (const step of steps) {
+      if (step.surface) {
+        const previous = step.element.dataset.homeMotionSurface
+        step.element.dataset.homeMotionSurface = step.surface
+        removers.push(() => {
+          if (previous === undefined) delete step.element.dataset.homeMotionSurface
+          else step.element.dataset.homeMotionSurface = previous
+        })
+      }
       const animation = step.element.animate(step.frames, { duration: step.duration, delay: step.delay, easing: step.easing ?? 'linear', fill: 'both' })
       animations.push(animation)
       // Attach rejection handlers immediately, including before a later animate() throws.
@@ -99,8 +107,6 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
   const first = rectangles[0]
   const multiRow = !!first && rectangles.some(rectangle => Math.abs(rectangle.top - first.top) > 1)
   const strength = env.compact ? 0.45 : 1
-  const shadow = '0 20px 38px rgb(45 65 95 / 0.16)'
-  const clearShadow = '0 0 0 rgb(45 65 95 / 0)'
   const steps: MotionStep[] = layers.map((element, index) => {
     const shell = element.dataset.homeShellLayer
     // Layer presentation follows the larger 04 study. Card strength and its
@@ -130,8 +136,7 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
       const scale = Math.max(0.08, Math.min(preferredScale, safeScale))
       return {
         transform: `perspective(1100px) translate3d(0,${y}px,${z}px) rotateX(${tilt}deg) rotateY(${yaw}deg) rotateZ(${roll}deg) scale(${scale})`,
-        transformOrigin: '50% 50%', borderRadius: shell ? '12px' : '16px',
-        boxShadow: '0 28px 52px rgb(45 65 95 / 0.18), 0 0 0 1px rgb(100 116 139 / 0.18)', opacity: 1,
+        opacity: 1,
       }
     }
     const arriving = pose(54 * layerStrength, -15 * layerStrength, -5 * layerStrength, -420, (lift + 60) * layerStrength, 0.72)
@@ -140,10 +145,11 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
     const delay = Math.min(index, 7) * 65 / HOME_PLAYBACK_RATE
     const settled: Keyframe = {
       transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)',
-      transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, opacity: 1,
+      opacity: 1,
     }
     return {
       element, duration: 3100 / HOME_PLAYBACK_RATE - delay, delay,
+      surface: 'layer',
       easing: 'cubic-bezier(0.25, 0.55, 0.25, 1)',
       frames: [
         { ...arriving, offset: 0 },
@@ -168,16 +174,17 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
     const y = anchorY - (rectangle.top + rectangle.height / 2) + Math.abs(side) * 12 * strength
     const floating = {
       transform: `perspective(1100px) translate3d(${x}px,${y}px,${(45 + index * 45) * strength}px) rotateX(${10 * strength}deg) rotateZ(${side * 10 * strength}deg) scale(${fanScale})`,
-      opacity: 1, boxShadow: shadow,
+      opacity: 1,
     }
     steps.push({
       element, duration: 2700 / HOME_PLAYBACK_RATE, delay: 0,
+      surface: 'card',
       frames: [
-        { ...resting, boxShadow: clearShadow, offset: 0, easing: 'ease-out' },
+        { ...resting, offset: 0, easing: 'ease-out' },
         { ...floating, offset: 0.25 },
         { ...floating, offset: 0.55, easing: 'ease-in-out' },
-        { ...resting, boxShadow: clearShadow, offset: 0.90 },
-        { ...resting, boxShadow: clearShadow, offset: 1 },
+        { ...resting, offset: 0.90 },
+        { ...resting, offset: 1 },
       ],
     })
   })

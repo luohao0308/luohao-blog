@@ -18,6 +18,7 @@ python3 -m venv /tmp/pw-venv
 ```
 
 - 默认目标 `http://127.0.0.1:8080`，可用 `BLOG_E2E_BASE_URL` 覆盖。
+- Node 动效套件的只读fixture默认监听13001，可用`BLOG_E2E_FIXTURE_PORT`改为独立端口；对应测试前端的`NUXT_BACKEND_BASE`须指向该端口，避免占用正在供人审阅的公开内容预览。
 - 管理员凭据默认用本地 seed 示例账号（`author@example.com` / `longenough1`），
   可用 `BLOG_ADMIN_EMAIL` / `BLOG_ADMIN_PASSWORD` 覆盖。**不要把真实生产密码写进本目录或提交。**
 - 截图输出到 `gui-test-screenshots/e2e-py/`。
