@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-16_
+_last-updated: 2026-10-17_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -14,6 +14,7 @@ _last-updated: 2026-10-16_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
+| T-019 | 白底融合版S1/S2本地完成：首次首页分层＋文章扇开、列表轻展开、阅读稳定 | Nuxt Web前端 | [实施计划](plans/HOME-MOTION-2026-10.md) | 22项单测、8组浏览器回归及独立复核通过；待新准确SHA交付/上线授权，线上尚未更新 |
 | T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式后端744/v16与身份绑定、域名和核心真机已验收；PR #100退出会话/正文图地址修复已合并8feb334且CI/release通过，新29e预览手机确认图片显示。UGC已声明，隐私最新为已更新，备案仍管局审核中。手机新增发现首次文章登录提示失步、正文图无点击预览；已本地修复并通过测试/独立复核和模拟器点击链路，待新准确版本交付与手机复验。专属测试文章已回草稿、公开404，正文/精选未变；服务器退出撤销真机验收尚未进行 |
 | T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。正式号核心真机流程已用户确认；正文图片显示已手机确认；点击预览、会话复验和平台发布准备仍待完成 |
 | T-011 | 微信小程序阅读端：S1–S4已合并；正式目标wxf27116cc66cc49a4，旧代码/预览wx58089476f518fd3f | miniprogram + backend | [原计划](plans/MINIPROGRAM-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式AppID身份隔离、域名/凭据及核心真机已完成；正文图片显示已确认，点击预览/会话补丁待交付；隐私已更新、UGC已声明，备案结果及上传提审发布尚待完成；没有web-view |

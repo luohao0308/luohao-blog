@@ -1,0 +1,284 @@
+const assert = require('node:assert/strict')
+const { readFileSync } = require('node:fs')
+const path = require('node:path')
+const vm = require('node:vm')
+const { test } = require('node:test')
+const ts = require('typescript')
+function load() {
+  const exports = {}
+  vm.runInNewContext(ts.transpileModule(readFileSync(path.resolve(__dirname, '../app/utils/homeMotion.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Promise, setTimeout, clearTimeout })
+  return exports
+}
+class Events {
+  listeners = new Map()
+  addEventListener(type, fn) { const set = this.listeners.get(type) || new Set(); set.add(fn); this.listeners.set(type, set) }
+  removeEventListener(type, fn) { this.listeners.get(type)?.delete(fn) }
+  fire(type, event = {}) { for (const fn of this.listeners.get(type) || []) fn(event) }
+  count() { return [...this.listeners.values()].reduce((n, set) => n + set.size, 0) }
+}
+function fixture(options = {}) {
+  const events = new Events(), document = new Events(), media = new Events()
+  document.hidden = !!options.hidden; media.matches = !!options.reduce
+  const animations = []
+  const cards = Array.from({ length: 8 }, (_, index) => ({ dataset: {}, contains: target => target?.cardIndex === index, getBoundingClientRect: () => ({ left: 100 + index * 380, right: 460 + index * 380, top: 750, width: 360, height: 200 }), animate: options.noAnimation ? undefined : (frames, timing) => {
+    if (options.throws) throw Error('WAAPI failed')
+    let resolve, reject
+    const animation = { frames, timing, pause() { this.paused = true }, finished: new Promise((a, b) => { resolve = a; reject = b }), cancel() { this.cancelled = true; reject(Error('cancelled')) }, resolve() { resolve() }, reject() { reject(Error('interrupted')) } }
+    animations.push(animation); return animation
+  } }))
+  const root = { getBoundingClientRect: () => ({ left: 168, right: 1272 }), querySelectorAll: () => cards, querySelector: () => null }
+  const memory = { value: false }
+  let stored = false
+  const env = { events, document, media, memory, compact: false, storage: () => {
+    if (options.storageThrows) throw Error('storage blocked')
+    return { getItem: () => stored ? '1' : null, setItem: () => { stored = true } }
+  } }
+  return { root, env, animations, events, document, media, memory }
+}
+test('storage denial falls back to memory and prevents a second entrance', () => {
+  const { startHomeEntrance } = load(), f = fixture({ storageThrows: true })
+  const first = startHomeEntrance(f.root, f.env)
+  assert.equal(first.playing, true); assert.equal(f.memory.value, true)
+  first.stop()
+  assert.equal(startHomeEntrance(f.root, f.env).playing, false)
+})
+test('unsupported, reduced, and background entry neither animates nor consumes session', () => {
+  const { startHomeEntrance } = load()
+  for (const options of [{ noAnimation: true }, { reduce: true }, { hidden: true }]) {
+    const f = fixture(options)
+    assert.equal(startHomeEntrance(f.root, f.env).playing, false)
+    assert.equal(f.memory.value, false); assert.equal(f.animations.length, 0)
+  }
+})
+test('skip and all interruption signals cancel effects and remove listeners', async () => {
+  const { startHomeEntrance } = load()
+  for (const signal of ['stop', 'pointerdown', 'focusin', 'resize', 'keydown', 'visibilitychange', 'change']) {
+    const f = fixture(), controller = startHomeEntrance(f.root, f.env)
+    if (signal === 'stop') controller.stop()
+    else if (signal === 'visibilitychange') { f.document.hidden = true; f.document.fire(signal) }
+    else if (signal === 'change') { f.media.matches = true; f.media.fire(signal) }
+    else f.events.fire(signal, { key: 'Escape' })
+    await Promise.resolve()
+    assert.equal(controller.playing, false)
+    assert.ok(f.animations.every(a => a.cancelled))
+    assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
+  }
+})
+test('synchronous WAAPI failures and rejected finished promises clean up safely', async () => {
+  const { startHomeEntrance } = load()
+  const failed = fixture({ throws: true })
+  assert.equal(startHomeEntrance(failed.root, failed.env).playing, false)
+  assert.equal(failed.events.count(), 0)
+  const f = fixture(), controller = startHomeEntrance(f.root, f.env)
+  f.animations[0].reject()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(controller.playing, false); assert.ok(f.animations.every(a => a.cancelled))
+})
+test('normal completion clears effects and article reveal is bounded to six items', async () => {
+  const { startArticleReveal } = load(), f = fixture()
+  const controller = startArticleReveal(f.root, f.env)
+  assert.equal(f.animations.length, 6)
+  f.animations.forEach(a => a.resolve())
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(controller.playing, false); assert.ok(f.animations.every(a => a.cancelled))
+  assert.equal(f.memory.value, false)
+})
+test('persisted session suppresses a fresh controller and unrelated keys do not interrupt', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const controller = startHomeEntrance(f.root, f.env)
+  f.events.fire('keydown', { key: 'Tab' })
+  assert.equal(controller.playing, true)
+  controller.stop()
+  f.memory.value = false
+  assert.equal(startHomeEntrance(f.root, f.env).playing, false)
+})
+test('a later synchronous animate failure cancels animations already started', async () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const original = f.root.querySelectorAll
+  f.root.querySelectorAll = () => {
+    const elements = original()
+    elements[1].animate = () => { throw Error('second element failed') }
+    return elements
+  }
+  assert.equal(startHomeEntrance(f.root, f.env).playing, false)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.ok(f.animations.every(a => a.cancelled))
+  assert.equal(f.memory.value, false)
+})
+
+test('home peak holds floating layers and converges real grid cards around one anchor', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  startHomeEntrance(f.root, f.env)
+  const cards = f.animations.slice(-3)
+  const centers = cards.map((animation, index) => {
+    const frames = animation.frames
+    assert.deepEqual(Array.from(frames, frame => frame.offset), [0, 0.25, 0.55, 0.9, 1])
+    assert.equal(frames[1].transform, frames[2].transform)
+    assert.equal(frames[0].transform, frames[4].transform)
+    assert.equal(animation.timing.easing, 'linear')
+    const x = Number(frames[1].transform.match(/translate3d\(([-.\d]+)px/)[1])
+    return 280 + index * 380 + x
+  })
+  assert.deepEqual(centers, [505, 660, 815])
+  assert.match(cards[0].frames[1].transform, /rotateZ\(-10deg\)/)
+  assert.match(cards[2].frames[1].transform, /rotateZ\(10deg\)/)
+  assert.match(f.animations[0].frames[2].transform, /rotateX\(18deg\)/)
+  f.events.fire('pointerdown')
+  assert.ok(f.animations.every(animation => animation.cancelled))
+})
+test('home handles layer-only roots without article geometry', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const original = f.root.querySelectorAll
+  f.root.querySelectorAll = selector => selector === '[data-home-card]' ? [] : original()
+  const controller = startHomeEntrance(f.root, f.env)
+  assert.equal(controller.playing, true)
+  controller.stop()
+})
+
+test('hero anchors the fan near its lower edge and subtle layers remain restrained', async () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  f.root.querySelector = () => ({ getBoundingClientRect: () => ({ bottom: 550 }) })
+  f.root.querySelectorAll()[1].dataset.homeLayer = 'subtle'
+  const controller = startHomeEntrance(f.root, f.env)
+  const card = f.animations.at(-2)
+  const y = Number(card.frames[1].transform.match(/translate3d\([-.\d]+px,([-.\d]+)px/)[1])
+  assert.equal(850 + y, 550 + 200 * 0.22)
+  const hero = f.animations[0], subtle = f.animations[1]
+  assert.match(hero.frames[1].boxShadow, /0\.10/)
+  assert.match(subtle.frames[1].boxShadow, /0\.05/)
+  const angle = Number(subtle.frames[1].transform.match(/rotateX\(([-.\d]+)deg/)[1])
+  assert.ok(angle > 0 && angle < 8)
+  assert.equal(subtle.frames[4].transform, subtle.frames[0].transform)
+  assert.equal(card.frames[4].transform, card.frames[0].transform)
+  controller.stop()
+  await Promise.resolve()
+  assert.ok(f.animations.every(animation => animation.cancelled))
+})
+
+test('two-column wrapped cards center on the complete grid and reduce fan scale', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const elements = f.root.querySelectorAll()
+  elements.slice(0, 3).forEach((element, index) => {
+    element.getBoundingClientRect = () => ({ left: 24 + (index % 2) * 370, right: 374 + (index % 2) * 370, width: 350, top: 650 + Math.floor(index / 2) * 220, height: 200 })
+  })
+  const controller = startHomeEntrance(f.root, f.env)
+  const centers = f.animations.slice(-3).map((animation, index) => {
+    assert.match(animation.frames[1].transform, /scale\(0\.72\)/)
+    return 199 + (index % 2) * 370 + Number(animation.frames[1].transform.match(/translate3d\(([-.\d]+)px/)[1])
+  })
+  assert.deepEqual(centers, [264, 384, 504])
+  controller.stop()
+})
+test('compact fan projected bounds fit inside the source column', () => {
+  const { startHomeEntrance } = load()
+  for (const viewport of [320, 390]) {
+    const f = fixture(); f.env.compact = true
+    const width = viewport - 48, left = 24
+    f.root.querySelectorAll().slice(0, 3).forEach((element, index) => {
+      element.getBoundingClientRect = () => ({ left, right: left + width, width, top: 700 + index * 220, height: 200 })
+    })
+    const controller = startHomeEntrance(f.root, f.env)
+    f.animations.slice(-3).forEach((animation, index) => {
+      const transform = animation.frames[1].transform
+      assert.match(transform, /scale\(0\.62\)/)
+      const x = Number(transform.match(/translate3d\(([-.\d]+)px/)[1])
+      // Bound rotated corners and perspective magnification conservatively.
+      const angle = Math.abs((index - 1) * 4.5) * Math.PI / 180
+      const extent = (width * Math.cos(angle) + 200 * Math.sin(angle)) * 0.62 / 2 * 1.1
+      assert.ok(viewport / 2 + x - extent >= 0)
+      assert.ok(viewport / 2 + x + extent <= viewport)
+    })
+    controller.stop()
+  }
+})
+
+test('narrow viewport edges constrain layers while retaining the desktop fan', () => {
+  const { startHomeEntrance } = load()
+  for (const viewport of [1024, 1280, 1440]) {
+    const f = fixture(), margin = viewport === 1440 ? 168 : 24
+    f.env.viewportWidth = viewport
+    f.root.getBoundingClientRect = () => ({ left: margin, right: viewport - margin })
+    const controller = startHomeEntrance(f.root, f.env)
+    assert.match(f.animations[0].frames[1].transform, viewport === 1440 ? /scale\(1\)/ : /scale\(0\.86\)/)
+    assert.match(f.animations.at(-1).frames[1].transform, /scale\(0\.92\)/)
+    f.events.fire('resize')
+    assert.equal(controller.playing, false)
+    assert.ok(f.animations.every(animation => animation.cancelled))
+    assert.equal(f.events.count(), 0)
+  }
+})
+
+test('animated pointer gesture freezes through focus and releases only after native click', async () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const controller = startHomeEntrance(f.root, f.env)
+  const target = { cardIndex: 1 }
+  const event = { target, ctrlKey: true, preventDefault() { assert.fail('native event must remain untouched') } }
+  f.events.fire('pointerdown', event)
+  f.events.fire('focusin', event)
+  assert.equal(controller.playing, true)
+  assert.ok(f.animations.every(animation => animation.paused && !animation.cancelled))
+  f.events.fire('pointerup', event)
+  assert.equal(controller.playing, true)
+  f.events.fire('click', event)
+  assert.equal(controller.playing, false)
+  assert.ok(f.animations.every(animation => animation.cancelled))
+  assert.equal(f.events.count(), 0)
+  await new Promise(resolve => setTimeout(resolve, 5))
+  assert.equal(f.events.count(), 0)
+})
+test('gesture without click has a release fallback and cancel removes its timer', async () => {
+  const { startHomeEntrance } = load()
+  for (const cancellation of [null, 'pointercancel', 'resize', 'keydown']) {
+    const f = fixture(), controller = startHomeEntrance(f.root, f.env)
+    f.events.fire('pointerdown', { target: { cardIndex: 0 } })
+    f.events.fire('pointerup')
+    if (cancellation) {
+      f.events.fire(cancellation, { key: 'Escape' })
+      assert.equal(controller.playing, false)
+    }
+    await new Promise(resolve => setTimeout(resolve, 5))
+    assert.equal(controller.playing, false)
+    assert.ok(f.animations.every(animation => animation.cancelled))
+    assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
+  }
+})
+
+test('list fan touches only selected items with bounded alternating motion and restores on cancellation', () => {
+  const { startArticleReveal } = load()
+  for (const compact of [false, true]) {
+    const f = fixture(); f.env.compact = compact
+    const elements = f.root.querySelectorAll()
+    const originalTransforms = elements.map((element, index) => {
+      element.style = { transform: `translateX(${index}px)`, opacity: '1' }
+      return { ...element.style }
+    })
+    f.root.querySelectorAll = selector => {
+      assert.equal(selector, '[data-article-reveal]')
+      return elements
+    }
+    f.env.storage = () => { assert.fail('list animation must not read or consume home session') }
+    const controller = startArticleReveal(f.root, f.env)
+    assert.equal(f.animations.length, 6)
+    let previousAngle
+    f.animations.forEach((animation, index) => {
+      const start = animation.frames[0].transform
+      const angle = Number(start.match(/rotateZ\(([-.\d]+)deg/)[1])
+      const x = Number(start.match(/translate3d\(([-.\d]+)px/)[1])
+      const y = Number(start.match(/translate3d\([-.\d]+px,([-.\d]+)px/)[1])
+      assert.ok(Math.abs(angle) > 0 && Math.abs(angle) <= (compact ? 1 : 2))
+      assert.ok(Math.abs(x) <= 4 && y <= 14 && y > 0)
+      if (previousAngle !== undefined) assert.ok(previousAngle * angle < 0)
+      previousAngle = angle
+      assert.equal(animation.frames.at(-1).transform, 'none')
+      assert.equal(animation.frames.at(-1).opacity, 1)
+      assert.ok(animation.timing.duration + animation.timing.delay < 750)
+      assert.deepEqual(elements[index].style, originalTransforms[index])
+    })
+    f.events.fire('keydown', { key: 'Escape' })
+    assert.equal(controller.playing, false)
+    assert.ok(f.animations.every(animation => animation.cancelled))
+    elements.forEach((element, index) => assert.deepEqual(element.style, originalTransforms[index]))
+    assert.equal(f.memory.value, false)
+    assert.equal(f.events.count() + f.document.count() + f.media.count(), 0)
+  }
+})
