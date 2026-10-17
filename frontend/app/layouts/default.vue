@@ -47,9 +47,9 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col site-shell antialiased transition-colors duration-[var(--motion-standard)]">
+  <div data-home-shell class="flex min-h-screen flex-col site-shell antialiased transition-colors duration-[var(--motion-standard)]">
     <a href="#main-content" class="skip-link">跳到主要内容</a>
-    <header class="sticky top-0 z-40 border-b site-header backdrop-blur">
+    <header :data-home-shell-layer="route.path === '/' ? 'nav' : undefined" class="sticky top-0 z-40 border-b site-header backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <NuxtLink to="/" class="text-lg font-bold tracking-tight">
           luohao<span class="text-[var(--accent)]">.blog</span>
@@ -94,7 +94,7 @@ function isActive(to: string) {
       <slot />
     </main>
 
-    <footer class="border-t border-[var(--border-default)] py-6 text-center text-sm text-[var(--text-muted)]">
+    <footer :data-home-shell-layer="route.path === '/' ? 'footer' : undefined" class="border-t border-[var(--border-default)] py-6 text-center text-sm text-[var(--text-muted)]">
       <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
         <NuxtLink to="/collections" class="transition-colors hover:text-[var(--accent)]">收藏</NuxtLink>
         <a

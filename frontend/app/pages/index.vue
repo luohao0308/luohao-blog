@@ -81,7 +81,7 @@ const featuredProjects = computed(() => {
       <p v-else class="home-empty">第一篇文章正在路上。</p>
     </section>
 
-    <section class="home-section" aria-label="精选项目">
+    <section class="home-section" data-home-layer="subtle" aria-label="精选项目">
       <div class="home-section-heading">
         <div><p class="home-kicker">BUILDING / PROJECTS</p><h2>也在构建</h2></div>
         <NuxtLink to="/projects" class="home-text-link">全部项目 <span aria-hidden="true">↗</span></NuxtLink>
