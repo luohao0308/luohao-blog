@@ -134,10 +134,10 @@ SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_C
 
 新套件仅支持本地前端，使用只读假后端/模拟账号与剪贴板，不调用真实模型、邮件或微信服务。复用现有 Playwright 环境，通过 `NODE_PATH` 指定其 node_modules；浏览器版本与包不一致时用 `BLOG_E2E_CHROMIUM` 指定已安装的 Chromium/Chrome，不需要增加项目依赖。
 
-### 原版分层与独立扇开（T-019）
+### 真实页面分层组装（T-019）
 
-`home_motion_e2e.cjs`验证当前首页原版五片/五tag/三扇开、时间线、SSR、临时inert恢复、Skip焦点、自然结束、会话/路由/reduced-motion/存储拒绝/无WAAPI/无JS和320–1440px舞台裁切。默认前端13000/fixture13001，可用BLOG_E2E_BASE_URL/BLOG_E2E_FIXTURE_PORT与人工预览隔离；测试前端NUXT_BACKEND_BASE须指向fixture端口。
+`home_motion_e2e.cjs` 验证真实导航、首页各层及文章卡片直接执行动画并保留 DOM 身份，禁止假网页边框、克隆舞台或覆盖层。覆盖原节奏/角度、独立卡片时间线、Skip 键盘焦点、自然结束、会话/路由/reduced-motion/存储拒绝/无 WAAPI/无 JS，以及 320–1440px 六档无水平溢出。主题验证阻断 hydration，检查深色系统无偏好时首屏仍为浅色，保留显式 dark/system，并检查 1.5 秒首屏失败放行及延迟 1800ms 客户端 JS 不再重启动画。
 
-`reference_parity_e2e.cjs`验证冻结原版：五层geometry、native timing/keyframes严格相等，1440/657/390px各七帧生成像素差；额外扇开有意隐藏以隔离五层。golden为fixtures/white-layers-original.html，不使用后来覆盖的motion/index.html。可另启前端13008指向fixture13009运行。两个套件均为只读本地fixture，不访问真实账号/模型或写生产；输出在output/visual-redesign。
+`reference_parity_e2e.cjs` 现验证真实页面结尾连续性，不再将冻结原版装饰画布作为像素目标。通过测试时钟在创建时暂停实际原生 WAAPI 句柄，严格核对所有真实层及卡片均有时间线，避免慢环境让短效果提前结束；六档宽度采样动画结束前的静止区与清理后状态，验证节点保留、边界矩形严格相等及整页截图差异低于 0.1%。比较时仅隐藏 Skip 控件；结果不能用于宣称与历史装饰场景像素一致。
 
-单测仍为`cd frontend && node --test tests/*.test.cjs`；home-motion.test.cjs锁定独立hybrid变体，reference-assembly.test.cjs验证默认参考场景。
+两个套件只访问 localhost 只读 fixture。默认 canonical 前端 13000，parity 前端 13008，默认 fixture 13001；通过 `BLOG_E2E_BASE_URL` 和 `BLOG_E2E_FIXTURE_PORT` 隔离端口，并让对应测试前端的 `NUXT_BACKEND_BASE` 指向该 fixture。`BLOG_E2E_OUTPUT` 可覆盖输出目录，默认证据分别位于 `output/visual-redesign/reference-assembly` 和 `output/visual-redesign/reference-parity`。不访问真实账号/模型或写生产。

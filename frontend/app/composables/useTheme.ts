@@ -8,11 +8,11 @@ export type ThemePreference = 'light' | 'dark' | 'system'
 const STORAGE_KEY = 'theme'
 
 export function useTheme() {
-  const preference = useState<ThemePreference>('theme-preference', () => 'system')
+  const preference = useState<ThemePreference>('theme-preference', () => 'light')
 
   const apply = (pref: ThemePreference) => {
     if (!import.meta.client) return
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const systemDark = pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches
     const dark = pref === 'dark' || (pref === 'system' && systemDark)
     document.documentElement.classList.toggle('dark', dark)
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
@@ -21,7 +21,7 @@ export function useTheme() {
   const set = (pref: ThemePreference) => {
     preference.value = pref
     if (import.meta.client) {
-      localStorage.setItem(STORAGE_KEY, pref)
+      try { localStorage.setItem(STORAGE_KEY, pref) } catch { /* Keep the in-memory choice when storage is unavailable. */ }
     }
     apply(pref)
   }
@@ -35,8 +35,9 @@ export function useTheme() {
 
   const init = () => {
     if (!import.meta.client) return
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null
-    preference.value = stored ?? 'system'
+    let stored: string | null = null
+    try { stored = localStorage.getItem(STORAGE_KEY) } catch { /* Use the same light fallback as the head script. */ }
+    preference.value = stored === 'dark' || stored === 'system' ? stored : 'light'
     apply(preference.value)
   }
 

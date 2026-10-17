@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { HOME_ENTRANCE_BOOT_SCRIPT } from '~/utils/homeEntranceBoot'
 // The inline script applies the persisted theme class before first paint so
 // SSR pages never flash the wrong color scheme.
-const themeScript = `(function(){try{var p=localStorage.getItem('theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`
+const themeScript = `(function(){var p='light';try{var s=localStorage.getItem('theme');if(s==='dark'||s==='system')p=s;}catch(e){}var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';})();`
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -17,7 +18,7 @@ useHead(() => ({
   title: 'luohao-blog',
   titleTemplate: (title) => (title === 'luohao-blog' ? title : `${title} · luohao-blog`),
   htmlAttrs: { lang: 'zh-CN' },
-  script: [{ innerHTML: themeScript }],
+  script: [{ innerHTML: themeScript }, { innerHTML: HOME_ENTRANCE_BOOT_SCRIPT }],
   link: isPrivatePage.value
     ? []
     : [{ rel: 'canonical', href: canonicalUrl.value }],

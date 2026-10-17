@@ -115,8 +115,8 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
   } catch { scene?.cleanup(); return idle }
 }
 
-// Retain the previously approved fan as a separate variant; the reference
-// assembly entrance above deliberately does not blend it into the scene.
+// Keep the previous variant available for its frozen regression coverage.
+// The default entrance above assembles the actual page elements.
 export function startHybridEntrance(root: HTMLElement, env: MotionEnvironment, changed: (playing: boolean) => void = () => {}): MotionController {
   const shellLayers = [...(root.closest?.('[data-home-shell]')?.querySelectorAll<HTMLElement>('[data-home-shell-layer]') ?? [])]
   const layers = [

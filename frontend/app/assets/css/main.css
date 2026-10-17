@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./assembly.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -124,3 +123,12 @@
 @media (max-width: 640px), (pointer: coarse) {
   .ui-field { font-size: 1rem; }
 }
+
+/* First-load gate fails open from the head script, including failed hydration. */
+html[data-home-entering] .site-shell { visibility: hidden; }
+[data-home-live-assembly] { overflow-x: clip; }
+[data-home-live-assembly] .home-page,
+[data-home-live-assembly] .home-articles { perspective: none !important; }
+[data-home-live-assembly] [data-home-layer],
+[data-home-live-assembly] [data-home-shell-layer],
+[data-home-live-assembly] [data-home-card] { will-change: transform, opacity; }

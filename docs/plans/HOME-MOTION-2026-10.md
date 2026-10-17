@@ -7,6 +7,22 @@
 - Scope: Nuxt公开布局、首页、文章列表与动效工具；不改后端/契约/数据库/小程序。
 - Reference: 本机已确认的 `output/visual-redesign/motion/index.html` 中“融合版02＋04”，对应 `hybrid-1440-in-motion.png`、手机截图及归位状态。
 
+## 当前规格：真实页面原位组装（修复结束跳变与主题闪现）
+
+用户在上一版上线后指出框内广告播完会突然变成真实网站，并存在刚打开时的暗色闪现。本轮取消演示画布，直接对真实SSR区块与真实文章卡片播放分层与扇开；不更换节点、不模拟浏览器框、不在结束时切页面。
+
+保留2900ms/65ms与原连续曲线、54°→36°→29°的幅度，真实布局决定最终几何；所有动画92%后transform:none、opacity:1，最长3160ms。文章卡片独立1900ms归回原网格。临时样式只控制透视、will-change和水平裁切，不添加结束时会消失的边框或阴影。
+
+首次head gate防止页面先显示完整再开始动画，1500ms失败自动放开；JS/WAAPI/reduced-motion/存储与会话降级可读。默认light，显式dark/system保留，head/mounted一致，读写storage异常不阻断挂载。
+
+验收：六档宽度无文档横溢出；实际区块与卡片的DOM身份保持；最后动画帧与停止后像素及边界一致；主题默认/显式选择、首屏gate失败放开、会话/Skip/键盘/取消/导航与降级可执行检查。先完成本地验证与可重播预览；新准确版本的远端交付须通过项目授权与质量门。
+
+最终本地验证：40/40单测、lint、typecheck、build全部通过。组合E2E覆盖真实节点身份、无演示框、原节奏与扇开、自然结束、键盘/取消/导航、主题首屏、1500ms失败放开与1800ms迟到JS不重启、storage拒绝静态回退；六档宽度结束前后几何严格一致，像素差为0。独立源码审查APPROVE。证据：output/visual-redesign/live-assembly/results.json与live-assembly-seam/results.json。预览13004，未远端交付此新版本。
+
+## 历史迭代记录（不作为当前参数）
+
+### 已被替代的独立画布版本
+
 ## 当前规格：原版五层＋独立文章扇开
 
 用户要求white-layers原版效果一模一样，并明确选择保留文章扇开叠加。新assemblyReference.ts/assembly.css从用户实际标签页冻结的fixtures/white-layers-original.html提取，referenceAssembly逐字移植五片2900ms/65ms、原关键帧/透明度/1800px共享透视与裁切克隆。撤销默认路径的倍速、缩角度、单片透视与直接拉伸真实网页；旧hybrid导出单独保留回归。
@@ -15,7 +31,9 @@
 
 验收：原版golden与移植版同尺寸舞台下所有native geometry/timing/keyframes逐项相等；1440/657/390浅色与657暗色共四场景、各七个时间点比较像素，额外扇开有意隐藏以隔离五层。另验收扇开叠加、自然完成、Skip/Escape/Enter/Space、各种取消、会话、motion storage拒绝、无JS/WAAPI/reduced-motion及六档视口。仅本地实施，新SHA须另行交付。最终验证：34/34前端单测、lint/typecheck/build通过；原版分层28张同时间点比较最大差0.0297%，几何/时序/关键帧逐项相同。组合浏览器验收通过，自然结束约3.35秒（含观测开销），键盘Enter/Space及所有取消恢复路径通过，独立代码审查APPROVE。证据：output/visual-redesign/reference-parity/results.json与reference-assembly/results.json。
 
-## 历史迭代记录（不作为当前参数）
+发布记录：用户2026-10-17确认预览后授权上线，PR #105，source `d3b6937`，merge `3d72f8b`（等树），CI/release全绿。北京时间17:44完成仅frontend部署，镜像摘要`sha256:38a8729eb1e057a19a3da06844c87595e6a22acc8886ad49ed83c0425e81d4ad`。桌面1440/手机390线上原版五片时序、独立扇开、边界、Skip/自然结束、会话、文章导航、匿名后台保护及reduced-motion全部通过；backend、其他容器、配置与cron不变，未触发回滚。线上证据：output/visual-redesign/reference-assembly/production/results.json；本机发布回执.dev-workflow/reference-production-result.json。
+
+
 
 渲染性能修正（用户“一个像60帧一个像120”）：对照原版静态阴影与正式版本boxShadow/borderRadius插值，记录同Chrome、1440×1000/DPR1的隔离trace。首页WAAPI仅保留transform/opacity，圆角/阴影/原点改为临时静态surface CSS；统一stop逆序还原标记。未添加will-change、未改导航模糊/根透视、速度/轨迹/列表行为，保持最小变量。28单测、lint/typecheck/build与七档九时点/点击/自然完成/样式恢复回归通过；独立代码审查APPROVE。两轮最终trace均Paint71（修前426）、Raster27（修前388）；按时长归一Paint约239→38次/秒，P95帧间隔33.3→16.8ms。记录属于受控Chrome测试，不代表实际IAB或显示器已达到120fps；用户主观流畅度仍以当前预览实播为准。证据output/visual-redesign/layer-performance，未上线。
 

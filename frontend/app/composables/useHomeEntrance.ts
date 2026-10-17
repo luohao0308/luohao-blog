@@ -22,15 +22,23 @@ export function useHomeEntrance(root: Ref<HTMLElement | null>) {
   const dispose = () => { disposed = true; skip() }
   onMounted(async () => {
     await nextTick()
-    if (disposed || !root.value) return
-    controller = startHomeEntrance(root.value, homeMotionEnvironment(memory), value => {
-      const skipButton = !value && document.activeElement?.matches('[data-home-skip]') ? document.activeElement : null
-      playing.value = value
-      if (skipButton) void nextTick(() => {
-        if (document.activeElement === skipButton || document.activeElement === document.body)
-          document.getElementById('main-content')?.focus({ preventScroll: true })
+    const html = document.documentElement
+    if (disposed || !root.value || html.hasAttribute('data-home-entrance-aborted')) {
+      html.removeAttribute('data-home-entering')
+      return
+    }
+    try {
+      controller = startHomeEntrance(root.value, homeMotionEnvironment(memory), value => {
+        const skipButton = !value && document.activeElement?.matches('[data-home-skip]') ? document.activeElement : null
+        playing.value = value
+        if (skipButton) void nextTick(() => {
+          if (document.activeElement === skipButton || document.activeElement === document.body)
+            document.getElementById('main-content')?.focus({ preventScroll: true })
+        })
       })
-    })
+    } finally {
+      html.removeAttribute('data-home-entering')
+    }
   })
   onBeforeUnmount(dispose)
   onBeforeRouteLeave(dispose)

@@ -27,12 +27,26 @@ test('original compact scene changes layer spread without reducing angles or sca
   assert.equal(referenceLayerFrames(4, true)[2].transform, 'translate3d(0,52px,-80px) rotateX(29deg) rotateY(8deg) rotateZ(2deg) scale(.88)')
 })
 
-test('the additional article fan retains its independent original hybrid trajectory', () => {
-  const { referenceFanFrames } = load('referenceAssembly.ts', { ASSEMBLY_REFERENCE_HTML: '' })
-  assert.equal(referenceFanFrames(0, false)[1].transform, 'translate3d(calc(-50% + -160px),-62%,140px) rotateX(12deg) rotateZ(-11deg) scale(1)')
-  assert.equal(referenceFanFrames(2, true)[2].transform, 'translate3d(calc(-50% + 38px),-65%,230px) rotateX(6deg) rotateZ(11deg)')
-  assert.deepEqual(Array.from(referenceFanFrames(1, false), frame => frame.offset), [undefined, 0.28, 0.57, 0.88, undefined])
+test('live assembly animates existing elements and lands at their real identity without creating a canvas', () => {
+  const { createReferenceAssembly } = load('referenceAssembly.ts')
+  const box = (left, top) => ({ left, right: left + 300, top, bottom: top + 180, width: 300, height: 180 })
+  const nav = {}, footer = {}, layers = [{}, {}, {}, {}, {}]
+  const cards = [0, 1, 2].map(i => ({ getBoundingClientRect: () => box(120 + i * 320, 650) }))
+  const shell = { dataset: {}, querySelectorAll: selector => selector.includes('nav') ? [nav] : [footer] }
+  const root = { closest: () => shell, querySelectorAll: selector => selector.includes('card') ? cards : layers, querySelector: () => ({ getBoundingClientRect: () => box(120, 100) }) }
+  const scene = createReferenceAssembly(root, 1440)
+  assert.deepEqual(Array.from(scene.steps, step => step.element), [nav, ...layers, footer, ...cards])
+  assert.equal(shell.dataset.homeLiveAssembly, 'true')
+  for (const step of scene.steps) {
+    assert.equal(step.frames.at(-1).transform, 'none')
+    assert.equal(step.frames.at(-2).transform, 'none')
+    assert.equal(step.frames.at(-1).opacity, 1)
+  }
+  for (const step of scene.steps.slice(0, 7)) { assert.equal(step.duration, 2900); assert(step.delay <= 260) }
+  for (const [index, step] of scene.steps.slice(7).entries()) { assert.equal(step.duration, 1900); assert.equal(step.delay, 530 + index * 65) }
+  scene.cleanup(); assert.equal(shell.dataset.homeLiveAssembly, undefined)
 })
+
 function fixture(options = {}) {
   const env = { events: new EventTarget(), document: Object.assign(new EventTarget(), { hidden: !!options.hidden }), media: Object.assign(new EventTarget(), { matches: !!options.reduce }), memory: { value: false }, compact: false, viewportWidth: 1440, storage: () => ({ getItem: () => options.stored ? '1' : null, setItem() {} }) }
   const animations = []; let cleanups = 0, creations = 0
