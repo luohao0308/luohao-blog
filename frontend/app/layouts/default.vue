@@ -92,7 +92,7 @@ function isActive(to: string) {
       </nav>
     </header>
 
-    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main mx-auto w-full flex-1 px-6 py-10" :class="wide ? 'max-w-6xl' : 'max-w-4xl'">
+    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main mx-auto w-full flex-1" :class="route.meta.immersiveAbout ? 'max-w-none' : [wide ? 'max-w-6xl' : 'max-w-4xl', 'px-6 py-10']">
       <slot />
     </main>
 
