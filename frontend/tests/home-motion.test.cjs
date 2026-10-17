@@ -329,6 +329,20 @@ test('assembly restores the approved large unfold and travelling perspective on 
   }
 })
 
+test('assembly uses the original continuous easing without restarting it at phase boundaries', () => {
+  const { startHomeEntrance } = load(), f = fixture()
+  const controller = startHomeEntrance(f.root, f.env)
+  const layers = f.animations.slice(0, -3)
+  for (const layer of layers) {
+    assert.equal(layer.timing.easing, 'cubic-bezier(0.25, 0.55, 0.25, 1)')
+    assert.ok(layer.frames.every(frame => frame.easing === undefined))
+    const operations = frame => Array.from(frame.transform.matchAll(/([a-zA-Z0-9]+)\(/g), match => match[1])
+    assert.deepEqual(operations(layer.frames.at(-1)), operations(layer.frames[0]), 'consistent transform list through the landing')
+  }
+  assert.ok(f.animations.slice(-3).every(card => card.timing.easing === 'linear'), 'fan keeps its existing easing')
+  controller.stop()
+})
+
 
 test('article fan preserves its approved trajectory and shares the faster home playback rate', () => {
   const { startHomeEntrance } = load(), f = fixture()

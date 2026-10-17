@@ -16,7 +16,7 @@ export interface MotionController {
   stop: () => void
 }
 
-type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number }
+type MotionStep = { element: HTMLElement, frames: Keyframe[], duration: number, delay: number, easing?: string }
 const resting: Keyframe = { transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateZ(0deg)', opacity: 1 }
 
 // Only WAAPI effects are written. Cancelling them restores the original CSS,
@@ -40,7 +40,7 @@ function play(steps: MotionStep[], env: MotionEnvironment, changed: (playing: bo
   }
   try {
     for (const step of steps) {
-      const animation = step.element.animate(step.frames, { duration: step.duration, delay: step.delay, easing: 'linear', fill: 'both' })
+      const animation = step.element.animate(step.frames, { duration: step.duration, delay: step.delay, easing: step.easing ?? 'linear', fill: 'both' })
       animations.push(animation)
       // Attach rejection handlers immediately, including before a later animate() throws.
       void animation.finished.then(() => {
@@ -138,14 +138,19 @@ export function startHomeEntrance(root: HTMLElement, env: MotionEnvironment, cha
     const opened = pose(36 * layerStrength, -11 * layerStrength, -4 * layerStrength, depth * layerStrength, lift * layerStrength, 0.86)
     const travelling = pose(29 * layerStrength, 8 * layerStrength, 2 * layerStrength, depth * layerStrength, lift * layerStrength, 0.88)
     const delay = Math.min(index, 7) * 65 / HOME_PLAYBACK_RATE
+    const settled: Keyframe = {
+      transform: 'perspective(1100px) translate3d(0,0,0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1)',
+      transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, opacity: 1,
+    }
     return {
       element, duration: 3100 / HOME_PLAYBACK_RATE - delay, delay,
+      easing: 'cubic-bezier(0.25, 0.55, 0.25, 1)',
       frames: [
-        { ...arriving, offset: 0, easing: 'ease-out' },
+        { ...arriving, offset: 0 },
         { ...opened, offset: 0.24 },
-        { ...travelling, offset: 0.60, easing: 'ease-in-out' },
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 0.92 },
-        { ...resting, transformOrigin: '50% 50%', borderRadius: '0px', boxShadow: clearShadow, offset: 1 },
+        { ...travelling, offset: 0.60 },
+        { ...settled, offset: 0.92 },
+        { ...settled, offset: 1 },
       ],
     }
   })
