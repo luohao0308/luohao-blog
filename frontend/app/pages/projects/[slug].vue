@@ -57,7 +57,7 @@ usePageSeo({
         <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目说明</h2>
         <p class="whitespace-pre-line text-sm leading-8 text-slate-600 dark:text-slate-400">{{ project.description }}</p>
       </section>
-      <aside class="space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
+      <aside class="bento-card space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
         <h2 class="text-xs font-medium text-slate-700 dark:text-slate-200">技术栈</h2>
         <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
           <li v-for="item in project.stack" :key="item" class="break-words">{{ item }}</li>
@@ -66,7 +66,7 @@ usePageSeo({
     </div>
 
     <section v-if="hasCaseDetails" class="grid gap-5 sm:grid-cols-3">
-      <div v-for="item in [{ title: '问题', text: project.problem }, { title: '方案', text: project.approach }, { title: '结果', text: project.outcome }]" :key="item.title" class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+      <div v-for="item in [{ title: '问题', text: project.problem }, { title: '方案', text: project.approach }, { title: '结果', text: project.outcome }]" :key="item.title" class="bento-card rounded-xl border border-slate-200 p-5 dark:border-slate-800">
         <h2 class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ item.title }}</h2>
         <p class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-400">{{ item.text || '资料正在整理中。' }}</p>
       </div>

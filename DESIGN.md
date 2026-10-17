@@ -3,7 +3,7 @@
 ## Source of truth
 
 - Status: Active
-- Updated: 2026-10-17
+- Updated: 2026-10-18
 - Surfaces: Nuxt公开阅读端、账号菜单、RAG问答、Naive UI管理端、Milkdown文章编辑器。
 - Evidence: 当前main bd762c2的布局/组件/文章工具与proto；[已批准优化计划](docs/plans/UI-REFINEMENT-2026-10.md)。
 - Reference: [open-claude-ui固定版本文档](https://github.com/Caho1/open-claude-ui/tree/02d021fceaf2a907f9e63a8125621bdda1b85d60/docs)，v1八篇、v2六章与合并版差异全文阅读并核对相关示例。参考设计原则，行为以本项目代码和测试为准，不以第三方逆向叙述代替官方事实。
@@ -41,7 +41,7 @@
 - Color: main.css拥有surface-page/panel/input/overlay、text-primary/muted、border-default/strong、accent/hover/on-accent、status与focus语义变量，html.dark配对覆盖。蓝灰#3c5d85与暗色浅蓝延续；Naive主题映射同一组变量。
 - Typography: 系统中文字体与等宽代码字体；阅读端舒适行距，长词安全换行；日期/计数tabular-nums。不给系统字体机械施加专有可变轴。
 - Spacing: 小控件紧凑，正文大留白，后台表格密度独立于阅读端；不新增密度开关。
-- Shape/elevation: 标准控件约8px、卡片/代码约12px、浮层轻投影；不复制全部参考组件。
+- Shape/elevation: 标准控件约8px、代码约12px；公开内容卡片与账号面板按[卡片规范](docs/plans/BENTO-CARDS-2026-10.md)使用24px圆角、三层柔影、悬浮上移4px与指针追光。管理端保持既有控件规范。
 - Motion: 短颜色/opacity/transform反馈；统一时长/缓动。减少动态偏好下移除非必要动画和平滑滚动，不以CSS本身保证帧率。
 - Imagery/iconography: 真实封面/媒体、alt与尺寸；使用现有图标。正文不套滚动渐隐遮罩。
 

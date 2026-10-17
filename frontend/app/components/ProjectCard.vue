@@ -5,7 +5,7 @@ defineProps<{ project: Project }>()
 </script>
 
 <template>
-  <article class="group flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)]">
+  <article class="bento-card group flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)]">
     <div class="relative flex min-h-40 items-center justify-between overflow-hidden bg-[var(--surface-hover)] transition-colors">
       <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]">
       <span v-else class="px-6 text-5xl" aria-hidden="true">{{ project.emoji || '🧩' }}</span>

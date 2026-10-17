@@ -1,0 +1,101 @@
+/* Reference: 068-bento-portfolio. Keep existing layout and readable content. */
+.site-shell :is(.bento-card, .ui-panel) {
+  --card-spot: rgb(195 245 60 / 16%);
+  --card-rim: rgb(143 191 18 / 55%);
+  --card-light-x: var(--card-x, -999px);
+  --card-light-y: var(--card-y, -999px);
+  --card-shadow: 0 1px 1px rgb(0 0 0 / 3%), 0 2px 6px rgb(0 0 0 / 4%), 0 14px 30px -18px rgb(0 0 0 / 18%);
+  --card-shadow-hover: 0 1px 1px rgb(0 0 0 / 3%), 0 6px 14px rgb(0 0 0 / 6%), 0 30px 50px -22px rgb(0 0 0 / 28%);
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  overflow: hidden;
+  border-color: transparent;
+  border-radius: 24px;
+  background: var(--surface-page);
+  box-shadow: var(--card-shadow);
+  transition: transform 450ms cubic-bezier(.2, .8, .2, 1), box-shadow 450ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.site-shell .ui-panel { background: var(--surface-panel); }
+
+.dark .site-shell :is(.bento-card, .ui-panel),
+.site-shell.dark :is(.bento-card, .ui-panel) {
+  --card-spot: rgb(255 255 255 / 9%);
+  --card-rim: rgb(195 245 60 / 60%);
+  background: var(--surface-panel);
+}
+
+.site-shell :is(.bento-card, .ui-panel)::before,
+.site-shell :is(.bento-card, .ui-panel)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms;
+}
+
+.site-shell :is(.bento-card, .ui-panel)::before {
+  z-index: -1;
+  background: radial-gradient(360px circle at var(--card-light-x) var(--card-light-y), var(--card-spot), transparent 45%);
+}
+
+/* A masked rim never paints over card text or controls. */
+.site-shell :is(.bento-card, .ui-panel)::after {
+  z-index: 3;
+  padding: 1px;
+  background: radial-gradient(260px circle at var(--card-light-x) var(--card-light-y), var(--card-rim), transparent 45%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Without mask support, omit the rim rather than cover the content. */
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .site-shell :is(.bento-card, .ui-panel)::after { display: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site-shell :is(.bento-card, .ui-panel):hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .site-shell [data-card-spotlight='true'] :is(.bento-card, .ui-panel)::before,
+  .site-shell [data-card-spotlight='true'] :is(.bento-card, .ui-panel)::after,
+  .site-shell[data-card-spotlight='true'] :is(.bento-card, .ui-panel)::before,
+  .site-shell[data-card-spotlight='true'] :is(.bento-card, .ui-panel)::after,
+  .site-shell :is(.bento-card, .ui-panel)[data-card-spotlight='true']::before,
+  .site-shell :is(.bento-card, .ui-panel)[data-card-spotlight='true']::after { opacity: 1; }
+}
+
+/* Keyboard users get the same feedback without needing pointer coordinates. */
+.site-shell :is(.bento-card, .ui-panel):focus-within {
+  --card-light-x: 50%;
+  --card-light-y: 50%;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.site-shell :is(.bento-card, .ui-panel):focus-within::before,
+.site-shell :is(.bento-card, .ui-panel):focus-within::after { opacity: 1; }
+
+@media (hover: none), (pointer: coarse) {
+  .site-shell :is(.bento-card, .ui-panel):is(:hover, :focus-within) { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-shell :is(.bento-card, .ui-panel),
+  .site-shell :is(.bento-card, .ui-panel):is(:hover, :focus-within) {
+    transform: none;
+    transition: none;
+  }
+
+  .site-shell :is(.bento-card, .ui-panel)::before,
+  .site-shell :is(.bento-card, .ui-panel)::after { transition: none; }
+}

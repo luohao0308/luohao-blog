@@ -125,7 +125,7 @@ const featuredProjects = computed(() => {
 .home-section-heading h2 { font-size: 1.45rem; font-weight: 550; letter-spacing: -.035em; }
 .home-articles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; perspective: 1300px; }
 .home-card-shell { min-width: 0; border-radius: var(--radius-panel); transform-origin: 50% 70%; }
-.home-card-shell :deep(article) { background: var(--surface-page); box-shadow: 0 5px 22px color-mix(in srgb, var(--accent) 5%, transparent); }
+
 .home-card-shell :deep(h2) { font-size: 1.1rem; line-height: 1.7; }
 .home-projects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; }
 .home-empty { padding: 2.5rem 0; color: var(--text-muted); font-size: .875rem; }

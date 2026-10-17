@@ -11,7 +11,7 @@ const summary = computed(() => articleSummary(props.article.summary, props.artic
 </script>
 
 <template>
-  <article class="flex h-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)] transition-colors hover:border-[var(--border-strong)]">
+  <article class="bento-card flex h-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)] transition-colors hover:border-[var(--border-strong)]">
     <NuxtLink v-if="article.cover_url" :to="`/posts/${encodeURIComponent(article.slug)}`" class="block overflow-hidden bg-[var(--surface-panel)]">
       <img :src="assetUrl(article.cover_url)" :alt="`${article.title}封面`" class="aspect-[16/9] w-full object-cover transition-transform duration-300 hover:scale-[1.02]">
     </NuxtLink>

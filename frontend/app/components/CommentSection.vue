@@ -166,7 +166,7 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
       <li
         v-for="entry in pending"
         :key="entry.id"
-        class="space-y-1 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700"
+        class="bento-card space-y-1 rounded-xl border border-dashed border-slate-300 p-3 dark:border-slate-700"
       >
         <div class="flex items-baseline gap-3 text-sm">
           <span class="font-medium text-slate-600 dark:text-slate-300">{{ entry.display_name }}</span>
@@ -180,7 +180,7 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
 
     <!-- 登录引导：评论要求登录身份 -->
     <div v-if="!sessionReady" class="h-24 animate-pulse rounded-xl bg-slate-50 dark:bg-slate-800/60" aria-hidden="true" />
-    <div v-else-if="!user" class="flex flex-col items-start gap-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+    <div v-else-if="!user" class="bento-card flex flex-col items-start gap-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-slate-600 dark:text-slate-300">
         登录后即可发表评论，昵称与头像随账号走。
       </p>

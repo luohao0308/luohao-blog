@@ -36,7 +36,7 @@ usePageSeo({
         <img v-if="about.profile_image" :src="assetUrl(about.profile_image)" :alt="`${about.name || '个人'} 头像`" class="aspect-square w-full rounded-2xl border border-slate-200 object-cover dark:border-slate-800">
       </section>
 
-      <section v-if="about.current_focus" class="rounded-xl bg-[#eef3f8] p-6 dark:bg-slate-900">
+      <section v-if="about.current_focus" class="bento-card rounded-xl bg-[#eef3f8] p-6 dark:bg-slate-900">
         <h2 class="text-sm font-medium text-[#3c5d85] dark:text-blue-300">当前方向</h2>
         <p class="mt-3 whitespace-pre-line text-base leading-8 text-slate-700 dark:text-slate-300">{{ about.current_focus }}</p>
       </section>
@@ -65,12 +65,12 @@ usePageSeo({
       <section class="space-y-5">
         <h2 class="text-xl font-bold tracking-tight">代表内容</h2>
         <div class="grid gap-5 sm:grid-cols-2">
-          <div class="space-y-3 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+          <div class="bento-card space-y-3 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
             <h3 class="text-sm font-medium">代表项目</h3>
             <NuxtLink v-for="project in representativeProjects" :key="project.slug" :to="`/projects/${encodeURIComponent(project.slug)}`" class="block text-sm text-[#3c5d85] hover:underline dark:text-blue-300">{{ project.name }} →</NuxtLink>
             <p v-if="projectsError" class="text-xs text-slate-500">项目入口暂时无法加载。</p>
           </div>
-          <div class="space-y-3 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+          <div class="bento-card space-y-3 rounded-xl border border-slate-200 p-5 dark:border-slate-800">
             <h3 class="text-sm font-medium">代表文章</h3>
             <NuxtLink v-for="article in representativeArticles" :key="article.slug" :to="`/posts/${encodeURIComponent(article.slug)}`" class="block text-sm text-[#3c5d85] hover:underline dark:text-blue-300">{{ article.title }} →</NuxtLink>
             <p v-if="articlesError" class="text-xs text-slate-500">文章入口暂时无法加载。</p>
