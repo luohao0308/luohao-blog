@@ -68,8 +68,8 @@ const featuredProjects = computed(() => {
       <time v-if="formatDate(stats.latestUpdated)">更新于 {{ formatDate(stats.latestUpdated) }}</time>
     </div>
 
-    <section class="home-section" aria-label="首页文章推荐">
-      <div class="home-section-heading" data-home-layer="subtle">
+    <section class="home-section" data-home-layer aria-label="首页文章推荐">
+      <div class="home-section-heading">
         <div><p class="home-kicker">WRITING / NOTES</p><h2>{{ hasFeaturedArticles ? '精选文章' : '最新文章' }}</h2></div>
         <NuxtLink to="/posts" class="home-text-link">全部文章 <span aria-hidden="true">↗</span></NuxtLink>
       </div>
@@ -93,7 +93,7 @@ const featuredProjects = computed(() => {
       <p v-else class="home-empty">项目资料正在整理中。</p>
     </section>
 
-    <div class="home-follow"><WechatFollow /></div>
+    <div class="home-follow" data-home-layer="subtle"><WechatFollow /></div>
     <Teleport to="body">
       <button v-if="playing" data-home-skip type="button" class="home-skip" @click="skip">跳过开场 <span aria-hidden="true">→</span></button>
     </Teleport>
