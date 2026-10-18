@@ -17,7 +17,7 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no })
   return { promise, resolve, reject }
 }
-function fixture() {
+function fixture(selector = '[data-article-detail]') {
   const attributes = new Map(), values = new Map()
   const html = {
     hasAttribute: key => attributes.has(key),
@@ -27,7 +27,8 @@ function fixture() {
   }
   const view = { innerWidth: 1000, innerHeight: 800, matchMedia: () => ({ matches: false }) }
   const detail = { style: { viewTransitionName: 'detail-original' } }
-  const doc = { documentElement: html, defaultView: view, querySelector: selector => { assert.equal(selector, '[data-article-detail]'); return detail } }
+  const expectedSelector = selector
+  const doc = { documentElement: html, defaultView: view, querySelector: selector => { assert.equal(selector, expectedSelector); return detail } }
   const card = { style: { viewTransitionName: 'card-original' }, ownerDocument: doc, getBoundingClientRect: () => ({ top: 50, right: 700, bottom: 350, left: 200 }) }
   return { doc, view, card, detail, attributes, values }
 }
@@ -120,4 +121,13 @@ test('a synchronous native API failure falls back once and cleans even if naviga
     else await operation
     assert.equal(calls, 1); assertClean(f)
   }
+})
+
+test('project cards share the transition while targeting their own detail surface', async () => {
+  const { expandArticleFrom } = load(), f = fixture('[data-project-detail]')
+  let calls = 0
+  f.doc.startViewTransition = update => ({ ready: Promise.resolve(), updateCallbackDone: Promise.resolve().then(update), finished: Promise.resolve() })
+  await expandArticleFrom(f.card, async () => { calls++ }, '[data-project-detail]')
+  assert.equal(calls, 1)
+  assertClean(f)
 })

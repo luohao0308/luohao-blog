@@ -32,7 +32,7 @@ usePageSeo({
 </script>
 
 <template>
-  <article v-if="project" class="space-y-10">
+  <article v-if="project" data-project-detail class="space-y-10">
     <header class="space-y-5 border-b border-slate-200 pb-9 dark:border-slate-800">
       <NuxtLink to="/projects" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回作品集</NuxtLink>
       <div class="flex flex-wrap items-start justify-between gap-5">
@@ -40,7 +40,7 @@ usePageSeo({
           <span class="flex h-14 w-14 items-center justify-center rounded-xl bg-[#e8eef7] text-3xl dark:bg-slate-900" aria-hidden="true">{{ project.emoji }}</span>
           <div>
             <p class="text-xs text-[#3c5d85] dark:text-blue-300">{{ project.role }} · {{ project.year }}</p>
-            <h1 class="mt-2 break-words text-3xl font-medium text-slate-800 dark:text-slate-100">{{ project.name }}</h1>
+            <h1 tabindex="-1" class="mt-2 break-words text-3xl font-medium text-slate-800 dark:text-slate-100">{{ project.name }}</h1>
           </div>
         </div>
         <div class="flex flex-wrap gap-2">

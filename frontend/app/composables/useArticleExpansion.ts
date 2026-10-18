@@ -1,6 +1,6 @@
 import { expandArticleFrom, isArticleExpansionClick } from '~/utils/articleExpansion'
 
-export function useArticleExpansion() {
+export function useArticleExpansion(detailSelector = '[data-article-detail]') {
   const app = useNuxtApp()
   return async function openArticle(event: MouseEvent, to: string) {
     if (!isArticleExpansionClick(event) || !(event.target instanceof Element)) return
@@ -29,8 +29,8 @@ export function useArticleExpansion() {
           window.scrollTo({ top: 0, behavior: 'instant' })
         }
         finally { unhook(); unhookError() }
-      })
-      document.querySelector<HTMLElement>('[data-article-detail] h1')?.focus({ preventScroll: true })
+      }, detailSelector)
+      document.querySelector<HTMLElement>(`${detailSelector} h1`)?.focus({ preventScroll: true })
     }
     catch (error) { showError(error as Error) }
   }

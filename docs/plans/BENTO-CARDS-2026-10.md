@@ -33,3 +33,9 @@
 验收：article-expansion单测涵盖失败/跳过/清理与名称恢复；article_expand_e2e验证实际展开中间帧、导航、返回、键盘、触摸与回退；原Bento浏览器测试复验悬浮及标签导航。
 
 追加验证结果：54项Node单测、lint、typecheck及最终build通过；文章展开12组真实Chrome检查通过（包含750ms中间帧、共享元素、5200ms慢请求、390px触摸、减少动态和无API/JS回退），页面错误0；原Bento13组检查重新通过。独立审查发现并修复“5秒计时器误当就绪”问题，新增composable回归后复核APPROVE。证据在本机 `output/visual-redesign/article-expand/` 和 `output/visual-redesign/bento-cards/`。本轮不改首页开场，前轮首页动效回归证据仍适用；没有远端或生产操作。
+
+## 项目卡片展开（2026-10-18 用户追加）
+
+状态：本地实现与验证完成，未发布。用户要求作品集也使用文章卡片相同的点击展开。为既有转场增加可选目标选择器，默认文章行为不变；ProjectCard 的背景、封面和标题复用750ms动画，进入真实项目详情并聚焦标题。首页项目、作品集及关联项目推荐因复用同一组件一并生效。源码、演示外链仍在详情页独立操作；保留修饰键、浏览器返回、SSR与减少动态回退。不增加新转场实现或依赖。
+
+本轮61项Node单测、lint、typecheck、build通过；项目12项浏览器检查及文章12项展开回归通过，页面错误0。项目证据在本机 `output/visual-redesign/project-expand/`，包含中间帧、项目正文与390px截图；文章证据在 `output/visual-redesign/article-expand/`。没有远端或生产操作。

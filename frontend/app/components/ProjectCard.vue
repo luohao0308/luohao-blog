@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { Project } from '~/composables/usePortfolio'
 
-defineProps<{ project: Project }>()
+const props = defineProps<{ project: Project }>()
+const projectTo = computed(() => `/projects/${encodeURIComponent(props.project.slug)}`)
+const openProject = useArticleExpansion('[data-project-detail]')
 </script>
 
 <template>
-  <article class="bento-card group flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)]">
+  <article data-project-card class="bento-card group cursor-pointer flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)]" @click.capture="openProject($event, projectTo)">
     <div class="relative flex min-h-40 items-center justify-between overflow-hidden bg-[var(--surface-hover)] transition-colors">
       <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]">
       <span v-else class="px-6 text-5xl" aria-hidden="true">{{ project.emoji || '🧩' }}</span>

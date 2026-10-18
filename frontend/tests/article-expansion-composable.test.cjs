@@ -5,9 +5,10 @@ const vm = require('node:vm')
 const { test } = require('node:test')
 const ts = require('typescript')
 
-function fixture(navigationResult) {
+function fixture(navigationResult, detailSelector = '[data-article-detail]') {
+  const route = detailSelector === '[data-project-detail]' ? '/projects/example' : '/posts/example'
   const hooks = new Map(), timers = [], errors = [], scrolls = [], focus = [], calls = []
-  class Element { closest(selector) { return selector === 'a' ? { getAttribute: () => '/posts/example' } : null } }
+  class Element { closest(selector) { return selector === 'a' ? { getAttribute: () => route } : null } }
   const app = { hook(name, callback) {
     const entries = hooks.get(name) || new Set(); entries.add(callback); hooks.set(name, entries)
     return () => entries.delete(callback)
@@ -22,12 +23,12 @@ function fixture(navigationResult) {
     navigateTo: async to => { calls.push(to); return navigationResult },
     nextTick: async () => { calls.push('tick') },
     window: { getSelection: () => null, scrollTo: options => scrolls.push(options) },
-    document: { querySelector: selector => { assert.equal(selector, '[data-article-detail] h1'); return { focus: options => focus.push(options) } } },
+    document: { querySelector: selector => { assert.equal(selector, `${detailSelector} h1`); return { focus: options => focus.push(options) } } },
     showError: error => errors.push(error),
     setTimeout: callback => { timers.push(callback); return timers.length }, clearTimeout: () => {},
   })
   const event = { target: new Element(), currentTarget: {}, preventDefault() { calls.push('prevented') } }
-  const operation = exports.useArticleExpansion()(event, '/posts/example')
+  const operation = exports.useArticleExpansion(detailSelector)(event, route)
   let settled = false
   operation.then(() => { settled = true })
   return { hooks, timers, errors, scrolls, focus, calls, operation,
@@ -70,4 +71,15 @@ test('aborted navigation removes lifecycle hooks without waiting for page:finish
   assert.equal(f.settled, true); await f.operation
   assert.equal(f.count(), 0); assert.equal(f.errors.length, 0)
   assert.equal(f.scrolls.length, 0); assert.equal(f.calls.includes('tick'), false)
+})
+
+test('project destination receives focus through the same page-completion flow', async () => {
+  const f = fixture(undefined, '[data-project-detail]')
+  await drain()
+  assert.equal(f.settled, false)
+  f.fire('page:finish'); await f.operation
+  assert.equal(f.errors.length, 0)
+  assert.equal(f.focus.length, 1)
+  assert.equal(f.count(), 0)
+  assert(f.calls.includes('/projects/example'))
 })

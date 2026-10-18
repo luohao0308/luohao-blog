@@ -4,7 +4,7 @@ export function isArticleExpansionClick(event: MouseEvent) {
     && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
 }
 
-export async function expandArticleFrom(card: HTMLElement, navigate: () => Promise<unknown>) {
+export async function expandArticleFrom(card: HTMLElement, navigate: () => Promise<unknown>, detailSelector = '[data-article-detail]') {
   const doc = card.ownerDocument
   const view = doc.defaultView
   if (!view || !doc.startViewTransition || view.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -25,7 +25,7 @@ export async function expandArticleFrom(card: HTMLElement, navigate: () => Promi
     const transition = doc.startViewTransition(async () => {
       navigationStarted = true
       await navigate()
-      detail = doc.querySelector<HTMLElement>('[data-article-detail]')
+      detail = doc.querySelector<HTMLElement>(detailSelector)
       if (detail) { detailName = detail.style.viewTransitionName; detail.style.viewTransitionName = 'article-content' }
     })
     // Skipped animations (e.g. a background tab) must still finish navigation.
