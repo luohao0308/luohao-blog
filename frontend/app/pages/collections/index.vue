@@ -44,7 +44,7 @@ async function importLocal() {
     <div v-if="error" role="alert" class="space-y-2 text-center"><p>{{ error }}</p><button class="text-blue-600 underline" @click="store.loadCloud(true)">重新加载</button></div>
     <p v-else-if="!ready" role="status" class="py-12 text-center text-sm text-slate-500">正在加载收藏…</p>
     <ul v-else-if="visible.length" class="space-y-3">
-      <li v-for="entry in visible" :key="entry.slug" class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+      <li v-for="entry in visible" :key="entry.slug" class="bento-card flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
         <div class="min-w-0"><NuxtLink :to="`/posts/${encodeURIComponent(entry.slug)}`" class="block truncate font-medium hover:text-blue-600">{{ entry.title }}</NuxtLink><p class="mt-1 text-xs text-slate-400">收藏于 {{ new Date(entry.saved_at).toLocaleDateString('zh-CN') }}</p></div>
         <button type="button" :disabled="!ready || busy.has(entry.slug)" class="shrink-0 rounded-full px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 disabled:opacity-50" @click="remove(entry.slug, entry.title)">移除</button>
       </li>

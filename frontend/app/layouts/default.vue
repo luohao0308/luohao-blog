@@ -5,6 +5,8 @@
 // by the inline script registered in app.vue; the login session is restored
 // client-side by ensureSession, so SSR renders logged-out and the header
 // swaps to the avatar after hydration.
+const cardRoot = ref<HTMLElement | null>(null)
+useCardSpotlight(cardRoot)
 const { init } = useTheme()
 const { ensureSession } = useAuth()
 const { public: publicConfig } = useRuntimeConfig()
@@ -90,7 +92,7 @@ function isActive(to: string) {
       </nav>
     </header>
 
-    <main id="main-content" tabindex="-1" class="site-main mx-auto w-full flex-1 px-6 py-10" :class="wide ? 'max-w-6xl' : 'max-w-4xl'">
+    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main mx-auto w-full flex-1" :class="route.meta.immersiveAbout ? 'max-w-none' : [wide ? 'max-w-6xl' : 'max-w-4xl', 'px-6 py-10']">
       <slot />
     </main>
 

@@ -32,7 +32,7 @@ usePageSeo({
 </script>
 
 <template>
-  <article v-if="project" class="space-y-10">
+  <article v-if="project" data-project-detail class="space-y-10">
     <header class="space-y-5 border-b border-slate-200 pb-9 dark:border-slate-800">
       <NuxtLink to="/projects" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回作品集</NuxtLink>
       <div class="flex flex-wrap items-start justify-between gap-5">
@@ -40,7 +40,7 @@ usePageSeo({
           <span class="flex h-14 w-14 items-center justify-center rounded-xl bg-[#e8eef7] text-3xl dark:bg-slate-900" aria-hidden="true">{{ project.emoji }}</span>
           <div>
             <p class="text-xs text-[#3c5d85] dark:text-blue-300">{{ project.role }} · {{ project.year }}</p>
-            <h1 class="mt-2 break-words text-3xl font-medium text-slate-800 dark:text-slate-100">{{ project.name }}</h1>
+            <h1 tabindex="-1" class="mt-2 break-words text-3xl font-medium text-slate-800 dark:text-slate-100">{{ project.name }}</h1>
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -57,7 +57,7 @@ usePageSeo({
         <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目说明</h2>
         <p class="whitespace-pre-line text-sm leading-8 text-slate-600 dark:text-slate-400">{{ project.description }}</p>
       </section>
-      <aside class="space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
+      <aside class="bento-card space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
         <h2 class="text-xs font-medium text-slate-700 dark:text-slate-200">技术栈</h2>
         <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
           <li v-for="item in project.stack" :key="item" class="break-words">{{ item }}</li>
@@ -66,7 +66,7 @@ usePageSeo({
     </div>
 
     <section v-if="hasCaseDetails" class="grid gap-5 sm:grid-cols-3">
-      <div v-for="item in [{ title: '问题', text: project.problem }, { title: '方案', text: project.approach }, { title: '结果', text: project.outcome }]" :key="item.title" class="rounded-xl border border-slate-200 p-5 dark:border-slate-800">
+      <div v-for="item in [{ title: '问题', text: project.problem }, { title: '方案', text: project.approach }, { title: '结果', text: project.outcome }]" :key="item.title" class="bento-card rounded-xl border border-slate-200 p-5 dark:border-slate-800">
         <h2 class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ item.title }}</h2>
         <p class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-400">{{ item.text || '资料正在整理中。' }}</p>
       </div>

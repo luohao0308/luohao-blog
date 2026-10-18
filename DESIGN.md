@@ -3,7 +3,7 @@
 ## Source of truth
 
 - Status: Active
-- Updated: 2026-10-17
+- Updated: 2026-10-18
 - Surfaces: Nuxt公开阅读端、账号菜单、RAG问答、Naive UI管理端、Milkdown文章编辑器。
 - Evidence: 当前main bd762c2的布局/组件/文章工具与proto；[已批准优化计划](docs/plans/UI-REFINEMENT-2026-10.md)。
 - Reference: [open-claude-ui固定版本文档](https://github.com/Caho1/open-claude-ui/tree/02d021fceaf2a907f9e63a8125621bdda1b85d60/docs)，v1八篇、v2六章与合并版差异全文阅读并核对相关示例。参考设计原则，行为以本项目代码和测试为准，不以第三方逆向叙述代替官方事实。
@@ -41,7 +41,7 @@
 - Color: main.css拥有surface-page/panel/input/overlay、text-primary/muted、border-default/strong、accent/hover/on-accent、status与focus语义变量，html.dark配对覆盖。蓝灰#3c5d85与暗色浅蓝延续；Naive主题映射同一组变量。
 - Typography: 系统中文字体与等宽代码字体；阅读端舒适行距，长词安全换行；日期/计数tabular-nums。不给系统字体机械施加专有可变轴。
 - Spacing: 小控件紧凑，正文大留白，后台表格密度独立于阅读端；不新增密度开关。
-- Shape/elevation: 标准控件约8px、卡片/代码约12px、浮层轻投影；不复制全部参考组件。
+- Shape/elevation: 标准控件约8px、代码约12px；公开内容卡片与账号面板按[卡片规范](docs/plans/BENTO-CARDS-2026-10.md)使用24px圆角、三层柔影、悬浮上移4px与指针追光。管理端保持既有控件规范。
 - Motion: 短颜色/opacity/transform反馈；统一时长/缓动。减少动态偏好下移除非必要动画和平滑滚动，不以CSS本身保证帧率。
 - Imagery/iconography: 真实封面/媒体、alt与尺寸；使用现有图标。正文不套滚动渐隐遮罩。
 
@@ -85,3 +85,11 @@ Nuxt4/Vue3/Tailwind4，Naive UI后台，Milkdown编辑器；保留BFF/SSR和后�
 - 初次、支持动效且未见过的首页通过head短暂隐藏真实页面，动画就绪后同帧显现；1500ms安全超时与bfcache恢复保证失败不永久遮挡。无JS/无WAAPI/减少动态直接显示页面；同一标签页仅播一次，Skip/Escape/交互/路由/resize/偏好/隐藏/异常可退出。
 - 默认浅色，head和mounted初始化保持一致。保留用户显式dark/system选择，localStorage拒绝时安全浅色回退。真实元素同主题播放，禁止白色广告画布与暗色网页之间切换。
 - 验收使用真实DOM身份、结束前后边界与像素一致性、首屏主题与降级检查。冻结原版仅作为历史轨迹参考；旧广告画布的0.03%像素结果不再用于宣称当前全页效果。
+
+## Article card expansion
+
+2026-10-18用户追加：文章与项目卡片点击按[卡片规范](docs/plans/BENTO-CARDS-2026-10.md)从原位展开为真实详情；保留修饰键和嵌套操作，减少动态或不支持API时直接导航。两类卡片复用同一转场，按目标页面选择正文和焦点容器。
+
+## 关于页墨流
+
+2026-10-18用户批准[关于页墨流预览](docs/plans/ABOUT-INK-2026-10.md)：全宽白底、蓝灰墨迹围绕个人字标持续流动，支持鼠标扰动、点击扩散与滚动收拢。此首屏是原有克制表面规范的明确例外；下方继续使用真实个人资料与既有卡片规范。文字独立于画布，减少动态、无WebGL及SSR仍可读；无新依赖、无生产操作。

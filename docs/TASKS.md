@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-17_
+_last-updated: 2026-10-18_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -14,6 +14,8 @@ _last-updated: 2026-10-17_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
+| T-021 | 关于页：流动的数字墨迹预览 | Nuxt Web前端 | [视觉规范](plans/ABOUT-INK-2026-10.md) | 本地完成；59单测、lint/typecheck/build、墨流与真实资料浏览器验证通过，独立复核APPROVE；等待视觉反馈，未发布 |
+| T-020 | 公开网页卡片统一，文章与项目原地展开 | Nuxt Web前端 | [卡片规范](plans/BENTO-CARDS-2026-10.md) | 本地完成；本轮61单测、lint/typecheck/build、项目12项与文章12项浏览器回归通过；前轮Bento13组与独立复核通过；真实详情路由保留，未发布 |
 | T-019 | 首页原位组装与暗色首屏闪现修复，本地验证通过 | Nuxt Web前端 | [实施计划](plans/HOME-MOTION-2026-10.md) | 改为真实SSR区块原位组装，保留大幅度与原速；默认浅色且尊重显式偏好。线上仍PR #105 / 3d72f8b；40单测、lint/typecheck/build、组合E2E与6宽度归位0像素差通过，独立审查APPROVE；本轮新版本未发布 |
 | T-017 | 后台已验收，推进正式小程序接入与发布 | backend + miniprogram + docs/platform | [收尾](plans/ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md) / [正式接入](plans/FORMAL-MINIPROGRAM-TRANSITION-2026-10.md) | 正式后端744/v16与身份绑定、域名和核心真机已验收；PR #100退出会话/正文图地址修复已合并8feb334且CI/release通过，新29e预览手机确认图片显示。UGC已声明，隐私最新为已更新，备案仍管局审核中。手机新增发现首次文章登录提示失步、正文图无点击预览；已本地修复并通过测试/独立复核和模拟器点击链路，待新准确版本交付与手机复验。专属测试文章已回草稿、公开404，正文/精选未变；服务器退出撤销真机验收尚未进行 |
 | T-008 | 域名收尾：S1 主站 HTTPS/备案/Secure Cookie 已验收；S2 小程序 HTTPS 与公众号 HTTPS origin 已交付；S3 状态页与 HTTPS 拨测代码已随 PR #93 合并，公开状态页已上线 | backend + frontend + miniprogram + deploy | `docs/plans/DOMAIN-CLOSEOUT-2026-10.md` | 2026-10-16 本轮只读复核 `https://status.makerhao.cn` 返回 200、最终为 `/status/blog`；不替代完整路由正负向复验。最近 external-probe [run #38776227141](https://github.com/luohao0308/luohao-blog/actions/runs/38776227141) 成功（2026-10-16北京时间01:18启动，main30e）；本轮未额外触发。正式号核心真机流程已用户确认；正文图片显示已手机确认；点击预览、会话复验和平台发布准备仍待完成 |
