@@ -93,7 +93,6 @@ const featuredProjects = computed(() => {
       <p v-else class="home-empty">项目资料正在整理中。</p>
     </section>
 
-    <div class="home-follow" data-home-layer="subtle"><WechatFollow /></div>
     <Teleport to="body">
       <button v-if="playing" data-home-skip type="button" class="home-skip" @click="skip">跳过开场 <span aria-hidden="true">→</span></button>
     </Teleport>
@@ -129,7 +128,6 @@ const featuredProjects = computed(() => {
 .home-card-shell :deep(h2) { font-size: 1.1rem; line-height: 1.7; }
 .home-projects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; }
 .home-empty { padding: 2.5rem 0; color: var(--text-muted); font-size: .875rem; }
-.home-follow { margin-top: 3rem; }
 .home-skip { position: fixed; right: 1.4rem; bottom: 1.4rem; z-index: 70; display: inline-flex; align-items: center; gap: 1.2rem; min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-overlay); color: var(--text-primary); box-shadow: 0 8px 25px rgb(31 55 92 / 12%); font-size: .8125rem; }
 @media (max-width: 900px) { .home-hero { gap: 1.2rem; } .home-articles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {

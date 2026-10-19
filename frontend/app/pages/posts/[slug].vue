@@ -3,7 +3,7 @@ import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticle
 import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
 const route = useRoute()
-definePageMeta({ key: route => route.path })
+definePageMeta({ key: route => route.path, wide: true })
 const slug = computed(() => String(route.params.slug))
 
 const { data, error } = await useArticleBySlug(slug.value)
@@ -111,7 +111,7 @@ usePageSeo({
 </script>
 
 <template>
-  <article data-article-detail class="space-y-6">
+  <article data-article-detail class="mx-auto w-full max-w-[860px] space-y-6">
     <header class="space-y-5 border-b border-slate-200 pb-8 dark:border-slate-800">
       <NuxtLink to="/posts" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回全部文章</NuxtLink>
       <h1 tabindex="-1" class="break-words text-3xl font-medium leading-relaxed">{{ article.title }}</h1>

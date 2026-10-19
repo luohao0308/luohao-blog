@@ -12,7 +12,7 @@ async function copyAccount() {
 </script>
 
 <template>
-  <section class="bento-card mx-auto flex max-w-2xl flex-col gap-5 rounded-xl border border-slate-200 bg-slate-50 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
+  <section class="mx-auto flex max-w-2xl flex-col gap-5 rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
     <div class="space-y-2">
       <h2 class="font-semibold">在微信里找到我</h2>
       <p class="text-sm leading-6 text-slate-600 dark:text-slate-400">关注公众号「makerhao」，交流全栈开发与 AI Agent 实践。</p>

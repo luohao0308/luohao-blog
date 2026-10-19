@@ -29,7 +29,7 @@ usePageSeo({
     <p v-else-if="status === 'pending'" role="status" class="px-6 py-20 text-center text-sm text-slate-500">正在加载关于页面…</p>
     <template v-else-if="about">
       <AboutInkScene :name="about.name || 'luohao'" :headline="about.headline" />
-      <div id="about-story" data-about-content class="about-story mx-auto max-w-5xl space-y-16 px-6 pb-24 pt-20">
+      <div id="about-story" data-about-content class="about-story mx-auto max-w-[908px] space-y-16 px-6 pb-24 pt-20">
         <section class="grid gap-8 border-b border-slate-200 pb-10 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center">
           <div class="space-y-5">
             <p class="text-xs font-medium uppercase tracking-[0.2em] text-[#3c5d85] dark:text-blue-300">关于我</p>
@@ -95,6 +95,7 @@ usePageSeo({
           </ul>
         </section>
       </div>
+      <AboutWechatContact />
     </template>
   </div>
 </template>
