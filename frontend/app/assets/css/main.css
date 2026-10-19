@@ -27,6 +27,10 @@
   --radius-panel: 0.75rem;
   --space-control: 0.75rem;
   --space-section: 1.5rem;
+  --site-nav-max-width: 68rem;
+  --site-content-inset: 2rem;
+  --site-content-max-width: calc(var(--site-nav-max-width) - 2 * var(--site-content-inset));
+  --site-gutter: 1.5rem;
   --motion-fast: 150ms;
   --motion-standard: 200ms;
 }
@@ -70,6 +74,17 @@
 [data-home-motion-surface='card'] { box-shadow: 0 20px 38px rgb(45 65 95 / 16%); }
 .site-header a, .site-header button { min-height: 44px; }
 .site-header a { display: inline-flex; align-items: center; }
+/* Shared page sizing, with content inset from the navigation on wider screens. */
+.site-nav-container, .site-content-container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--site-gutter);
+}
+.site-nav-container { max-width: var(--site-nav-max-width); }
+.site-content-container { max-width: var(--site-content-max-width); }
+@media (min-width: 768px) {
+  .site-content-container { width: calc(100% - 2 * var(--site-content-inset)); }
+}
 .site-main { scroll-margin-top: 12rem; }
 .skip-link {
   position: fixed;

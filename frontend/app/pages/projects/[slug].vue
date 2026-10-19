@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
-definePageMeta({ key: route => route.path, wide: true })
+definePageMeta({ key: route => route.path })
 const slug = computed(() => String(route.params.slug))
 const { data, error } = await useProjectBySlug(slug.value)
 

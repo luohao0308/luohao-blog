@@ -18,9 +18,7 @@ onMounted(() => {
   ensureSession()
 })
 
-// Pages can opt into a wider container via definePageMeta({ wide: true }).
 const route = useRoute()
-const wide = computed(() => route.meta.wide === true)
 
 // Flat top-level nav; 收藏 lives in the footer (it is a local-browser
 // feature, not a primary destination). Mobile keeps the taxonomy pages as a
@@ -52,7 +50,7 @@ function isActive(to: string) {
   <div data-home-shell class="flex min-h-screen flex-col site-shell antialiased transition-colors duration-[var(--motion-standard)]">
     <a href="#main-content" class="skip-link">跳到主要内容</a>
     <header :data-home-shell-layer="route.path === '/' ? 'nav' : undefined" class="sticky top-0 z-40 border-b site-header backdrop-blur">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+      <div class="site-nav-container flex items-center justify-between py-3">
         <NuxtLink to="/" class="text-lg font-bold tracking-tight">
           luohao<span class="text-[var(--accent)]">.blog</span>
         </NuxtLink>
@@ -92,7 +90,7 @@ function isActive(to: string) {
       </nav>
     </header>
 
-    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main mx-auto w-full flex-1" :class="route.meta.immersiveAbout ? 'max-w-none' : [wide ? 'max-w-6xl' : 'max-w-4xl', 'px-6 py-10']">
+    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main site-content-container flex-1" :class="{ 'py-10': !route.meta.immersiveAbout }">
       <slot />
     </main>
 
