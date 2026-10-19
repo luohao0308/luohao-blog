@@ -7,12 +7,12 @@ const openProject = useArticleExpansion('[data-project-detail]')
 </script>
 
 <template>
-  <article data-project-card class="bento-card group cursor-pointer flex h-full flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)]" @click.capture="openProject($event, projectTo)">
-    <div class="relative flex min-h-40 items-center justify-between overflow-hidden bg-[var(--surface-hover)] transition-colors">
-      <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]">
+  <article data-project-card class="bento-card group cursor-pointer flex h-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)] transition-colors hover:border-[var(--border-strong)]" @click.capture="openProject($event, projectTo)">
+    <NuxtLink :to="projectTo" :aria-label="`查看项目：${project.name}`" class="relative flex min-h-40 items-center justify-between overflow-hidden bg-[var(--surface-hover)] transition-colors">
+      <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]">
       <span v-else class="px-6 text-5xl" aria-hidden="true">{{ project.emoji || '🧩' }}</span>
       <span class="relative ml-auto mr-4 mt-auto rounded-full bg-[var(--surface-overlay)] px-2 py-1 font-mono text-xs text-[var(--text-muted)] tabular-nums">{{ project.year }}</span>
-    </div>
+    </NuxtLink>
     <div class="flex flex-1 flex-col p-6">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">

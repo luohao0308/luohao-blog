@@ -131,3 +131,28 @@ test('project cards share the transition while targeting their own detail surfac
   assert.equal(calls, 1)
   assertClean(f)
 })
+
+
+test('a timed out native capture reveals the ready destination, while hidden and reduced-motion views stay quiet', async () => {
+  const { expandArticleFrom } = load()
+  for (const mode of ['visible', 'hidden', 'reduce']) {
+    const f = fixture(); let animations = 0
+    f.doc.hidden = mode === 'hidden'
+    f.doc.startViewTransition = update => ({
+      ready: Promise.reject(new Error('DOM update timed out')),
+      updateCallbackDone: Promise.resolve().then(update),
+      finished: Promise.resolve(),
+    })
+    f.doc.documentElement.animate = (frames, options) => {
+      animations++
+      assert.match(frames[0].clipPath, /polygon\(200px 50px/)
+      assert.equal(options.duration, 750)
+      return { finished: Promise.resolve() }
+    }
+    await expandArticleFrom(f.card, async () => {
+      if (mode === 'reduce') f.view.matchMedia = () => ({ matches: true })
+    })
+    assert.equal(animations, mode === 'visible' ? 1 : 0)
+    assertClean(f)
+  }
+})
