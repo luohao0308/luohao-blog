@@ -1,6 +1,6 @@
 # Task Board
 
-_last-updated: 2026-10-18_
+_last-updated: 2026-10-19_
 
 > **唯一用途**：记录当前进行中、明确待办、阻塞和技术债。稳定事实写入架构/设计文档，详细验证过程写入工作日志（如项目启用）。
 >
@@ -14,6 +14,7 @@ _last-updated: 2026-10-18_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
+| T-022 | 个人设置B＋C融合布局 | Nuxt Web前端 | [实施计划](plans/SETTINGS-LAYOUT-2026-10.md) | 本地完成；lint/typecheck/build、62单测、设置/头像/邮箱三套mock回归与独立审查通过，待用户查看；未push/PR/部署 |
 | T-021 | 关于页：流动的数字墨迹预览 | Nuxt Web前端 | [视觉规范](plans/ABOUT-INK-2026-10.md) | 本地完成；59单测、lint/typecheck/build、墨流与真实资料浏览器验证通过，独立复核APPROVE；等待视觉反馈，未发布 |
 | T-020 | 公开网页卡片统一，文章与项目原地展开 | Nuxt Web前端 | [卡片规范](plans/BENTO-CARDS-2026-10.md) | 本地完成；本轮61单测、lint/typecheck/build、项目12项与文章12项浏览器回归通过；前轮Bento13组与独立复核通过；真实详情路由保留，未发布 |
 | T-019 | 首页原位组装与暗色首屏闪现修复，本地验证通过 | Nuxt Web前端 | [实施计划](plans/HOME-MOTION-2026-10.md) | 改为真实SSR区块原位组装，保留大幅度与原速；默认浅色且尊重显式偏好。线上仍PR #105 / 3d72f8b；40单测、lint/typecheck/build、组合E2E与6宽度归位0像素差通过，独立审查APPROVE；本轮新版本未发布 |

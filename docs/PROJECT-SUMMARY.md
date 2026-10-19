@@ -47,7 +47,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 桌面4项扁平导航+主题/登录/头像菜单，移动另有分类/标签/归档；白底首页融合动效，文章列表轻展开，搜索/标签/相邻文章及项目技术栈筛选保留 |
 | 公众号同步（默认关闭） | biz/official_account.go、data/official_account_client/repo、admin/wechat-sync.vue | 文章发布原子入队、版本/账号幂等，草稿/公开发表/群发三模式，状态查询与持久退避 | 独立official_account配置，MySQL任务表v11，admin-only状态/重试/显式同步；真实启用见Runbook | 与小程序wechat登录配置独立；不存凭据、不盲重试未知写操作 |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
-| 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
+| 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改；settings为精简账号概览+个人资料/邮箱验证/账号安全标签，保持各组输入与后台#password入口 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
 
 当前代码还包含以下能力；交付/真实服务状态以 TASKS.md 为准，不从代码存在推断生产已启用：
 

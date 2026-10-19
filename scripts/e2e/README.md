@@ -141,3 +141,15 @@ SEO专项在前端构建后运行 `NODE_PATH=<已有Playwright目录> BLOG_E2E_C
 `reference_parity_e2e.cjs` 现验证真实页面结尾连续性，不再将冻结原版装饰画布作为像素目标。通过测试时钟在创建时暂停实际原生 WAAPI 句柄，严格核对所有真实层及卡片均有时间线，避免慢环境让短效果提前结束；六档宽度采样动画结束前的静止区与清理后状态，验证节点保留、边界矩形严格相等及整页截图差异低于 0.1%。比较时仅隐藏 Skip 控件；结果不能用于宣称与历史装饰场景像素一致。
 
 两个套件只访问 localhost 只读 fixture。默认 canonical 前端 13000，parity 前端 13008，默认 fixture 13001；通过 `BLOG_E2E_BASE_URL` 和 `BLOG_E2E_FIXTURE_PORT` 隔离端口，并让对应测试前端的 `NUXT_BACKEND_BASE` 指向该 fixture。`BLOG_E2E_OUTPUT` 可覆盖输出目录，默认证据分别位于 `output/visual-redesign/reference-assembly` 和 `output/visual-redesign/reference-parity`。不访问真实账号/模型或写生产。
+
+## 个人设置分组布局回归
+
+`settings_layout_e2e.cjs` 仅允许本地地址，拦截账号 API 使用内存 fixture，不读取或修改真实账号。覆盖896px容器、三个标签及键盘操作、注册提示与`#email`/`#password`入口、昵称/选图/密码的跨组保留、昵称失败重试与概览同步、邮箱限流与已验证状态、改密校验与退出、匿名跳转、320/390/768px、长文本与暗色。额外分组仅在测试DOM中插入，验证标签内部滚动。
+
+先完成 `pnpm build` 并启动本地生产产物，再运行：
+
+```bash
+NODE_PATH=<已有Playwright包目录> BLOG_E2E_BASE_URL=http://127.0.0.1:13831 BLOG_E2E_CHROMIUM=<已有Chrome可执行文件> BLOG_E2E_SCREENSHOTS=<本地截图目录> node scripts/e2e/settings_layout_e2e.cjs
+```
+
+同时运行`account_avatar_e2e.cjs`与`account_email_e2e.cjs`验证既有上传、编码回退、邮箱验证/恢复与后台改密入口。服务端真实存储、真实邮件投递不在布局mock套件的验证范围。
