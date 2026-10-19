@@ -47,7 +47,11 @@ async function main() {
     await install(page, state)
 
     await page.goto(`${base}/login`)
+    // SSR fields can be visible before Vue attaches v-model and link handlers.
+    await page.waitForFunction(() => document.querySelector('#__nuxt')?.__vue_app__?.$nuxt?.isHydrating === false)
     await page.getByRole('link', { name: '忘记密码？' }).click()
+    // Login and recovery share the same email placeholder; wait for the destination.
+    await page.getByRole('heading', { name: '找回密码', exact: true }).waitFor()
     await page.getByPlaceholder('邮箱').fill('known@example.com')
     await page.getByRole('button', { name: '提交找回请求' }).click()
     const uniform = '请求已接收，若邮箱已注册且投递可用将收到链接；未收到可稍后重试。'
@@ -63,6 +67,7 @@ async function main() {
 
     state.authenticated = true
     await page.goto(`${base}/settings`)
+    await page.getByRole('tab', { name: '邮箱验证', exact: true }).click()
     await page.getByRole('region', { name: '邮箱验证' }).waitFor()
     await page.getByRole('button', { name: '发送验证请求' }).click()
     await page.getByText('邮件服务尚未配置，请稍后再试。', { exact: true }).waitFor()
@@ -88,6 +93,7 @@ async function main() {
     assert.equal(state.meCalls, 1, 'successful confirmation must re-read the current account instead of attributing the token')
     assert.deepEqual(state.verifyBodies.map(body => body.token), [verifyToken, verifyToken, verifyToken])
     await page.getByRole('link', { name: '继续' }).click()
+    await page.getByRole('tab', { name: '邮箱验证', exact: true }).click()
     await page.getByRole('region', { name: '邮箱验证' }).getByText('待验证', { exact: true }).waitFor()
 
     await page.goto(`${base}/reset-password#token=${resetToken}`)
