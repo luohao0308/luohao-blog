@@ -1,5 +1,5 @@
 /** A self-contained, progressive-enhancement ink field for the About introduction. */
-export function mountAboutInk(canvas: HTMLCanvasElement): { setProgress(value: number): void; destroy(): void } | null {
+export function mountAboutInk(canvas: HTMLCanvasElement, options: { palette?: 'warm', surface?: HTMLElement } = {}): { setProgress(value: number): void; destroy(): void } | null {
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' })
   if (!gl) { canvas.dataset.inkState = 'unsupported'; return null }
   const vertex = `attribute vec2 position; varying vec2 uv; void main(){uv=position*.5+.5;gl_Position=vec4(position,0.,1.);}`
@@ -11,7 +11,7 @@ precision mediump float;
 #endif
 varying vec2 uv;
 uniform vec2 resolution;
-uniform float time, progress, dark;
+uniform float time, progress, dark, warmth;
 uniform vec3 wakes[8];
 uniform vec4 pulse;
 float hash(vec2 p){p=fract(p*vec2(.1031,.11369));float n=dot(p,p.yx+vec2(.33,.19));return fract(n*7.13);}
@@ -27,11 +27,11 @@ void main(){
  vec2 pd=p-pulse.xy;pd.x*=aspect;float distance=length(pd);float ring=exp(-pow((distance-pulse.z*.25)*12.,2.))*pulse.w;
  p+=vec2(pd.x/aspect,pd.y)/(distance+.03)*ring*.045;
  vec2 q=vec2(p.x*aspect,p.y);
- float t=time*.10;
+ float t=time*mix(.10,.17,warmth);
  vec2 warp=vec2(field(q*1.7+vec2(t,-t*.6)),field(q*1.6+vec2(4.-t*.7,t*.5)));
  float ribbon=field(q*2.+warp*2.8+vec2(-t*.2,t*.45));
  float fold=sin(q.y*5.2+q.x*2.4+warp.x*6.+t)*.5+.5;
- float width=mix(.34,.055,progress);
+ float width=mix(mix(.34,.055,progress),.70-progress*.15,warmth);
  float center=mix(.63,.50,progress)+sin(p.y*4.+t)*.055*(1.-progress);
  float spread=exp(-pow((p.x-center)/width,2.));
  float body=smoothstep(.47,.65,ribbon)*spread;
@@ -39,10 +39,10 @@ void main(){
  float silverRim=exp(-pow((ribbon-.57)*85.,2.))*spread;
  float silver=smoothstep(.59,.70,ribbon)*spread;
  float ink=clamp(body*.65+edge*.35+fold*body*.16,0.,1.);
- vec3 paper=mix(vec3(.995,.996,.999),vec3(.055,.073,.105),dark);
- vec3 blue=mix(vec3(.235,.365,.522),vec3(.47,.65,.78),dark);
- vec3 metal=mix(vec3(.75,.80,.85),vec3(.29,.40,.50),dark);
- vec3 color=mix(paper,blue,ink*.78);
+ vec3 paper=mix(mix(vec3(.995,.996,.999),vec3(.995,.985,.965),warmth),vec3(.055,.073,.105),dark);
+ vec3 blue=mix(mix(vec3(.235,.365,.522),vec3(.63,.49,.31),warmth),mix(vec3(.47,.65,.78),vec3(.64,.55,.41),warmth),dark);
+ vec3 metal=mix(mix(vec3(.75,.80,.85),vec3(.76,.83,.81),warmth),vec3(.29,.40,.50),dark);
+ vec3 color=mix(paper,blue,ink*mix(.78,.56,warmth));
  color=mix(color,metal,silver*.66+silverRim*.28);
  gl_FragColor=vec4(color,1.);
 }`
@@ -70,7 +70,7 @@ void main(){
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW)
   const position = gl.getAttribLocation(program, 'position')
   gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
-  uniforms = Object.fromEntries(['resolution','time','progress','dark','wakes[0]','pulse'].map(name => [name, gl.getUniformLocation(program!, name)]))
+  uniforms = Object.fromEntries(['resolution','time','progress','dark','warmth','wakes[0]','pulse'].map(name => [name, gl.getUniformLocation(program!, name)]))
   } catch(error) { release();canvas.dataset.inkState='error';console.error('[About ink] GPU setup failed',error);return null }
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   const wakes = new Float32Array(24)
@@ -83,6 +83,7 @@ void main(){
     elapsed+=delta; pulseAge+=delta
     for(let i=0;i<8;i++) wakes[i*3+2]=Math.max(0,(wakes[i*3+2] ?? 0)-delta*.6)
     gl.uniform2f(uniforms.resolution!,canvas.width,canvas.height)
+    gl.uniform1f(uniforms.warmth!,options.palette === 'warm' ? 1 : 0);
     gl.uniform1f(uniforms.time!,elapsed); gl.uniform1f(uniforms.progress!,progress); gl.uniform1f(uniforms.dark!,isDark?1:0)
     gl.uniform3fv(uniforms['wakes[0]']!,wakes)
     gl.uniform4f(uniforms.pulse!,pulseX,pulseY,pulseAge,Math.max(0,1-pulseAge*.55))
@@ -117,18 +118,18 @@ void main(){
     return true
   }
   const move = (event: PointerEvent) => {
-    if(disposed || lost || !visible || document.hidden || !point(event)) return
+    if(disposed || lost || !visible || document.hidden || (options.palette === 'warm' && reduced.matches) || !point(event)) return
     wakes[wakeIndex*3]=pointerX;wakes[wakeIndex*3+1]=pointerY;wakes[wakeIndex*3+2]=1
     wakeIndex=(wakeIndex+1)%8
     if(reduced.matches) draw(0)
   }
   const down = (event: PointerEvent) => {
-    if(disposed || lost || !visible || document.hidden || !point(event)) return
+    if(disposed || lost || !visible || document.hidden || (options.palette === 'warm' && reduced.matches) || !point(event)) return
     pulseX=pointerX;pulseY=pointerY;pulseAge=0
     if(reduced.matches) draw(0)
   }
   // Listen on the containing hero so typography does not interrupt pointer feedback.
-  const surface=canvas.parentElement || canvas
+  const surface=options.surface || canvas.parentElement || canvas
   let observer: ResizeObserver | null = null
   let intersection: IntersectionObserver | null = null
   let palette: MutationObserver | null = null
