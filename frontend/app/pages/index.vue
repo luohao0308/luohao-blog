@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { ARTICLE_STATUS, formatDate, useArticleList, usePublishedArticles } from '~/composables/useArticles'
 
-definePageMeta({ wide: true })
 const homeRoot = ref<HTMLElement | null>(null)
 const { playing, skip } = useHomeEntrance(homeRoot)
 

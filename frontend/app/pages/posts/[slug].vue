@@ -3,7 +3,7 @@ import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticle
 import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
 const route = useRoute()
-definePageMeta({ key: route => route.path, wide: true })
+definePageMeta({ key: route => route.path })
 const slug = computed(() => String(route.params.slug))
 
 const { data, error } = await useArticleBySlug(slug.value)
