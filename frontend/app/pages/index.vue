@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import AboutAircraftOverlay from '~/components/AboutAircraftOverlay.vue'
 import { ARTICLE_STATUS, formatDate, useArticleList, usePublishedArticles } from '~/composables/useArticles'
+
 
 const homeRoot = ref<HTMLElement | null>(null)
 const { playing, skip } = useHomeEntrance(homeRoot)
@@ -44,6 +46,7 @@ const featuredProjects = computed(() => {
 
 <template>
   <div ref="homeRoot" class="home-page" data-home-root :data-home-motion="playing ? 'playing' : 'idle'">
+    <ClientOnly><AboutAircraftOverlay :playing="true" :reset-token="0" :show-controls="false" /></ClientOnly>
     <section class="home-hero" data-home-layer data-home-hero aria-labelledby="home-heading">
       <div class="home-intro">
         <p class="home-eyebrow"><span aria-hidden="true" />CODE · CREATE · EXPLORE</p>
@@ -57,7 +60,7 @@ const featuredProjects = computed(() => {
           <a v-for="social in socials" :key="social.label" :href="social.href" target="_blank" rel="noopener noreferrer">{{ social.label }} <span aria-hidden="true">↗</span></a>
         </nav>
       </div>
-      <HomeVisual />
+      <HomeVisual :playing="true" :reset-token="0" />
     </section>
 
     <div class="home-stats" data-home-layer="subtle" aria-label="站点概况">
