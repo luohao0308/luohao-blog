@@ -15,10 +15,23 @@ export function businessCityFountainLayout() {
   const groundRadius = Math.hypot(radius / 80, radius * .49 / 40)
   return { x, y, radius, groundRadius }
 }
-function painter(ctx: Context, w: number, h: number, pointer: LabPointer, worldWidth = 920) {
+/** Hero bounds include the tallest roof and the entire ground; keep 48px of lower breathing room. */
+export function businessCityViewport(w: number, h: number, layout: 'background' | 'hero' = 'background') {
+  if (layout === 'hero') {
+    const scale = Math.min(Math.max(1, w - 16) / 1240, Math.max(1, h - 64) / 790)
+    return { scale, centerX: w / 2, centerY: (h - 48) / 2 + 75 * scale }
+  }
+  const scale = w < 600 ? w * .9 / 1240 : Math.min(w * .66 / 1240, h * .83 / 720)
+  return { scale, centerX: w < 600 ? w * .5 : Math.min(w * .69, w - 1240 * .52 * scale - 18), centerY: h * (w < 600 ? .67 : .63) }
+}
+export function businessCitySunPosition(w: number, h: number, layout: 'background' | 'hero' = 'background') {
+  return { x: w * .87, y: layout === 'hero' ? Math.max(32, h * .14) : h * (w < 600 ? .51 : .3) }
+}
+function painter(ctx: Context, w: number, h: number, pointer: LabPointer, worldWidth = 920, layout: 'background' | 'hero' = 'background') {
   const scale = w < 600 ? w * .9 / worldWidth : Math.min(w * .66 / worldWidth, h * .83 / 720)
   const centerX = w < 600 ? w * .5 : worldWidth >= 1080 ? Math.min(w * .69, w - worldWidth * .52 * scale - 18) : w * .69
-  ctx.translate(centerX + pointer.x * 6, h * (w < 600 ? .67 : .63) + pointer.y * 4); ctx.scale(scale, scale)
+  const viewport = worldWidth === 1240 ? businessCityViewport(w, h, layout) : { centerX, centerY: h * (w < 600 ? .67 : .63), scale }
+  ctx.translate(viewport.centerX + pointer.x * 6, viewport.centerY + pointer.y * 4); ctx.scale(viewport.scale, viewport.scale)
   const p = (x: number, y: number, z = 0) => [(x - y) * 40, (x + y) * 20 - z]
   const poly = (points: number[][], color: string) => {
     ctx.beginPath(); points.forEach((point, index) => index ? ctx.lineTo(point[0]!, point[1]!) : ctx.moveTo(point[0]!, point[1]!)); ctx.closePath(); ctx.fillStyle = color; ctx.fill()
@@ -58,7 +71,7 @@ function painter(ctx: Context, w: number, h: number, pointer: LabPointer, worldW
     ctx.fillStyle = '#74966b'; ctx.beginPath(); ctx.ellipse(center[0]! + shift, center[1]! - 24, 11, 15, -.2, 0, TAU); ctx.fill()
     ctx.fillStyle = '#a5ba86'; ctx.beginPath(); ctx.ellipse(center[0]! - 3 + shift, center[1]! - 28, 7, 10, -.2, 0, TAU); ctx.fill()
   }
-  return { scale, p, poly, line, plane, block, vehicle, tree }
+  return { scale: viewport.scale, p, poly, line, plane, block, vehicle, tree }
 }
 
 function helicopter(ctx: Context, tools: ReturnType<typeof painter>, x: number, y: number, roof: number, t: number, interaction: LabInteraction | undefined, id: string) {
@@ -137,8 +150,8 @@ function businessBus(ctx: Context, tools: ReturnType<typeof painter>, sections: 
   }
 }
 
-export function paintBusinessCity(ctx: Context, w: number, h: number, t: number, pointer: LabPointer, interaction?: LabInteraction, options?: { aircraft?: boolean }) {
-  ctx.save(); const tools = painter(ctx, w, h, pointer, 1240)
+export function paintBusinessCity(ctx: Context, w: number, h: number, t: number, pointer: LabPointer, interaction?: LabInteraction, options?: { aircraft?: boolean, layout?: 'background' | 'hero' }) {
+  ctx.save(); const tools = painter(ctx, w, h, pointer, 1240, options?.layout)
   const { p, line, plane, block, tree, vehicle } = tools
   plane(-7.8, -7.2, 15.6, 14.4, -12, '#c3cebc'); plane(-7.8, -7.2, 15.6, 14.4, -3, '#d6dfcd')
   plane(2.82, 2.35, 4.5, 3.92, -1, '#cad8b9')
@@ -399,9 +412,11 @@ export function paintBusinessCity(ctx: Context, w: number, h: number, t: number,
     const center = p(airshipOrbit.x, airshipOrbit.y, airshipOrbit.z)
     paintCityAirship(ctx, center[0]!, center[1]!, tools.scale, t, airshipOrbit.depth, airshipOrbit.pulse, airshipOrbit.facing, interaction)
   }
-  const modelOriginX = (w < 600 ? w * .5 : Math.min(w * .69, w - 1240 * .52 * tools.scale - 18)) + pointer.x * 6
-  const modelOriginY = h * (w < 600 ? .67 : .63) + pointer.y * 4
-  const sunCenter = [(w * .87 - modelOriginX) / tools.scale, (h * (w < 600 ? .51 : .3) - modelOriginY) / tools.scale]
+  const viewport = businessCityViewport(w, h, options?.layout)
+  const modelOriginX = viewport.centerX + pointer.x * 6
+  const modelOriginY = viewport.centerY + pointer.y * 4
+  const sunPosition = businessCitySunPosition(w, h, options?.layout)
+  const sunCenter = [(sunPosition.x - modelOriginX) / tools.scale, (sunPosition.y - modelOriginY) / tools.scale]
   const sunRadius = (w < 600 ? 16 : 19) / tools.scale
   ctx.save(); ctx.translate(sunCenter[0]!, sunCenter[1]!)
   for (let ray = 0; ray < 8; ray++) {

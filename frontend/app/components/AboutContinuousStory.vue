@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import AboutAircraftOverlay from '~/components/AboutAircraftOverlay.vue'
+import { createJourneyScrollSnap } from '~/utils/aboutJourneySnap'
 const root = ref<HTMLElement | null>(null)
 const mode = ref(false)
 const reading = ref(false)
-const notice = ref('')
 const labels = ref<string[]>([])
 const current = ref(0)
-const cityPlaying = ref(true)
-const cityReset = ref(0)
-const cityVisible = ref(true)
-provide('about-city-playback', { playing: cityPlaying, resetToken: cityReset })
 let jump: ((index: number) => void) | undefined
 let toggle: (() => void) | undefined
 let cleanup: (() => void) | undefined
@@ -34,8 +29,6 @@ onMounted(() => {
   }
   const update = () => {
     frame = undefined
-    const cityBox = element.querySelector('.journey-city')?.getBoundingClientRect() ?? stage.getBoundingClientRect()
-    cityVisible.value = cityBox.bottom > 0 && cityBox.top < innerHeight
     if (!mode.value) return
     const nav = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 70
     const distance = Math.max(1, element.offsetHeight - stage.clientHeight)
@@ -58,8 +51,14 @@ onMounted(() => {
     element.dataset.journeyProgress = progress.toFixed(4)
     element.dataset.currentScene = String(index)
   }
-  const schedule = () => { if (frame === undefined) frame = requestAnimationFrame(update) }
+  const snap = createJourneyScrollSnap(() => {
+    if (!mode.value || preference.matches || document.hidden) return null
+    const nav = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 70
+    return { scroll: scrollY, start: scrollY + element.getBoundingClientRect().top - nav, distance: element.offsetHeight - stage.clientHeight, count: scenes.length }
+  }, top => scrollTo({ top, behavior: 'smooth' }))
+  const schedule = () => { if (frame === undefined) frame = requestAnimationFrame(update); snap.schedule() }
   const configure = () => {
+    snap.cancel()
     clear()
     const nav = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 70
     element.style.setProperty('--journey-nav', `${nav}px`)
@@ -69,7 +68,6 @@ onMounted(() => {
     // Measure the real responsive content before opting into the camera; long profiles stay ordinary pages.
     const available = Math.max(400, innerHeight - nav)
     const fits = scenes.every(scene => scene.scrollHeight <= available - 76)
-    notice.value = preference.matches ? '已按系统减少动态偏好使用普通阅读。' : enabled && !fits ? '当前窗口空间较小，已切换普通阅读。展开预览窗口可查看连续镜头。' : ''
     mode.value = enabled && fits
     element.classList.toggle('is-continuous', mode.value)
     if (!mode.value) { clear(); update(); return }
@@ -110,6 +108,7 @@ onMounted(() => {
     window.removeEventListener('resize', configure)
     preference.removeEventListener('change', configure)
     if (frame !== undefined) cancelAnimationFrame(frame)
+    snap.cancel()
     clear()
   }
 })
@@ -118,11 +117,9 @@ onBeforeUnmount(() => cleanup?.())
 
 <template>
   <article ref="root" class="continuous-story">
-    <ClientOnly><AboutAircraftOverlay :playing="cityPlaying" :reset-token="cityReset" :show-controls="!cityVisible || (mode && current !== 0)" @toggle="cityPlaying = !cityPlaying" /></ClientOnly>
-    <p v-if="notice" role="status" class="journey-notice">{{ notice }}</p>
     <button v-if="reading" type="button" class="journey-resume" @click="toggle?.()">返回连续镜头 →</button>
     <div class="journey-stage">
-      <AboutCityBackground class="journey-city" :enabled="!mode || current === 0" />
+      <AboutPointerBackground />
       <div class="journey-camera">
         <svg class="journey-thread" aria-hidden="true"><path class="journey-path" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
         <span class="journey-cursor" aria-hidden="true" />
@@ -138,7 +135,6 @@ onBeforeUnmount(() => cleanup?.())
 
 <style scoped>
 .continuous-story { --journey-nav: 70px; position: relative; }
-.journey-notice { margin: 16px 0; padding: 12px 16px; font-size: 12px; line-height: 1.7; color: var(--text-muted); border: 1px solid var(--border-default); border-radius: 12px; }
 .journey-resume { display: block; margin: 24px 0 24px auto; min-height: 44px; padding: 12px; color: var(--accent); font-size: 13px; }
 :deep([data-journey-scene]) { scroll-margin-top: calc(var(--journey-nav) + 24px); }
 .journey-ground, .journey-thread, .journey-cursor { display: none; }
@@ -195,23 +191,23 @@ onBeforeUnmount(() => cleanup?.())
   .journey-step { margin: 0; }
 }
 .journey-stage { position:relative; isolation:isolate; }
-.journey-city { height:min(900px,85svh); z-index:0; }
+
 .journey-camera { position:relative; z-index:1; pointer-events:none; }
 .journey-camera :deep(a), .journey-camera :deep(button), .journey-camera :deep(input), .journey-camera :deep(p), .journey-camera :deep(h1), .journey-camera :deep(h2), .journey-camera :deep(h3), .journey-camera :deep(li) { pointer-events:auto; }
-.is-continuous .journey-city { height:100%; }
+
 .is-continuous .journey-camera { pointer-events:none; }
-:deep(.about-chapter) { background:color-mix(in srgb,var(--surface-page) 91%,transparent); }
+:deep(.about-chapter) { background:transparent; }
 :deep(.about-narrative .narrative-light) { display:none; }
 :deep(.narrative-opening) { text-align:left; align-items:flex-start; }
-:deep(.narrative-identity) { width:43%; }
+:deep(.narrative-identity) { width:min(100%, 720px); }
 :deep(.narrative-headline) { margin-inline:0; font-size:18px; }
 @media(max-width:640px){
- .journey-city { height:620px; }
- :deep(.narrative-opening){min-height:690px;justify-content:flex-start;gap:14px;padding-top:26px;}
+
+ :deep(.narrative-opening){min-height:480px;justify-content:flex-start;gap:14px;padding-top:26px;}
  :deep(.narrative-identity){width:100%;}
  :deep(.narrative-opening h1){font-size:64px;margin:10px 0 14px;}
  :deep(.narrative-headline){font-size:15px;max-width:32ch;}
- :deep(.narrative-scroll){position:absolute;top:620px;}
+ :deep(.narrative-scroll){position:absolute;bottom:24px;}
  .is-continuous :deep(.narrative-opening){min-height:calc(100svh - var(--journey-nav) - 130px);justify-content:flex-start;gap:10px;}
  .is-continuous :deep(.narrative-opening h1){font-size:52px;}
  .is-continuous :deep(.narrative-scroll){top:auto;bottom:15px;}
