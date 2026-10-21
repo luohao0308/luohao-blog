@@ -1,0 +1,45 @@
+/* Cover cards are shared by the site and the development preview. */
+.editorial-card { --card-bg: #e9eef5; --card-ink: #243c5c; --card-muted: #52657d; --card-focus: #315cdd; --card-hover-border: #9aafc7; position: relative; display: flex; min-width: 0; min-height: 212px; overflow: hidden; border-radius: 8px; background: var(--card-bg); color: var(--card-ink); transition: transform .25s ease, box-shadow .25s ease; }
+.editorial-card.work-card { --card-bg: #e8ede8; --card-ink: #29463c; --card-muted: #5a7066; }
+.editorial-card.tone-sand { --card-bg: #f1ebe3; --card-ink: #544233; --card-muted: #7b6a5d; }
+.editorial-cover { position: absolute; inset: 0; overflow: hidden; }
+.editorial-cover img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.editorial-card.has-cover::before { content: ''; position: absolute; z-index: 1; inset: 0; background: linear-gradient(180deg, rgb(9 15 23 / 65%), rgb(9 15 23 / 10%) 35%, rgb(9 15 23 / 88%)); pointer-events: none; }
+.editorial-body { position: relative; z-index: 2; display: flex; flex: 1; flex-direction: column; width: 100%; min-width: 0; min-height: 212px; padding: 18px; }
+.editorial-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--card-muted); font-size: 10px; line-height: 1.6; }
+.editorial-topic { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorial-meta > :last-child { flex-shrink: 0; font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.editorial-copy { margin-top: 18px; }
+.editorial-heading { font-size: 22px; font-weight: 600; line-height: 1.3; letter-spacing: -.035em; }
+.editorial-link { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.editorial-link::after { content: ''; position: absolute; inset: 0; }
+.editorial-link:focus-visible { outline: none; }
+.editorial-link:focus-visible::after { outline: 2px solid var(--card-focus); outline-offset: -5px; border-radius: 8px; }
+.editorial-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 8px; color: var(--card-muted); font-size: 12px; line-height: 1.7; }
+.editorial-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: auto; padding-top: 12px; color: var(--card-muted); font-size: 10px; line-height: 1.6; }
+.editorial-tags { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.editorial-tags a { position: relative; z-index: 1; min-width: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorial-tags a:hover { text-decoration: underline; }
+.editorial-tags > span { flex-shrink: 0; }
+.editorial-stack { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorial-arrow { flex-shrink: 0; color: var(--card-ink); font-size: 18px; line-height: 1; transition: transform .25s ease; }
+.editorial-card.has-cover { --card-ink: #fff; --card-muted: #f0f1f3; --card-focus: #fff; }
+.editorial-card.has-cover .editorial-copy { margin-top: auto; padding-top: 24px; }
+.editorial-card.has-cover .editorial-heading { font-size: 20px; line-height: 1.4; }
+.editorial-card.has-cover .editorial-summary { display: none; }
+.editorial-card:hover, .editorial-card:focus-within { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--card-hover-border), 0 12px 26px rgb(15 23 42 / 12%); }
+.editorial-card:hover .editorial-cover img, .editorial-card:focus-within .editorial-cover img { transform: scale(1.04); }
+.editorial-card:hover .editorial-arrow, .editorial-card:focus-within .editorial-arrow { transform: translate(2px, -2px); }
+.dark .editorial-card:not(.has-cover) { --card-bg: #1d2a3d; --card-ink: #e0e9f7; --card-muted: #adbbd0; --card-focus: #a3b8ee; }
+.dark .editorial-card.work-card:not(.has-cover) { --card-bg: #1d3029; --card-ink: #e2eee7; --card-muted: #a9c1b4; }
+.dark .editorial-card.tone-sand:not(.has-cover) { --card-bg: #30281f; --card-ink: #eee6db; --card-muted: #c9bba7; }
+@media (prefers-reduced-motion: reduce) {
+  .editorial-card, .editorial-cover img, .editorial-arrow { transition: none; }
+  .editorial-card:hover, .editorial-card:focus-within, .editorial-card:hover .editorial-cover img, .editorial-card:focus-within .editorial-cover img, .editorial-card:hover .editorial-arrow, .editorial-card:focus-within .editorial-arrow { transform: none; }
+}
+
+/* Keep the live spotlight rim and route expansion while overriding only
+   the older bento surface and corner size. The original bento import stays. */
+.site-shell .bento-card.editorial-card { border: 0; border-radius: 8px; background: var(--card-bg); }
+.site-shell .bento-card.editorial-card.has-cover::before { z-index: 1; opacity: 1; background: radial-gradient(360px circle at var(--card-light-x) var(--card-light-y), var(--card-spot), transparent 45%), linear-gradient(180deg, rgb(9 15 23 / 65%), rgb(9 15 23 / 10%) 35%, rgb(9 15 23 / 88%)); }
+.editorial-featured { flex-shrink: 0; font-weight: 600; }

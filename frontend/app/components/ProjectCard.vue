@@ -1,34 +1,42 @@
 <script setup lang="ts">
 import type { Project } from '~/composables/usePortfolio'
 
-const props = defineProps<{ project: Project }>()
+const props = defineProps<{
+  project: Project
+  coverSrc?: string
+  coverAlt?: string
+}>()
 const projectTo = computed(() => `/projects/${encodeURIComponent(props.project.slug)}`)
 const openProject = useArticleExpansion('[data-project-detail]')
+const coverUrl = computed(() => props.coverSrc || assetUrl(props.project.cover_url))
+const failedCover = ref('')
+const coverImage = ref<HTMLImageElement | null>(null)
+onMounted(() => {
+  // An SSR image can fail before hydration attaches the error listener.
+  if (coverImage.value?.complete && !coverImage.value.naturalWidth) failedCover.value = coverUrl.value
+})
+const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
 </script>
 
 <template>
-  <article data-project-card class="bento-card group cursor-pointer flex h-full min-w-0 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-default)] bg-[var(--surface-page)] transition-colors hover:border-[var(--border-strong)]" @click.capture="openProject($event, projectTo)">
-    <NuxtLink :to="projectTo" :aria-label="`查看项目：${project.name}`" class="relative flex min-h-40 items-center justify-between overflow-hidden bg-[var(--surface-hover)] transition-colors">
-      <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]">
-      <span v-else class="px-6 text-5xl" aria-hidden="true">{{ project.emoji || '🧩' }}</span>
-      <span class="relative ml-auto mr-4 mt-auto rounded-full bg-[var(--surface-overlay)] px-2 py-1 font-mono text-xs text-[var(--text-muted)] tabular-nums">{{ project.year }}</span>
-    </NuxtLink>
-    <div class="flex flex-1 flex-col p-6">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <p class="text-xs text-[var(--accent)]">{{ project.role }}</p>
-          <h2 class="mt-2 break-words text-xl font-medium text-[var(--text-primary)]">
-            <NuxtLink :to="`/projects/${encodeURIComponent(project.slug)}`" class="hover:text-[var(--accent)]">
-              {{ project.name }}
-            </NuxtLink>
-          </h2>
-        </div>
-        <span class="text-slate-400 transition-transform group-hover:translate-x-1" aria-hidden="true">↗</span>
+  <article data-project-card class="editorial-card bento-card work-card" :class="{ 'has-cover': showCover, 'tone-sand': !project.featured }" @click.capture="openProject($event, projectTo)">
+    <div v-if="showCover" class="editorial-cover">
+      <img ref="coverImage" :src="coverUrl" :alt="coverAlt || `${project.name} 项目封面`" width="800" height="600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
+    </div>
+    <div class="editorial-body">
+      <div class="editorial-meta">
+        <span class="editorial-topic">{{ project.role }}</span>
+        <span>{{ project.year }}</span>
       </div>
-      <p class="mt-3 text-sm leading-7 text-[var(--text-muted)]">{{ project.summary }}</p>
-      <p v-if="project.outcome" class="mt-3 line-clamp-2 text-xs leading-6 text-[var(--text-muted)] tabular-nums">{{ project.outcome }}</p>
-      <div class="mt-auto flex flex-wrap gap-2 pt-6">
-        <span v-for="item in project.stack" :key="item" class="max-w-full break-words rounded-sm bg-[var(--surface-panel)] px-2 py-1 text-xs text-[var(--text-muted)]">{{ item }}</span>
+      <div class="editorial-copy">
+        <h2 class="editorial-heading">
+          <NuxtLink :to="projectTo" class="editorial-link">{{ project.name }}</NuxtLink>
+        </h2>
+        <p class="editorial-summary">{{ project.summary }}<span v-if="project.outcome"> · {{ project.outcome }}</span></p>
+      </div>
+      <div class="editorial-footer">
+        <span class="editorial-stack" :title="(project.stack ?? []).join(' · ')">{{ (project.stack ?? []).join(' · ') }}</span>
+        <span class="editorial-arrow" aria-hidden="true">↗</span>
       </div>
     </div>
   </article>
