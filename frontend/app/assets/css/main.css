@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./bento-cards.css";
+@import "./content-cards.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

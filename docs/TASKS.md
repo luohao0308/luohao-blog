@@ -14,6 +14,7 @@ _last-updated: 2026-10-20_
 
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
+| UI-CARDS | 用户选定封面式卡片；从最新main隔离集成，保留封面字段/聚光/原地展开；78测试、lint/typecheck/build、组合浏览器回归与独立复核通过，准备准确SHA授权交付 | frontend | [计划](plans/COVER-CARDS-2026-10.md) | 远端与生产需准确版本一次性授权；未上线 |
 | T-023 | 首页模型城与关于页固定水面涟漪 | Nuxt Web前端 | [已批准计划](plans/HOME-CITY-ABOUT-BACKGROUNDS-2026-10.md) | 已固定涟漪、修复滚动中途归位；城市透明居中且飞机全首页。太阳已抬高、演示/暂停重置控件已移除；78测试、lint/typecheck/隔离build、桌面手机浏览器及独立复核通过，用户已验收并要求提交推送；按准确版本推送守卫交付 |
 | T-022 | 个人设置B＋C融合布局 | Nuxt Web前端 | [实施计划](plans/SETTINGS-LAYOUT-2026-10.md) | 本地完成；lint/typecheck/build、62单测、设置/头像/邮箱三套mock回归与独立审查通过，待用户查看；未push/PR/部署 |
 | T-021 | 关于页：流动的数字墨迹预览 | Nuxt Web前端 | [视觉规范](plans/ABOUT-INK-2026-10.md) | 本地完成；59单测、lint/typecheck/build、墨流与真实资料浏览器验证通过，独立复核APPROVE；等待视觉反馈，未发布 |

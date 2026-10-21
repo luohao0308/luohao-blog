@@ -125,9 +125,10 @@ const featuredProjects = computed(() => {
 .home-kicker { font: .625rem/1.6 ui-monospace, monospace; letter-spacing: .12em; color: var(--text-muted); margin-bottom: .4rem; }
 .home-section-heading h2 { font-size: 1.45rem; font-weight: 550; letter-spacing: -.035em; }
 .home-articles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; perspective: 1300px; }
-.home-card-shell { min-width: 0; border-radius: var(--radius-panel); transform-origin: 50% 70%; }
+.home-card-shell { display: flex; min-width: 0; border-radius: var(--radius-panel); transform-origin: 50% 70%; }
 
-.home-card-shell :deep(h2) { font-size: 1.1rem; line-height: 1.7; }
+
+.home-card-shell > :deep(.editorial-card) { flex: 1; }
 .home-projects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; }
 .home-empty { padding: 2.5rem 0; color: var(--text-muted); font-size: .875rem; }
 .home-skip { position: fixed; right: 1.4rem; bottom: 1.4rem; z-index: 70; display: inline-flex; align-items: center; gap: 1.2rem; min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-overlay); color: var(--text-primary); box-shadow: 0 8px 25px rgb(31 55 92 / 12%); font-size: .8125rem; }
