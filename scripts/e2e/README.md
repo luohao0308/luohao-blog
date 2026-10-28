@@ -1,5 +1,7 @@
 # E2E 自动化验证（Python + Playwright）
 
+关于页景深渐显：使用已有Playwright运行`BLOG_LAYOUT_BASE=http://127.0.0.1:13035 node scripts/e2e/about_focus_e2e.cjs`（可设置`BLOG_E2E_CHROMIUM`）。也支持对`https://makerhao.cn`只读检查；`BLOG_E2E_OUTPUT`指定截图与结果目录。覆盖真实内容、逐项动画、紧凑间距、原联系按钮、桌面/手机/暗色/无JS/减少动态及文章和作品列表宽度。
+
 对本地生产栈（`deploy/compose.prod.yml`，caddy :8080）做黑盒 GUI 级验证的黑盒套件。
 
 ## 运行
