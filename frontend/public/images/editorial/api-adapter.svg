@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title"><title id="title">应用数据与外部接口，分别处理</title><rect width="1200" height="680" fill="#f5f3ee"/>
+<g font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="58" y="76" fill="#303e39" font-size="34" font-weight="600">应用数据与外部接口，分别处理</text>
+<text x="58" y="116" fill="#738078" font-size="19">接口适配说明示例，并非公司源码</text>
+<rect x="38" y="154" width="1124" height="480" rx="6" fill="#fff" stroke="#dedfd8"/>
+<text x="62" y="202" fill="#a0a99f" font-family="monospace" font-size="18">01</text>
+<text x="112" y="202" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">用户输入        →  应用自己的请求结构</text>
+<text x="62" y="244" fill="#a0a99f" font-family="monospace" font-size="18">02</text>
+<text x="112" y="244" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve"></text>
+<text x="62" y="286" fill="#a0a99f" font-family="monospace" font-size="18">03</text>
+<text x="112" y="286" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">请求适配        →  外部接口需要的字段与格式</text>
+<text x="62" y="328" fill="#a0a99f" font-family="monospace" font-size="18">04</text>
+<text x="112" y="328" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve"></text>
+<text x="62" y="370" fill="#a0a99f" font-family="monospace" font-size="18">05</text>
+<text x="112" y="370" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">外部返回        →  结果、错误与附带信息</text>
+<text x="62" y="412" fill="#a0a99f" font-family="monospace" font-size="18">06</text>
+<text x="112" y="412" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve"></text>
+<text x="62" y="454" fill="#a0a99f" font-family="monospace" font-size="18">07</text>
+<text x="112" y="454" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">结果适配        →  页面可以直接消费的响应</text>
+</g></svg>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { articleImages } from '~/data/editorial'
 import { articleDate, formatDate, type Article } from '~/composables/useArticles'
 import { articleSummary, readingMinutes } from '~/utils/article'
 
@@ -10,7 +11,10 @@ const props = defineProps<{
 const destination = computed(() => `/posts/${encodeURIComponent(props.article.slug)}`)
 const topic = computed(() => props.article.category?.name || props.article.tags?.[0] || '开发随笔')
 const openArticle = useArticleExpansion()
-const coverUrl = computed(() => props.coverSrc || assetUrl(props.article.cover_url))
+const editorialCover = computed(() => articleImages[props.article.slug])
+const coverUrl = computed(() => props.coverSrc || assetUrl(props.article.cover_url) || editorialCover.value?.src || '')
+const isPoster = computed(() => !props.coverSrc && !props.article.cover_url && editorialCover.value?.poster)
+const alt = computed(() => props.coverAlt || (!props.article.cover_url && editorialCover.value?.alt) || `${props.article.title}封面`)
 const summary = computed(() => articleSummary(props.article.summary, props.article.content_md))
 const failedCover = ref('')
 const coverImage = ref<HTMLImageElement | null>(null)
@@ -22,9 +26,9 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
 </script>
 
 <template>
-  <article data-article-card class="editorial-card bento-card reading-card" :class="{ 'has-cover': showCover }" @click.capture="openArticle($event, destination)">
+  <article data-article-card class="editorial-card bento-card reading-card" :class="{ 'has-cover': showCover, 'poster-card': showCover && isPoster }" @click.capture="openArticle($event, destination)">
     <div v-if="showCover" class="editorial-cover">
-      <img ref="coverImage" :src="coverUrl" :alt="coverAlt || `${article.title}封面`" width="800" height="600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
+      <img ref="coverImage" :src="coverUrl" :alt="alt" :width="isPoster ? 1280 : 800" :height="isPoster ? 720 : 600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
     </div>
     <div class="editorial-body">
       <div class="editorial-meta">

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title"><title id="title">一次交付的检查顺序</title><rect width="1200" height="680" fill="#faf9f6"/>
+<g font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="60" y="90" fill="#263e38" font-size="36" font-weight="600">一次交付的检查顺序</text>
+<path d="M60 123 H1140" stroke="#d8ddd6"/>
+<rect x="60" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="84" y="264" fill="#263e38" font-size="30" font-weight="500">准备提交</text>
+<text x="84" y="309" fill="#5b6b65" font-size="19">本地代码与检查结果</text>
+<path d="M390 279 h36 m-9 -8 9 8 -9 8" fill="none" stroke="#718d7c" stroke-width="2"/>
+<rect x="440" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="464" y="264" fill="#263e38" font-size="30" font-weight="500">权限与证据</text>
+<text x="464" y="309" fill="#5b6b65" font-size="19">准确对象、版本与授权</text>
+<path d="M770 279 h36 m-9 -8 9 8 -9 8" fill="none" stroke="#718d7c" stroke-width="2"/>
+<rect x="820" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="844" y="264" fill="#263e38" font-size="30" font-weight="500">执行或停止</text>
+<text x="844" y="309" fill="#5b6b65" font-size="19">条件不满足时不继续</text>
+<path d="M60 430 h320" stroke="#c6d0c6"/>
+<text x="60" y="485" fill="#263e38" font-size="27" font-weight="500">执行角色</text>
+<text x="60" y="530" fill="#5b6b65" font-size="21">由策略确定谁执行</text>
+<path d="M440 430 h320" stroke="#c6d0c6"/>
+<text x="440" y="485" fill="#263e38" font-size="27" font-weight="500">不可变版本</text>
+<text x="440" y="530" fill="#5b6b65" font-size="21">源 / 目标引用与 SHA</text>
+<path d="M820 430 h320" stroke="#c6d0c6"/>
+<text x="820" y="485" fill="#263e38" font-size="27" font-weight="500">新鲜证据</text>
+<text x="820" y="530" fill="#5b6b65" font-size="21">PR 状态与 required CI</text>
+</g></svg>
