@@ -2,11 +2,7 @@
 import { createJourneyScrollSnap } from '~/utils/aboutJourneySnap'
 const root = ref<HTMLElement | null>(null)
 const mode = ref(false)
-const reading = ref(false)
-const labels = ref<string[]>([])
-const current = ref(0)
 let jump: ((index: number) => void) | undefined
-let toggle: (() => void) | undefined
 let cleanup: (() => void) | undefined
 provide('about-journey-next', () => jump?.(1))
 onMounted(() => {
@@ -17,9 +13,7 @@ onMounted(() => {
   const path = element.querySelector<SVGPathElement>('.journey-path')!
   const cursor = element.querySelector<HTMLElement>('.journey-cursor')!
   const scenes = Array.from(element.querySelectorAll<HTMLElement>('[data-journey-scene]'))
-  labels.value = scenes.map(scene => scene.querySelector('h2')?.textContent || '关于我')
   const preference = matchMedia('(prefers-reduced-motion: reduce)')
-  let ordinary = false
   let frame: number | undefined
   let points: { x: number, y: number }[] = []
   let lengths: number[] = []
@@ -41,7 +35,6 @@ onMounted(() => {
     const a = points[segment]!, b = points[segment + 1]!
     camera.style.transform = `translate3d(${-a.x - (b.x - a.x) * blend}px, ${-a.y - (b.y - a.y) * blend}px, 0)`
     const index = blend < .5 ? segment : segment + 1
-    current.value = index
     scenes.forEach((scene, i) => { scene.inert = i !== index })
     const pathPosition = (lengths[segment] ?? 0) + ((lengths[segment + 1] ?? 0) - (lengths[segment] ?? 0)) * blend
     const point = path.getPointAtLength(pathPosition)
@@ -63,7 +56,7 @@ onMounted(() => {
     const nav = document.querySelector('.site-header')?.getBoundingClientRect().height ?? 70
     element.style.setProperty('--journey-nav', `${nav}px`)
     element.style.setProperty('--journey-count', String(scenes.length))
-    const enabled = !ordinary && !preference.matches && scenes.length > 1 && CSS.supports('position', 'sticky')
+    const enabled = !preference.matches && scenes.length > 1 && CSS.supports('position', 'sticky')
     element.classList.toggle('is-continuous', enabled)
     // Measure the real responsive content before opting into the camera; long profiles stay ordinary pages.
     const available = Math.max(400, innerHeight - nav)
@@ -71,27 +64,18 @@ onMounted(() => {
     mode.value = enabled && fits
     element.classList.toggle('is-continuous', mode.value)
     if (!mode.value) { clear(); update(); return }
-    const width = stage.clientWidth, height = stage.clientHeight
-    points = scenes.map((_, index) => ({ x: Math.ceil(index / 2) * width * 1.2, y: Math.floor(index / 2) * height * 1.18 }))
+    const height = stage.clientHeight
+    points = scenes.map((_, index) => ({ x: 0, y: index * height * 1.18 }))
     scenes.forEach((scene, index) => { scene.style.left = `${points[index]!.x}px`; scene.style.top = `${points[index]!.y}px` })
-    const anchors = points.map((point, i) => ({ x: point.x + (i === 0 ? width * .72 : 12), y: point.y + (i === 0 ? height * .45 : 110) }))
+    const anchors = points.map(point => ({ x: 12, y: point.y + 110 }))
     let d = `M ${anchors[0]!.x} ${anchors[0]!.y}`
     lengths = [0]
-    anchors.slice(1).forEach((target, index) => {
-      const before = anchors[index]!
-      d += ` C ${before.x + width * .25} ${before.y}, ${target.x} ${target.y - height * .25}, ${target.x} ${target.y}`
+    anchors.slice(1).forEach(target => {
+      d += ` L ${target.x} ${target.y}`
       path.setAttribute('d', d)
       lengths.push(path.getTotalLength())
     })
     update()
-  }
-  toggle = () => {
-    ordinary = !ordinary
-    reading.value = ordinary
-    const index = current.value
-    configure()
-    if (ordinary) scenes[index]?.scrollIntoView({ block: 'start', behavior: 'instant' })
-    else jump?.(index)
   }
   jump = (index) => {
     if (!mode.value) { scenes[index]?.scrollIntoView({ behavior: 'smooth' }); return }
@@ -117,7 +101,6 @@ onBeforeUnmount(() => cleanup?.())
 
 <template>
   <article ref="root" class="continuous-story">
-    <button v-if="reading" type="button" class="journey-resume" @click="toggle?.()">返回连续镜头 →</button>
     <div class="journey-stage">
       <AboutPointerBackground />
       <div class="journey-camera">
@@ -125,17 +108,12 @@ onBeforeUnmount(() => cleanup?.())
         <span class="journey-cursor" aria-hidden="true" />
         <slot />
       </div>
-      <div v-if="mode" class="journey-controls">
-        <nav aria-label="自我介绍章节"><button v-for="(label, index) in labels" :key="index" type="button" :aria-label="`第${index + 1}章：${label}`" :aria-current="current === index ? 'step' : undefined" @click="jump?.(index)"><span class="journey-step">0{{ index + 1 }}</span><span class="journey-step-label">{{ label }}</span></button></nav>
-        <button type="button" class="reading-mode" @click="toggle?.()">普通阅读 ↗</button>
-      </div>
     </div>
   </article>
 </template>
 
 <style scoped>
 .continuous-story { --journey-nav: 70px; position: relative; }
-.journey-resume { display: block; margin: 24px 0 24px auto; min-height: 44px; padding: 12px; color: var(--accent); font-size: 13px; }
 :deep([data-journey-scene]) { scroll-margin-top: calc(var(--journey-nav) + 24px); }
 .journey-ground, .journey-thread, .journey-cursor { display: none; }
 .is-continuous { height: calc(var(--journey-count) * 125svh); }
@@ -162,11 +140,6 @@ onBeforeUnmount(() => cleanup?.())
 .journey-cursor[data-shape='orbit'] { width: 18px; height: 18px; box-shadow: 0 0 0 8px rgb(183 154 102 / 10%); }
 .journey-cursor[data-shape='contact'] { width: 22px; height: 16px; border-radius: 3px; }
 .journey-cursor[data-shape='contact']::after { content: ''; position: absolute; left: 4px; top: -4px; width: 10px; height: 10px; border-right: 1px solid #a48145; border-bottom: 1px solid #a48145; transform: rotate(45deg); }
-.journey-controls { position: absolute; z-index: 3; bottom: 12px; inset-inline: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: color-mix(in srgb, var(--surface-page) 90%, transparent); border-top: 1px solid var(--border-default); backdrop-filter: blur(12px); }
-.journey-controls nav { display: flex; flex-wrap: wrap; }
-.journey-controls button { min-height: 44px; padding: 10px 12px; font-size: 11px; color: var(--text-muted); }
-.journey-controls button[aria-current] { color: var(--text-primary); }
-.journey-step { margin-right: 8px; font-variant-numeric: tabular-nums; }
 @media(max-width:640px), (max-height:760px) {
   .is-continuous :deep([data-journey-scene]) { padding: 24px 18px 64px; }
   .is-continuous :deep(.narrative-opening) { min-height: calc(100svh - var(--journey-nav) - 180px); padding: 16px 0 8px; gap: 16px; }
@@ -186,9 +159,6 @@ onBeforeUnmount(() => cleanup?.())
   .is-continuous :deep(.selected-grid) { gap: 20px; }
   .is-continuous :deep(.selected-group h3) { margin-bottom: 8px; }
   .is-continuous :deep(.selected-group a) { padding: 10px 0; min-height: 36px; font-size: 13px; }
-  .journey-step-label { display: none; }
-  .journey-controls button { padding-inline: 8px; }
-  .journey-step { margin: 0; }
 }
 .journey-stage { position:relative; isolation:isolate; }
 
