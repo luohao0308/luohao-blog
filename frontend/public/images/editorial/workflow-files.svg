@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title"><title id="title">协作资料在仓库中的位置</title><rect width="1200" height="680" fill="#f5f3ee"/>
+<g font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="58" y="76" fill="#303e39" font-size="34" font-weight="600">协作资料在仓库中的位置</text>
+<text x="58" y="116" fill="#738078" font-size="19">按 dev-workflow 的 Core 目录整理</text>
+<rect x="38" y="154" width="1124" height="480" rx="6" fill="#fff" stroke="#dedfd8"/>
+<text x="62" y="202" fill="#a0a99f" font-family="monospace" font-size="18">01</text>
+<text x="112" y="202" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">AGENTS.md                  项目规则与读取顺序</text>
+<text x="62" y="244" fill="#a0a99f" font-family="monospace" font-size="18">02</text>
+<text x="112" y="244" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">docs/</text>
+<text x="62" y="286" fill="#a0a99f" font-family="monospace" font-size="18">03</text>
+<text x="112" y="286" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  README.md                文档导航</text>
+<text x="62" y="328" fill="#a0a99f" font-family="monospace" font-size="18">04</text>
+<text x="112" y="328" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  TASKS.md                 任务状态</text>
+<text x="62" y="370" fill="#a0a99f" font-family="monospace" font-size="18">05</text>
+<text x="112" y="370" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  PROJECT-SUMMARY.md       稳定的项目事实</text>
+<text x="62" y="412" fill="#a0a99f" font-family="monospace" font-size="18">06</text>
+<text x="112" y="412" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  WORKING-CONTEXT.md       本机临时上下文</text>
+<text x="62" y="454" fill="#a0a99f" font-family="monospace" font-size="18">07</text>
+<text x="112" y="454" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">scripts/</text>
+<text x="62" y="496" fill="#a0a99f" font-family="monospace" font-size="18">08</text>
+<text x="112" y="496" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  delivery_guard.py        交付权限检查</text>
+<text x="62" y="538" fill="#a0a99f" font-family="monospace" font-size="18">09</text>
+<text x="112" y="538" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">  workflow_check.py        只读接入检查</text>
+</g></svg>

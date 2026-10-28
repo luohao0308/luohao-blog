@@ -12,6 +12,8 @@ _last-updated: 2026-10-20_
 
 ## 进行中 (In Progress)
 
+- 图文内容与创作者封面：用户已批准并指定 SSH 上线；在最新 main 隔离集成，代码/内容清单已完成本地验证。发布步骤与边界见 [发布计划](plans/CREATOR-CONTENT-RELEASE-2026-10.md)。
+
 | ID | 任务 | 范围/仓库 | 上下文 | 阻塞 |
 |---|---|---|---|---|
 | UI-CARDS | 用户选定封面式卡片；从最新main隔离集成，保留封面字段/聚光/原地展开；78测试、lint/typecheck/build、组合浏览器回归与独立复核通过，准备准确SHA授权交付 | frontend | [计划](plans/COVER-CARDS-2026-10.md) | 远端与生产需准确版本一次性授权；未上线 |

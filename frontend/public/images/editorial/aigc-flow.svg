@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title"><title id="title">前端输入与模型接口之间</title><rect width="1200" height="680" fill="#faf9f6"/>
+<g font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="60" y="90" fill="#263e38" font-size="36" font-weight="600">前端输入与模型接口之间</text>
+<path d="M60 123 H1140" stroke="#d8ddd6"/>
+<rect x="60" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="84" y="264" fill="#263e38" font-size="30" font-weight="500">前端输入</text>
+<text x="84" y="309" fill="#5b6b65" font-size="19">用户发起请求</text>
+<path d="M390 279 h36 m-9 -8 9 8 -9 8" fill="none" stroke="#718d7c" stroke-width="2"/>
+<rect x="440" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="464" y="264" fill="#263e38" font-size="30" font-weight="500">Python 后端</text>
+<text x="464" y="309" fill="#5b6b65" font-size="19">请求适配与结果转换</text>
+<path d="M770 279 h36 m-9 -8 9 8 -9 8" fill="none" stroke="#718d7c" stroke-width="2"/>
+<rect x="820" y="200" width="320" height="160" rx="6" fill="#fff" stroke="#c6d0c6" stroke-width="2"/>
+<text x="844" y="264" fill="#263e38" font-size="30" font-weight="500">外部 AI API</text>
+<text x="844" y="309" fill="#5b6b65" font-size="19">提供模型能力</text>
+<path d="M60 430 h320" stroke="#c6d0c6"/>
+<text x="60" y="485" fill="#263e38" font-size="27" font-weight="500">结果返回</text>
+<text x="60" y="530" fill="#5b6b65" font-size="21">转换后交给前端展示</text>
+<path d="M440 430 h320" stroke="#c6d0c6"/>
+<text x="440" y="485" fill="#263e38" font-size="27" font-weight="500">审核接入</text>
+<text x="440" y="530" fill="#5b6b65" font-size="21">使用第三方审核服务</text>
+<path d="M820 430 h320" stroke="#c6d0c6"/>
+<text x="820" y="485" fill="#263e38" font-size="27" font-weight="500">部署上线</text>
+<text x="820" y="530" fill="#5b6b65" font-size="21">本人负责的工作环节</text>
+</g></svg>

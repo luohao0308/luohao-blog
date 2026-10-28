@@ -16,7 +16,7 @@ const homeArticles = computed(() => {
 })
 const hasFeaturedArticles = computed(() => homeArticles.value.some(article => article.featured))
 
-usePageSeo({ title: '首页', description: '全栈工程师 luohao 的技术博客，记录 Go、Nuxt 与 AI Agent 的真实工程实践。' })
+usePageSeo({ title: '首页', description: '全栈工程师 luohao 的技术博客，记录 Python 后端、全栈开发、AIGC 与 AI Agent 的工程实践。' })
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/luohao0308' },
@@ -51,7 +51,7 @@ const featuredProjects = computed(() => {
       <div class="home-intro">
         <p class="home-eyebrow"><span aria-hidden="true" />CODE · CREATE · EXPLORE</p>
         <h1 id="home-heading">把想法写成代码，<br>让探索<span>继续发生。</span></h1>
-        <p class="home-description">你好，我是 luohao。关注全栈开发与 AI Agent，<br class="hidden sm:block">记录真实的构建、思考，以及每一次向前。</p>
+        <p class="home-description">你好，我是 luohao。从 Python 后端到全栈与 AI 应用开发，<br class="hidden sm:block">记录真实的构建、思考，以及每一次向前。</p>
         <div class="home-actions">
           <NuxtLink to="/posts" class="ui-button home-primary">阅读文章 <span aria-hidden="true">↗</span></NuxtLink>
           <NuxtLink to="/projects" class="home-secondary">看看项目 <span aria-hidden="true">↗</span></NuxtLink>

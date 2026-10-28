@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title"><title id="title">相同字符集，字段定义仍然不同</title><rect width="1200" height="680" fill="#f5f3ee"/>
+<g font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="58" y="76" fill="#303e39" font-size="34" font-weight="600">相同字符集，字段定义仍然不同</text>
+<text x="58" y="116" fill="#738078" font-size="19">本站 baseline 与 subscribers 迁移节选</text>
+<rect x="38" y="154" width="1124" height="480" rx="6" fill="#fff" stroke="#dedfd8"/>
+<text x="62" y="202" fill="#a0a99f" font-family="monospace" font-size="18">01</text>
+<text x="112" y="202" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">-- articles / tags</text>
+<text x="62" y="244" fill="#a0a99f" font-family="monospace" font-size="18">02</text>
+<text x="112" y="244" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">`slug` varchar(255) COLLATE utf8mb4_bin NOT NULL</text>
+<text x="62" y="286" fill="#a0a99f" font-family="monospace" font-size="18">03</text>
+<text x="112" y="286" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">`name` varchar(255) COLLATE utf8mb4_bin NOT NULL</text>
+<text x="62" y="328" fill="#a0a99f" font-family="monospace" font-size="18">04</text>
+<text x="112" y="328" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve"></text>
+<text x="62" y="370" fill="#a0a99f" font-family="monospace" font-size="18">05</text>
+<text x="112" y="370" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">-- subscribers</text>
+<text x="62" y="412" fill="#a0a99f" font-family="monospace" font-size="18">06</text>
+<text x="112" y="412" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">`email` varchar(191) COLLATE utf8mb4_bin NOT NULL</text>
+<text x="62" y="454" fill="#a0a99f" font-family="monospace" font-size="18">07</text>
+<text x="112" y="454" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">UNIQUE KEY `email` (`email`)</text>
+<text x="62" y="496" fill="#a0a99f" font-family="monospace" font-size="18">08</text>
+<text x="112" y="496" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve"></text>
+<text x="62" y="538" fill="#a0a99f" font-family="monospace" font-size="18">09</text>
+<text x="112" y="538" fill="#334d44" font-family="ui-monospace, SFMono-Regular, Menlo, PingFang SC, monospace" font-size="22" xml:space="preserve">-- 长度取决于业务与目标环境，不应只照抄数字。</text>
+</g></svg>

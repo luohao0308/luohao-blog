@@ -30,9 +30,20 @@
 .editorial-card:hover, .editorial-card:focus-within { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--card-hover-border), 0 12px 26px rgb(15 23 42 / 12%); }
 .editorial-card:hover .editorial-cover img, .editorial-card:focus-within .editorial-cover img { transform: scale(1.04); }
 .editorial-card:hover .editorial-arrow, .editorial-card:focus-within .editorial-arrow { transform: translate(2px, -2px); }
-.dark .editorial-card:not(.has-cover) { --card-bg: #1d2a3d; --card-ink: #e0e9f7; --card-muted: #adbbd0; --card-focus: #a3b8ee; }
-.dark .editorial-card.work-card:not(.has-cover) { --card-bg: #1d3029; --card-ink: #e2eee7; --card-muted: #a9c1b4; }
-.dark .editorial-card.tone-sand:not(.has-cover) { --card-bg: #30281f; --card-ink: #eee6db; --card-muted: #c9bba7; }
+/* Posters already contain their artwork and headline; keep every pixel visible. */
+.editorial-card.has-cover.poster-card { --card-ink: #243c5c; --card-muted: #52657d; --card-focus: #315cdd; flex-direction: column; min-height: 0; }
+.editorial-card.work-card.has-cover.poster-card { --card-ink: #29463c; --card-muted: #5a7066; }
+.editorial-card.tone-sand.has-cover.poster-card { --card-ink: #544233; --card-muted: #7b6a5d; }
+.editorial-card.has-cover.poster-card::before { content: none; }
+.editorial-card.has-cover.poster-card .editorial-cover { position: relative; inset: auto; flex-shrink: 0; width: 100%; aspect-ratio: 16 / 9; }
+.editorial-card.has-cover.poster-card .editorial-cover img { object-fit: contain; transform: none; }
+.editorial-card.has-cover.poster-card .editorial-body { position: static; z-index: auto; min-height: 0; padding: 12px 14px; }
+.editorial-card.has-cover.poster-card .editorial-copy { margin-top: 6px; padding-top: 0; }
+.editorial-card.has-cover.poster-card .editorial-heading { font-size: 16px; line-height: 1.5; letter-spacing: -.02em; }
+.editorial-card.has-cover.poster-card .editorial-footer { padding-top: 8px; }
+.dark .editorial-card:not(.has-cover), .dark .editorial-card.has-cover.poster-card { --card-bg: #1d2a3d; --card-ink: #e0e9f7; --card-muted: #adbbd0; --card-focus: #a3b8ee; }
+.dark .editorial-card.work-card:not(.has-cover), .dark .editorial-card.work-card.has-cover.poster-card { --card-bg: #1d3029; --card-ink: #e2eee7; --card-muted: #a9c1b4; }
+.dark .editorial-card.tone-sand:not(.has-cover), .dark .editorial-card.tone-sand.has-cover.poster-card { --card-bg: #30281f; --card-ink: #eee6db; --card-muted: #c9bba7; }
 @media (prefers-reduced-motion: reduce) {
   .editorial-card, .editorial-cover img, .editorial-arrow { transition: none; }
   .editorial-card:hover, .editorial-card:focus-within, .editorial-card:hover .editorial-cover img, .editorial-card:focus-within .editorial-cover img, .editorial-card:hover .editorial-arrow, .editorial-card:focus-within .editorial-arrow { transform: none; }
@@ -43,3 +54,6 @@
 .site-shell .bento-card.editorial-card { border: 0; border-radius: 8px; background: var(--card-bg); }
 .site-shell .bento-card.editorial-card.has-cover::before { z-index: 1; opacity: 1; background: radial-gradient(360px circle at var(--card-light-x) var(--card-light-y), var(--card-spot), transparent 45%), linear-gradient(180deg, rgb(9 15 23 / 65%), rgb(9 15 23 / 10%) 35%, rgb(9 15 23 / 88%)); }
 .editorial-featured { flex-shrink: 0; font-weight: 600; }
+
+/* Keep the spotlight rim, without painting over poster artwork. */
+.site-shell .bento-card.editorial-card.has-cover.poster-card::before { content: none; }

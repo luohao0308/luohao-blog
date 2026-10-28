@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { articleImages } from '~/data/editorial'
 import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticles } from '~/composables/useArticles'
 import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
@@ -15,6 +16,15 @@ if (!data.value) throw createError({ statusCode: 404, message: '文章不存在'
 
 // Non-null by the 404 guard above; the backend renderer owns the HTML.
 const article = computed(() => data.value!)
+const editorialCover = computed(() => article.value.cover_url ? undefined : articleImages[article.value.slug])
+const coverUrl = computed(() => editorialCover.value?.src || assetUrl(article.value.cover_url))
+const coverAlt = computed(() => editorialCover.value?.alt || `${article.value.title}封面`)
+const failedCover = ref('')
+const coverImage = ref<HTMLImageElement | null>(null)
+const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
+onMounted(() => {
+  if (coverImage.value?.complete && !coverImage.value.naturalWidth) failedCover.value = coverUrl.value
+})
 const preparedContent = computed(() => prepareArticleHtml(article.value.content_html ?? ''))
 const minutes = computed(() => readingMinutes(article.value.content_md))
 const summary = computed(() => articleSummary(article.value.summary, article.value.content_md))
@@ -105,7 +115,7 @@ onMounted(() => {
 usePageSeo({
   title: () => article.value.title,
   description: () => summary.value,
-  image: () => article.value.cover_url,
+  image: () => editorialCover.value?.src || article.value.cover_url,
   type: 'article',
 })
 </script>
@@ -147,10 +157,14 @@ usePageSeo({
         </NuxtLink>
       </div>
       <img
-        v-if="article.cover_url"
-        :src="assetUrl(article.cover_url)"
-        :alt="`${article.title}封面`"
-        class="aspect-[16/9] w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800"
+        v-if="showCover"
+        ref="coverImage"
+        :src="coverUrl"
+        :alt="coverAlt"
+        width="1280"
+        height="720"
+        class="aspect-[16/9] w-full rounded-xl border border-slate-200 object-contain dark:border-slate-800"
+        @error="failedCover = coverUrl"
       >
     </header>
 

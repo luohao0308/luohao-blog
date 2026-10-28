@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { projectImages, projectStories } from '~/data/editorial'
 const route = useRoute()
 definePageMeta({ key: route => route.path })
 const slug = computed(() => String(route.params.slug))
@@ -7,6 +8,16 @@ const { data, error } = await useProjectBySlug(slug.value)
 if (error.value) throw createError({ statusCode: error.value.statusCode === 404 ? 404 : 503, message: error.value.statusCode === 404 ? '项目不存在' : '项目暂时无法加载' })
 if (!data.value) throw createError({ statusCode: 404, message: '项目不存在' })
 const project = computed(() => data.value!)
+const editorialCover = computed(() => project.value.cover_url ? undefined : projectImages[slug.value])
+const story = computed(() => projectStories[slug.value])
+const sections = computed(() => {
+  const source = project.value.description
+  if (!source.startsWith('## ')) return [{ title: '项目说明', paragraphs: source.split('\n\n') }]
+  return source.split(/\n\n(?=## )/).map(section => {
+    const [title, ...body] = section.split('\n')
+    return { title: title!.replace(/^## /, ''), paragraphs: body.join('\n').trim().split('\n\n') }
+  })
+})
 const { data: allProjects, error: relatedError } = await usePublicProjects()
 const repoURL = computed(() => safePortfolioHref(project.value.repo_url))
 const liveURL = computed(() => safePortfolioHref(project.value.live_url))
@@ -27,7 +38,7 @@ const relatedProjects = computed(() =>
 usePageSeo({
   title: () => `${project.value.name} · 作品集`,
   description: () => project.value.summary,
-  image: () => project.value.cover_url,
+  image: () => editorialCover.value?.src || project.value.cover_url,
 })
 </script>
 
@@ -49,15 +60,19 @@ usePageSeo({
         </div>
       </div>
       <p class="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-400">{{ project.summary }}</p>
-      <img v-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="aspect-[16/9] w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800">
+      <ContentFigure v-if="editorialCover" :media="editorialCover" />
+      <img v-else-if="project.cover_url" :src="assetUrl(project.cover_url)" :alt="`${project.name} 项目封面`" class="aspect-[16/9] w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800">
     </header>
 
     <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_220px]">
       <section class="min-w-0 space-y-4">
-        <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目说明</h2>
-        <p class="max-w-[860px] whitespace-pre-line break-words text-sm leading-8 text-slate-600 dark:text-slate-400">{{ project.description }}</p>
+        <section v-for="(section, index) in sections" :key="section.title" class="space-y-4 pb-5">
+          <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">{{ section.title }}</h2>
+          <p v-for="paragraph in section.paragraphs" :key="paragraph" class="max-w-[860px] whitespace-pre-line break-words text-sm leading-8 text-slate-600 dark:text-slate-400">{{ paragraph }}</p>
+          <ContentFigure v-if="index === 1 && story?.detailImage" :media="story.detailImage" />
+        </section>
       </section>
-      <aside class="bento-card space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
+      <aside class="bento-card self-start space-y-4 rounded-xl bg-[#f3f5f8] p-5 dark:bg-slate-900">
         <h2 class="text-xs font-medium text-slate-700 dark:text-slate-200">技术栈</h2>
         <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
           <li v-for="item in project.stack" :key="item" class="break-words">{{ item }}</li>
@@ -71,13 +86,21 @@ usePageSeo({
         <p class="mt-3 max-w-[860px] whitespace-pre-line break-words text-sm leading-7 text-slate-600 dark:text-slate-400">{{ item.text || '资料正在整理中。' }}</p>
       </div>
     </section>
-    <p v-else class="rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">问题、方案与结果资料正在整理中，当前仅展示已经核实的项目信息。</p>
+    <p v-else-if="!story" class="rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">问题、方案与结果资料正在整理中，当前仅展示已经核实的项目信息。</p>
 
     <section v-if="project.screenshots?.length" class="space-y-4">
       <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目截图</h2>
       <div class="grid gap-4 sm:grid-cols-2">
         <img v-for="(image, index) in project.screenshots" :key="image" :src="assetUrl(image)" :alt="`${project.name} 截图 ${index + 1}`" class="w-full rounded-xl border border-slate-200 object-cover dark:border-slate-800">
       </div>
+    </section>
+
+    <ContentFigure v-if="story" :media="{ src: `/images/editorial/${story.diagram}.svg`, alt: `${project.name} 的项目链路简图`, caption: '项目链路简图。', credit: '', diagram: true }" />
+    <section v-if="story" class="space-y-4 border-t border-slate-200 pt-8 dark:border-slate-800">
+      <h2 class="text-lg font-medium">源码与延伸阅读</h2>
+      <ul class="space-y-3 text-sm leading-7">
+        <li v-for="reference in story.references" :key="reference.url"><a :href="reference.url" target="_blank" rel="noopener" class="text-blue-600 underline dark:text-blue-300">{{ reference.title }} ↗</a></li>
+      </ul>
     </section>
 
     <section v-if="relatedProjects.length" class="space-y-4 border-t border-slate-200 pt-9 dark:border-slate-800">
