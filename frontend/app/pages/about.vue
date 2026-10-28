@@ -32,7 +32,6 @@ usePageSeo({
       <AboutNarrative continuous data-journey-scene name="罗浩" headline="" :intro="displayIntro" :image="about.profile_image" />
       <div data-about-content class="about-story">
         <AboutChapter data-journey-scene>
-          <p class="chapter-label" data-chapter-item>01 / NOTES</p>
           <h2 data-chapter-item>这里会写什么</h2>
           <div class="reader-notes" data-chapter-item>
             <p><strong>产品实践</strong>：记录从想法到实现的过程、需求取舍与使用反馈。</p>
@@ -42,7 +41,6 @@ usePageSeo({
         </AboutChapter>
 
         <AboutChapter data-journey-scene>
-          <p class="chapter-label" data-chapter-item>02 / EXPLORING</p>
           <h2 data-chapter-item>正在做的事</h2>
           <div class="reader-notes" data-chapter-item>
             <p><strong>dev-workflow</strong>：探索人与 AI 协作开发的流程，边使用边记录。</p>
@@ -52,7 +50,6 @@ usePageSeo({
         </AboutChapter>
 
         <AboutChapter data-journey-scene>
-          <p class="chapter-label" data-chapter-item>03 / SELECTED</p>
           <h2 data-chapter-item>从这里开始</h2>
           <div class="selected-grid">
             <div class="selected-group" data-chapter-item>
@@ -72,7 +69,6 @@ usePageSeo({
         </AboutChapter>
 
         <AboutChapter data-journey-scene class="contact-chapter">
-          <p class="chapter-label" data-chapter-item>04 / CONNECT</p>
           <h2 data-chapter-item>一起交流</h2>
           <p class="chapter-lead" data-chapter-item>如果你也在做产品、写代码或尝试 AI，欢迎分享你的问题、想法和实践。</p>
           <div class="contact-actions" data-chapter-item>
