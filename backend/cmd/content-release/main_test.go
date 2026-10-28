@@ -265,3 +265,13 @@ func TestMySQLCreateReadPublish(t *testing.T) {
 		t.Fatal("real MySQL create/read/publish failed")
 	}
 }
+
+func TestReaderIPUpdateBundle(t *testing.T) {
+	raw, err := os.ReadFile("../../../content/releases/ip-reader-20261028.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = loadBundle(raw, "", false); err != nil {
+		t.Fatal(err)
+	}
+}

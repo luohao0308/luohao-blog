@@ -57,3 +57,25 @@
 
 /* Keep the spotlight rim, without painting over poster artwork. */
 .site-shell .bento-card.editorial-card.has-cover.poster-card::before { content: none; }
+
+/* Dense browsing: complete thumbnails, compact readable labels. */
+.site-content-container.compact-listing { width: calc(100% - 48px); max-width: 1440px; }
+.media-feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 14px; }
+@media (min-width: 720px) { .media-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .media-feed { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .media-feed { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 359px) { .media-feed { grid-template-columns: minmax(0, 1fr); } }
+.media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 8px 10px; gap: 3px; }
+.media-feed .editorial-card.has-cover.poster-card .editorial-copy { order: 0; margin: 0; }
+.media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 14px; line-height: 1.5; font-weight: 500; }
+.media-feed .editorial-meta { order: 1; font-size: 11px; margin-top: 2px; }
+.media-feed .editorial-footer { order: 2; padding-top: 2px; font-size: 10px; }
+.media-feed .editorial-reading { display: none; }
+.media-feed .editorial-arrow { font-size: 15px; }
+@media (max-width: 640px) {
+ .site-content-container.compact-listing { width: calc(100% - 24px); }
+ .media-feed { gap: 18px 10px; }
+ .media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 13px; }
+ .media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 7px 8px; }
+ .media-feed .editorial-meta > :last-child { font-size: 9px; }
+}

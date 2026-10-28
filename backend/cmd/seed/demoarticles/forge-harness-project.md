@@ -6,7 +6,7 @@ tags: Python, FastAPI, React, AI Agent, 个人项目
 status: draft
 ---
 
-一次模型回答很容易展示，任务执行过程却包含更多东西：工具有没有真的调用、上一步输出交给了谁、失败之后哪些动作已经发生。[Forge Harness](https://github.com/luohao0308/forge-harness) 是我的个人 Agent 项目，用控制台和运行时把这些过程组织起来。仓库把私有部署列为目标，但这里讨论的是工程实现与验证方法，不代表企业客户、生产规模或商业交付经历。
+一次模型回答很容易展示，任务执行过程却包含更多东西：工具有没有真的调用、上一步输出交给了谁、失败之后哪些动作已经发生。[Forge Harness](https://github.com/luohao0308/forge-harness) 是我的个人 Agent 项目，用控制台和运行时把这些过程组织起来。这里记录实现过程与可复现的验证方法。
 
 ## 从聊天消息转向一次 Run
 

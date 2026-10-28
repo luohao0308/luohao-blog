@@ -90,7 +90,7 @@ function isActive(to: string) {
       </nav>
     </header>
 
-    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main site-content-container flex-1" :class="{ 'py-10': !route.meta.immersiveAbout }">
+    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main site-content-container flex-1" :class="{ 'py-10': !route.meta.immersiveAbout, 'compact-listing': route.path === '/posts' || route.path === '/projects' }">
       <slot />
     </main>
 

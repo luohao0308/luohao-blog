@@ -111,7 +111,7 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
       <p v-if="searchPending" role="status" class="text-sm text-[var(--text-muted)]">正在搜索，结果即将更新…</p>
       <p v-if="searchError" class="text-xs text-slate-500 dark:text-slate-400">搜索服务暂不可用，已显示本地匹配结果。</p>
       <p role="status" class="text-xs text-slate-500 dark:text-slate-400">{{ articles.length }} 篇文章</p>
-      <div v-if="articles.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-if="articles.length" class="media-feed">
         <ArticleCard v-for="article in articles" :key="article.id" :article="article" data-article-reveal />
       </div>
       <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : activeCategory ? '这个分类下暂无文章。' : activeTag ? '这个标签下暂无文章。' : '第一篇文章正在路上。' }}</p>
