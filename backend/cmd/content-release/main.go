@@ -161,7 +161,9 @@ func loadBundle(raw []byte, hash string, apply bool) (*bundle, error) {
 			return nil, errRelease
 		}
 	}
-	if counts["update_article"] != 4 || counts["create_article"] != 3 || counts["update_project"] != 3 || counts["create_project"] != 2 || counts["update_about"] != 1 {
+	initialRelease := counts["update_article"] == 4 && counts["create_article"] == 3 && counts["update_project"] == 3 && counts["create_project"] == 2
+ readerUpdate := counts["update_article"] == 7 && counts["create_article"] == 0 && counts["update_project"] == 5 && counts["create_project"] == 0
+ if !initialRelease && !readerUpdate || counts["update_about"] != 1 {
 		return nil, errRelease
 	}
 	return &b, nil

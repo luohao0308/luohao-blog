@@ -26,11 +26,13 @@ function close() { panel.value?.hidePopover() }
   position: fixed;
   inset: auto 1rem max(5rem, calc(env(safe-area-inset-bottom) + 4rem)) auto;
   margin: 0;
-  width: min(22rem, calc(100vw - 2rem));
+  width: min(220px, calc(100vw - 2rem));
   max-height: calc(100dvh - 8rem);
   overflow-y: auto;
 }
 .wechat-card :deep(section) { flex-direction: column; align-items: stretch; padding: 1rem; }
+.wechat-card :deep(h2) { font-size: 14px; line-height: 1.6; }
+.wechat-card :deep(p), .wechat-card :deep(button) { font-size: 13px; line-height: 1.7; }
 .wechat-card :deep(button) { white-space: normal; }
 @media (min-width: 1360px) {
   .about-wechat-toggle, .about-wechat-popover:popover-open { display: none; }

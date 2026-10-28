@@ -46,7 +46,7 @@ usePageSeo({ title: '作品集', description: '查看 luohao 已公开的全栈�
       <button type="button" class="text-sm text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>
     </div>
     <p v-else-if="status === 'pending'" role="status" class="py-16 text-center text-sm text-slate-500">正在加载作品集…</p>
-    <div v-else-if="visibleProjects.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else-if="visibleProjects.length" class="media-feed">
       <ProjectCard v-for="project in visibleProjects" :key="project.slug" :project="project" data-article-reveal />
     </div>
     <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ projects.length ? '暂无匹配项目。' : '作品资料正在整理中。' }}</p>

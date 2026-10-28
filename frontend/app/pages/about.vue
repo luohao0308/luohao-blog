@@ -12,11 +12,11 @@ const representativeProjects = computed(() => {
   const featured = list.filter(project => project.featured)
   return (featured.length ? featured : list).slice(0, 2)
 })
-const displayIntro = computed(() => (about.value?.intro ?? '').replace(/相信工程治理和自动化流程是个人开发者的杠杆[。.!！]?/g, '').trim())
+const displayIntro = '我是罗浩，在这里记录做产品、写代码和折腾 AI 的过程。把一个想法做出来，也把中间的判断、踩坑和发现留下来。'
 const representativeArticles = computed(() => (articles.value ?? []).slice(0, 2))
 usePageSeo({
   title: () => about.value?.name ? `关于 ${about.value.name}` : '关于我',
-  description: () => displayIntro.value || about.value?.headline,
+  description: displayIntro,
   image: () => about.value?.profile_image,
 })
 </script>
@@ -29,40 +29,31 @@ usePageSeo({
     </div>
     <p v-else-if="status === 'pending'" role="status" class="py-20 text-center text-sm text-slate-500">正在加载关于页面…</p>
     <AboutContinuousStory v-else-if="about">
-      <AboutNarrative continuous data-journey-scene :name="about.name || '罗浩'" :headline="about.headline"  :intro="displayIntro" :skills="about.skills" :image="about.profile_image" />
+      <AboutNarrative continuous data-journey-scene name="罗浩" headline="" :intro="displayIntro" :image="about.profile_image" />
       <div data-about-content class="about-story">
-        <AboutChapter v-if="about.current_focus" data-journey-scene>
-          <p class="chapter-label" data-chapter-item>此刻 / NOW</p>
-          <h2 data-chapter-item>当前方向</h2>
-          <p class="chapter-lead whitespace-pre-line" data-chapter-item>{{ about.current_focus }}</p>
-        </AboutChapter>
-
-        <AboutChapter v-if="about.skills?.length" data-journey-scene>
-          <p class="chapter-label" data-chapter-item>01 / TOOLKIT</p>
-          <h2 data-chapter-item>技能栈</h2>
-          <div class="skills-grid">
-            <div v-for="(group, groupIndex) in about.skills" :key="group.group" class="skill-group" data-chapter-item>
-              <span class="skill-number" aria-hidden="true">0{{ groupIndex + 1 }}</span>
-              <h3>{{ group.group }}</h3>
-              <ul><li v-for="item in group.items" :key="item">{{ item }}</li></ul>
-            </div>
+        <AboutChapter data-journey-scene>
+          <p class="chapter-label" data-chapter-item>01 / NOTES</p>
+          <h2 data-chapter-item>这里会写什么</h2>
+          <div class="reader-notes" data-chapter-item>
+            <p><strong>产品实践</strong>：记录从想法到实现的过程、需求取舍与使用反馈。</p>
+            <p><strong>AI 工具与工作流</strong>：分享日常尝试，聊聊工具如何融入创作与开发。</p>
+            <p><strong>技术复盘</strong>：把踩过的坑、做过的判断和新发现整理下来。</p>
           </div>
         </AboutChapter>
 
-        <AboutChapter v-if="about.timeline?.length" data-journey-scene>
-          <p class="chapter-label" data-chapter-item>02 / JOURNEY</p>
-          <h2 data-chapter-item>经历</h2>
-          <ol class="journey-list">
-            <li v-for="(item, index) in about.timeline" :key="`${item.year}-${index}`" data-chapter-item>
-              <p class="journey-year">{{ item.year }}</p>
-              <p class="journey-text whitespace-pre-line">{{ item.text }}</p>
-            </li>
-          </ol>
+        <AboutChapter data-journey-scene>
+          <p class="chapter-label" data-chapter-item>02 / EXPLORING</p>
+          <h2 data-chapter-item>正在做的事</h2>
+          <div class="reader-notes" data-chapter-item>
+            <p><strong>dev-workflow</strong>：探索人与 AI 协作开发的流程，边使用边记录。</p>
+            <p><strong>Forge Harness</strong>：尝试把 AI 开发中的想法做成工具，分享过程中的取舍与发现。</p>
+            <p><strong>本站</strong>：持续整理文章与项目，把探索过程留下来，也欢迎读者交流自己的尝试。</p>
+          </div>
         </AboutChapter>
 
         <AboutChapter data-journey-scene>
           <p class="chapter-label" data-chapter-item>03 / SELECTED</p>
-          <h2 data-chapter-item>代表内容</h2>
+          <h2 data-chapter-item>从这里开始</h2>
           <div class="selected-grid">
             <div class="selected-group" data-chapter-item>
               <h3>代表项目</h3>
@@ -80,11 +71,12 @@ usePageSeo({
           </div>
         </AboutChapter>
 
-        <AboutChapter v-if="about.contacts?.length" data-journey-scene class="contact-chapter">
+        <AboutChapter data-journey-scene class="contact-chapter">
           <p class="chapter-label" data-chapter-item>04 / CONNECT</p>
-          <h2 data-chapter-item>联系我</h2>
+          <h2 data-chapter-item>一起交流</h2>
+          <p class="chapter-lead" data-chapter-item>如果你也在做产品、写代码或尝试 AI，欢迎分享你的问题、想法和实践。</p>
           <div class="contact-actions" data-chapter-item>
-            <a v-for="contact in about.contacts.filter(item => safePortfolioHref(item.href, true))" :key="`${contact.label}-${contact.href}`" :href="safePortfolioHref(contact.href, true)" :target="contact.href.startsWith('mailto:') ? undefined : '_blank'" rel="noopener" class="contact-button">
+            <a v-for="contact in (about.contacts ?? []).filter(item => safePortfolioHref(item.href, true))" :key="`${contact.label}-${contact.href}`" :href="safePortfolioHref(contact.href, true)" :target="contact.href.startsWith('mailto:') ? undefined : '_blank'" rel="noopener" class="contact-button">
               <span>{{ contact.href.startsWith('mailto:') ? '给我发邮件' : contact.label === 'GitHub' ? '访问 GitHub' : contact.label }} <span aria-hidden="true">↗</span></span>
               <span class="contact-address">{{ contact.text }}</span>
             </a>
@@ -102,21 +94,12 @@ usePageSeo({
 .about-chapter::before { content: ""; position: absolute; left: -36px; top: clamp(48px, 8vw, 100px); width: 7px; height: 7px; border-radius: 50%; background: #c3aa7c; }
 .about-chapter { padding: clamp(48px, 8vw, 100px) 0; border-top: 1px solid var(--border-default); }
 .chapter-label { margin-bottom: 16px; font-size: 10px; letter-spacing: .2em; color: var(--text-muted); }
-h2 { margin-bottom: 40px; font-size: clamp(28px, 4vw, 44px); font-weight: 550; letter-spacing: -.04em; }
-.chapter-lead { max-width: 760px; font-size: clamp(20px, 2.5vw, 28px); line-height: 1.9; }
-.skills-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; }
-.skill-group { position: relative; padding: 28px 24px 32px; border: 1px solid var(--border-default); border-radius: 20px; background: linear-gradient(145deg, color-mix(in srgb, #c3aa7c 7%, var(--surface-page)), var(--surface-page) 75%); transform-origin: center bottom; }
-.skill-number { display: block; margin-bottom: 32px; font-size: 11px; color: var(--text-muted); letter-spacing: .2em; }
-.skill-group h3, .selected-group h3 { margin-bottom: 24px; font-size: 14px; font-weight: 500; color: var(--text-muted); }
-.skill-group ul { display: flex; flex-wrap: wrap; align-content: start; gap: 10px 8px; }
-.skill-group li:first-child { flex-basis: 100%; padding: 0 0 16px; background: none; font-size: 36px; font-weight: 500; letter-spacing: -.04em; }
-.skill-group li { max-width: 100%; overflow-wrap: anywhere; padding: 7px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 5%, var(--surface-page)); font-size: 14px; }
-.journey-list li { position: relative; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 32px; padding: 32px 0; border-bottom: 1px solid var(--border-default); }
-.journey-list li:first-child { padding-top: 0; }
-.journey-year { font-size: clamp(44px, 6vw, 72px); font-weight: 300; line-height: 1.2; letter-spacing: -.05em; color: var(--text-muted); }
-.journey-text { font-size: clamp(17px, 2vw, 21px); line-height: 1.9; text-wrap: pretty; }
+h2 { margin-bottom: 40px; font-size: 26px; font-weight: 550; letter-spacing: -.04em; }
+.chapter-lead { max-width: 760px; font-size: 16px; line-height: 1.9; }
+.reader-notes { display: grid; gap: 16px; max-width: 720px; font-size: 16px; line-height: 1.9; }
+.reader-notes strong { font-weight: 550; }
 .selected-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; }
-.selected-group a { display: flex; justify-content: space-between; gap: 16px; min-height: 56px; padding: 16px 0; border-bottom: 1px solid var(--border-default); font-size: 17px; line-height: 1.7; overflow-wrap: anywhere; }
+.selected-group a { display: flex; justify-content: space-between; gap: 16px; min-height: 56px; padding: 16px 0; border-bottom: 1px solid var(--border-default); font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
 .selected-group a:hover { color: var(--accent); }
 .contact-chapter { position: relative; }
 .contact-chapter::before { content: ''; position: absolute; z-index: -1; inset: 0; background: radial-gradient(ellipse at 30% 60%, rgb(222 181 104 / 9%), transparent 70%); }
@@ -127,8 +110,7 @@ h2 { margin-bottom: 40px; font-size: clamp(28px, 4vw, 44px); font-weight: 550; l
 .contact-button > span:first-child { display: flex; justify-content: space-between; gap: 24px; font-weight: 500; }
 .contact-address { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
 @media (max-width: 640px) {
-  .skills-grid, .selected-grid { grid-template-columns: 1fr; gap: 32px; }
-  .journey-list li { grid-template-columns: 1fr; gap: 16px; }
+  .selected-grid { grid-template-columns: 1fr; gap: 32px; }
   .contact-actions { flex-direction: column; }
   .contact-button { min-width: 0; width: 100%; }
   h2 { margin-bottom: 32px; }
@@ -137,4 +119,15 @@ h2 { margin-bottom: 40px; font-size: clamp(28px, 4vw, 44px); font-weight: 550; l
   :deep(.about-wechat-toggle) { bottom: 88px; }
 }
 @media (prefers-reduced-motion: reduce) { .contact-button { transition: none; } .contact-button:hover { transform: none; } }
+/* Scope reading sizes to this page, including continuous-camera overrides. */
+.about-page :deep(.continuous-story .about-narrative .narrative-opening) { min-height: 0; padding: 24px 0 0; gap: 20px; justify-content: flex-start; }
+.about-page :deep(.continuous-story .about-narrative .narrative-opening h1) { font-size: clamp(28px, 4vw, 48px); margin: 12px 0; }
+.about-page :deep(.continuous-story .about-narrative .narrative-greeting) { font-size: 16px; }
+.about-page :deep(.continuous-story .about-narrative .narrative-scroll) { position: static; margin-top: 0; }
+.about-page :deep(.continuous-story .about-narrative .narrative-introduction) { padding-top: 24px; margin-inline: 0; }
+.about-page :deep(.continuous-story .about-narrative .narrative-prose p) { font-size: 16px; }
+.about-page :deep(.continuous-story h2) { font-size: 26px; margin-bottom: 24px; }
+.about-page :deep(.continuous-story .selected-group a) { font-size: 16px; }
+.contact-chapter .chapter-lead { margin-bottom: 24px; }
+.about-page :deep(.continuous-story .about-chapter) { padding: 32px 0; min-height: 0; }
 </style>

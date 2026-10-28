@@ -1,0 +1,429 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared_not_applied",
+  "target": "https://makerhao.cn",
+  "base": "b8bef6cf7247b0cb939006cdc2faefc439e9b1a3",
+  "requires": [
+    "approved exact release version",
+    "required CI",
+    "trusted deployment host",
+    "database/API prewrite backup and fresh version checks",
+    "admin slug collision checks for creates"
+  ],
+  "operations": [
+    {
+      "kind": "update_article",
+      "slug": "ai-delivery-guard",
+      "expected_updated_at": "2026-10-28T08:37:28Z",
+      "cover_display": "/images/editorial/covers/guard.webp",
+      "fields": {
+        "slug": "ai-delivery-guard",
+        "title": "交付守卫：把权限、版本和 CI 证据分开检查",
+        "summary": "写完代码只是第一步。用 dev-workflow 拆开执行权限、准确版本与质量证据。",
+        "content_md": "\n代码写完、测试通过，到远端合并之间还隔着一次具体的权限判断。我在 [dev-workflow](https://github.com/luohao0308/dev-workflow) 里实现交付守卫，是想把“可以继续”拆成能够核对的条件：谁执行、操作哪一版代码、平台证据是否仍然有效。否则一句“检查都过了”，可能混在一起指本地测试、上一轮 CI 和当前 PR。\n\n## 三类条件各自负责什么\n\n流程要求决定变更是否需要 Issue、PR 和 CI；权限决定谁能 push、创建或更新 PR、合并；质量门决定当前版本是否满足要求。它们需要分别成立。例如，修复已经完成且 CI 通过，但策略中的执行者仍是用户，AI 的工作就应停在准备命令和证据。\n\n`core/scripts/delivery_guard.py` 会先读取 manifest 的策略。`actor=user` 会直接拒绝 AI 执行；`actor=ai` 也不是拿到一张长期通行证，仍要提供绑定具体操作的一次性授权。`auto` 省掉授权范围内的重复交互，不省略授权检查。修改长期权限又是另一件事，不能从当前权限反推自己有权扩大它。\n\n[![三道检查缺一不可：角色、版本、平台证据。](/images/editorial/delivery-flow.svg)](/images/editorial/delivery-flow.svg)\n\n## 把一句授权拆成可比较的字段\n\n假设准备把 `fix/article-filter` 合入 `main`，光记录分支名不够。分支会移动，同名 remote 的地址也可能改变。守卫把仓库路径、remote 名称和 URL、操作、源与目标引用、完整 SHA、过期时间和最大次数放在一起核对。\n\n下面是便于阅读的范围示意，不是可直接执行的授权文件：\n\n```text\noperation   merge\nsource      fix/article-filter\ntarget      main\nsha         <完整提交对象 ID>\nexpiresAt   <本次授权的到期时间>\nmaxUses     1\n```\n\n如果随后补了一次提交，分支名虽然没变，SHA 已经不同。旧授权和旧检查结果都不能平移到新版本。代码还会比较本地源分支实际指向的提交与请求中的 SHA，避免请求写着一个版本，实际准备交付另一个版本。\n\n\n[![Core 文档与检查入口](/images/editorial/workflow-files.svg)](/images/editorial/workflow-files.svg)\n\n*Core 文档与检查入口。*\n\n\n## 平台证据必须回答当前问题\n\n本地有提交，不代表远端已经收到；本地检查通过，也不能代表平台 required checks 已满足。因此不同操作需要不同证据。PR 创建或更新前要核对远端源分支版本，合并则要核对 PR 编号、开放状态、head/base、准确 head SHA、required checks 和是否可合并。\n\n这能解释一个常见的时序问题：读取 PR 时检查通过，之后有人又推了提交。如果执行端仍拿旧证据合并，检查覆盖的对象已经变了。流程要求提供五分钟内且绑定对象的托管平台证据，紧邻操作再核对；证据新鲜仍不等于永远有效，最终平台操作也应约束预期版本。\n\n守卫本身读取并校验传入证据，不是远端分支保护服务。采集端是否可信、实际命令是否遵守检查结果，仍是执行链必须承担的责任。不能因为一个 JSON 写着 `requiredChecksPassed: true`，就把它当作平台已经独立证明的事实。\n\n## 预检与消耗之间的取舍\n\n检查时可能只是准备交付，不能每看一次条件就扣掉授权次数；真正操作之前，又不能无限复用同一授权。守卫用 `--consume` 区分这两步，并把消耗写入本地账本。正式操作前的最终检查负责记录次数，普通预检用于发现字段、版本或权限问题。\n\n这个顺序偏向保守：检查已消耗授权，后续操作失败，也不能把失败解释为可以自动重试。结果未知时更要先确认平台状态，而不是重新执行。网络超时不等于远端没有完成动作，盲目重试会让次数限制失去意义。\n\n还有一类检查容易漏掉：同一份证据被换到另一个 remote 或目标分支使用。即使 SHA 相同，操作对象也已经变化，字段绑定必须逐项比较，不能只校验提交号。\n\n本地账本也有边界。它记录本机流程，不是跨机器的集中授权服务；多个执行入口要遵守同一权限约束，仍需要可信宿主和托管平台能力配合。\n\n## 验证重点放在拒绝路径\n\n检查这种守卫时，我更关心只改变一个条件会发生什么。可以用临时仓库和构造证据，分别覆盖执行者为用户、SHA 不匹配、授权过期、次数用尽、PR 已关闭、目标分支错误、required checks 未通过等情况。每个用例都应明确在哪一步拒绝，而不只是断言最终退出失败。\n\n还应区分两种测试：字段校验通过，证明守卫接受这一组输入；真实平台操作成功，才证明执行链连通。前者不能替代后者，更不能推出部署健康。这样划分证据，才能在后续扩展时知道究竟补了哪一层能力。\n\n## 守卫之外仍然需要平台边界\n\n本地规则适合让 AI 在操作前停下来核对，但它无法约束绕过脚本的其他客户端。受保护分支、平台审批与代码审查承担更外层的约束。发布、迁移和部署也各有对象及恢复条件，不能由“允许合并 PR”顺带授权。\n\n我保留这套分层，是因为它让失败能够被具体描述：是权限不对、版本变了，还是检查缺失。处理方式随之不同，也比让 AI 再说一次“我确认过了”更容易复核。\n\n## 继续读什么\n\n- [dev-workflow：项目与安装入口](https://github.com/luohao0308/dev-workflow)\n- [GitHub 官方：受保护分支](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)",
+        "tags": [
+          "dev-workflow",
+          "Python",
+          "AI协作",
+          "工程交付"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_content_sha256": "8fcbf28bb074624e8473af8434f83268dd569ee25e9e622151bfef6a585d5cb0"
+    },
+    {
+      "kind": "update_article",
+      "slug": "aigc-backend-delivery",
+      "cover_display": "/images/editorial/covers/aigc.webp",
+      "fields": {
+        "slug": "aigc-backend-delivery",
+        "title": "AIGC 应用后端：外部模型接口的适配与交付",
+        "summary": "从 Python 后端与部署职责出发，拆开外部模型 API 到产品结果之间的应用链路。",
+        "content_md": "从用户输入到产品结果，中间需要一层能解释数据与失败的后端。\n\n一个 AI 产品最容易展示的是生成结果，最值得拆解的却是结果之前发生了什么。这篇文章从请求与响应的适配说起，讨论怎样把外部模型能力接成可使用的产品。\n\n[![AIGC 应用请求主链路](/images/editorial/aigc-flow.svg)](/images/editorial/aigc-flow.svg)\n\n*用户输入经前端交给后端，后端调用外部 AI API，转换结果后返回前端。*\n\n## 把外部能力变成产品接口\n\n应用的基本链路很直接：接收前端输入，调用外部 AI API，再把返回内容转换为前端需要的格式。文字和图片审核接入的是第三方百度云服务，审核能力不是自行训练或研发的。\n\n页面看到的可能只是一个结果区，接口之间却存在两套表达。前端关心“输入是否合法、返回内容如何展示、失败后怎么提示”，外部服务关心自己的参数、认证方式和响应字段。后端处在中间，需要理解两边的语义，不能只把 HTTP 请求原样搬过去。\n\n这也让接口适配成为一个值得单独讨论的工程问题。以下示例说明可以如何设计这一层，仅用于解释数据边界，不对应某个产品的内部源码。\n\n## 一个格式转换的例子\n\n假设页面只需要文本与图片地址，而某个外部接口把它们放在嵌套对象里。后端可以把供应商结构转换为应用自己的输出，而不是让页面读取供应商的内部字段名：\n\n```python\n# 教学示例：假设外部响应具有以下结构。\ndef to_product_result(payload):\n    output = payload.get(\"output\")\n    if not isinstance(output, dict):\n        raise ValueError(\"invalid upstream output\")\n    text = output.get(\"text\")\n    images = output.get(\"images\", [])\n    if not isinstance(text, str):\n        raise ValueError(\"invalid upstream text\")\n    if not isinstance(images, list) or any(\n        not isinstance(url, str) for url in images\n    ):\n        raise ValueError(\"invalid upstream images\")\n    return {\"text\": text, \"images\": images}\n```\n\n这里的选择是让产品接口保持自己的字段，而把供应商结构放在适配边界。好处是外部响应调整时，修改可以集中在转换处；代价是后端要维护映射和校验，不能把所有未知结构都当成功返回。示例中的类型检查也不等于链接安全校验或内容审核，那些需要各自明确的规则。\n\n[![外部 API 与产品接口之间的适配](/images/editorial/api-adapter.svg)](/images/editorial/api-adapter.svg)\n\n*请求映射与响应映射分别处理，让外部字段不直接成为页面契约。*\n\n如果使用 Django / DRF 做这样的应用，可以让 serializer 负责输入输出形状，把外部调用与结果适配放在容易单独测试的位置。并不需要为了调用一个 API 就建立庞大框架；一开始只要能替换外部响应、检查错误分支，已经有实际收益。\n\n## 失败需要保留发生的位置\n\n接入外部依赖时，几种看似相同的“生成失败”会影响不同的后续动作：\n\n| 情况 | 工程上需要区分的问题 |\n| --- | --- |\n| 输入缺字段 | 是否应该在调用外部服务前拒绝 |\n| 外部请求超时 | 对方是否可能已经受理 |\n| 响应格式变化 | 是转换失败，还是生成内容为空 |\n| 审核未通过 | 产品应展示什么状态与提示 |\n\n例如超时后立刻重试，可能造成重复调用；把响应解析异常返回成空文本，又会让用户以为模型生成了空结果。是否重试、是否采用异步任务，应该依据外部接口语义和页面等待方式决定。这些是这类系统的通用取舍，不能仅凭项目使用 AI API 就推断当时采用了某种队列或重试组件。\n\n## 部署后检查真实调用路径\n\n部署后还要核对代码运行之外的条件：应用配置能否正确加载，服务能否访问外部接口，入口代理与应用的等待时间是否协调。仅有进程存活，还不足以证明从用户输入到结果展示的链路可用。\n\n对类似项目，验证可以分两步。先用固定响应检查转换：正常文本、空结果、缺字段、错误类型都应有确定结果；再在允许的测试环境检查真实外部调用与页面展示。模拟响应帮助定位自己的代码，真实调用确认依赖是否按约定工作，两者回答的问题不同。\n\n我关心的是后端如何承接页面需求，以及一次请求的去向是否能被解释清楚。外部模型提供生成能力，应用开发仍要把输入、结果与失败状态组织成前端可消费的接口。这也是我后来继续做个人博客与 Agent 项目时，持续关注完整交付链路的原因。\n\n## 继续读什么\n\n- [Django 官方：请求与响应](https://docs.djangoproject.com/en/5.2/ref/request-response/)\n- [DRF 官方：序列化](https://www.django-rest-framework.org/api-guide/serializers/)",
+        "tags": [
+          "Python",
+          "Django",
+          "AIGC",
+          "API集成",
+          "部署运维"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_updated_at": "2026-10-28T08:41:25Z",
+      "expected_content_sha256": "0e795c978ef5dff2f68e7862988b1c191da5c0c00003bde95253fb7aa5cc98ca"
+    },
+    {
+      "kind": "update_article",
+      "slug": "dev-workflow-project",
+      "cover_display": "/images/editorial/covers/workflow.webp",
+      "fields": {
+        "slug": "dev-workflow-project",
+        "title": "dev-workflow：把项目规则留在仓库里",
+        "summary": "dev-workflow 的出发点：把项目知识、协作规则与交付检查留在仓库里。",
+        "content_md": "\n换一个 AI 会话，项目的代码还在，背景却常常需要重新解释。接口由哪里生成、哪些命令能跑、哪些文档只是计划，这些信息如果只留在对话里，下一轮工作就容易从猜测开始。我维护的 [dev-workflow](https://github.com/luohao0308/dev-workflow)，是在仓库里给这些信息安排固定入口，并补上能执行的检查。\n\n## 先把项目事实分开放\n\nCore 从 `AGENTS.md` 引导读取文档，但不要求每次加载整个目录。`TASKS.md` 记录当前任务，`PROJECT-SUMMARY.md` 保存稳定结构和命令，`WORKING-CONTEXT.md` 留给本机短期交接。已有架构文档则继续作为权威来源，通过映射接入，而不是复制一份同名模板。\n\n例如，为文章列表增加筛选，下一位助手需要知道接口定义、服务入口、测试命令和当前阻塞。它不需要读完过去每次安装的日志。把“接口由哪个文件生成”留在稳定摘要，把“筛选测试已过，页面验收未做”留在任务上下文，两者更新频率不同，也不应共享一个越来越长的备忘录。\n\n[![从上下文到交付，给协作留下可检查的入口。](/images/editorial/delivery-flow.svg)](/images/editorial/delivery-flow.svg)\n\n## Core 和流程包怎样落到仓库\n\n分发仓库把 `core/` 与 `packs/<name>/` 当作覆盖层：其中的相对路径就是安装后的路径。架构、设计、交付、契约、运维和功能清单按需选择。一个仅需协作规则的小项目，不必为了形式完整先填写所有模板。\n\n```text\n目标项目/\n├── AGENTS.md\n├── docs/\n│   ├── README.md\n│   ├── TASKS.md\n│   ├── PROJECT-SUMMARY.md\n│   └── WORKFLOW-ADOPTION.md\n└── .dev-workflow/\n    └── manifest.json\n```\n\nmanifest 记录本机安装版本、文件来源、安装动作和原始哈希。它解决的是“哪些文件由工具创建、之后有没有改过”，不是团队共享的所有项目配置。已经采用的 `workflow.config.json` 负责项目能力、命令目录和文档映射，两者不能混作一份配置。\n\n\n[![项目知识、任务与临时上下文分别存放](/images/editorial/workflow-files.svg)](/images/editorial/workflow-files.svg)\n\n*项目知识、任务与临时上下文分别存放。*\n\n\n## 安装结束后还要完成项目画像\n\n安装器使用 Bash 或 PowerShell，Python 工具采用标准库，不需要给业务项目添加依赖。实际接入先做 dry-run，确认已有文件会被保留；已有 `AGENTS.md` 追加带稳定标记的核心区块，普通文件不直接覆盖。\n\n更费判断的是接下来的只读画像：仓库有几个模块，服务从哪里启动，测试是否依赖数据库，哪些配置涉及生产。查不到的事实要写 Unknown，不能从模板里的示例推断项目已经拥有这些能力。\n\n`WORKFLOW-ADOPTION.md` 和 manifest 中的 onboarding 状态需要保持一致。审计能检查结构、归属和状态，却不会替接入者把状态改为 ready。严格审计通过，说明接入契约满足；业务命令能否成功，还需要实际运行项目对应的检查。\n\n## 用小工具缩短定位路径\n\n我希望普通工作不依赖常驻流程服务。安装后的入口可以是几个明确的命令：\n\n```bash\npython3 scripts/workflow_check.py --repo . --json\npython3 scripts/feature_catalog.py --query \"文章筛选\"\n```\n\n第一条只读检查流程配置和本机 Git 基线，不运行项目测试，也不检查远端生产状态。第二条要求已安装并维护功能清单，作用是定位相关能力、代码与证据，避免 AI 为一个缺陷加载整份功能目录。\n\n查询结果只是索引入口。定位到测试文件后，仍需读取用例断言并运行相关检查；一条证据路径如果失效，也应该作为清单缺口修正，而不能让助手自行补出结果。\n\n功能清单也要区分“有入口”和“已成熟”。代码路径、测试证据与已知缺口应分别登记；由脚本生成的矩阵是阅读视图，不能手动改几格就当作功能验收。清单若长期不更新，照样会误导检索，因此变更影响到已登记功能时，需要同步检查它。\n\n## 升级为什么不能重新复制模板\n\n规则会演进，项目也会定制同一份文档。直接重装新版，无法判断一段差异来自模板更新还是项目自己的约束。升级引擎因此比较旧分发基线、项目当前内容和新版内容，先生成计划，再应用。\n\n```bash\n# 在新版分发目录中预览，路径为示意\npython3 scripts/upgrade.py plan   --target /project --baseline /old-dev-workflow   --output /tmp/workflow-upgrade.json\n```\n\n未知基线、文本冲突或已修改的交付权限脚本会阻止整份计划应用。回退也要避免覆盖升级后新增的用户修改。这样做增加了一次计划审阅，却保住了项目规则的归属；相比自动把模板刷到最新，我更愿意让冲突显式出现。\n\n本机文件的排除使用 Git 解析出的 `info/exclude`，不改项目 `.gitignore`。但已跟踪文件不会因为新增 exclude 就停止跟踪，工具只能告警。这也是安装时必须检查现状，而不能只看文件名的原因。\n\n## 留下可以继续工作的边界\n\n这套流程最终要服务于具体变更。局部调整沿用现有模式并运行最小检查，跨契约、权限或恢复边界的任务才补更深的决策和验证。文档数量不应成为完成指标。\n\n远端交付另由 guard 检查执行者、准确版本和证据；发布与部署还需要各自的可信执行条件。安装流程本身不会获得这些权限。对我而言，一个有效的接入结果，是下一轮助手能找到事实、知道还缺什么，并用项目真实命令验证下一步，而不是把模板读得更熟。\n\n## 继续读什么\n\n- [dev-workflow：源码与使用说明](https://github.com/luohao0308/dev-workflow)\n- [GitHub 官方：代码审查](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews)",
+        "tags": [
+          "dev-workflow",
+          "Python",
+          "AI协作",
+          "开源项目"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_updated_at": "2026-10-28T08:37:48Z",
+      "expected_content_sha256": "42f38b20257eb9a1c9981d13a27bc08496ff92b97b275893a684508da5ed7777"
+    },
+    {
+      "kind": "update_article",
+      "slug": "ent-m2m-edge-case-study",
+      "expected_updated_at": "2026-10-28T08:37:58Z",
+      "cover_display": "/images/editorial/covers/ent.webp",
+      "fields": {
+        "slug": "ent-m2m-edge-case-study",
+        "title": "Ent 多对多：从关联表到双向查询",
+        "summary": "用一张关系图拆解 Ent 多对多，从双向查询到解除关联；一篇可复现的案例推演。",
+        "content_md": "关系声明、数据库中的关联行与接口返回，需要用同一组数据对照。\n\n本文用文章与标签做一个可复现的案例推演。设定是文章能查到标签，标签方向却查不到预期文章；这不是本站真实事故记录。先固定数据，再沿声明、存储、查询三层检查，比看到空列表就修改 ORM 关系更有效。\n\n[![文章与标签的案例关系图](/images/editorial/ent-relations.svg)](/images/editorial/ent-relations.svg)\n\n*两篇文章共享一个标签，用来区分实体是否存在与关联是否存在。*\n\n## 先把关系说清楚\n\n[![Ent 官方文档中的用户、宠物与群组关系图](/images/editorial/ent-official-relations.png)](/images/editorial/ent-official-relations.png)\n\n*图片来自 [Ent 官方 Edges 文档](https://entgo.io/docs/schema-edges/)，Apache-2.0。官方图使用用户、宠物与群组，下面换成文章与标签。*\n\n案例里创建文章 A、B，以及标签 Go、数据库。A 关联两个标签，B 只关联 Go。预期不是模糊的“关联正常”，而是 A 查到两个标签，Go 查到 A、B，数据库标签只查到 A。任何一条不成立，都有明确的输入和预期可供追踪。\n\n本站 Schema 的声明可以作为对照：\n\n```go\n// Article.Edges\nedge.To(\"tags\", Tag.Type)\n\n// Tag.Edges\nedge.From(\"articles\", Article.Type).Ref(\"tags\")\n```\n\n`Ref(\"tags\")` 指向 Article 侧的边名，不是 SQL 表名，也不是 Tag 侧方法名。两侧都没有用 `Unique()` 限制成单个关联。阅读时要把边名、目标实体和反向引用一起看，不能只确认存在两个相似的字符串。\n\n## 数据库里存的是关系行\n\n仓库基线迁移中的 `article_tags` 有 `article_id`、`tag_id` 两列，以两列组合作为主键，并分别引用文章和标签。组合主键约束同一对关系重复出现，却允许一篇文章对应多个标签，也允许一个标签对应多篇文章。\n\n可以用下面这张预期表手工核对测试夹具：\n\n| article_id | tag_id |\n| --- | --- |\n| A | Go |\n| A | 数据库 |\n| B | Go |\n\n如果反向查询为空，先判断这三行是否真的写入，再看查询条件。生成代码能编译，只能证明应用代码的类型关系成立，不能证明目标数据库已经应用对应迁移。尤其共享开发环境里，Schema 文件、迁移文件与实际表结构可能处在不同时间点。\n\n迁移中的外键带有 `ON DELETE CASCADE`，它针对物理删除后的关系清理。本站文章状态还包含软删除：更新状态不会触发物理删除外键动作。因此“删除后还查得到”也可能是生命周期过滤问题，不能立即归因于关系方向。\n\n## 空结果可能只是没有加载\n\n假设文章详情查到了 A，却看到返回对象里的标签集合为空，还需要区分“没有预加载”与“数据库没有关系”。本站数据层读取文章时使用 `WithTags()`；脱离这条读取路径自行写测试，不能默认普通实体查询会自动填充所有边。\n\n推演中可以分别从实体发起边查询，再与预加载结果比较：\n\n```go\n// 示意：a 与 goTag 是夹具中已创建的实体。\ntags, err := a.QueryTags().All(ctx)\narticles, err := goTag.QueryArticles().All(ctx)\n```\n\n若边查询正确而接口结果为空，检查转换时是否带出标签；若裸查询正确、加筛选后为空，检查文章状态与过滤参数。把查询、加载、转换逐段拆开，才能避免用修改 Schema 去修复展示层遗漏。\n\n## 解除关联要保住共享实体\n\n再从 A 移除 Go，预期只剩 A—数据库与 B—Go 两条关系，Go 标签实体仍存在。若直接删除 Go 实体，B 的关联也会消失；这与编辑 A 的标签不是同一操作。\n\n本站更新路径使用 `ClearTags()` 再添加本次标签，表达的是替换当前文章的标签集合。它值得验证的边界包括空集合、保留一个标签，以及共享标签仍被其他文章引用。删除闲置标签属于另一项业务规则，不应藏在解除关联里。\n\n测试夹具最好给每个实体分配固定且易读的标识，断言标签 ID 与文章 ID，而不是只比较数量。两个错误标签也能凑出数量二，只有集合比较才能发现错连。测试结束后再重新查询，不复用内存里已经加载的边，避免把旧快照误当成数据库当前状态。\n\n如果改动涉及关系声明，应先查看生成迁移的差异，确认是否会新建中间表或搬移外键。已有数据如何保留，是迁移设计的问题；单靠重新生成客户端，并不能把旧关联自动变成新结构。\n\n最小回归可以按“建立三条关系—验证双向集合—移除一条—重新读取”执行。比较集合而非返回顺序，并额外断言 Go 实体与 B—Go 仍在。这样的测试能指出破坏发生在哪一步，也给未来调整 ORM 或迁移留下具体的行为约束。\n\n## 继续读什么\n\n- [Ent 官方：Edges 关系建模](https://entgo.io/docs/schema-edges/)\n- [Ent 官方：预加载关联](https://entgo.io/docs/eager-load/)",
+        "tags": [
+          "Go",
+          "Ent",
+          "数据库",
+          "案例推演"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_content_sha256": "1d05cb51e4c1edeb2f45cc1fc9e618c85fdc11a3344b7eca3350fd5214c0ecce"
+    },
+    {
+      "kind": "update_article",
+      "slug": "forge-harness-project",
+      "cover_display": "/images/editorial/covers/harness.webp",
+      "fields": {
+        "slug": "forge-harness-project",
+        "title": "Forge Harness：围绕一次任务组织 Agent 运行时",
+        "summary": "在 Forge Harness 里，我把注意力放到任务状态、工具审批和运行过程上。",
+        "content_md": "\n一次模型回答很容易展示，任务执行过程却包含更多东西：工具有没有真的调用、上一步输出交给了谁、失败之后哪些动作已经发生。[Forge Harness](https://github.com/luohao0308/forge-harness) 是我的个人 Agent 项目，用控制台和运行时把这些过程组织起来。这里记录实现过程与可复现的验证方法。\n\n## 从聊天消息转向一次 Run\n\n项目的主链路是 Agent Studio 配置、Workspace 接收目标，再进入 Agent Run。Run 关联计划、步骤、工具调用和事件，用户看到的就不只是最后一段回答，还能沿着记录查执行过程。\n\n以“根据允许访问的资料生成一份技术摘要”为例，任务可以先读取资料，再整理引用，最后生成结果。这个例子适合检查依赖传递：后一步究竟拿到了前一步的内容，还是仅仅看到一个成功标记。完成文字写得通顺，并不能单独证明资料确实被使用。\n\n[![任务、运行时与记录之间的关系。](/images/editorial/agent-flow.svg)](/images/editorial/agent-flow.svg)\n\n## 模块边界对应不同责任\n\n仓库由 React / TypeScript 控制台、Python / FastAPI 服务及 Electron 桌面端组成。服务侧结合 PostgreSQL、Redis，部署材料包含 Docker Compose。理解项目时，我先看这些模块的责任，而不是从功能菜单推断执行方式。\n\n```text\napps/agent-console/    浏览器控制台\napps/desktop-app/      桌面工作区与本地运行时\nservices/api-server/   API、执行、worker、数据与事件\nscripts/               冒烟、文档及接口检查\n```\n\n控制台负责配置和展示，不应因页面上点了“允许”就自行执行工具。后端负责把模型调用、工具调用、策略判断和结果串联起来；桌面端还有本地环境边界。把这些区分开，才有办法定位“界面显示完成，但执行证据不完整”究竟发生在哪一层。\n\n\n[![控制台、桌面端和 API 服务的目录分工](/images/editorial/harness-modules.svg)](/images/editorial/harness-modules.svg)\n\n*控制台、桌面端和 API 服务的目录分工。*\n\n\n## 计划与工具选择不是同一件事\n\n运行时规格中的 Planner 接收目标、模型设置、沙箱设置和 Agent 身份，输出带版本的 DAG。步骤包含依赖、执行模式、风险、工具提示、预期产物和验收条件。把步骤组织成图，是为了让并行和前后依赖有明确表示。\n\n这里有个容易写错的细节：普通同步 Executor，以及未委派的异步步骤，用确定性规则选择工具和参数。Planner 和计划修复走 AuditedModelGateway，并保存实际 ModelCall ID。不能因为前一个工具的结果传到了后一步，就说模型进行了新的自主判断。\n\n委派子 Agent 则有单独的有界循环：\n\n```text\n分配工具 -> 工具观察 -> 经过审计的模型决策 -> 下一轮或停止\n```\n\n规格默认一轮、最多五轮。循环轮数只是控制执行范围，并不证明模型能完成任务。验证时还需要检查实际模型调用记录、工具观察与停止原因能否对应起来。\n\n## 审批与停止要看真实状态\n\n工具与 MCP 接入提供能力入口，实际调用还要经过能力附件、ToolRunner 策略和沙箱控制。MCP 能帮助组织工具通信，但任务是否获得权限、工具是否适合当前步骤，仍是 Harness 的责任。\n\n假设摘要任务的后续步骤要求写入外部系统，遇到待审批就应先停。当前子 Agent 规格用已有的 `FAILED` 状态配合 `pending_approval` 原因保存这类结果，同时保留工具与审批凭据；不能把它描述成新增了等待状态，也不能据此承诺审批后 worker 自动续跑。\n\n取消和超时也不是瞬间撤回一切。worker 在动作边界检查取消与持久化截止时间，已经发出的外部工具调用不会因此自动中断。所以检查取消路径时，要看是否阻止了下一次动作，也要单独确认在途调用的结果。外部副作用是否重复，不能由界面状态来保证。\n\n## 事件、回放和 Eval 分别证明什么\n\n架构把执行事件写入 Event Store，再形成投影，供回放、诊断和观测使用。回放可以帮助回答哪一步调用了什么、失败从哪里开始；它与再次执行任务有不同语义。已经发生的写入不能因为用户回看轨迹就重新触发。\n\nEval 则把任务转成可比较的用例，检查工具使用、引用、回归和轨迹契约。例如前面的摘要任务，可以检查读取步骤是否存在、最终引用是否对应资料、写入步骤遇到审批是否停止。这样才能把“结果看着不错”细化成可重复的判断。\n\n测试替身适合覆盖失败和边界条件，但它证明的是本地控制流契约。模型返回由 fixture 提供时，不能把通过结果当作真实 provider 的质量证据；没有对应模型调用记录的历史事件，也只能保留为未知。\n\n## 验证沿一条完整任务展开\n\n检查这个项目，我会先选一条小任务，串起创建 Run、查看计划、调用工具、保存事件和查看结果，再增加工具失败、待审批及取消场景。比起分别打开每个菜单，这条路径更容易暴露模块之间的断点。\n\n仓库提供后端 pytest、ruff，前端测试、lint、build，以及文档验证脚本；它们分别覆盖代码和资料的一致性。真实运行还需要核对模型配置、依赖服务与任务轨迹。项目目录和架构图能帮助确定检查入口，最终结论仍应落在具体 Run 与对应证据上。\n\n## 继续读什么\n\n- [Forge Harness：源码与模块入口](https://github.com/luohao0308/forge-harness)\n- [MCP 官方：架构与核心概念](https://modelcontextprotocol.io/docs/learn/architecture)",
+        "tags": [
+          "Python",
+          "FastAPI",
+          "React",
+          "AI Agent",
+          "个人项目"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_updated_at": "2026-10-28T08:41:24Z",
+      "expected_content_sha256": "b318f612def99ab78142e256837facffb491c940ee7f076517f6da87c6c60354"
+    },
+    {
+      "kind": "update_article",
+      "slug": "fullstack-smoke-pitfalls",
+      "expected_updated_at": "2026-10-28T08:37:59Z",
+      "cover_display": "/images/editorial/covers/fullstack.webp",
+      "fields": {
+        "slug": "fullstack-smoke-pitfalls",
+        "title": "从登录到发布：一次 Go 与 Nuxt 后台的验收路径",
+        "summary": "从一次点击到真正发布，追踪 Go 与 Nuxt 之间的字段、路由和 Cookie 边界。",
+        "content_md": "一次后台操作的完成标准，是刷新后仍能继续编辑，并在公开页读到正确结果。\n\n对应到本站，管理后台需要走通登录、创建草稿、修改正文、发布、公开读取这条路径。接口分别返回成功，只说明几个局部动作成立；浏览器能不能恢复身份、发布后的正文是不是刚保存的版本，还要放在一起看。\n\n[![从浏览器到后端：一次操作，三个边界。](/images/editorial/web-flow.svg)](/images/editorial/web-flow.svg)\n\n*页面、BFF 与后端各有自己的输入输出，问题常出在交接处。*\n\n## 只发布状态，为什么会牵连正文\n\n假设编辑器已经保存标题和正文，用户随后点击发布。发布请求只想修改状态，并没有重新提交所有字段。如果服务端直接把请求转换为完整业务对象，未携带的标题和正文就可能变成零值。此时完整对象校验可能拒绝请求，直接保存则可能覆盖旧数据。\n\n本站的 `UpdateArticle` 采用了明确的顺序：先检查 slug 与 mask，拒绝未知路径，再读取现有文章，把选中的字段合并进去，最后转换为业务对象并更新。下面摘出核心步骤，省略错误处理：\n\n```go\ncurrent, err := s.GetArticle(ctx, &v1.GetArticleRequest{\n    Slug: req.GetArticle().GetSlug(),\n})\n// 实际代码在这里检查 err。\nfieldmask.Update(req.GetUpdateMask(), current, req.GetArticle())\narticle, err := s.uc.UpdateArticle(ctx, convertArticle(current))\n```\n\n这使“没传正文”与“明确清空正文”有了区分。正文不在 mask 中，就保留原值；正文在 mask 中，即使新值为空，也应该交给业务规则判断能否接受。让前端每次发送完整文章虽然容易绕过局部校验问题，却把旧数据回写风险也交给了客户端。\n\n[![FieldMask 合并示意](/images/editorial/fieldmask-code.svg)](/images/editorial/fieldmask-code.svg)\n\n*先取得现有对象，再合并指定字段；合并后的对象仍须通过业务校验。*\n\n先读再写也有代价：它本身没有解决并发编辑。两个窗口读到同一版本，随后先后提交，仍需单独讨论版本校验或冲突处理，不能从 FieldMask 推导出并发安全。\n\n## 转换丢一个字段，页面就会出现另一种结果\n\nDTO 到业务对象的转换看起来只是赋值，却决定了业务层实际收到什么。仓库里有 `TestConvertArticleCarriesStatus`，覆盖草稿、发布和未指定状态的转换。这个检查很具体：调用方传入发布状态，转换后不能悄悄回到零值。\n\n验收更新时还应检查持久化后的读取结果。比如把正文从“初稿”改成带代码块的新内容，保存响应正确后，再从详情接口读取 Markdown 和渲染 HTML，最后查看公开页面。这样可以分清是提交失败、转换丢字段，还是展示仍在使用旧结果。只看按钮上的“保存成功”，定位不到这些差异。\n\n\n[![本站文章更新服务的代码节选](/images/editorial/fieldmask-code.svg)](/images/editorial/fieldmask-code.svg)\n\n*本站文章更新服务的代码节选。*\n\n\n## 登录后的第二个请求更值得看\n\n本站浏览器访问 `/api/v1/auth/*`，后端接收 `/v1/auth/*`。Nuxt BFF 去掉 `/api` 前缀转发请求，但 Cookie 的 Path 是浏览器侧的匹配规则，不能跟着服务器内部路径走。\n\n```ts\nreturn proxyRequest(event, target, {\n  cookiePathRewrite: { '/v1/auth': '/api/v1/auth' },\n})\n```\n\n如果响应仍写入 `/v1/auth`，浏览器随后访问 `/api/v1/auth/refresh` 时就不会因该路径规则携带刷新 Cookie。登录后的内存状态可能暂时掩盖问题，刷新页面才暴露身份恢复失败。排查时应看响应的 Set-Cookie、浏览器实际保存的 Path，以及刷新请求是否带 Cookie，而不是反复重试密码。\n\n排查时也要保留操作顺序。先在同一标签页登录、保存草稿，再刷新并发布，与重新登录后直接发布，经过的会话恢复分支并不相同。记录失败请求的路径、状态码和不含敏感信息的错误原因，通常就能把范围缩到代理或业务层。Cookie、令牌与完整请求头不需要进入测试截图或公开文章。\n\n另一个实用检查是保存后重新打开编辑器，确认表单回填的是服务端值。页面本地状态没有清空，可能让失败的保存看起来仍然成功；重新读取可以打破这层假象。\n\n## 把用户动作变成一组断言\n\n文件路由也要放进同一条路径：列表页在 `pages/admin/posts/index.vue`，新建和编辑是子路由。点击进入能用，还要验证直接打开编辑地址与刷新页面。\n\n| 动作 | 要观察的结果 |\n| --- | --- |\n| 登录后刷新 | 身份恢复，后台仍可访问 |\n| 只改正文 | 标题、状态、标签保持原值 |\n| 只改状态 | 已保存正文不丢失，公开页可读取 |\n| 提交未知 mask | 明确拒绝，不产生部分修改 |\n| 登出后再次进入 | 不能继续使用原会话 |\n\n接口测试适合迅速定位字段与错误，浏览器冒烟负责把路由、Cookie 和页面操作串起来。保留这两层证据，比给每个接口单独贴一个成功截图更接近后台真正可用的标准。\n\n## 继续读什么\n\n- [Nuxt 官方：文件路由](https://nuxt.com/docs/4.x/directory-structure/app/pages)\n- [FieldMask 官方：字段更新语义](https://protobuf.dev/reference/protobuf/google.protobuf/#field-mask)",
+        "tags": [
+          "Go",
+          "Kratos",
+          "Nuxt",
+          "全栈开发",
+          "测试"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_content_sha256": "f00f2a6d1ee8bca58571280a6ac433e26f374d3f7b6636070c32dec250f3e8b7"
+    },
+    {
+      "kind": "update_article",
+      "slug": "mysql-varchar-191-case-study",
+      "expected_updated_at": "2026-10-28T08:37:59Z",
+      "cover_display": "/images/editorial/covers/mysql.webp",
+      "fields": {
+        "slug": "mysql-varchar-191-case-study",
+        "title": "MySQL 字符串索引：191 与 255 背后的约束",
+        "summary": "从字符、字节与唯一性出发，重新看字符串索引设计；附检查图与官方文档。",
+        "content_md": "索引建得起来，只回答了设计问题的一部分。\n\n本文从本站可读的迁移文件出发，推演字符串索引的设计问题，不是一次亲历的线上故障。遇到索引长度报错，把 255 改成 191 很快，但这个动作同时改了字段允许接收的数据，不能只以建表成功作为完成标准。\n\n[![业务输入、字段与索引约束](/images/editorial/index-design.svg)](/images/editorial/index-design.svg)\n\n*字段长度、索引预算与唯一性是三个需要分别核对的问题。*\n\n## 先看仓库实际写了什么\n\n基线迁移中，`articles.slug` 和 `tags.name` 都是 `varchar(255)`，并各自有唯一索引；用户迁移的邮箱也是 `varchar(255)`。订阅者迁移则把邮箱定义为 `varchar(191)`。这些字段使用 `utf8mb4_bin`，不能看到一个 191 就推断所有字符串列都有相同限制。\n\n[![迁移字段对照](/images/editorial/mysql-schema.svg)](/images/editorial/mysql-schema.svg)\n\n*这张图对应迁移源文件的定义，不代替运行中数据库的结构检查。*\n\n还有一个容易忽略的地方：Ent 的 Article Schema 注释提到默认 `VARCHAR(191)`，但手写基线迁移明确是 255。注释表达的预期与 SQL 已经不同。本文据此能确认的是源文件存在差异，不能断言线上表采用哪一个值；确认运行结构仍须查看目标数据库。\n\n## 字符数不是索引字节数\n\n`VARCHAR(n)` 的 n 表达字符容量，索引长度限制需要按字节理解。以 utf8mb4 的最大编码宽度估算，191 个字符对应最多 764 字节，255 个字符对应最多 1020 字节。这解释了为什么同样的字符长度，在不同字符集下可能碰到不同的索引边界。\n\n但计算出 1020，并不能直接宣布索引非法。InnoDB 的限制还受页大小、行格式与数据库版本等条件影响；联合索引还要算其他列。191 常见于兼容旧限制的设计，不能脱离环境变成今天所有字段都要遵守的业务上限。\n\n面对假设中的错误，检查顺序可以很短：先记录准确报错和目标版本，再看表的字符集、排序规则、行格式与完整索引定义。下面是隔离验证时可用的只读检查示例，表名应换成被研究的对象：\n\n```sql\nSELECT VERSION();\nSHOW CREATE TABLE articles;\nSHOW INDEX FROM articles;\nSHOW VARIABLES LIKE 'innodb_page_size';\nSHOW VARIABLES LIKE 'sql_mode';\n```\n\n把准确 DDL 放入匹配目标条件的隔离环境重现，比在开发机随意创建一个同名字段更有解释力。开发库能建表，并不能消除目标环境配置差异。\n\n## 三种改法改变了不同东西\n\n| 方案 | 保留什么 | 必须承担的代价 |\n| --- | --- | --- |\n| 缩短字段 | 在新长度内做完整值比较 | 原来合法的长输入可能被拒绝 |\n| 使用前缀索引 | 原字段的存储容量 | 索引只覆盖部分字符串 |\n| 调整索引或键设计 | 可按业务重新定义身份 | 消费者和查询路径需要重新核对 |\n\n例如业务允许两个长标识符拥有相同的前 191 个字符，只在后缀不同。完整唯一索引本应允许两者共存；若改成唯一前缀索引，第二个值可能被判冲突。若先截断再存储，两者甚至会变成相同数据。它们都不是原来唯一性语义的等价替换。\n\n排序规则也是契约的一部分。应用是否把邮箱转小写、是否允许大小写不同的标签，不能仅由字段长度回答。测试要覆盖业务实际使用的归一化路径，再检查数据库比较行为，而不是从 `_bin` 名称推导所有输入的处理结果。\n\n## 让验证覆盖写入与读取\n\n推演验证至少准备边界长度以内、恰好达到边界、超过边界三组数据，并包含中文或四字节字符；记录 SQL mode，确认超长输入会得到预期结果，不能依赖未检查的截断行为。唯一性再使用相同值、大小写变体以及相同长前缀的不同值。\n\n假设最终决定把字段缩短，还要检查历史数据长度、接口校验、表单限制与导入脚本。表单拒绝了超长输入，不等于其他写入入口也拒绝。迁移回退只能恢复结构，不能自动找回已截断的数据，这也是优先在副本上验证的原因。\n\n这些检查也应留下输入与预期，而不只是迁移执行成功的日志。后续有人调整字段或字符集时，才知道原先保护的业务行为是什么。\n\n对本站而言，255 与 191 的并存提供了一个检查起点。真正需要决定的是每个字段代表什么、接受哪些输入、依靠什么保证唯一，而不是把某个数字统一到全仓库。\n\n## 继续读什么\n\n- [MySQL 官方：InnoDB 限制](https://dev.mysql.com/doc/refman/8.4/en/innodb-limits.html)\n- [MySQL 官方：字符集与排序规则](https://dev.mysql.com/doc/refman/8.4/en/charset.html)",
+        "tags": [
+          "MySQL",
+          "字符集",
+          "索引",
+          "案例推演"
+        ],
+        "status": 2
+      },
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "expected_content_sha256": "0b22096fabbe26ed6e70eb567a00f24cdf386cacd82abaaae799e211f2769ce5"
+    },
+    {
+      "kind": "update_project",
+      "slug": "dev-workflow",
+      "expected_updated_at": "2026-10-28T08:37:59Z",
+      "fields": {
+        "slug": "dev-workflow",
+        "name": "dev-workflow",
+        "summary": "把 AI 协作规则、项目知识与交付检查做成可安装、可升级的开发流程",
+        "description": "## 为什么把协作流程单独做成项目\n\n我在用 AI 推进项目时，发现最容易丢的往往不是代码，而是代码周围的判断：哪个文档还有效、上一次停在哪里、什么检查已经跑过，以及下一步有没有权限执行。把这些信息都留在会话里，换一次上下文就要重新解释。\n\ndev-workflow 把这部分约定放回仓库。它提供规则、文档模板和检查工具，让后续接手者先看到项目事实，再决定怎么改。它适用于已有项目接入，也允许从小范围开始采用。\n\n## Core 与流程包怎么分工\n\nCore 负责所有项目都需要的基础约定，例如文档职责、读取顺序、任务推进和安全边界。架构、设计、契约、功能清单等能力则拆成可选流程包。安装时要先做项目画像和既有文档映射，而不是直接用模板覆盖原来的说明。\n\n目录中的相对路径对应目标项目的位置。这个结构让安装内容比较直观，也便于判断某个文件来自哪里、后续是否需要跟随版本升级。日常协作主要读取 Markdown；自动检查工具使用 Python 标准库，安装入口分别覆盖 Bash 与 PowerShell。\n\n## 交付检查处理的具体问题\n\n流程要求、执行权限与质量门禁分别判断。项目需要 PR，不代表 AI 就能创建 PR；CI 通过，也不代表可以直接合并。delivery_guard 会结合仓库策略、准确引用与 SHA、授权范围和平台证据判断一次具体操作。\n\n我更在意的是变更后能否重新核对这些条件。比如源分支又出现一个新提交，旧 SHA 上通过的证据不能直接证明新提交可交付。信息缺失时应停在当前步骤，而不是继续猜测。\n\n## 升级和日常维护也要有边界\n\n规则安装进去以后，还会继续变化。升级不能只把新版本文件拷过去，因为用户可能已经修改了项目专属内容。项目因此包含升级计划、审计与回退相关工具，用来核对来源、差异和接入状态。\n\n这也决定了文档的分工：TASKS 只记任务状态，稳定事实放在项目摘要，短期上下文用于本机交接。这样既保留必要的信息，又减少同一事实在多处漂移。\n\n## 怎样验证它值得使用\n\n验证分成两层：工具本身需要测试安装、检查、升级等路径；采用流程的项目仍要运行自己的构建、测试和浏览器验收。本站采用了这套规则，但它不能替代项目代码的质量检查。\n\n生产发布与部署还需要具体的环境配置、可信执行宿主及对应授权。可安装的规则是一套协作基础，不等于默认获得远端或生产操作权限。",
+        "stack": [
+          "Python",
+          "Bash",
+          "PowerShell",
+          "Markdown",
+          "AI Workflow"
+        ],
+        "role": "开源工具",
+        "repo_url": "https://github.com/luohao0308/dev-workflow",
+        "live_url": "",
+        "emoji": "⚙️",
+        "year": "2026",
+        "featured": true,
+        "published": true,
+        "sort": 0
+      },
+      "update_mask": [
+        "name",
+        "summary",
+        "description",
+        "stack",
+        "role",
+        "repo_url",
+        "live_url",
+        "emoji",
+        "year",
+        "featured",
+        "published",
+        "sort"
+      ],
+      "expected_content_sha256": "9d0b0b7734bc7325a4e2d2f6b847aa978aeaf5fdb40a945486bb4dce1192fded"
+    },
+    {
+      "kind": "update_project",
+      "slug": "forge-harness",
+      "fields": {
+        "slug": "forge-harness",
+        "name": "Forge Harness",
+        "summary": "个人 Agent 工程项目，探索任务执行、工具审批、运行回放与评测",
+        "description": "## 从聊天窗口走向任务执行\n\n我做 Forge Harness 时关注的起点，是模型调用之外的过程。一次回答结束很容易观察，但任务可能包含多次工具调用、暂停、重试和人工审批。只有最后一段文本，很难解释任务为什么得到这个结果。\n\n因此项目把任务、运行记录和工具动作放在同一个工作面里讨论。它是个人 Agent 工程项目，主要用来检验这些设计如何落地。\n\n## 控制台、服务与桌面端的分工\n\n仓库包含 React / TypeScript 控制台、FastAPI 服务和 Electron 桌面端。控制台承担 Agent 配置、工作区、运行记录、工具、知识与评测等界面；服务端维护 API、运行时、后台任务、数据和事件相关模块；桌面端则有本地工作区的边界。\n\nPostgreSQL 与 Redis 出现在服务依赖中，Docker Compose 提供开发与私有部署入口。这里把各部分分开介绍，是为了让界面上的一个动作能追到负责处理它的模块。\n\n## 运行记录为什么是一个独立入口\n\n一个任务是否完成，不能只靠页面最后有没有文字来判断。运行详情需要能看到事件、工具和模型调用，以及与知识、评测和成本相关的记录。README 因此把运行历史与运行详情列成独立控制台入口。\n\n恢复和回放也是不同问题：回放帮助理解已经发生的过程；恢复还涉及接下来从哪里继续、哪些动作已经执行。检查具体场景时，需要分别核对，不能把界面上有一个按钮当作行为已经可靠。\n\n## 工具、知识与评测怎样连接起来\n\n工具和 MCP 接入扩展的是可执行能力，策略与审批决定具体动作的边界；知识模块提供检索与依据，评测则用于比较任务或版本的表现。这几部分都围绕同一个运行过程，才有机会解释模型用了什么信息、做了什么动作、得到了什么结果。\n\n项目文档分别维护工具、运行时、数据事件和 Eval 的说明。对这些模块的理解也需要回到真实任务，而不是仅靠列出一串技术名词。\n\n## 我会怎样看一个具体的运行结果\n\n一条有用的验收路径是发起任务、观察运行状态、查看工具动作、处理审批，再检查最终结果与轨迹。失败场景还要看错误是否可定位，暂停恢复时是否丢失上下文、重复执行动作。\n\n这是持续迭代的项目。可以公开展示的是仓库中的结构与实现、可复现的验证路径；",
+        "stack": [
+          "Python",
+          "FastAPI",
+          "React",
+          "TypeScript",
+          "PostgreSQL",
+          "Redis",
+          "Electron",
+          "Docker"
+        ],
+        "role": "开源工具",
+        "repo_url": "https://github.com/luohao0308/forge-harness",
+        "live_url": "",
+        "emoji": "🔧",
+        "year": "2026",
+        "featured": true,
+        "published": true,
+        "sort": 1
+      },
+      "update_mask": [
+        "name",
+        "summary",
+        "description",
+        "stack",
+        "role",
+        "repo_url",
+        "live_url",
+        "emoji",
+        "year",
+        "featured",
+        "published",
+        "sort"
+      ],
+      "expected_updated_at": "2026-10-28T08:38:00Z",
+      "expected_content_sha256": "4b9b26907d163e83441e17fc8d6382a8f37b801e8585a573003ef61b1568ab34"
+    },
+    {
+      "kind": "update_project",
+      "slug": "aigc",
+      "fields": {
+        "slug": "aigc",
+        "name": "AIGC 应用平台",
+        "summary": "把模型能力接到具体产品里，记录接口适配与完整体验的实现。",
+        "description": "## 从一个输入框开始\n\n页面上只是输入和结果，背后却连接着请求校验、模型接口、数据转换和结果展示。我更关心这些环节怎样组合成一个真正可用的产品。\n\n## 接口之外的体验\n\n外部服务提供能力，产品仍要回答自己的问题：等待时展示什么、失败发生在哪里、同一输入是否能重试，以及结果如何继续使用。这些判断比列出接了多少模型更值得记录。\n\n## 持续记录\n\n这里分享具体的实现思路、例子和复盘，涉及接口适配的示例会注明性质，不公开内部接口或用户数据。",
+        "stack": [
+          "Python",
+          "Django",
+          "AI API",
+          "AIGC",
+          "部署运维"
+        ],
+        "role": "产品实践",
+        "repo_url": "",
+        "live_url": "",
+        "emoji": "🎨",
+        "year": "持续实践",
+        "featured": true,
+        "published": true,
+        "sort": 2
+      },
+      "update_mask": [
+        "name",
+        "summary",
+        "description",
+        "stack",
+        "role",
+        "repo_url",
+        "live_url",
+        "emoji",
+        "year",
+        "featured",
+        "published",
+        "sort"
+      ],
+      "expected_updated_at": "2026-10-28T08:38:00Z",
+      "expected_content_sha256": "f476d7ea6b2e246601180bd65725172d093d3449a248c96698b2e3eb36db44b1"
+    },
+    {
+      "kind": "update_project",
+      "slug": "luohao-blog",
+      "expected_updated_at": "2026-10-28T08:38:00Z",
+      "fields": {
+        "slug": "luohao-blog",
+        "name": "luohao-blog",
+        "summary": "承载文章、作品集与 AI 问答的个人网站，也是持续验证交付流程的实践场",
+        "description": "## 把个人网站当成一个持续维护的产品\n\n本站同时承担写作、项目展示和技术实践的用途。除了公开阅读页，也包含文章编辑、账号与评论等管理和交互功能，因此验收不能只看首页是否打开。\n\n## 前后端各自负责什么\n\nGo / Kratos 后端维护 API 契约、业务逻辑和数据访问；Vue / Nuxt 前端负责 SSR 页面，并通过 BFF 转发请求。文章以 Markdown 保存并渲染为 HTML，搜索、标签、账号与评论围绕内容展开。\n\n项目还配套微信小程序阅读端。公开文章、管理后台与阅读端共享部分业务能力，但各自的登录和交互路径仍需要分别核对。\n\n## 一个小功能也会跨过多个边界\n\n以文章更新为例，请求从浏览器进入 Nuxt 代理，再到服务层合并指定字段，最后交给业务层写入和渲染。登录态还涉及浏览器 Cookie 的路径与后端路径如何对应。\n\n这些问题适合放到完整操作里验证：登录、保存草稿、修改、发布、前台读取，再刷新与登出。单个接口的成功不能替代整条路径。\n\n## 为什么把验证也留下来\n\n项目保留接口、迁移、测试和浏览器验收入口，并使用 dev-workflow 组织协作信息。运维与内容迭代也属于网站维护的一部分。\n\n这份作品集本身就是一次迭代：图片、正文和页面展示分别有可检查的来源，内容预览先使用隔离数据，再进入正式交付流程。",
+        "stack": [
+          "Go",
+          "Kratos",
+          "ent",
+          "Nuxt 4",
+          "Tailwind CSS",
+          "MySQL",
+          "Redis",
+          "Elasticsearch"
+        ],
+        "role": "产品实践",
+        "repo_url": "https://github.com/luohao0308/luohao-blog",
+        "live_url": "",
+        "emoji": "🛠️",
+        "year": "2026",
+        "featured": false,
+        "published": true,
+        "sort": 3
+      },
+      "update_mask": [
+        "name",
+        "summary",
+        "description",
+        "stack",
+        "role",
+        "repo_url",
+        "live_url",
+        "emoji",
+        "year",
+        "featured",
+        "published",
+        "sort"
+      ],
+      "expected_content_sha256": "1ae5ed22a51fe3e662bbe9cfed717d4398a7e52567c2916e9c626755e513e26a"
+    },
+    {
+      "kind": "update_project",
+      "slug": "job-application-workbench",
+      "expected_updated_at": "2026-10-28T08:38:00Z",
+      "fields": {
+        "slug": "job-application-workbench",
+        "name": "机会工作台",
+        "summary": "把零散信息整理成可以持续使用的小工具，探索个人工作流的产品化。",
+        "description": "## 把零散的信息放回一处\n\n这个小工具从日常记录出发，尝试减少来回切换和重复整理，让信息能被继续补充、检索和追踪。\n\n## 在真实问题里做产品\n\n使用 Vue 与 FastAPI 连接界面和数据，持续调整信息结构、交互与维护方式。这里记录的是工具的构建过程，不展示个人简历、投递记录或联系方式。",
+        "stack": [
+          "Python",
+          "FastAPI",
+          "Vue 3",
+          "Vite",
+          "PostgreSQL"
+        ],
+        "role": "产品实践",
+        "repo_url": "",
+        "live_url": "",
+        "emoji": "📋",
+        "year": "2026",
+        "featured": false,
+        "published": true,
+        "sort": 4
+      },
+      "update_mask": [
+        "name",
+        "summary",
+        "description",
+        "stack",
+        "role",
+        "repo_url",
+        "live_url",
+        "emoji",
+        "year",
+        "featured",
+        "published",
+        "sort"
+      ],
+      "expected_content_sha256": "497d2ac66018275c94e049eb63adae4e9967d674150b5a5ce815482d41294d61"
+    },
+    {
+      "kind": "update_about",
+      "expected_updated_at": "2026-10-28T08:38:00Z",
+      "fields": {
+        "name": "罗浩",
+        "headline": "做产品，写代码，也折腾 AI",
+        "intro": "我喜欢把一个想法做出来，也喜欢记录中间的判断、踩坑和发现。这里分享产品实践、AI 工具与工作流，以及值得留下来的技术复盘。\n\n希望这些记录能给同样爱折腾的人一点启发。比起一份完美的答案，我更愿意把问题怎么想、事情怎么做讲清楚。",
+        "current_focus": "持续打磨 dev-workflow、Forge Harness 和这个网站，把探索过程整理成读者用得上的文章与工具。",
+        "skills": [],
+        "timeline": []
+      },
+      "preserve_fields": [
+        "id",
+        "profile_image",
+        "contacts",
+        "representative_links"
+      ]
+    }
+  ]
+}
