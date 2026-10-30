@@ -20,6 +20,7 @@ export function siteURL(origin: string, path: string): string {
 export function publicAssetPath(path?: string | null): string {
   if (!path) return DEFAULT_SEO_IMAGE
   if (/^\/images\/editorial\/covers\/(?:workflow|guard|harness|aigc|fullstack|ent|mysql|workbench)\.webp$/.test(path)) return path
+  if (/^\/images\/projects\/(?:dev-workflow|forge-harness|aigc|luohao-blog|job-application-workbench)\.png$/.test(path)) return path
   if (/^\/v1\/assets\/(?:media|avatars)\/[0-9a-f]{32}\.(?:jpg|png|webp)$/.test(path)) return `/api${path}`
   return path === DEFAULT_SEO_IMAGE ? path : DEFAULT_SEO_IMAGE
 }

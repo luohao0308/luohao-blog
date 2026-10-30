@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { projectImages, projectStories } from '~/data/editorial'
+import { projectArticleSlugs } from '~/data/projectArticles'
 const route = useRoute()
 definePageMeta({ key: route => route.path })
 const slug = computed(() => String(route.params.slug))
@@ -19,6 +20,9 @@ const sections = computed(() => {
   })
 })
 const { data: allProjects, error: relatedError } = await usePublicProjects()
+const { data: published, error: articleError, status: articleStatus, refresh: refreshArticles } = await usePublishedArticles()
+const hasCuratedArticles = computed(() => !!projectArticleSlugs[slug.value]?.length)
+const practiceArticles = computed(() => (published.value ?? []).filter(article => projectArticleSlugs[slug.value]?.includes(article.slug)))
 const repoURL = computed(() => safePortfolioHref(project.value.repo_url))
 const liveURL = computed(() => safePortfolioHref(project.value.live_url))
 const hasCaseDetails = computed(() => Boolean(project.value.problem || project.value.approach || project.value.outcome))
@@ -38,7 +42,7 @@ const relatedProjects = computed(() =>
 usePageSeo({
   title: () => `${project.value.name} · 作品集`,
   description: () => project.value.summary,
-  image: () => editorialCover.value?.src || project.value.cover_url,
+  image: () => project.value.cover_url || editorialCover.value?.seoSrc,
 })
 </script>
 
@@ -101,6 +105,14 @@ usePageSeo({
       <ul class="space-y-3 text-sm leading-7">
         <li v-for="reference in story.references" :key="reference.url"><a :href="reference.url" target="_blank" rel="noopener" class="text-blue-600 underline dark:text-blue-300">{{ reference.title }} ↗</a></li>
       </ul>
+    </section>
+
+    <section v-if="practiceArticles.length || (hasCuratedArticles && (articleError || articleStatus === 'pending'))" aria-label="项目实践文章" class="border-t border-[var(--border-default)] pt-8">
+      <h2 class="text-lg font-semibold">实践与技术文章</h2>
+      <p class="mt-2 text-sm text-[var(--text-muted)]">继续阅读相关实现、问题排查与案例推演。</p>
+      <div v-if="articleError" role="alert" class="mt-5 text-sm text-[var(--text-muted)]">相关文章暂时加载失败。<button type="button" class="ml-2 text-[var(--accent)] underline" @click="refreshArticles()">重新加载</button></div>
+      <p v-else-if="articleStatus === 'pending'" role="status" class="mt-5 text-sm text-[var(--text-muted)]">正在加载相关文章…</p>
+      <div v-else class="media-feed mt-5"><ArticleCard v-for="article in practiceArticles" :key="article.id" :article="article" /></div>
     </section>
 
     <section v-if="relatedProjects.length" class="space-y-4 border-t border-slate-200 pt-9 dark:border-slate-800">

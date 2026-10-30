@@ -155,3 +155,17 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_BASE_URL=http://127.0.0.1:13831 B
 ```
 
 同时运行`account_avatar_e2e.cjs`与`account_email_e2e.cjs`验证既有上传、编码回退、邮箱验证/恢复与后台改密入口。服务端真实存储、真实邮件投递不在布局mock套件的验证范围。
+
+
+## 最新基线页面差异化
+
+`page_differentiation_e2e.cjs` 使用本地公开快照 `output/page-differentiation/live-baseline/{articles,projects,about}.json`（通过对应公开 API GET 取得）；隔离 mock 另合成未公开记录作为负向 fixture，不向生产写入。先构建 frontend，再运行：
+
+```bash
+NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行文件> node scripts/e2e/page_differentiation_e2e.cjs
+```
+
+覆盖最新城市首页、7篇文章/5项目、后台封面优先、搜索筛选与清除、阅读灯箱、公开关联、私有404、空错重试、图片失败、明暗与窄屏、键盘与 reduced-motion，以及五个项目的独立 PNG 分享图。结果与截图在 `output/page-differentiation/`。该目录为本机证据，不替代 CI。
+
+
+2026-10-30 用户明确要求保留原封面卡片。当前专项回归断言首页精选卡片数量、文章/项目原卡片封面在上且16:9完整、后台图片优先和原交互；之前的横向文章/图标作品卡断言已撤换。

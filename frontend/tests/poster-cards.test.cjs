@@ -48,6 +48,7 @@ test('curated SEO covers stay on the explicit local allowlist', () => {
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports })
   assert.equal(exports.publicAssetPath('/v1/assets/media/' + 'a'.repeat(32) + '.webp'), '/api/v1/assets/media/' + 'a'.repeat(32) + '.webp')
   assert.equal(exports.publicAssetPath('/images/editorial/covers/workflow.webp'), '/images/editorial/covers/workflow.webp')
-  for (const bad of ['https://example.com/a.webp', '/images/editorial/covers/../secret.webp', '/images/editorial/covers/unknown.webp'])
+  assert.equal(exports.publicAssetPath('/images/projects/dev-workflow.png'), '/images/projects/dev-workflow.png')
+  for (const bad of ['/images/projects/dev-workflow.svg', '/images/projects/../secret.png', '/images/projects/unknown.png', 'https://example.com/a.webp', '/images/editorial/covers/../secret.webp', '/images/editorial/covers/unknown.webp'])
     assert.equal(exports.publicAssetPath(bad), exports.DEFAULT_SEO_IMAGE)
 })
