@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { articleImages } from '~/data/editorial'
+import { projectArticleSlugs } from '~/data/projectArticles'
 import { ARTICLE_STATUS_LABEL, formatDate, useArticleBySlug, usePublishedArticles } from '~/composables/useArticles'
 import { articleSummary, prepareArticleHtml, readingMinutes } from '~/utils/article'
 
@@ -21,7 +22,7 @@ const coverUrl = computed(() => editorialCover.value?.src || assetUrl(article.va
 const coverAlt = computed(() => editorialCover.value?.alt || `${article.value.title}封面`)
 const failedCover = ref('')
 const coverImage = ref<HTMLImageElement | null>(null)
-const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
+const showCover = computed(() => article.value.cover_url && coverUrl.value && coverUrl.value !== failedCover.value)
 onMounted(() => {
   if (coverImage.value?.complete && !coverImage.value.naturalWidth) failedCover.value = coverUrl.value
 })
@@ -29,6 +30,11 @@ const preparedContent = computed(() => prepareArticleHtml(article.value.content_
 const minutes = computed(() => readingMinutes(article.value.content_md))
 const summary = computed(() => articleSummary(article.value.summary, article.value.content_md))
 const { data: published, error: navigationError } = await usePublishedArticles()
+const { data: publicProjects, error: projectsError, refresh: refreshProjects } = await usePublicProjects()
+const relatedProjects = computed(() => article.value.status === 2
+  ? (publicProjects.value ?? []).filter(project => projectArticleSlugs[project.slug]?.includes(slug.value))
+  : [])
+const hasProjectRelation = computed(() => Object.values(projectArticleSlugs).some(slugs => slugs.includes(slug.value)))
 const adjacent = computed(() => {
   const list = published.value ?? []
   const index = list.findIndex(item => item.slug === slug.value)
@@ -169,6 +175,14 @@ usePageSeo({
     </header>
 
     <ArticleContent :html="preparedContent.html" :headings="preparedContent.headings" />
+    <section v-if="relatedProjects.length || (hasProjectRelation && projectsError)" aria-label="相关项目" class="space-y-4 border-t border-[var(--border-default)] py-6">
+      <h2 class="text-lg font-semibold">相关项目</h2>
+      <div v-if="projectsError" role="alert" class="text-sm text-[var(--text-muted)]">相关项目暂时加载失败。<button type="button" class="ml-2 text-[var(--accent)] underline" @click="refreshProjects()">重新加载</button></div>
+      <NuxtLink v-for="item in relatedProjects" v-else :key="item.slug" :to="`/projects/${encodeURIComponent(item.slug)}`" class="block rounded-lg border border-[var(--border-default)] p-5 hover:border-[var(--accent)]">
+        <span class="flex items-center justify-between gap-3 font-medium">{{ item.name }} <span aria-hidden="true">↗</span></span>
+        <span class="mt-2 block text-sm leading-7 text-[var(--text-muted)]">{{ item.summary }}</span>
+      </NuxtLink>
+    </section>
     <ChatWindow />
     <CommentSection :slug="slug" />
     <section v-if="related.length" class="space-y-4 border-t border-slate-200 pt-8 dark:border-slate-800">

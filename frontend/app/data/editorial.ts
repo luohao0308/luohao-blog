@@ -3,6 +3,7 @@ export interface EditorialImage {
   alt: string
   caption: string
   credit: string
+  seoSrc?: string
   sourceUrl?: string
   diagram?: boolean
   poster?: boolean
@@ -43,12 +44,6 @@ const mysql: EditorialImage = {
   alt: '191 / 255，到底选谁？。字符串索引，别只抄数字。',
   caption: '', credit: '', poster: true,
 }
-const workbench: EditorialImage = {
-  src: '/images/editorial/covers/workbench.webp',
-  alt: '岗位太多，投递别乱。我的岗位机会工作台。',
-  caption: '', credit: '', poster: true,
-}
-
 export const articleImages: Record<string, EditorialImage> = {
   'ai-delivery-guard': guard,
   'fullstack-smoke-pitfalls': fullstack,
@@ -60,8 +55,11 @@ export const articleImages: Record<string, EditorialImage> = {
 }
 
 export const projectImages: Record<string, EditorialImage> = {
-  'dev-workflow': workflow, 'forge-harness': harness, 'aigc': aigc,
-  'luohao-blog': fullstack, 'job-application-workbench': workbench,
+  'dev-workflow': { src: '/images/projects/dev-workflow.svg', seoSrc: '/images/projects/dev-workflow.png', alt: 'dev-workflow：项目规则、知识与交付检查的模块示意', caption: '', credit: '', poster: true },
+  'forge-harness': { src: '/images/projects/forge-harness.svg', seoSrc: '/images/projects/forge-harness.png', alt: 'Forge Harness：任务、工具与运行轨迹的模块示意', caption: '', credit: '', poster: true },
+  'aigc': { src: '/images/projects/aigc.svg', seoSrc: '/images/projects/aigc.png', alt: 'AIGC 应用平台：输入、接口适配与外部模型的接入示意', caption: '', credit: '', poster: true },
+  'luohao-blog': { src: '/images/projects/luohao-blog.svg', seoSrc: '/images/projects/luohao-blog.png', alt: 'luohao-blog：阅读、搜索与交互的模块示意', caption: '', credit: '', poster: true },
+  'job-application-workbench': { src: '/images/projects/job-application-workbench.svg', seoSrc: '/images/projects/job-application-workbench.png', alt: '岗位机会工作台：岗位、个人画像与工作台的模块示意', caption: '', credit: '', poster: true },
 }
 
 export const projectStories: Record<string, {
