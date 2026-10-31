@@ -169,3 +169,7 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 
 
 2026-10-30 用户明确要求保留原封面卡片。当前专项回归断言首页精选卡片数量、文章/项目原卡片封面在上且16:9完整、后台图片优先和原交互；之前的横向文章/图标作品卡断言已撤换。
+
+### 最新 CMS 的收藏与详情回归
+
+`scripts/e2e/current_reading_e2e.cjs` 使用 `output/current-reading/live-baseline/{articles,projects,about}.json` 的新鲜匿名 GET 快照和 `docs/content/portfolio-revision-2026-10.json` 内容提案，不连接线上写接口。先运行前端构建，并在 backend 执行 `BLOG_REVISION_RENDERED=<绝对路径>/output/current-reading/rendered-articles.json go test ./cmd/seed -run TestContentRevisionProposal -count=1`，用真实渲染器准备 HTML；再运行 `NODE_PATH=<已有Playwright包目录> node scripts/e2e/current_reading_e2e.cjs`。可通过 `BLOG_E2E_CHROMIUM` 指定浏览器。本地预览运行 `node scripts/e2e/current_reading_fixture.cjs`，默认端口 13030。缺少快照或 CMS 版本与提案不一致时拒绝预览，避免静默覆盖更新。

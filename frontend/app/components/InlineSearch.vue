@@ -35,6 +35,9 @@ function close() {
             <path d="m16 16 4.5 4.5" stroke-linecap="round" />
           </svg>
         </button>
+        <div v-if="$slots.actions" class="ml-1 flex shrink-0 items-center">
+          <slot name="actions" />
+        </div>
       </div>
     </div>
     <Transition name="search-options">

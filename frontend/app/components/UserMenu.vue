@@ -50,13 +50,14 @@ async function signOut() {
 </script>
 
 <template>
-  <NuxtLink
-    v-if="!user"
-    to="/login"
-    class="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-  >
-    登录
-  </NuxtLink>
+  <div v-if="!user" class="flex items-center gap-2">
+    <NuxtLink
+      to="/login"
+      class="inline-flex min-h-11 items-center rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+    >
+      登录
+    </NuxtLink>
+  </div>
 
   <div v-else ref="rootEl" class="relative" @keydown="onKeydown" @focusout="onFocusout">
     <button

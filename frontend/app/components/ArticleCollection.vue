@@ -74,6 +74,7 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
   <section ref="collectionRoot" class="space-y-6" aria-label="文章列表" :aria-busy="status === 'pending' || searchPending">
     <InlineSearch v-if="inlineSearch" v-model="query" label="搜索文章">
       <template #heading><slot name="heading" /></template>
+      <template v-if="$slots.actions" #actions><slot name="actions" /></template>
       <template v-if="categories.length || tags.length" #filters>
         <div class="space-y-3">
           <nav v-if="categories.length" aria-label="文章分类筛选" class="flex flex-wrap gap-2 text-xs">

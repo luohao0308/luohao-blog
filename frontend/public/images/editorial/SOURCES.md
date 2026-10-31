@@ -73,3 +73,7 @@ Ent 官方图片及 Apache-2.0 许可沿用。以下保留上轮素材记录，�
 - workbench-flow.svg：Vue、FastAPI 与 PostgreSQL 的简化分工。
 
 文字参考使用各文章末尾与项目详情中的源码/官方文档链接；没有整段转载第三方文章。
+
+## 2026-10-31 阅读修订
+
+保留最新版卡片布局，缩略素材混排目录说明、模块说明、本站代码、Ent 官方关系图与摄影。私有项目没有可公开画面时不使用模板海报。新增 desk.webp 为已审核素材：Lauren Mancke / Unsplash，纸笔与电脑工作台，主题配图（非本人拍摄或产品截图），来源 https://unsplash.com/photos/turned-off-macbook-pro-beside-white-ceramic-mug-filled-with-coffee-aOC7TSLb1o8 ，Unsplash License。其他技术素材沿用前文登记来源。

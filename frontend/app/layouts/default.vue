@@ -20,8 +20,8 @@ onMounted(() => {
 
 const route = useRoute()
 
-// Flat top-level nav; 收藏 lives in the footer (it is a local-browser
-// feature, not a primary destination). Mobile keeps the taxonomy pages as a
+// Flat top-level nav; 收藏 lives in the account area.
+// Mobile keeps the taxonomy pages as a
 // flat wrap list so no hamburger menu is needed.
 const navLinks = [
   { to: '/', label: '首页' },
@@ -96,7 +96,6 @@ function isActive(to: string) {
 
     <footer :data-home-shell-layer="route.path === '/' ? 'footer' : undefined" class="border-t border-[var(--border-default)] py-6 text-center text-sm text-[var(--text-muted)]">
       <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
-        <NuxtLink to="/collections" class="transition-colors hover:text-[var(--accent)]">收藏</NuxtLink>
         <a
           href="https://github.com/luohao0308/luohao-blog"
           class="transition-colors hover:text-[var(--accent)]"

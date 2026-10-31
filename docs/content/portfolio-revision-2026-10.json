@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "baseSha": "6c73272708fb7ef20e83a5c76e54adcea6ac1220",
+  "status": "proposal_only_not_applied",
+  "capturedAt": "2026-10-31T05:54:13.886443+00:00",
+  "sources": {
+    "cmsOrigin": "https://makerhao.cn",
+    "projectContent": "Prior reviewed project sections, based on author resume and verified repository documentation; original private source excluded.",
+    "articleContent": "Reviewed AIGC and Forge Harness project manuscripts, based on author-provided resume.",
+    "baseline": "Fresh anonymous GET list and single-item API responses; no authenticated or write requests."
+  },
+  "executionConstraints": [
+    "Re-fetch exact id, updated_at and every before field immediately before any separately authorized CMS update; reject on mismatch.",
+    "Apply only updateMask fields; preserve all omitted fields including cover_url, screenshots, repo_url, live_url, published, sort, status and published_at.",
+    "content_html is server-derived from content_md, never submitted as a CMS update.",
+    "No CMS write, publication, production update or database operation has been executed."
+  ],
+  "projects": [
+    {
+      "slug": "aigc",
+      "id": "01a181a8-b464-771c-a604-2410d84bd588",
+      "expectedUpdatedAt": "2026-10-28T10:39:32Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/projects/aigc",
+      "before": {
+        "name": "AIGC 应用平台",
+        "summary": "把模型能力接到具体产品里，记录接口适配与完整体验的实现。",
+        "stack": [
+          "Python",
+          "Django",
+          "AI API",
+          "AIGC",
+          "部署运维"
+        ],
+        "role": "产品实践",
+        "description": "## 从一个输入框开始\n\n页面上只是输入和结果，背后却连接着请求校验、模型接口、数据转换和结果展示。我更关心这些环节怎样组合成一个真正可用的产品。\n\n## 接口之外的体验\n\n外部服务提供能力，产品仍要回答自己的问题：等待时展示什么、失败发生在哪里、同一输入是否能重试，以及结果如何继续使用。这些判断比列出接了多少模型更值得记录。\n\n## 持续记录\n\n这里分享具体的实现思路、例子和复盘，涉及接口适配的示例会注明性质，不公开内部接口或用户数据。"
+      },
+      "after": {
+        "name": "企业级 AIGC 聚合与调度中台",
+        "summary": "面向陶瓷、箱包与工艺品行业，负责流式对话、绘图调度、企业团队与支付计费等后端核心模块",
+        "stack": [
+          "Python",
+          "Django / DRF",
+          "Channels",
+          "Asyncio",
+          "Celery",
+          "Redis",
+          "MySQL",
+          "ComfyUI",
+          "OpenAI",
+          "Docker",
+          "Nginx"
+        ],
+        "role": "爱格创工作项目 · 后端核心研发",
+        "description": "## 从行业设计需求出发\n\n这个项目服务于陶瓷、箱包、工艺品等行业的设计生产场景。用户需要借助对话和图像生成完成设计探索，企业还需要把成员、积分与生成资产放在统一账户体系下管理。\n\n平台聚合 GPT-4o、Midjourney、Stable Diffusion 与 ComfyUI，提供流式对话和复杂工作流绘图。我承担后端核心研发，从架构选型、模块实现一直参与到部署上线和运维，前端由同事负责。\n\n## 流式对话：处理分段响应中的图片链接\n\n流式输出不是把上游返回的字符串逐段转发就结束了。Markdown 图片链接可能被拆在不同的数据片段里，直接交给页面解析会造成链接不完整、图片展示错乱。\n\n我实现了基于状态机的 SSE 缓冲层，处理拆包、粘包条件下的内容边界，让流式对话中的 Markdown 图片链接能够保持完整。这部分工作连接模型响应与前端展示，是对话体验中的具体工程问题。\n\n## 模型网关与工具编排\n\n不同模型供应商的可用性和响应形式各不相同。我参与建设多供应商网关，将故障转移、Token 限流与请求去重放在后端处理；通过 Redis 滑动窗口控制请求，在第三方 API 波动时切换备用线路。\n\n在此之上，基于 Function Calling 实现轻量 Agent 调度器，结合 ReAct 推理链组织工具调用，并用 Redis 与向量库支持短期和长期记忆。对话由此能够衔接工具执行，模型接入与任务编排也各有对应模块。\n\n## ComfyUI 绘图任务与 GPU 调度\n\n图像生成任务的耗时与资源占用不同于普通接口请求。后端使用 Celery 优先级队列组织任务，通过心跳探活跟踪 ComfyUI 节点状态，再将任务交给可用算力节点。\n\n我处理了任务执行前的显存自动回收，针对 GPU 显存不足导致的 OOM 问题改善任务运行条件。队列、节点存活状态与显存管理共同组成绘图调度链路，目标是让生成任务持续运行并提高算力利用率。\n\n## 企业团队、共享积分与商业化计费\n\n平台采用企业／团队与成员两级组织结构，支持一人付费、团队共享积分与企业资产。这使后台需要同时处理个人操作、团队权益和资产归属。\n\n我独立完成微信支付 V3 与支付宝接入，包括 RSA／AES 回调验签，配合订阅制、按量计费与会员权益形成商业化链路。支付后的权益与积分使用同处于平台业务中，是项目后端的重要组成部分。\n\n## 运营分析、告警与上线维护\n\n除了生成和计费，我还使用 Pandas 与 ECharts 建设运营数据大屏，分析活跃用户、付费转化和算力消耗，并接入钉钉机器人告警，帮助运营与开发发现异常。\n\n运行环境采用 Python、Django／DRF、Channels、Asyncio、Celery、Redis 与 MySQL，配合 Docker 和 Nginx 完成部署。项目代码未公开，此处介绍业务与本人职责，不提供公司源码或内部配置。"
+      },
+      "updateMask": [
+        "name",
+        "summary",
+        "stack",
+        "role",
+        "description"
+      ],
+      "preserved": {
+        "cover_url": "",
+        "screenshots": [],
+        "repo_url": "",
+        "live_url": "",
+        "published": true,
+        "sort": 2,
+        "featured": true,
+        "year": "持续实践",
+        "problem": "",
+        "approach": "",
+        "outcome": ""
+      }
+    },
+    {
+      "slug": "forge-harness",
+      "id": "01a181a8-b45a-7db4-80cd-3a10dbde5599",
+      "expectedUpdatedAt": "2026-10-28T10:39:32Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/projects/forge-harness",
+      "before": {
+        "summary": "个人 Agent 工程项目，探索任务执行、工具审批、运行回放与评测",
+        "stack": [
+          "Python",
+          "FastAPI",
+          "React",
+          "TypeScript",
+          "PostgreSQL",
+          "Redis",
+          "Electron",
+          "Docker"
+        ],
+        "role": "开源工具",
+        "description": "## 从聊天窗口走向任务执行\n\n我做 Forge Harness 时关注的起点，是模型调用之外的过程。一次回答结束很容易观察，但任务可能包含多次工具调用、暂停、重试和人工审批。只有最后一段文本，很难解释任务为什么得到这个结果。\n\n因此项目把任务、运行记录和工具动作放在同一个工作面里讨论。它是个人 Agent 工程项目，主要用来检验这些设计如何落地。\n\n## 控制台、服务与桌面端的分工\n\n仓库包含 React / TypeScript 控制台、FastAPI 服务和 Electron 桌面端。控制台承担 Agent 配置、工作区、运行记录、工具、知识与评测等界面；服务端维护 API、运行时、后台任务、数据和事件相关模块；桌面端则有本地工作区的边界。\n\nPostgreSQL 与 Redis 出现在服务依赖中，Docker Compose 提供开发与私有部署入口。这里把各部分分开介绍，是为了让界面上的一个动作能追到负责处理它的模块。\n\n## 运行记录为什么是一个独立入口\n\n一个任务是否完成，不能只靠页面最后有没有文字来判断。运行详情需要能看到事件、工具和模型调用，以及与知识、评测和成本相关的记录。README 因此把运行历史与运行详情列成独立控制台入口。\n\n恢复和回放也是不同问题：回放帮助理解已经发生的过程；恢复还涉及接下来从哪里继续、哪些动作已经执行。检查具体场景时，需要分别核对，不能把界面上有一个按钮当作行为已经可靠。\n\n## 工具、知识与评测怎样连接起来\n\n工具和 MCP 接入扩展的是可执行能力，策略与审批决定具体动作的边界；知识模块提供检索与依据，评测则用于比较任务或版本的表现。这几部分都围绕同一个运行过程，才有机会解释模型用了什么信息、做了什么动作、得到了什么结果。\n\n项目文档分别维护工具、运行时、数据事件和 Eval 的说明。对这些模块的理解也需要回到真实任务，而不是仅靠列出一串技术名词。\n\n## 我会怎样看一个具体的运行结果\n\n一条有用的验收路径是发起任务、观察运行状态、查看工具动作、处理审批，再检查最终结果与轨迹。失败场景还要看错误是否可定位，暂停恢复时是否丢失上下文、重复执行动作。\n\n这是持续迭代的项目。可以公开展示的是仓库中的结构与实现、可复现的验证路径；"
+      },
+      "after": {
+        "summary": "将计划、工具、知识、记忆、审批与评测组织进可追踪、可恢复的 Agent 运行时",
+        "stack": [
+          "Python",
+          "FastAPI",
+          "React",
+          "TypeScript",
+          "PostgreSQL",
+          "Redis",
+          "Electron",
+          "SQLite",
+          "MCP",
+          "Docker"
+        ],
+        "role": "个人开源项目 · 全栈与 Agent 工程",
+        "description": "## 从目标到可追踪的执行计划\n\n我将 Agent Studio 配置、Workspace 目标、Planner 生成的版本化 Plan DAG 和 Executor 执行连接为主链路，并支持 Subagent 与 Multi-Agent 执行。控制台使用 React 和 TypeScript，服务端使用 FastAPI，配合 PostgreSQL、Redis 与后台任务处理。\n\nEvent Store 持久化 Run、Step、ModelCall、ToolCall、Approval 与成本记录。SSE 将运行过程传到界面，暂停、恢复、取消、重试和 Replay 则围绕这些记录工作，让一次任务可以从结果追溯到执行步骤。\n\n## RAG 与检索证据的生命周期\n\n知识模块维护知识源、文档版本、分块、检索与引用快照，同时处理作用域隔离与迁移恢复。中文内容提供 CJK lexical fallback，证据不足时停止给出缺乏依据的结果。\n\n检索证据与 Prompt Manifest、Context Manifest 和 ModelCall 绑定。这样可以回看一次调用实际取得的资料，而不仅是当前知识库里已经更新过的内容。Web Research 接入 Tavily，知识连接器对接 Dify 与 Coze，调用过程保留查询校验、访问策略和尝试记录。\n\n## 记忆和上下文预算\n\n长期记忆区分组织、Agent、用户与 Run 的作用域，保留来源、策略标记与过期删除机制。Context Router 在 token budget 内组织历史消息、固定上下文、压缩摘要、Memory、RAG、Web 和工具证据。\n\n上下文清单会随调用持久化，用于后续核对成本、输入内容与策略。这里关注的不只是能否记住信息，也包括具体运行中取用了哪些信息。\n\n## 工具能力、版本与审批\n\n工具能力从 CapabilityRegistry、AgentCapabilityAttachment、CapabilityVersion 进入 ToolRunner。项目支持能力发现、安装配置与版本快照，接入 MCP HTTP、SSE、stdio，以及 GitHub、Slack 和 Sandbox 适配器。\n\n工具调用统一经过策略、审批、沙箱、幂等与审计检查，未绑定的能力拒绝执行。将这些入口收束到同一条链路后，运行记录能够关联到当时使用的能力版本和审批依据。\n\n## Electron 本地工作区与自动化\n\n桌面端通过 Profile 隔离工作区，使用 SQLite offline-sync 保存 Run、事件、模型调用、工具调用与审批。文件写入需要审批，并处理离线执行、取消、崩溃恢复、Profile 切换与服务端证据导入。\n\nProject Knowledge 提供可信根目录扫描、ignore 规则、扫描预算、文档版本与 project:// 引用。Webhook、定时、文件和 Git Trigger 统一进入持久化 Invocation／Run，结合租约、fencing、重试和 kill switch 管理后台执行。\n\n## 评测、观测与交付\n\nEval Harness 围绕 Dataset、Case、Eval Run、Trace Grader 与 Regression Gate 检查 grounding、引用、无依据断言、工具使用、延迟和成本。OpenTelemetry、Prometheus、Grafana、Loki 与 Tempo 关联运行、事件、调用和策略证据。\n\n交付侧使用 Docker Compose、Alembic、迁移与恢复冒烟、OpenAPI、功能清单和 Playwright 检查。项目展示的是我的 Agent 系统设计与实现工作，源码和开发说明可从文末仓库入口查看。"
+      },
+      "updateMask": [
+        "summary",
+        "stack",
+        "role",
+        "description"
+      ],
+      "preserved": {
+        "cover_url": "",
+        "screenshots": [],
+        "repo_url": "https://github.com/luohao0308/forge-harness",
+        "live_url": "",
+        "published": true,
+        "sort": 1,
+        "featured": true,
+        "year": "2026",
+        "problem": "",
+        "approach": "",
+        "outcome": ""
+      }
+    },
+    {
+      "slug": "dev-workflow",
+      "id": "00000000-0000-7000-8000-000000000102",
+      "expectedUpdatedAt": "2026-10-28T10:39:31Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/projects/dev-workflow",
+      "before": {
+        "role": "开源工具",
+        "description": "## 为什么把协作流程单独做成项目\n\n我在用 AI 推进项目时，发现最容易丢的往往不是代码，而是代码周围的判断：哪个文档还有效、上一次停在哪里、什么检查已经跑过，以及下一步有没有权限执行。把这些信息都留在会话里，换一次上下文就要重新解释。\n\ndev-workflow 把这部分约定放回仓库。它提供规则、文档模板和检查工具，让后续接手者先看到项目事实，再决定怎么改。它适用于已有项目接入，也允许从小范围开始采用。\n\n## Core 与流程包怎么分工\n\nCore 负责所有项目都需要的基础约定，例如文档职责、读取顺序、任务推进和安全边界。架构、设计、契约、功能清单等能力则拆成可选流程包。安装时要先做项目画像和既有文档映射，而不是直接用模板覆盖原来的说明。\n\n目录中的相对路径对应目标项目的位置。这个结构让安装内容比较直观，也便于判断某个文件来自哪里、后续是否需要跟随版本升级。日常协作主要读取 Markdown；自动检查工具使用 Python 标准库，安装入口分别覆盖 Bash 与 PowerShell。\n\n## 交付检查处理的具体问题\n\n流程要求、执行权限与质量门禁分别判断。项目需要 PR，不代表 AI 就能创建 PR；CI 通过，也不代表可以直接合并。delivery_guard 会结合仓库策略、准确引用与 SHA、授权范围和平台证据判断一次具体操作。\n\n我更在意的是变更后能否重新核对这些条件。比如源分支又出现一个新提交，旧 SHA 上通过的证据不能直接证明新提交可交付。信息缺失时应停在当前步骤，而不是继续猜测。\n\n## 升级和日常维护也要有边界\n\n规则安装进去以后，还会继续变化。升级不能只把新版本文件拷过去，因为用户可能已经修改了项目专属内容。项目因此包含升级计划、审计与回退相关工具，用来核对来源、差异和接入状态。\n\n这也决定了文档的分工：TASKS 只记任务状态，稳定事实放在项目摘要，短期上下文用于本机交接。这样既保留必要的信息，又减少同一事实在多处漂移。\n\n## 怎样验证它值得使用\n\n验证分成两层：工具本身需要测试安装、检查、升级等路径；采用流程的项目仍要运行自己的构建、测试和浏览器验收。本站采用了这套规则，但它不能替代项目代码的质量检查。\n\n生产发布与部署还需要具体的环境配置、可信执行宿主及对应授权。可安装的规则是一套协作基础，不等于默认获得远端或生产操作权限。"
+      },
+      "after": {
+        "role": "个人开源项目 · 作者与维护者",
+        "description": "## 把项目知识留在仓库里\n\n项目交接时，代码之外还需要知道当前任务做到哪里、哪份设计仍然有效、上次执行过哪些检查。dev-workflow 将协作约定、项目事实与任务状态组织成仓库中的文件，供不同 AI 工具和接手者继续读取。\n\n我将通用部分拆成 Core，将架构、设计、交付、契约、运维和功能清单做成可选流程包。使用者可以先安装基础规则，再根据项目触点增加流程包。Core 不依赖某个模型、常驻 CLI 或特定框架。\n\n## 安装器如何接入已有项目\n\n项目提供 Bash 与 PowerShell 安装器，流程包以 overlay 形式映射到目标仓库。安装前可以 dry-run，检查目标路径和已有文件；接入时先做项目画像，再把现有文档映射到职责对应的位置。\n\n安装清单记录版本、流程包、文件来源和原始哈希。Git 本地排除由 info/exclude 中的受管区块维护，避免把本机上下文、运行记录和安装状态带进团队仓库。既有文档与项目专属内容需要保留。\n\n## 让任务、设计和项目事实各有位置\n\nTASKS 负责当前任务，PROJECT-SUMMARY 保存稳定项目事实，WORKING-CONTEXT 承担本机短期交接。AGENTS.md 提供读取顺序，让接手者先找到当前任务，再按需打开设计、契约或运维文档。\n\nfeature-catalog 流程包补充机器可读的功能层级、实现状态、成熟度和证据。配套 Python 标准库工具支持初始化、查询、校验和生成矩阵，减少对整份文档的重复加载。\n\n## 把交付条件落到一次具体操作\n\ndelivery_guard 将流程要求、执行权限和质量门禁分开处理。一次交付需要对应仓库、remote、源与目标引用、准确 SHA、授权范围及托管平台证据；源提交改变后，需要重新核对。\n\n这些规则也用在本站的开发过程中。项目另外提供 workflow_check 与 workflow_config，用于只读体检、能力配置和接入状态检查。\n\n## 升级与跨平台维护\n\n升级涉及分发模板、目标项目的本地修改和旧版本来源。项目为此提供安装、审计、升级与卸载工具，结合清单核对文件归属和差异。\n\n实现主要采用 Markdown、Python 标准库、Bash 与 PowerShell；仓库保留 Python 单元测试和两类脚本的端到端测试入口，覆盖规则分发之外的安装行为。"
+      },
+      "updateMask": [
+        "role",
+        "description"
+      ],
+      "preserved": {
+        "cover_url": "",
+        "screenshots": [],
+        "repo_url": "https://github.com/luohao0308/dev-workflow",
+        "live_url": "",
+        "published": true,
+        "sort": 0,
+        "featured": true,
+        "year": "2026",
+        "problem": "",
+        "approach": "",
+        "outcome": ""
+      }
+    },
+    {
+      "slug": "luohao-blog",
+      "id": "00000000-0000-7000-8000-000000000101",
+      "expectedUpdatedAt": "2026-10-28T10:39:32Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/projects/luohao-blog",
+      "before": {
+        "role": "产品实践",
+        "description": "## 把个人网站当成一个持续维护的产品\n\n本站同时承担写作、项目展示和技术实践的用途。除了公开阅读页，也包含文章编辑、账号与评论等管理和交互功能，因此验收不能只看首页是否打开。\n\n## 前后端各自负责什么\n\nGo / Kratos 后端维护 API 契约、业务逻辑和数据访问；Vue / Nuxt 前端负责 SSR 页面，并通过 BFF 转发请求。文章以 Markdown 保存并渲染为 HTML，搜索、标签、账号与评论围绕内容展开。\n\n项目还配套微信小程序阅读端。公开文章、管理后台与阅读端共享部分业务能力，但各自的登录和交互路径仍需要分别核对。\n\n## 一个小功能也会跨过多个边界\n\n以文章更新为例，请求从浏览器进入 Nuxt 代理，再到服务层合并指定字段，最后交给业务层写入和渲染。登录态还涉及浏览器 Cookie 的路径与后端路径如何对应。\n\n这些问题适合放到完整操作里验证：登录、保存草稿、修改、发布、前台读取，再刷新与登出。单个接口的成功不能替代整条路径。\n\n## 为什么把验证也留下来\n\n项目保留接口、迁移、测试和浏览器验收入口，并使用 dev-workflow 组织协作信息。运维与内容迭代也属于网站维护的一部分。\n\n这份作品集本身就是一次迭代：图片、正文和页面展示分别有可检查的来源，内容预览先使用隔离数据，再进入正式交付流程。"
+      },
+      "after": {
+        "role": "个人项目 · 设计与开发",
+        "description": "## 从写作入口到完整内容管理\n\n本站是我个人设计与开发的全栈项目，用来发表技术文章、整理作品和持续记录工程实践。公开端提供文章阅读、搜索、分类、标签与归档；管理端提供账号登录、文章编辑和内容管理。\n\n文章以 Markdown 保存，后端负责渲染，前端通过 Nuxt SSR 输出阅读页面。编辑器使用 Milkdown，围绕草稿、修改和发布形成内容维护路径。\n\n## Go 后端与 Nuxt 前端的分工\n\nGo / Kratos 后端通过 protobuf 定义 API，划分服务、业务与数据访问层；ent 负责数据访问，MySQL 保存业务数据，Redis 承担会话等运行状态，Elasticsearch 提供全文与向量检索。\n\nVue 3 / Nuxt 4 前端负责页面和 SSR，BFF 转发浏览器请求。公开阅读与管理界面共享后端能力，小程序另提供微信阅读端。\n\n## 账号、互动与文章问答\n\n账号体系包含 JWT 登录与 RBAC 权限区分。读者可以评论、点赞和收藏；评论采用先审后显，阅读量按客户端做时间窗口内去重。\n\nAI 问答围绕站内文章展开：结合 BM25 与向量检索寻找内容，调用兼容接口的语言模型生成回答并附文章出处。问答入口让已有文章能通过问题重新被发现。\n\n## 把开发后的维护一起做进去\n\n项目使用 Docker Compose 组织前后端及数据服务，GitHub Actions 承担持续集成与镜像构建发布。仓库包含备份、健康检查、迁移与浏览器端到端检查入口。\n\n开发过程中也留下了可继续阅读的排查案例：文章更新字段如何跨过 API 与业务层、登录 Cookie 如何经过 BFF、Ent 多对多关系如何落到数据结构。这些具体问题构成了本站技术文章的一部分。"
+      },
+      "updateMask": [
+        "role",
+        "description"
+      ],
+      "preserved": {
+        "cover_url": "",
+        "screenshots": [],
+        "repo_url": "https://github.com/luohao0308/luohao-blog",
+        "live_url": "",
+        "published": true,
+        "sort": 3,
+        "featured": false,
+        "year": "2026",
+        "problem": "",
+        "approach": "",
+        "outcome": ""
+      }
+    }
+  ],
+  "articles": [
+    {
+      "slug": "aigc-backend-delivery",
+      "id": "01a181a8-82a8-77ee-bb58-e96cb251d28a",
+      "expectedUpdatedAt": "2026-10-28T10:39:30Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/articles/aigc-backend-delivery",
+      "seedPath": "backend/cmd/seed/demoarticles/aigc-backend-delivery.md",
+      "before": {
+        "title": "AIGC 应用后端：外部模型接口的适配与交付",
+        "summary": "从 Python 后端与部署职责出发，拆开外部模型 API 到产品结果之间的应用链路。",
+        "content_md": "从用户输入到产品结果，中间需要一层能解释数据与失败的后端。\n\n一个 AI 产品最容易展示的是生成结果，最值得拆解的却是结果之前发生了什么。这篇文章从请求与响应的适配说起，讨论怎样把外部模型能力接成可使用的产品。\n\n[![AIGC 应用请求主链路](/images/editorial/aigc-flow.svg)](/images/editorial/aigc-flow.svg)\n\n*用户输入经前端交给后端，后端调用外部 AI API，转换结果后返回前端。*\n\n## 把外部能力变成产品接口\n\n应用的基本链路很直接：接收前端输入，调用外部 AI API，再把返回内容转换为前端需要的格式。文字和图片审核接入的是第三方百度云服务，审核能力不是自行训练或研发的。\n\n页面看到的可能只是一个结果区，接口之间却存在两套表达。前端关心“输入是否合法、返回内容如何展示、失败后怎么提示”，外部服务关心自己的参数、认证方式和响应字段。后端处在中间，需要理解两边的语义，不能只把 HTTP 请求原样搬过去。\n\n这也让接口适配成为一个值得单独讨论的工程问题。以下示例说明可以如何设计这一层，仅用于解释数据边界，不对应某个产品的内部源码。\n\n## 一个格式转换的例子\n\n假设页面只需要文本与图片地址，而某个外部接口把它们放在嵌套对象里。后端可以把供应商结构转换为应用自己的输出，而不是让页面读取供应商的内部字段名：\n\n```python\n# 教学示例：假设外部响应具有以下结构。\ndef to_product_result(payload):\n    output = payload.get(\"output\")\n    if not isinstance(output, dict):\n        raise ValueError(\"invalid upstream output\")\n    text = output.get(\"text\")\n    images = output.get(\"images\", [])\n    if not isinstance(text, str):\n        raise ValueError(\"invalid upstream text\")\n    if not isinstance(images, list) or any(\n        not isinstance(url, str) for url in images\n    ):\n        raise ValueError(\"invalid upstream images\")\n    return {\"text\": text, \"images\": images}\n```\n\n这里的选择是让产品接口保持自己的字段，而把供应商结构放在适配边界。好处是外部响应调整时，修改可以集中在转换处；代价是后端要维护映射和校验，不能把所有未知结构都当成功返回。示例中的类型检查也不等于链接安全校验或内容审核，那些需要各自明确的规则。\n\n[![外部 API 与产品接口之间的适配](/images/editorial/api-adapter.svg)](/images/editorial/api-adapter.svg)\n\n*请求映射与响应映射分别处理，让外部字段不直接成为页面契约。*\n\n如果使用 Django / DRF 做这样的应用，可以让 serializer 负责输入输出形状，把外部调用与结果适配放在容易单独测试的位置。并不需要为了调用一个 API 就建立庞大框架；一开始只要能替换外部响应、检查错误分支，已经有实际收益。\n\n## 失败需要保留发生的位置\n\n接入外部依赖时，几种看似相同的“生成失败”会影响不同的后续动作：\n\n| 情况 | 工程上需要区分的问题 |\n| --- | --- |\n| 输入缺字段 | 是否应该在调用外部服务前拒绝 |\n| 外部请求超时 | 对方是否可能已经受理 |\n| 响应格式变化 | 是转换失败，还是生成内容为空 |\n| 审核未通过 | 产品应展示什么状态与提示 |\n\n例如超时后立刻重试，可能造成重复调用；把响应解析异常返回成空文本，又会让用户以为模型生成了空结果。是否重试、是否采用异步任务，应该依据外部接口语义和页面等待方式决定。这些是这类系统的通用取舍，不能仅凭项目使用 AI API 就推断当时采用了某种队列或重试组件。\n\n## 部署后检查真实调用路径\n\n部署后还要核对代码运行之外的条件：应用配置能否正确加载，服务能否访问外部接口，入口代理与应用的等待时间是否协调。仅有进程存活，还不足以证明从用户输入到结果展示的链路可用。\n\n对类似项目，验证可以分两步。先用固定响应检查转换：正常文本、空结果、缺字段、错误类型都应有确定结果；再在允许的测试环境检查真实外部调用与页面展示。模拟响应帮助定位自己的代码，真实调用确认依赖是否按约定工作，两者回答的问题不同。\n\n我关心的是后端如何承接页面需求，以及一次请求的去向是否能被解释清楚。外部模型提供生成能力，应用开发仍要把输入、结果与失败状态组织成前端可消费的接口。这也是我后来继续做个人博客与 Agent 项目时，持续关注完整交付链路的原因。\n\n## 继续读什么\n\n- [Django 官方：请求与响应](https://docs.djangoproject.com/en/5.2/ref/request-response/)\n- [DRF 官方：序列化](https://www.django-rest-framework.org/api-guide/serializers/)"
+      },
+      "after": {
+        "title": "AIGC 聚合与调度中台：从行业设计需求到算力与计费",
+        "summary": "面向陶瓷、箱包与工艺品设计，记录流式对话、绘图调度、模型网关和商业化计费的后端实践。",
+        "content_md": "陶瓷、箱包与工艺品设计中的 AI 需求，往往同时涉及对话、图像生成和多步骤工作流。设计人员需要在一个产品里完成这些操作，后端则要将不同模型、绘图节点、任务状态与计费规则接起来。这是我在爱格创参与的 AIGC 聚合与调度中台的业务背景。\n\n我承担后端核心研发与部署上线，前端由同事负责。技术栈以 Python、Django / DRF 为主，配合 Channels、Asyncio、Celery、Redis、MySQL、Docker 与 Nginx。平台聚合 GPT-4o、Midjourney、Stable Diffusion 和 ComfyUI，围绕流式对话、工作流绘图和商业化使用组织能力。\n\n## 流式对话：处理被拆开的 Markdown 图片链接\n\n对话输出采用 SSE 持续传输，结果里包含 Markdown 图片链接。一个完整链接可能被分在不同的数据片段中，网络到达的边界与 Markdown 语法的边界并不一致。直接将每段内容交给页面解析，会让尚未闭合的链接进入渲染过程，出现展示错乱。\n\n我实现了基于状态机的 SSE 缓冲层，让输出先经过语法片段的状态处理，再交给前端。这里的关键是在连续文本输出与图片链接完整性之间安排缓冲：需要保留尚未完成的片段，并在后续数据到达后继续识别，使包含图片的回答能够稳定展示。\n\n## 用 Function Calling 组织工具与推理过程\n\n平台中的任务还涉及工具调用与多步处理。我基于 Function Calling 开发轻量 Agent 调度器，支持工具调用、ReAct 推理链，以及短期和长期记忆；Redis 与向量库用于相应的记忆存储。\n\n这一层将模型返回的调用意图接到实际工具执行，再把工具结果放回任务过程。它连接了对话、工具和记忆，使一次用户需求可以在多个步骤之间推进。对于行业设计工作流，调度器承担的是将模型能力组织成连续业务过程的工作。\n\n## 模型网关：应对外部 API 抖动\n\n平台同时使用多个模型服务，外部供应商的可用性与调用限制会直接影响用户任务。我实现了多供应商故障转移、Token 限流与请求去重，通过 Redis 滑动窗口支持调用控制，并在第三方 API 抖动时切换备用线路。\n\n网关把供应商接入与业务入口连接起来，处理的是调用链中的稳定性问题。故障转移、限流和去重各有职责：故障转移处理服务线路异常，限流控制调用节奏，去重约束重复请求。它们共同支撑上层的对话和生成任务。\n\n## 绘图任务与 GPU 节点调度\n\nComfyUI 工作流需要实际的 GPU 节点承接任务。绘图过程比普通接口请求更长，也会受到显存状态和节点可用性的影响。我使用 Celery 优先级队列组织任务，配合心跳探活判断节点状态，并在任务执行前处理 VRAM 回收，降低显存不足引起的失败。\n\n这部分工作的对象同时包括等待中的任务和正在运行的节点。任务进入队列后要选择可用资源，节点状态需要持续更新，任务执行前还要为显存使用做好准备。将排队、节点探活与显存处理串起来，才能让工作流绘图成为平台可持续提供的能力。\n\n## 支付、订阅与按量计费\n\n生成能力进入商业产品后，需要与支付和使用权益衔接。我独立完成微信支付 V3 与支付宝的全流程接入，处理 RSA / AES 回调验签，并参与订阅制、按量计费与会员权益体系的实现。\n\n这里的交付范围从支付渠道接入延伸到产品的使用规则：用户购买什么权益、生成任务如何计费、订阅与按量使用如何共存，都属于平台后端需要承接的业务。支付与生成模块放在同一产品里，形成了从使用能力到付费的完整路径。\n\n## 运营观察与上线维护\n\n我还使用 Pandas 与 ECharts 建设运营数据大屏，围绕日活、付费转化与算力消耗组织分析，并接入钉钉机器人进行故障报警。运行中的问题由此可以从业务使用和资源消耗两个角度观察。\n\n这段项目经历覆盖了 AI 应用后端的多个层面：流式输出需要照顾页面渲染，Agent 调度需要连接工具和记忆，绘图工作流需要管理算力，商业化则需要支付与权益体系。我主要负责将这些能力落实为平台后端，并完成部署上线与后续维护。"
+      },
+      "updateMask": [
+        "title",
+        "summary",
+        "content_md"
+      ],
+      "preserved": {
+        "status": 2,
+        "published_at": "2026-10-28T08:37:47Z",
+        "tags": [
+          "Python",
+          "Django",
+          "AIGC",
+          "API集成",
+          "部署运维"
+        ],
+        "cover_url": "",
+        "featured": false,
+        "category": null,
+        "created_at": "2026-10-28T08:37:47Z"
+      }
+    },
+    {
+      "slug": "forge-harness-project",
+      "id": "01a181a8-b034-7730-96d7-a94d767637b8",
+      "expectedUpdatedAt": "2026-10-29T19:26:13Z",
+      "sourceUrl": "https://makerhao.cn/api/v1/articles/forge-harness-project",
+      "seedPath": "backend/cmd/seed/demoarticles/forge-harness-project.md",
+      "before": {
+        "summary": "在 Forge Harness 里，我把注意力放到任务状态、工具审批和运行过程上。",
+        "content_md": "\n一次模型回答很容易展示，任务执行过程却包含更多东西：工具有没有真的调用、上一步输出交给了谁、失败之后哪些动作已经发生。[Forge Harness](https://github.com/luohao0308/forge-harness) 是我的个人 Agent 项目，用控制台和运行时把这些过程组织起来。这里记录实现过程与可复现的验证方法。\n\n## 从聊天消息转向一次 Run\n\n项目的主链路是 Agent Studio 配置、Workspace 接收目标，再进入 Agent Run。Run 关联计划、步骤、工具调用和事件，用户看到的就不只是最后一段回答，还能沿着记录查执行过程。\n\n以“根据允许访问的资料生成一份技术摘要”为例，任务可以先读取资料，再整理引用，最后生成结果。这个例子适合检查依赖传递：后一步究竟拿到了前一步的内容，还是仅仅看到一个成功标记。完成文字写得通顺，并不能单独证明资料确实被使用。\n\n[![任务、运行时与记录之间的关系。](/images/editorial/agent-flow.svg)](/images/editorial/agent-flow.svg)\n\n## 模块边界对应不同责任\n\n仓库由 React / TypeScript 控制台、Python / FastAPI 服务及 Electron 桌面端组成。服务侧结合 PostgreSQL、Redis，部署材料包含 Docker Compose。理解项目时，我先看这些模块的责任，而不是从功能菜单推断执行方式。\n\n```text\napps/agent-console/    浏览器控制台\napps/desktop-app/      桌面工作区与本地运行时\nservices/api-server/   API、执行、worker、数据与事件\nscripts/               冒烟、文档及接口检查\n```\n\n控制台负责配置和展示，不应因页面上点了“允许”就自行执行工具。后端负责把模型调用、工具调用、策略判断和结果串联起来；桌面端还有本地环境边界。把这些区分开，才有办法定位“界面显示完成，但执行证据不完整”究竟发生在哪一层。\n\n\n[![控制台、桌面端和 API 服务的目录分工](/images/editorial/harness-modules.svg)](/images/editorial/harness-modules.svg)\n\n*控制台、桌面端和 API 服务的目录分工。*\n\n\n## 计划与工具选择不是同一件事\n\n运行时规格中的 Planner 接收目标、模型设置、沙箱设置和 Agent 身份，输出带版本的 DAG。步骤包含依赖、执行模式、风险、工具提示、预期产物和验收条件。把步骤组织成图，是为了让并行和前后依赖有明确表示。\n\n这里有个容易写错的细节：普通同步 Executor，以及未委派的异步步骤，用确定性规则选择工具和参数。Planner 和计划修复走 AuditedModelGateway，并保存实际 ModelCall ID。不能因为前一个工具的结果传到了后一步，就说模型进行了新的自主判断。\n\n委派子 Agent 则有单独的有界循环：\n\n```text\n分配工具 -> 工具观察 -> 经过审计的模型决策 -> 下一轮或停止\n```\n\n规格默认一轮、最多五轮。循环轮数只是控制执行范围，并不证明模型能完成任务。验证时还需要检查实际模型调用记录、工具观察与停止原因能否对应起来。\n\n## 审批与停止要看真实状态\n\n工具与 MCP 接入提供能力入口，实际调用还要经过能力附件、ToolRunner 策略和沙箱控制。MCP 能帮助组织工具通信，但任务是否获得权限、工具是否适合当前步骤，仍是 Harness 的责任。\n\n假设摘要任务的后续步骤要求写入外部系统，遇到待审批就应先停。当前子 Agent 规格用已有的 `FAILED` 状态配合 `pending_approval` 原因保存这类结果，同时保留工具与审批凭据；不能把它描述成新增了等待状态，也不能据此承诺审批后 worker 自动续跑。\n\n取消和超时也不是瞬间撤回一切。worker 在动作边界检查取消与持久化截止时间，已经发出的外部工具调用不会因此自动中断。所以检查取消路径时，要看是否阻止了下一次动作，也要单独确认在途调用的结果。外部副作用是否重复，不能由界面状态来保证。\n\n## 事件、回放和 Eval 分别证明什么\n\n架构把执行事件写入 Event Store，再形成投影，供回放、诊断和观测使用。回放可以帮助回答哪一步调用了什么、失败从哪里开始；它与再次执行任务有不同语义。已经发生的写入不能因为用户回看轨迹就重新触发。\n\nEval 则把任务转成可比较的用例，检查工具使用、引用、回归和轨迹契约。例如前面的摘要任务，可以检查读取步骤是否存在、最终引用是否对应资料、写入步骤遇到审批是否停止。这样才能把“结果看着不错”细化成可重复的判断。\n\n测试替身适合覆盖失败和边界条件，但它证明的是本地控制流契约。模型返回由 fixture 提供时，不能把通过结果当作真实 provider 的质量证据；没有对应模型调用记录的历史事件，也只能保留为未知。\n\n## 验证沿一条完整任务展开\n\n检查这个项目，我会先选一条小任务，串起创建 Run、查看计划、调用工具、保存事件和查看结果，再增加工具失败、待审批及取消场景。比起分别打开每个菜单，这条路径更容易暴露模块之间的断点。\n\n仓库提供后端 pytest、ruff，前端测试、lint、build，以及文档验证脚本；它们分别覆盖代码和资料的一致性。真实运行还需要核对模型配置、依赖服务与任务轨迹。项目目录和架构图能帮助确定检查入口，最终结论仍应落在具体 Run 与对应证据上。\n\n## 继续读什么\n\n- [Forge Harness：源码与模块入口](https://github.com/luohao0308/forge-harness)\n- [MCP 官方：架构与核心概念](https://modelcontextprotocol.io/docs/learn/architecture)"
+      },
+      "after": {
+        "summary": "从版本化任务计划到知识、工具、上下文与评测，介绍我实现的 Agent 控制面与本地工作区。",
+        "content_md": "Forge Harness 是我设计与开发的个人 Agent 工程项目，面向私有化部署场景构建 Agent 控制面。它将模型、上下文、知识、记忆、工具、策略、执行、评测与审计组织进同一个运行时，采用 Model + Harness = Agent 的架构思路。\n\n项目包含 React / TypeScript 控制台、Python / FastAPI 服务和 Electron 本地工作区。服务侧使用 PostgreSQL、Redis、SQLAlchemy、Alembic、Dramatiq 与 asyncio；本地端使用 SQLite 保存运行记录，Docker Compose 提供服务部署入口。\n\n## 从目标进入版本化计划\n\n主链路从 Agent Studio 配置开始，由 Workspace 接收目标，Planner 生成版本化 Plan DAG，再交给 Executor、Subagent 或 Multi-Agent 执行。计划图表达步骤之间的依赖，让目标、计划与后续动作建立明确联系。\n\n我基于 Event Store 持久化 Run、Step、ModelCall、ToolCall、Approval 与成本信息，并通过 SSE 向界面提供运行更新。暂停、恢复、取消、重试、回放和故障诊断都围绕这些运行记录展开。排查一个任务时，可以沿着具体步骤查看模型调用、工具动作与审批记录。\n\n## 知识检索要能追到原始依据\n\nKnowledge / RAG 模块覆盖知识源生命周期、文档版本、分块、检索与引用快照，并处理作用域隔离和迁移恢复。我将检索证据、Prompt Manifest、Context Manifest 与 ModelCall 关联，让回答使用的资料和模型实际接收的上下文能够对应起来。\n\n中文检索增加了 CJK lexical fallback，证据不足时停止依赖不足的回答路径。文档发生更新后，版本与引用快照保留了定位依据，使后续回看能够理解当时使用的内容。\n\n项目知识另有面向工作目录的接入路径：从可信根目录扫描，应用 ignore 与扫描预算，维护文档版本和 tombstone，并使用 project:// 引用连接到项目文件。\n\n## Web Research 与外部知识连接器\n\n我接入了 Tavily Web Research，以及 Dify / Coze 知识连接器。外部资料进入任务前，调用链检查 provider、key 与 query，并对 URL、DNS、IP 执行访问策略，应用 allow/deny 规则与私网阻断。\n\n调用次数和 attempt ledger 记录具体尝试，引用与实际来源绑定。这一层使外部研究能够保留请求和来源轨迹，并与站内 RAG 共同成为任务的证据来源。\n\n## 在 Token 预算内组织上下文\n\nMemory 支持组织、Agent、用户与 Run 等作用域，记录来源、策略标记和过期删除。Context Router V2 在 Token 预算内组织历史消息、固定上下文、压缩摘要、Memory、RAG、Web 与工具证据。\n\n我采用确定性的上下文编排，并持久化上下文清单。这样一次模型调用使用了哪些材料、为何进入当前上下文，以及相应成本和策略依据，都可以沿清单检查。长期记忆与单次运行上下文因此有了各自的维护位置。\n\n## 工具能力、版本与执行权限\n\n能力链从 CapabilityRegistry 进入 AgentCapabilityAttachment，再关联 CapabilityVersion，最终由 ToolRunner 执行。它支持能力发现、安装配置和版本快照，接入 MCP HTTP / SSE / stdio，以及 GitHub、Slack、Sandbox 等适配器。\n\n工具调用统一经过 Policy、Approval、Sandbox、Idempotency 与 Audit。未绑定的能力按拒绝路径处理。能力版本与调用记录一起保留，使一次实际动作能够追到当时使用的配置与权限条件。\n\n## 本地工作区与后台自动化\n\nElectron 桌面端包含 sidecar runtime，按 Profile 隔离环境，使用 SQLite offline-sync 持久化 Run、Event、ModelCall、ToolCall 和 ToolApproval。本地文件写入强制审批，运行过程支持离线执行、取消、崩溃恢复、Profile 切换和服务端幂等证据导入。\n\n后台自动化将 Webhook、schedule、file 与 git Trigger 统一进入持久化 Invocation / Run。幂等、租约、fencing、重试、kill switch 和审批恢复共同约束自动任务推进，并在工作区边界条件不足时停止执行。\n\n## 评测、观测与私有化交付\n\nEval Harness 使用 Dataset、Case、Eval Run、Trace Grader 和 Regression Gate，评估 groundedness、引用命中、无依据陈述、禁泄漏片段、安全与拒答、角色契约、工具使用、延迟和成本。它将输出质量与执行轨迹放到同一组回归任务里比较。\n\n观测侧通过 OpenTelemetry、Prometheus、Grafana、Loki 与 Tempo 关联 Run、Event、Span、ModelCall、ToolCall 和策略证据。交付侧维护 Docker Compose、Alembic、Knowledge / RAG seed、迁移恢复冒烟、OpenAPI、Feature Catalog、Playwright 发布冒烟与文档门禁。\n\n这套工程的重心，是让一个 Agent 任务拥有可追踪的计划、依据、动作和结果，并将同样的运行语义延伸到浏览器控制台与本地工作区。\n\n[查看源码 ↗](https://github.com/luohao0308/forge-harness)"
+      },
+      "updateMask": [
+        "summary",
+        "content_md"
+      ],
+      "preserved": {
+        "status": 2,
+        "published_at": "2026-10-28T08:37:59Z",
+        "tags": [
+          "Python",
+          "FastAPI",
+          "React",
+          "AI Agent",
+          "个人项目"
+        ],
+        "cover_url": "",
+        "featured": false,
+        "category": null,
+        "created_at": "2026-10-28T08:37:58Z"
+      }
+    }
+  ]
+}
