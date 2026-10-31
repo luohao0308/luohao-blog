@@ -52,6 +52,9 @@ async function main() {
         })
         await page.screenshot({ path: path.join(out, `home-${width}-${colorScheme}.png`), fullPage: true })
         await page.goto(base + '/projects')
+        const projectSavedLink = page.getByRole('link', { name: '我的收藏', exact: true })
+        assert.equal(await projectSavedLink.count(), 1)
+        assert.ok((await projectSavedLink.boundingBox()).height >= 44)
         const covers = page.locator('[data-project-card] .editorial-cover img')
         assert.equal(await covers.count(), 5)
         await covers.evaluateAll(async images => {
@@ -65,11 +68,24 @@ async function main() {
           }
           if (paths.size !== 5) throw new Error('shared project cover')
         })
+        await page.getByRole('button', { name: '搜索作品集', exact: true }).click()
+        const projectSearch = page.getByRole('searchbox', { name: '搜索作品集' })
+        await projectSearch.fill('Forge Harness')
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+        await projectSearch.fill('')
+        await page.keyboard.press('Escape')
         await page.screenshot({ path: path.join(out, `project-covers-${width}-${colorScheme}.png`), fullPage: true })
         assert.equal(await page.locator('header a[aria-label="搜索文章"]').count(), 0)
         assert.equal(await page.locator('footer a[href="/collections"]').count(), 0)
         assert.equal(await page.locator('header a[href="/collections"]').count(), 0)
         await page.goto(base + '/posts')
+        await page.locator('.reading-card img').evaluateAll(async images => {
+          if (images.length !== 7) throw new Error('missing original article covers')
+          for (const image of images) {
+            image.loading = 'eager'; await image.decode()
+            if (!image.src.includes('/images/editorial/covers/')) throw new Error('article cover changed')
+          }
+        })
         const savedLink = page.getByRole('link', { name: '我的收藏', exact: true })
         assert.equal(await savedLink.count(), 1)
         assert.ok((await savedLink.boundingBox()).height >= 44)

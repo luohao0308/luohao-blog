@@ -10,7 +10,9 @@ export interface EditorialImage {
 }
 
 const workflow: EditorialImage = {
-  src: '/images/editorial/workflow-files.svg', alt: 'dev-workflow 的项目目录与文档分工', caption: '项目目录与文档分工', credit: '', diagram: true, poster: true,
+  src: '/images/editorial/covers/workflow.webp',
+  alt: '换个 AI，别从头讲。把项目规则留在仓库里。',
+  caption: '', credit: '', poster: true,
 }
 const guard: EditorialImage = {
   src: '/images/editorial/covers/guard.webp',
@@ -28,13 +30,19 @@ const aigc: EditorialImage = {
   caption: '', credit: '', poster: true,
 }
 const fullstack: EditorialImage = {
-  src: '/images/editorial/desk.webp', alt: '纸笔与电脑工作台，主题配图', caption: '主题配图', credit: 'Lauren Mancke / Unsplash', sourceUrl: 'https://unsplash.com/photos/turned-off-macbook-pro-beside-white-ceramic-mug-filled-with-coffee-aOC7TSLb1o8',
+  src: '/images/editorial/covers/fullstack.webp',
+  alt: '登录成功，不等于能用。从登录走到发布。',
+  caption: '', credit: '', poster: true,
 }
 const ent: EditorialImage = {
-  src: '/images/editorial/ent-official-relations.png', alt: 'Ent 官方文档中的实体关系图', caption: 'Ent 官方关系示例', credit: 'Ent / Apache-2.0', diagram: true, poster: true,
+  src: '/images/editorial/covers/ent.webp',
+  alt: '标签丢了？先查关系。多对多关系排查。',
+  caption: '', credit: '', poster: true,
 }
 const mysql: EditorialImage = {
-  src: '/images/editorial/mysql-schema.svg', alt: '本站数据库迁移中的 SQL 字段节选', caption: '数据库字段节选', credit: '', diagram: true, poster: true,
+  src: '/images/editorial/covers/mysql.webp',
+  alt: '191 / 255，到底选谁？。字符串索引，别只抄数字。',
+  caption: '', credit: '', poster: true,
 }
 export const articleImages: Record<string, EditorialImage> = {
   'ai-delivery-guard': guard,
