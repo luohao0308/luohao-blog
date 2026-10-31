@@ -32,3 +32,20 @@ BLOG_CONTENT_RELEASE_MYSQL_DSN='root@tcp(127.0.0.1:13328)/creator_content_test?p
 ```
 
 MySQL 秒精度 TIMESTAMP 与 Ent 创建返回值可能有舍入差异，创建后比较限定在一秒内，并同时核对身份、草稿状态、正文、标签与媒体值；可选 proto 字段按值比较。
+
+## 六项作品集正文修订
+
+显式使用 `-revision` 读取独立 schema；默认旧 13 项 creator/reader bundle 校验不变，两个模式不接受对方文件。
+
+```sh
+# 仅预检，不进行内容写入
+go run ./cmd/content-release -revision -conf ./configs -bundle ../docs/content/portfolio-revision-2026-10.json
+# 执行只用于已获精确授权的环境和文件；hash 绑定完整原始字节
+go run ./cmd/content-release -revision -conf ./configs -bundle ../docs/content/portfolio-revision-2026-10.json -apply -bundle-sha256 <已核准SHA256> -backup /受控目录/portfolio-before-new.json
+```
+
+新模式固定四个项目（aigc、forge-harness、dev-workflow、luohao-blog）与两篇文章（aigc-backend-delivery、forge-harness-project），绑定提案 baseSha；不存在 create、about 或发布路径。项目 mask 只允许 name/summary/description/stack/role，文章只允许 title/summary/content_md；before、after 与去重 mask 的键必须完全一致。JSON 类型、额外字段、目标重复、错误时间戳或缺失保留字段均拒绝。
+
+全部六项先执行身份、updated_at、每个 before 和 preserved 字段核对，并使用既有业务校验及 Markdown 渲染完成无写入预检，再写入新的 0600 O_EXCL 完整对象备份。每项实际更新前重复 schema 与字段核对；更新后重读对象，核对 ID、after 及 preserved。文章状态、首次发表时间、标签、分类、封面和 featured，项目发布状态、封面、截图、源码地址、体验地址及其他提案保留字段均不进入更新 mask。
+
+仍沿用 schema 16 clean、既有 ES HEAD、仅本次两篇文章增量索引及最终 Refresh；不连接 Redis、不创建账号、会话或发布任务。任何失败立即退出，无盲重试、自动回滚或续跑。全部预检后备份不代表跨项目/文章事务：数据库 CAS 和 DB/ES 事务仍不存在，必须独占 CMS 编辑窗口；中途失败后由发布负责人核实已提交的实际状态。

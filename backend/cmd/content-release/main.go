@@ -43,6 +43,9 @@ import (
 var errRelease = errors.New("content release rejected")
 
 type operation struct {
+	RevisionID   string          `json:"-"`
+	Before       json.RawMessage `json:"-"`
+	Preserved    json.RawMessage `json:"-"`
 	Kind         string          `json:"kind"`
 	Slug         string          `json:"slug"`
 	Expected     string          `json:"expected_updated_at"`
@@ -162,8 +165,8 @@ func loadBundle(raw []byte, hash string, apply bool) (*bundle, error) {
 		}
 	}
 	initialRelease := counts["update_article"] == 4 && counts["create_article"] == 3 && counts["update_project"] == 3 && counts["create_project"] == 2
- readerUpdate := counts["update_article"] == 7 && counts["create_article"] == 0 && counts["update_project"] == 5 && counts["create_project"] == 0
- if !initialRelease && !readerUpdate || counts["update_about"] != 1 {
+	readerUpdate := counts["update_article"] == 7 && counts["create_article"] == 0 && counts["update_project"] == 5 && counts["create_project"] == 0
+	if !initialRelease && !readerUpdate || counts["update_about"] != 1 {
 		return nil, errRelease
 	}
 	return &b, nil
@@ -337,6 +340,17 @@ func (r *runner) check(ctx context.Context, o operation) (proto.Message, error) 
 	if !timestampMatches(t, o.Expected) {
 		return nil, errRelease
 	}
+	if o.RevisionID != "" {
+		if err := revisionIdentity(m, o); err != nil {
+			return nil, err
+		}
+		if err := compareRevisionFields(m, o.Before); err != nil {
+			return nil, err
+		}
+		if err := compareRevisionFields(m, o.Preserved); err != nil {
+			return nil, err
+		}
+	}
 	return m, nil
 }
 
@@ -428,6 +442,7 @@ func run() error {
 	bundlePath := flag.String("bundle", "../content/releases/creator-content-20261028.json", "release bundle")
 	hash := flag.String("bundle-sha256", "", "exact SHA256 of bundle bytes")
 	apply := flag.Bool("apply", false, "apply after full preflight")
+	revision := flag.Bool("revision", false, "use the fixed six-item portfolio revision schema")
 	backup := flag.String("backup", "", "new snapshot file (required for apply)")
 	flag.Parse()
 	if flag.NArg() != 0 || (*apply && *backup == "") {
@@ -437,7 +452,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	b, err := loadBundle(raw, *hash, *apply)
+	var b *bundle
+	if *revision {
+		b, err = loadRevision(raw, *hash, *apply)
+	} else {
+		b, err = loadBundle(raw, *hash, *apply)
+	}
 	if err != nil {
 		return err
 	}
@@ -527,6 +547,20 @@ func run() error {
 		}
 		if strict.err != nil {
 			return errRelease
+		}
+		if isRevisionOperation(o) {
+			var fresh proto.Message
+			if o.Kind == "update_article" {
+				fresh, err = r.a.GetArticle(ctx, &v1.GetArticleRequest{Slug: o.Slug})
+			} else {
+				fresh, err = r.p.GetProject(ctx, &v1.GetProjectRequest{Slug: o.Slug})
+			}
+			if err != nil {
+				return err
+			}
+			if err = checkRevisionResult(fresh, o); err != nil {
+				return err
+			}
 		}
 		fmt.Printf("kind=%s slug=%s status=applied count=1\n", o.Kind, o.Slug)
 	}

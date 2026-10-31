@@ -10,9 +10,7 @@ export interface EditorialImage {
 }
 
 const workflow: EditorialImage = {
-  src: '/images/editorial/covers/workflow.webp',
-  alt: '换个 AI，别从头讲。把项目规则留在仓库里。',
-  caption: '', credit: '', poster: true,
+  src: '/images/editorial/workflow-files.svg', alt: 'dev-workflow 的项目目录与文档分工', caption: '项目目录与文档分工', credit: '', diagram: true, poster: true,
 }
 const guard: EditorialImage = {
   src: '/images/editorial/covers/guard.webp',
@@ -30,19 +28,13 @@ const aigc: EditorialImage = {
   caption: '', credit: '', poster: true,
 }
 const fullstack: EditorialImage = {
-  src: '/images/editorial/covers/fullstack.webp',
-  alt: '登录成功，不等于能用。从登录走到发布。',
-  caption: '', credit: '', poster: true,
+  src: '/images/editorial/desk.webp', alt: '纸笔与电脑工作台，主题配图', caption: '主题配图', credit: 'Lauren Mancke / Unsplash', sourceUrl: 'https://unsplash.com/photos/turned-off-macbook-pro-beside-white-ceramic-mug-filled-with-coffee-aOC7TSLb1o8',
 }
 const ent: EditorialImage = {
-  src: '/images/editorial/covers/ent.webp',
-  alt: '标签丢了？先查关系。多对多关系排查。',
-  caption: '', credit: '', poster: true,
+  src: '/images/editorial/ent-official-relations.png', alt: 'Ent 官方文档中的实体关系图', caption: 'Ent 官方关系示例', credit: 'Ent / Apache-2.0', diagram: true, poster: true,
 }
 const mysql: EditorialImage = {
-  src: '/images/editorial/covers/mysql.webp',
-  alt: '191 / 255，到底选谁？。字符串索引，别只抄数字。',
-  caption: '', credit: '', poster: true,
+  src: '/images/editorial/mysql-schema.svg', alt: '本站数据库迁移中的 SQL 字段节选', caption: '数据库字段节选', credit: '', diagram: true, poster: true,
 }
 export const articleImages: Record<string, EditorialImage> = {
   'ai-delivery-guard': guard,
@@ -55,11 +47,11 @@ export const articleImages: Record<string, EditorialImage> = {
 }
 
 export const projectImages: Record<string, EditorialImage> = {
-  'dev-workflow': { src: '/images/projects/dev-workflow.svg', seoSrc: '/images/projects/dev-workflow.png', alt: 'dev-workflow：项目规则、知识与交付检查的模块示意', caption: '', credit: '', poster: true },
-  'forge-harness': { src: '/images/projects/forge-harness.svg', seoSrc: '/images/projects/forge-harness.png', alt: 'Forge Harness：任务、工具与运行轨迹的模块示意', caption: '', credit: '', poster: true },
-  'aigc': { src: '/images/projects/aigc.svg', seoSrc: '/images/projects/aigc.png', alt: 'AIGC 应用平台：输入、接口适配与外部模型的接入示意', caption: '', credit: '', poster: true },
-  'luohao-blog': { src: '/images/projects/luohao-blog.svg', seoSrc: '/images/projects/luohao-blog.png', alt: 'luohao-blog：阅读、搜索与交互的模块示意', caption: '', credit: '', poster: true },
-  'job-application-workbench': { src: '/images/projects/job-application-workbench.svg', seoSrc: '/images/projects/job-application-workbench.png', alt: '岗位机会工作台：岗位、个人画像与工作台的模块示意', caption: '', credit: '', poster: true },
+  'dev-workflow': { src: '/images/projects/generated/dev-workflow-editorial-v2.webp', seoSrc: '/images/projects/generated/dev-workflow-editorial-v2.webp', alt: 'dev-workflow：仓库协作规则、任务记录与交付验证的原创封面', caption: '', credit: '', poster: true },
+  'forge-harness': { src: '/images/projects/generated/forge-harness-editorial-v2.webp', seoSrc: '/images/projects/generated/forge-harness-editorial-v2.webp', alt: 'Forge Harness：任务计划、工具执行、RAG 与评测的原创封面', caption: '', credit: '', poster: true },
+  'aigc': { src: '/images/projects/generated/aigc-editorial-v2.webp', seoSrc: '/images/projects/generated/aigc-editorial-v2.webp', alt: 'AIGC 聚合与调度中台：陶瓷、箱包与工艺品设计生成封面', caption: '', credit: '', poster: true },
+  'luohao-blog': { src: '/images/projects/generated/luohao-blog-editorial-v2.webp', seoSrc: '/images/projects/generated/luohao-blog-editorial-v2.webp', alt: 'luohao.blog：参考本站首页的技术写作与项目作品封面', caption: '', credit: '', poster: true },
+  'job-application-workbench': { src: '/images/projects/generated/job-application-workbench-editorial-v2.webp', seoSrc: '/images/projects/generated/job-application-workbench-editorial-v2.webp', alt: '机会工作台：岗位、个人画像与投递记录的原创封面', caption: '', credit: '', poster: true },
 }
 
 export const projectStories: Record<string, {

@@ -149,3 +149,10 @@ html[data-home-entering] .site-shell { visibility: hidden; }
 [data-home-live-assembly] [data-home-layer],
 [data-home-live-assembly] [data-home-shell-layer],
 [data-home-live-assembly] [data-home-card] { will-change: transform, opacity; }
+
+/* Reading controls use the current site tokens and a comfortable touch target. */
+.detail-button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: .5rem; padding: .625rem 1.125rem; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--text-primary); font-size: .875rem; line-height: 1.5; text-decoration: none; }
+.detail-button:hover { background: var(--surface-hover); }
+.detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.detail-media, .content-figure { display: block; width: 100%; max-width: 34rem; margin-inline: auto; }
+.detail-media, .content-figure img { height: auto; max-height: 24rem; object-fit: contain; }

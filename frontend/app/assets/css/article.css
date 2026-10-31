@@ -74,3 +74,6 @@
 .dark .chroma .m, .dark .chroma .mi, .dark .chroma .mf, .dark .chroma .nb, .dark .chroma .na { color: #93c5fd; }
 .dark .chroma .c, .dark .chroma .c1, .dark .chroma .cm, .dark .chroma .cs, .dark .chroma .w { color: #94a3b8; }
 .dark .chroma .nt { color: #86efac; }
+
+.markdown-body img { display: block; width: auto; max-width: min(100%, 34rem); max-height: 24rem; object-fit: contain; margin-inline: auto; }
+.markdown-body .image-preview-trigger { margin-inline: auto; }

@@ -1,77 +1,59 @@
 ---
 slug: forge-harness-project
 title: Forge Harness：围绕一次任务组织 Agent 运行时
-summary: 在 Forge Harness 里，我把注意力放到任务状态、工具审批和运行过程上。
+summary: 从版本化任务计划到知识、工具、上下文与评测，介绍我实现的 Agent 控制面与本地工作区。
 tags: Python, FastAPI, React, AI Agent, 个人项目
 status: draft
 ---
 
-一次模型回答很容易展示，任务执行过程却包含更多东西：工具有没有真的调用、上一步输出交给了谁、失败之后哪些动作已经发生。[Forge Harness](https://github.com/luohao0308/forge-harness) 是我的个人 Agent 项目，用控制台和运行时把这些过程组织起来。这里记录实现过程与可复现的验证方法。
+Forge Harness 是我设计与开发的个人 Agent 工程项目，面向私有化部署场景构建 Agent 控制面。它将模型、上下文、知识、记忆、工具、策略、执行、评测与审计组织进同一个运行时，采用 Model + Harness = Agent 的架构思路。
 
-## 从聊天消息转向一次 Run
+项目包含 React / TypeScript 控制台、Python / FastAPI 服务和 Electron 本地工作区。服务侧使用 PostgreSQL、Redis、SQLAlchemy、Alembic、Dramatiq 与 asyncio；本地端使用 SQLite 保存运行记录，Docker Compose 提供服务部署入口。
 
-项目的主链路是 Agent Studio 配置、Workspace 接收目标，再进入 Agent Run。Run 关联计划、步骤、工具调用和事件，用户看到的就不只是最后一段回答，还能沿着记录查执行过程。
+## 从目标进入版本化计划
 
-以“根据允许访问的资料生成一份技术摘要”为例，任务可以先读取资料，再整理引用，最后生成结果。这个例子适合检查依赖传递：后一步究竟拿到了前一步的内容，还是仅仅看到一个成功标记。完成文字写得通顺，并不能单独证明资料确实被使用。
+主链路从 Agent Studio 配置开始，由 Workspace 接收目标，Planner 生成版本化 Plan DAG，再交给 Executor、Subagent 或 Multi-Agent 执行。计划图表达步骤之间的依赖，让目标、计划与后续动作建立明确联系。
 
-[![任务、运行时与记录之间的关系。](/images/editorial/agent-flow.svg)](/images/editorial/agent-flow.svg)
+我基于 Event Store 持久化 Run、Step、ModelCall、ToolCall、Approval 与成本信息，并通过 SSE 向界面提供运行更新。暂停、恢复、取消、重试、回放和故障诊断都围绕这些运行记录展开。排查一个任务时，可以沿着具体步骤查看模型调用、工具动作与审批记录。
 
-## 模块边界对应不同责任
+## 知识检索要能追到原始依据
 
-仓库由 React / TypeScript 控制台、Python / FastAPI 服务及 Electron 桌面端组成。服务侧结合 PostgreSQL、Redis，部署材料包含 Docker Compose。理解项目时，我先看这些模块的责任，而不是从功能菜单推断执行方式。
+Knowledge / RAG 模块覆盖知识源生命周期、文档版本、分块、检索与引用快照，并处理作用域隔离和迁移恢复。我将检索证据、Prompt Manifest、Context Manifest 与 ModelCall 关联，让回答使用的资料和模型实际接收的上下文能够对应起来。
 
-```text
-apps/agent-console/    浏览器控制台
-apps/desktop-app/      桌面工作区与本地运行时
-services/api-server/   API、执行、worker、数据与事件
-scripts/               冒烟、文档及接口检查
-```
+中文检索增加了 CJK lexical fallback，证据不足时停止依赖不足的回答路径。文档发生更新后，版本与引用快照保留了定位依据，使后续回看能够理解当时使用的内容。
 
-控制台负责配置和展示，不应因页面上点了“允许”就自行执行工具。后端负责把模型调用、工具调用、策略判断和结果串联起来；桌面端还有本地环境边界。把这些区分开，才有办法定位“界面显示完成，但执行证据不完整”究竟发生在哪一层。
+项目知识另有面向工作目录的接入路径：从可信根目录扫描，应用 ignore 与扫描预算，维护文档版本和 tombstone，并使用 project:// 引用连接到项目文件。
 
+## Web Research 与外部知识连接器
 
-[![控制台、桌面端和 API 服务的目录分工](/images/editorial/harness-modules.svg)](/images/editorial/harness-modules.svg)
+我接入了 Tavily Web Research，以及 Dify / Coze 知识连接器。外部资料进入任务前，调用链检查 provider、key 与 query，并对 URL、DNS、IP 执行访问策略，应用 allow/deny 规则与私网阻断。
 
-*控制台、桌面端和 API 服务的目录分工。*
+调用次数和 attempt ledger 记录具体尝试，引用与实际来源绑定。这一层使外部研究能够保留请求和来源轨迹，并与站内 RAG 共同成为任务的证据来源。
 
+## 在 Token 预算内组织上下文
 
-## 计划与工具选择不是同一件事
+Memory 支持组织、Agent、用户与 Run 等作用域，记录来源、策略标记和过期删除。Context Router V2 在 Token 预算内组织历史消息、固定上下文、压缩摘要、Memory、RAG、Web 与工具证据。
 
-运行时规格中的 Planner 接收目标、模型设置、沙箱设置和 Agent 身份，输出带版本的 DAG。步骤包含依赖、执行模式、风险、工具提示、预期产物和验收条件。把步骤组织成图，是为了让并行和前后依赖有明确表示。
+我采用确定性的上下文编排，并持久化上下文清单。这样一次模型调用使用了哪些材料、为何进入当前上下文，以及相应成本和策略依据，都可以沿清单检查。长期记忆与单次运行上下文因此有了各自的维护位置。
 
-这里有个容易写错的细节：普通同步 Executor，以及未委派的异步步骤，用确定性规则选择工具和参数。Planner 和计划修复走 AuditedModelGateway，并保存实际 ModelCall ID。不能因为前一个工具的结果传到了后一步，就说模型进行了新的自主判断。
+## 工具能力、版本与执行权限
 
-委派子 Agent 则有单独的有界循环：
+能力链从 CapabilityRegistry 进入 AgentCapabilityAttachment，再关联 CapabilityVersion，最终由 ToolRunner 执行。它支持能力发现、安装配置和版本快照，接入 MCP HTTP / SSE / stdio，以及 GitHub、Slack、Sandbox 等适配器。
 
-```text
-分配工具 -> 工具观察 -> 经过审计的模型决策 -> 下一轮或停止
-```
+工具调用统一经过 Policy、Approval、Sandbox、Idempotency 与 Audit。未绑定的能力按拒绝路径处理。能力版本与调用记录一起保留，使一次实际动作能够追到当时使用的配置与权限条件。
 
-规格默认一轮、最多五轮。循环轮数只是控制执行范围，并不证明模型能完成任务。验证时还需要检查实际模型调用记录、工具观察与停止原因能否对应起来。
+## 本地工作区与后台自动化
 
-## 审批与停止要看真实状态
+Electron 桌面端包含 sidecar runtime，按 Profile 隔离环境，使用 SQLite offline-sync 持久化 Run、Event、ModelCall、ToolCall 和 ToolApproval。本地文件写入强制审批，运行过程支持离线执行、取消、崩溃恢复、Profile 切换和服务端幂等证据导入。
 
-工具与 MCP 接入提供能力入口，实际调用还要经过能力附件、ToolRunner 策略和沙箱控制。MCP 能帮助组织工具通信，但任务是否获得权限、工具是否适合当前步骤，仍是 Harness 的责任。
+后台自动化将 Webhook、schedule、file 与 git Trigger 统一进入持久化 Invocation / Run。幂等、租约、fencing、重试、kill switch 和审批恢复共同约束自动任务推进，并在工作区边界条件不足时停止执行。
 
-假设摘要任务的后续步骤要求写入外部系统，遇到待审批就应先停。当前子 Agent 规格用已有的 `FAILED` 状态配合 `pending_approval` 原因保存这类结果，同时保留工具与审批凭据；不能把它描述成新增了等待状态，也不能据此承诺审批后 worker 自动续跑。
+## 评测、观测与私有化交付
 
-取消和超时也不是瞬间撤回一切。worker 在动作边界检查取消与持久化截止时间，已经发出的外部工具调用不会因此自动中断。所以检查取消路径时，要看是否阻止了下一次动作，也要单独确认在途调用的结果。外部副作用是否重复，不能由界面状态来保证。
+Eval Harness 使用 Dataset、Case、Eval Run、Trace Grader 和 Regression Gate，评估 groundedness、引用命中、无依据陈述、禁泄漏片段、安全与拒答、角色契约、工具使用、延迟和成本。它将输出质量与执行轨迹放到同一组回归任务里比较。
 
-## 事件、回放和 Eval 分别证明什么
+观测侧通过 OpenTelemetry、Prometheus、Grafana、Loki 与 Tempo 关联 Run、Event、Span、ModelCall、ToolCall 和策略证据。交付侧维护 Docker Compose、Alembic、Knowledge / RAG seed、迁移恢复冒烟、OpenAPI、Feature Catalog、Playwright 发布冒烟与文档门禁。
 
-架构把执行事件写入 Event Store，再形成投影，供回放、诊断和观测使用。回放可以帮助回答哪一步调用了什么、失败从哪里开始；它与再次执行任务有不同语义。已经发生的写入不能因为用户回看轨迹就重新触发。
+这套工程的重心，是让一个 Agent 任务拥有可追踪的计划、依据、动作和结果，并将同样的运行语义延伸到浏览器控制台与本地工作区。
 
-Eval 则把任务转成可比较的用例，检查工具使用、引用、回归和轨迹契约。例如前面的摘要任务，可以检查读取步骤是否存在、最终引用是否对应资料、写入步骤遇到审批是否停止。这样才能把“结果看着不错”细化成可重复的判断。
-
-测试替身适合覆盖失败和边界条件，但它证明的是本地控制流契约。模型返回由 fixture 提供时，不能把通过结果当作真实 provider 的质量证据；没有对应模型调用记录的历史事件，也只能保留为未知。
-
-## 验证沿一条完整任务展开
-
-检查这个项目，我会先选一条小任务，串起创建 Run、查看计划、调用工具、保存事件和查看结果，再增加工具失败、待审批及取消场景。比起分别打开每个菜单，这条路径更容易暴露模块之间的断点。
-
-仓库提供后端 pytest、ruff，前端测试、lint、build，以及文档验证脚本；它们分别覆盖代码和资料的一致性。真实运行还需要核对模型配置、依赖服务与任务轨迹。项目目录和架构图能帮助确定检查入口，最终结论仍应落在具体 Run 与对应证据上。
-
-## 继续读什么
-
-- [Forge Harness：源码与模块入口](https://github.com/luohao0308/forge-harness)
-- [MCP 官方：架构与核心概念](https://modelcontextprotocol.io/docs/learn/architecture)
+[查看源码 ↗](https://github.com/luohao0308/forge-harness)
