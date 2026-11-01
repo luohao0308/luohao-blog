@@ -83,7 +83,9 @@ type ChatRequest struct {
 	// The visitor's question, answered from published article content.
 	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	// Optional. How many articles to retrieve as context (1-8). Defaults to 4.
-	TopK          int32 `protobuf:"varint,2,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
+	TopK int32 `protobuf:"varint,2,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
+	// Optional. Restrict context to this published article.
+	ArticleSlug   string `protobuf:"bytes,3,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -132,6 +134,13 @@ func (x *ChatRequest) GetTopK() int32 {
 	return 0
 }
 
+func (x *ChatRequest) GetArticleSlug() string {
+	if x != nil {
+		return x.ArticleSlug
+	}
+	return ""
+}
+
 // ChatReply is the retrieval-augmented answer.
 type ChatReply struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -140,7 +149,9 @@ type ChatReply struct {
 	// Retrieved reference candidates, best-match first; not verified per-claim citations.
 	Citations []*CitedArticle `protobuf:"bytes,2,rep,name=citations,proto3" json:"citations,omitempty"`
 	// Explicit result, including degraded HTTP 200 responses.
-	Outcome       ChatOutcome `protobuf:"varint,3,opt,name=outcome,proto3,enum=blog.v1.ChatOutcome" json:"outcome,omitempty"`
+	Outcome ChatOutcome `protobuf:"varint,3,opt,name=outcome,proto3,enum=blog.v1.ChatOutcome" json:"outcome,omitempty"`
+	// Effective scope, empty for corpus-wide requests.
+	ArticleSlug   string `protobuf:"bytes,4,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,12 +207,22 @@ func (x *ChatReply) GetOutcome() ChatOutcome {
 	return ChatOutcome_CHAT_OUTCOME_UNSPECIFIED
 }
 
+func (x *ChatReply) GetArticleSlug() string {
+	if x != nil {
+		return x.ArticleSlug
+	}
+	return ""
+}
+
 // CitedArticle identifies a retrieved reference candidate.
 type CitedArticle struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Summary       string                 `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
+	SectionTitle  string                 `protobuf:"bytes,4,opt,name=section_title,json=sectionTitle,proto3" json:"section_title,omitempty"`
+	Anchor        string                 `protobuf:"bytes,5,opt,name=anchor,proto3" json:"anchor,omitempty"`
+	Excerpt       string                 `protobuf:"bytes,6,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -257,22 +278,48 @@ func (x *CitedArticle) GetSummary() string {
 	return ""
 }
 
+func (x *CitedArticle) GetSectionTitle() string {
+	if x != nil {
+		return x.SectionTitle
+	}
+	return ""
+}
+
+func (x *CitedArticle) GetAnchor() string {
+	if x != nil {
+		return x.Anchor
+	}
+	return ""
+}
+
+func (x *CitedArticle) GetExcerpt() string {
+	if x != nil {
+		return x.Excerpt
+	}
+	return ""
+}
+
 var File_blog_v1_chat_proto protoreflect.FileDescriptor
 
 const file_blog_v1_chat_proto_rawDesc = "" +
 	"\n" +
-	"\x12blog/v1/chat.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\"=\n" +
+	"\x12blog/v1/chat.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\"`\n" +
 	"\vChatRequest\x12\x19\n" +
 	"\x05query\x18\x01 \x01(\tB\x03\xe0A\x02R\x05query\x12\x13\n" +
-	"\x05top_k\x18\x02 \x01(\x05R\x04topK\"\x88\x01\n" +
+	"\x05top_k\x18\x02 \x01(\x05R\x04topK\x12!\n" +
+	"\farticle_slug\x18\x03 \x01(\tR\varticleSlug\"\xab\x01\n" +
 	"\tChatReply\x12\x16\n" +
 	"\x06answer\x18\x01 \x01(\tR\x06answer\x123\n" +
 	"\tcitations\x18\x02 \x03(\v2\x15.blog.v1.CitedArticleR\tcitations\x12.\n" +
-	"\aoutcome\x18\x03 \x01(\x0e2\x14.blog.v1.ChatOutcomeR\aoutcome\"R\n" +
+	"\aoutcome\x18\x03 \x01(\x0e2\x14.blog.v1.ChatOutcomeR\aoutcome\x12!\n" +
+	"\farticle_slug\x18\x04 \x01(\tR\varticleSlug\"\xa9\x01\n" +
 	"\fCitedArticle\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
-	"\asummary\x18\x03 \x01(\tR\asummary*\xb2\x01\n" +
+	"\asummary\x18\x03 \x01(\tR\asummary\x12#\n" +
+	"\rsection_title\x18\x04 \x01(\tR\fsectionTitle\x12\x16\n" +
+	"\x06anchor\x18\x05 \x01(\tR\x06anchor\x12\x18\n" +
+	"\aexcerpt\x18\x06 \x01(\tR\aexcerpt*\xb2\x01\n" +
 	"\vChatOutcome\x12\x1c\n" +
 	"\x18CHAT_OUTCOME_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15CHAT_OUTCOME_ANSWERED\x10\x01\x12\x19\n" +

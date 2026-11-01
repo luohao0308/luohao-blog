@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"regexp"
+	"sync"
 	"time"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
@@ -16,6 +17,8 @@ import (
 )
 
 var (
+	ErrArticleVersionRequired = errors.BadRequest(v1.ErrorReason_ARTICLE_VERSION_REQUIRED.String(), "refresh the editor before saving: version is required")
+	ErrArticleVersionConflict = errors.Conflict(v1.ErrorReason_ARTICLE_VERSION_CONFLICT.String(), "article changed; keep edits and reload the latest version")
 	// ErrArticleNotFound is returned when an article does not exist.
 	ErrArticleNotFound = errors.NotFound(v1.ErrorReason_ARTICLE_NOT_FOUND.String(), "article not found")
 	// ErrArticleInvalidArgument is returned when an article request is invalid.
@@ -43,6 +46,7 @@ const (
 
 // Article is an Article model.
 type Article struct {
+	Version     uint64
 	ID          uuid.UUID
 	Slug        string
 	Title       string
@@ -89,7 +93,7 @@ type ArticleRepo interface {
 	ListArticles(context.Context, ...ListOption) ([]*Article, error)
 	CreateArticle(context.Context, *Article) (*Article, error)
 	UpdateArticle(context.Context, *Article) (*Article, error)
-	DeleteArticle(context.Context, string) error
+	DeleteArticle(context.Context, string, uint64) error
 	// IncrementView adds one public view for slug unless clientKey was
 	// already counted inside the repo's dedup window. It returns the
 	// article's current view count and whether this call counted.
@@ -159,9 +163,11 @@ func ValidSlug(s string) bool {
 
 // ArticleUsecase is an Article usecase.
 type ArticleUsecase struct {
-	repo    ArticleRepo
-	indexer ArticleSearchIndex
-	wechat  *WechatSyncUsecase
+	repo       ArticleRepo
+	indexer    ArticleSearchIndex
+	wechat     *WechatSyncUsecase
+	media      *MediaUsecase
+	indexLocks [64]sync.Mutex
 }
 
 // NewArticleUsecase new an Article usecase. The indexer is optional: nil
@@ -170,9 +176,10 @@ func NewArticleUsecase(repo ArticleRepo, indexer ArticleSearchIndex) *ArticleUse
 	return &ArticleUsecase{repo: repo, indexer: indexer}
 }
 
-func NewArticleUsecaseWithWechat(repo ArticleRepo, indexer ArticleSearchIndex, sync *WechatSyncUsecase) *ArticleUsecase {
+func NewArticleUsecaseWithWechat(repo ArticleRepo, indexer ArticleSearchIndex, sync *WechatSyncUsecase, media *MediaUsecase) *ArticleUsecase {
 	uc := NewArticleUsecase(repo, indexer)
 	uc.wechat = sync
+	uc.media = media
 	return uc
 }
 
@@ -183,7 +190,9 @@ func (uc *ArticleUsecase) syncIndex(ctx context.Context, a *Article) {
 	if uc.indexer == nil || a == nil {
 		return
 	}
-	if err := uc.indexer.IndexArticle(ctx, a); err != nil {
+	unlock := uc.indexLock(a.Slug)
+	defer unlock()
+	if err := uc.writeLatestIndex(ctx, a.Slug); err != nil {
 		log.Warn("article: search index sync failed for "+a.Slug, err)
 	}
 }
@@ -194,7 +203,9 @@ func (uc *ArticleUsecase) dropIndex(ctx context.Context, slug string) {
 	if uc.indexer == nil || slug == "" {
 		return
 	}
-	if err := uc.indexer.RemoveArticle(ctx, slug); err != nil {
+	unlock := uc.indexLock(slug)
+	defer unlock()
+	if err := uc.writeLatestIndex(ctx, slug); err != nil {
 		log.Warn("article: search index removal failed for "+slug, err)
 	}
 }
@@ -253,6 +264,7 @@ func (uc *ArticleUsecase) CreateArticle(ctx context.Context, a *Article) (*Artic
 	}
 	a.ContentHTML = html
 	a.Status = ArticleStatusDraft
+	a.Version = 1
 	a.PublishedAt = nil
 	return uc.repo.CreateArticle(ctx, a)
 }
@@ -288,6 +300,9 @@ func (uc *ArticleUsecase) ListArticles(ctx context.Context, opts ...ListOption) 
 // non-published article to PUBLISHED stamps published_at; the transition to
 // DELETED only happens through DeleteArticle.
 func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Article, error) {
+	if a.Version == 0 {
+		return nil, ErrArticleVersionRequired
+	}
 	if err := validateArticle(a); err != nil {
 		return nil, err
 	}
@@ -343,11 +358,14 @@ func (uc *ArticleUsecase) UpdateArticle(ctx context.Context, a *Article) (*Artic
 }
 
 // DeleteArticle soft-deletes an article by slug.
-func (uc *ArticleUsecase) DeleteArticle(ctx context.Context, slug string) error {
+func (uc *ArticleUsecase) DeleteArticle(ctx context.Context, slug string, expectedVersion uint64) error {
 	if !ValidSlug(slug) {
 		return ErrArticleInvalidArgument
 	}
-	if err := uc.repo.DeleteArticle(ctx, slug); err != nil {
+	if expectedVersion == 0 {
+		return ErrArticleVersionRequired
+	}
+	if err := uc.repo.DeleteArticle(ctx, slug, expectedVersion); err != nil {
 		return err
 	}
 	uc.dropIndex(ctx, slug)

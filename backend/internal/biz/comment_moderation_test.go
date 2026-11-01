@@ -89,14 +89,14 @@ func TestCommentsOfUnpublishedArticleAreHidden(t *testing.T) {
 	if _, err = uc.Approve(ctx, c.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = articles.UpdateArticle(ctx, &Article{Slug: "commentable", Title: "t", ContentMD: "c", Status: ArticleStatusDraft}); err != nil {
+	if _, err = articles.UpdateArticle(ctx, &Article{Slug: "commentable", Title: "t", ContentMD: "c", Status: ArticleStatusDraft, Version: 1}); err != nil {
 		t.Fatal(err)
 	}
 	public, err := uc.ListPublic(ctx, "commentable", 20, 0)
 	if err != nil || len(public) != 0 {
 		t.Fatalf("draft public = %v, %v", public, err)
 	}
-	if err = articles.DeleteArticle(ctx, "commentable"); err != nil {
+	if err = articles.DeleteArticle(ctx, "commentable", 1); err != nil {
 		t.Fatal(err)
 	}
 	public, err = uc.ListPublic(ctx, "commentable", 20, 0)

@@ -141,14 +141,16 @@ func seedDemoArticles(ctx context.Context, uc *biz.ArticleUsecase, reset bool) e
 	}
 	for _, a := range articles {
 		var verb string
-		_, err := uc.GetArticle(ctx, a.Slug)
+		current, err := uc.GetArticle(ctx, a.Slug)
 		switch {
 		case err == nil && !reset:
 			fmt.Printf("seed: article %s exists, skipped (use -reset to overwrite)\n", a.Slug)
 			continue
 		case err == nil:
 			verb = "reset"
-			_, err = uc.UpdateArticle(ctx, a.toBizArticle())
+			input := a.toBizArticle()
+			input.Version = current.Version
+			_, err = uc.UpdateArticle(ctx, input)
 		case biz.ErrArticleNotFound.Is(err):
 			verb = "created"
 			err = createDemoArticle(ctx, uc, a)
@@ -171,17 +173,20 @@ func seedDemoArticles(ctx context.Context, uc *biz.ArticleUsecase, reset bool) e
 // so a published article is created first and published in a second write
 // that carries the canonical published_at stamp.
 func createDemoArticle(ctx context.Context, uc *biz.ArticleUsecase, a *demoArticle) error {
-	if _, err := uc.CreateArticle(ctx, &biz.Article{
+	created, err := uc.CreateArticle(ctx, &biz.Article{
 		Slug:      a.Slug,
 		Title:     a.Title,
 		Summary:   a.Summary,
 		ContentMD: a.ContentMD,
 		Tags:      a.Tags,
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 	if a.Status == biz.ArticleStatusPublished {
-		_, err := uc.UpdateArticle(ctx, a.toBizArticle())
+		input := a.toBizArticle()
+		input.Version = created.Version
+		_, err := uc.UpdateArticle(ctx, input)
 		return err
 	}
 	return nil

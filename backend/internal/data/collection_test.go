@@ -20,7 +20,7 @@ func TestCollectionRepoIsolationIdempotencyAndPublicPagination(t *testing.T) {
 	u1, _ := users.CreateAccount(ctx, "c1@example.com", "longenough1", "C1", biz.UserRoleReader)
 	u2, _ := users.CreateAccount(ctx, "c2@example.com", "longenough1", "C2", biz.UserRoleReader)
 	publish := func(slug string) *biz.Article {
-		a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "body"})
+		a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "body", Version: 1})
 		if err != nil {
 			t.Fatal(err)
 		}

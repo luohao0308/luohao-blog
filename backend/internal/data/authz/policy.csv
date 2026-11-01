@@ -137,3 +137,16 @@ p, admin, /blog.v1.OfficialAccountService/GetWechatSyncSettings, *
 p, admin, /blog.v1.OfficialAccountService/ListWechatSyncTasks, *
 p, admin, /blog.v1.OfficialAccountService/RetryWechatSyncTask, *
 p, admin, /blog.v1.OfficialAccountService/SyncArticleToWechat, *
+
+p, admin, /v1/articles/{slug}/search-sync, GET
+p, admin, /v1/articles/{slug}/search-sync/retry, POST
+p, admin, /blog.v1.ArticleService/GetArticleSearchSync, *
+p, admin, /blog.v1.ArticleService/RetryArticleSearchSync, *
+
+p, admin, /v1/articles/{slug}/revisions, GET
+p, admin, /v1/articles/{slug}/revisions/{version}, GET
+p, admin, /blog.v1.ArticleService/ListArticleRevisions, *
+p, admin, /blog.v1.ArticleService/GetArticleRevision, *
+
+p, admin, /v1/articles/{slug}/revisions/{version}/restore, POST
+p, admin, /blog.v1.ArticleService/RestoreArticleRevision, *

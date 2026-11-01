@@ -6,6 +6,7 @@
 import { NButton, NDataTable, NPopconfirm, NSelect, NTag, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
+import { articleVersion } from '~/utils/articleVersion'
 import { ARTICLE_STATUS, ARTICLE_STATUS_LABEL, type Article, type ArticleSet, formatDate } from '~/composables/useArticles'
 
 definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
@@ -97,13 +98,14 @@ watch(statusFilter, () => load(true))
 async function setStatus(article: Article, status: 1 | 2) {
   if (busySlugs.value.has(article.slug))
     return
+  if (!articleVersion(article.version)) { message.error('缺少文章版本，请刷新列表后重试'); return }
   busySlugs.value.add(article.slug)
   try {
     // The proto marks title/content_md REQUIRED, so every update carries the
     // full article and the status-only mask decides what is applied.
     await authFetch('/api/v1/articles/update', {
       method: 'PUT',
-      query: { update_mask: 'status' },
+      query: { expected_version: articleVersion(article.version), update_mask: 'status' },
       body: {
         slug: article.slug,
         title: article.title,
@@ -116,8 +118,8 @@ async function setStatus(article: Article, status: 1 | 2) {
     message.success(status === ARTICLE_STATUS.PUBLISHED ? '已发布' : '已转为草稿')
     await load(true)
   }
-  catch {
-    message.error('状态更新失败')
+  catch (error: unknown) {
+    message.error((error as { response?: { status?: number } })?.response?.status === 409 ? '文章已有新版本，请刷新列表后重试' : '状态更新失败')
   }
   finally {
     busySlugs.value.delete(article.slug)
@@ -127,14 +129,15 @@ async function setStatus(article: Article, status: 1 | 2) {
 async function removeArticle(article: Article) {
   if (busySlugs.value.has(article.slug))
     return
+  if (!articleVersion(article.version)) { message.error('缺少文章版本，请刷新列表后重试'); return }
   busySlugs.value.add(article.slug)
   try {
-    await authFetch(`/api/v1/articles/${encodeURIComponent(article.slug)}`, { method: 'DELETE' })
+    await authFetch(`/api/v1/articles/${encodeURIComponent(article.slug)}`, { method: 'DELETE', query: { expected_version: articleVersion(article.version) } })
     message.success('已删除')
     await load(true)
   }
-  catch {
-    message.error('删除失败')
+  catch (error: unknown) {
+    message.error((error as { response?: { status?: number } })?.response?.status === 409 ? '文章已有新版本，请刷新列表后重试' : '删除失败')
   }
   finally {
     busySlugs.value.delete(article.slug)

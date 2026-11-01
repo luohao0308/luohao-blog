@@ -21,9 +21,14 @@ const _ = http.SupportPackageIsVersion3
 const OperationArticleServiceCreateArticle = "/blog.v1.ArticleService/CreateArticle"
 const OperationArticleServiceDeleteArticle = "/blog.v1.ArticleService/DeleteArticle"
 const OperationArticleServiceGetArticle = "/blog.v1.ArticleService/GetArticle"
+const OperationArticleServiceGetArticleRevision = "/blog.v1.ArticleService/GetArticleRevision"
+const OperationArticleServiceGetArticleSearchSync = "/blog.v1.ArticleService/GetArticleSearchSync"
+const OperationArticleServiceListArticleRevisions = "/blog.v1.ArticleService/ListArticleRevisions"
 const OperationArticleServiceListArticles = "/blog.v1.ArticleService/ListArticles"
 const OperationArticleServiceMarkArticleLiked = "/blog.v1.ArticleService/MarkArticleLiked"
 const OperationArticleServiceMarkArticleViewed = "/blog.v1.ArticleService/MarkArticleViewed"
+const OperationArticleServiceRestoreArticleRevision = "/blog.v1.ArticleService/RestoreArticleRevision"
+const OperationArticleServiceRetryArticleSearchSync = "/blog.v1.ArticleService/RetryArticleSearchSync"
 const OperationArticleServiceUpdateArticle = "/blog.v1.ArticleService/UpdateArticle"
 
 type ArticleServiceHTTPServer interface {
@@ -44,6 +49,11 @@ type ArticleServiceHTTPServer interface {
 	// Authorization: public.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	GetArticle(context.Context, *GetArticleRequest) (*Article, error)
+	GetArticleRevision(context.Context, *GetArticleRevisionRequest) (*ArticleRevision, error)
+	// GetArticleSearchSync Administrator-only live index inspection and single-article repair.
+	GetArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error)
+	// ListArticleRevisions Administrator-only immutable revision metadata; bodies are returned by Get.
+	ListArticleRevisions(context.Context, *ListArticleRevisionsRequest) (*ArticleRevisionSet, error)
 	// ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 	// Use the next_page_token from ArticleSet to retrieve subsequent pages.
 	// Authorization: public.
@@ -64,6 +74,10 @@ type ArticleServiceHTTPServer interface {
 	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
 	// article does not exist or is not published.
 	MarkArticleViewed(context.Context, *MarkArticleViewedRequest) (*emptypb.Empty, error)
+	// RestoreArticleRevision Administrator-only content restoration; current publication state is preserved.
+	RestoreArticleRevision(context.Context, *RestoreArticleRevisionRequest) (*Article, error)
+	// RetryArticleSearchSync Administrator-only repair using the current database version.
+	RetryArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error)
 	// UpdateArticle UpdateArticle applies a partial update to an existing article using a
 	// FieldMask. Only the fields listed in update_mask are overwritten; all
 	// other fields are left unchanged. The slug is immutable and only identifies
@@ -77,6 +91,11 @@ type ArticleServiceHTTPServer interface {
 
 func RegisterArticleServiceHTTPServer(s *http.Server, srv ArticleServiceHTTPServer) {
 	r := s.Route("/")
+	r.Handle("POST", "/v1/articles/{slug}/revisions/{version}/restore", _ArticleService_RestoreArticleRevision0_HTTP_Handler(srv))
+	r.Handle("GET", "/v1/articles/{slug}/revisions", _ArticleService_ListArticleRevisions0_HTTP_Handler(srv))
+	r.Handle("GET", "/v1/articles/{slug}/revisions/{version}", _ArticleService_GetArticleRevision0_HTTP_Handler(srv))
+	r.Handle("GET", "/v1/articles/{slug}/search-sync", _ArticleService_GetArticleSearchSync0_HTTP_Handler(srv))
+	r.Handle("POST", "/v1/articles/{slug}/search-sync/retry", _ArticleService_RetryArticleSearchSync0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/articles/create", _ArticleService_CreateArticle0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/articles/list", _ArticleService_ListArticles0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/articles/{slug}", _ArticleService_GetArticle0_HTTP_Handler(srv))
@@ -84,6 +103,116 @@ func RegisterArticleServiceHTTPServer(s *http.Server, srv ArticleServiceHTTPServ
 	r.Handle("DELETE", "/v1/articles/{slug}", _ArticleService_DeleteArticle0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/articles/{slug}/view", _ArticleService_MarkArticleViewed0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/articles/{slug}/like", _ArticleService_MarkArticleLiked0_HTTP_Handler(srv))
+}
+
+func _ArticleService_RestoreArticleRevision0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RestoreArticleRevisionRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceRestoreArticleRevision)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RestoreArticleRevision(ctx, req.(*RestoreArticleRevisionRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Article)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ArticleService_ListArticleRevisions0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListArticleRevisionsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceListArticleRevisions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListArticleRevisions(ctx, req.(*ListArticleRevisionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ArticleRevisionSet)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ArticleService_GetArticleRevision0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetArticleRevisionRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceGetArticleRevision)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetArticleRevision(ctx, req.(*GetArticleRevisionRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ArticleRevision)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ArticleService_GetArticleSearchSync0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetArticleSearchSyncRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceGetArticleSearchSync)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetArticleSearchSync(ctx, req.(*GetArticleSearchSyncRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ArticleSearchSyncStatus)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _ArticleService_RetryArticleSearchSync0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetArticleSearchSyncRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationArticleServiceRetryArticleSearchSync)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RetryArticleSearchSync(ctx, req.(*GetArticleSearchSyncRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ArticleSearchSyncStatus)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _ArticleService_CreateArticle0_HTTP_Handler(srv ArticleServiceHTTPServer) func(ctx http.Context) error {
@@ -255,6 +384,11 @@ type ArticleServiceHTTPClient interface {
 	// Authorization: public.
 	// Returns NOT_FOUND if no article exists with the supplied slug.
 	GetArticle(ctx context.Context, req *GetArticleRequest, opts ...http.CallOption) (rsp *Article, err error)
+	GetArticleRevision(ctx context.Context, req *GetArticleRevisionRequest, opts ...http.CallOption) (rsp *ArticleRevision, err error)
+	// GetArticleSearchSync Administrator-only live index inspection and single-article repair.
+	GetArticleSearchSync(ctx context.Context, req *GetArticleSearchSyncRequest, opts ...http.CallOption) (rsp *ArticleSearchSyncStatus, err error)
+	// ListArticleRevisions Administrator-only immutable revision metadata; bodies are returned by Get.
+	ListArticleRevisions(ctx context.Context, req *ListArticleRevisionsRequest, opts ...http.CallOption) (rsp *ArticleRevisionSet, err error)
 	// ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 	// Use the next_page_token from ArticleSet to retrieve subsequent pages.
 	// Authorization: public.
@@ -275,6 +409,10 @@ type ArticleServiceHTTPClient interface {
 	// Returns INVALID_ARGUMENT if the slug is malformed, NOT_FOUND if the
 	// article does not exist or is not published.
 	MarkArticleViewed(ctx context.Context, req *MarkArticleViewedRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
+	// RestoreArticleRevision Administrator-only content restoration; current publication state is preserved.
+	RestoreArticleRevision(ctx context.Context, req *RestoreArticleRevisionRequest, opts ...http.CallOption) (rsp *Article, err error)
+	// RetryArticleSearchSync Administrator-only repair using the current database version.
+	RetryArticleSearchSync(ctx context.Context, req *GetArticleSearchSyncRequest, opts ...http.CallOption) (rsp *ArticleSearchSyncStatus, err error)
 	// UpdateArticle UpdateArticle applies a partial update to an existing article using a
 	// FieldMask. Only the fields listed in update_mask are overwritten; all
 	// other fields are left unchanged. The slug is immutable and only identifies
@@ -357,6 +495,56 @@ func (c *ArticleServiceHTTPClientImpl) GetArticle(ctx context.Context, in *GetAr
 	return &out, nil
 }
 
+func (c *ArticleServiceHTTPClientImpl) GetArticleRevision(ctx context.Context, in *GetArticleRevisionRequest, opts ...http.CallOption) (*ArticleRevision, error) {
+	var out ArticleRevision
+	pattern := "/v1/articles/{slug}/revisions/{version}"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationArticleServiceGetArticleRevision),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetArticleSearchSync Administrator-only live index inspection and single-article repair.
+func (c *ArticleServiceHTTPClientImpl) GetArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...http.CallOption) (*ArticleSearchSyncStatus, error) {
+	var out ArticleSearchSyncStatus
+	pattern := "/v1/articles/{slug}/search-sync"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationArticleServiceGetArticleSearchSync),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListArticleRevisions Administrator-only immutable revision metadata; bodies are returned by Get.
+func (c *ArticleServiceHTTPClientImpl) ListArticleRevisions(ctx context.Context, in *ListArticleRevisionsRequest, opts ...http.CallOption) (*ArticleRevisionSet, error) {
+	var out ArticleRevisionSet
+	pattern := "/v1/articles/{slug}/revisions"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationArticleServiceListArticleRevisions),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListArticles ListArticles returns a page of articles, optionally filtered and ordered.
 // Use the next_page_token from ArticleSet to retrieve subsequent pages.
 // Authorization: public.
@@ -415,6 +603,42 @@ func (c *ArticleServiceHTTPClientImpl) MarkArticleViewed(ctx context.Context, in
 		http.Accept("application/protojson"),
 		http.ContentType("application/protojson"),
 		http.Operation(OperationArticleServiceMarkArticleViewed),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RestoreArticleRevision Administrator-only content restoration; current publication state is preserved.
+func (c *ArticleServiceHTTPClientImpl) RestoreArticleRevision(ctx context.Context, in *RestoreArticleRevisionRequest, opts ...http.CallOption) (*Article, error) {
+	var out Article
+	pattern := "/v1/articles/{slug}/revisions/{version}/restore"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationArticleServiceRestoreArticleRevision),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RetryArticleSearchSync Administrator-only repair using the current database version.
+func (c *ArticleServiceHTTPClientImpl) RetryArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...http.CallOption) (*ArticleSearchSyncStatus, error) {
+	var out ArticleSearchSyncStatus
+	pattern := "/v1/articles/{slug}/search-sync/retry"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationArticleServiceRetryArticleSearchSync),
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -94,6 +95,7 @@ type esIndexer struct {
 	// mapping without it (created before embedding was enabled) would reject
 	// the whole request, silently degrading search to empty results.
 	vectorReady bool
+	vectorMu    sync.RWMutex
 }
 
 // NewEsIndexer builds the Elasticsearch-backed article search index. A nil or
@@ -151,33 +153,41 @@ func esIndexDimensions(e Embedder) int {
 // probeVectorMapping reports whether the live index mapping holds a
 // dense_vector "embedding" field.
 func (e *esIndexer) probeVectorMapping(ctx context.Context) (bool, error) {
-	res, err := e.client.Indices.GetMapping(e.client.Indices.GetMapping.WithContext(ctx),
-		e.client.Indices.GetMapping.WithIndex(e.index))
+	dims, err := e.liveVectorDimensions(ctx)
+	return dims > 0, err
+}
+
+// liveVectorDimensions reads the actual ES mapping, not the startup cache.
+func (e *esIndexer) liveVectorDimensions(ctx context.Context) (int, error) {
+	res, err := e.client.Indices.GetMapping(e.client.Indices.GetMapping.WithContext(ctx), e.client.Indices.GetMapping.WithIndex(e.index))
 	if err != nil {
-		return false, err
+		return 0, err
 	}
 	defer func() { _ = res.Body.Close() }()
 	if res.IsError() {
-		return false, fmt.Errorf("es mapping: %s", res.String())
+		return 0, fmt.Errorf("es mapping status %d", res.StatusCode)
 	}
-	// The response nests the mapping under the index name.
-	wrapper := map[string]json.RawMessage{}
-	if err := json.NewDecoder(res.Body).Decode(&wrapper); err != nil {
-		return false, err
-	}
-	for _, raw := range wrapper {
-		var mapping struct {
+	var wrapper map[string]struct {
+		Mappings struct {
 			Properties map[string]struct {
-				Type string `json:"type"`
+				Type  string `json:"type"`
+				Index *bool  `json:"index"`
+				Dims  int    `json:"dims"`
 			} `json:"properties"`
-		}
-		if err := json.Unmarshal(raw, &mapping); err != nil {
-			return false, err
-		}
-		field, ok := mapping.Properties["embedding"]
-		return ok && field.Type == "dense_vector", nil
+		} `json:"mappings"`
 	}
-	return false, nil
+	if err := json.NewDecoder(res.Body).Decode(&wrapper); err != nil {
+		return 0, err
+	}
+	mapping, ok := wrapper[e.index]
+	if !ok || mapping.Mappings.Properties == nil {
+		return 0, fmt.Errorf("invalid es mapping response")
+	}
+	field := mapping.Mappings.Properties["embedding"]
+	if field.Type == "dense_vector" && (field.Index == nil || *field.Index) {
+		return field.Dims, nil
+	}
+	return 0, nil
 }
 
 // ensureIndex creates the index with the article mapping when missing.
@@ -213,12 +223,33 @@ func (e *esIndexer) ensureIndex(ctx context.Context, dims int) error {
 // embedder is configured the document carries a vector; an embedding failure
 // is downgraded to a BM25-only document, never a failed article write.
 func (e *esIndexer) IndexArticle(ctx context.Context, a *biz.Article) error {
+	return e.indexArticle(ctx, a, "false")
+}
+
+// RetryArticleIndex waits for search visibility without forcing an index-wide refresh.
+func (e *esIndexer) RetryArticleIndex(ctx context.Context, a *biz.Article) error {
+	// A retry repairs a document, never creates an index with implicit mappings.
+	res, err := e.client.Indices.Exists([]string{e.index}, e.client.Indices.Exists.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	_ = res.Body.Close()
+	if res.StatusCode == 404 {
+		return biz.ErrArticleSearchIndexMissing
+	}
+	if res.StatusCode != 200 {
+		return fmt.Errorf("es retry index check status %d", res.StatusCode)
+	}
+	return e.indexArticle(ctx, a, "wait_for")
+}
+
+func (e *esIndexer) indexArticle(ctx context.Context, a *biz.Article, refresh string) error {
 	if a == nil || a.Status != biz.ArticleStatusPublished {
 		slug := ""
 		if a != nil {
 			slug = a.Slug
 		}
-		return e.RemoveArticle(ctx, slug)
+		return e.removeArticle(ctx, slug, refresh)
 	}
 	published := time.Now()
 	if a.PublishedAt != nil {
@@ -249,7 +280,7 @@ func (e *esIndexer) IndexArticle(ctx context.Context, a *biz.Article) error {
 	res, err := e.client.Index(e.index, bytes.NewReader(body),
 		e.client.Index.WithContext(ctx),
 		e.client.Index.WithDocumentID(a.Slug),
-		e.client.Index.WithRefresh("false"))
+		e.client.Index.WithRefresh(refresh))
 	if err != nil {
 		return err
 	}
@@ -281,7 +312,7 @@ func (e *esIndexer) RecreateIndex(ctx context.Context) error {
 	if err := e.ensureIndex(ctx, esIndexDimensions(e.embedder)); err != nil {
 		return err
 	}
-	e.vectorReady = esIndexDimensions(e.embedder) > 0
+	e.setVectorReady(esIndexDimensions(e.embedder) > 0)
 	return nil
 }
 
@@ -302,11 +333,15 @@ func (e *esIndexer) Refresh(ctx context.Context) error {
 
 // RemoveArticle drops the article document, tolerating a missing one.
 func (e *esIndexer) RemoveArticle(ctx context.Context, slug string) error {
+	return e.removeArticle(ctx, slug, "false")
+}
+
+func (e *esIndexer) removeArticle(ctx context.Context, slug, refresh string) error {
 	if slug == "" {
 		return nil
 	}
 	res, err := e.client.Delete(e.index, slug,
-		e.client.Delete.WithContext(ctx))
+		e.client.Delete.WithContext(ctx), e.client.Delete.WithRefresh(refresh))
 	if err != nil {
 		return err
 	}
@@ -335,7 +370,7 @@ func (e *esIndexer) Search(ctx context.Context, query string, limit, offset int)
 		"from": offset,
 		"size": limit,
 	}
-	if e.embedder != nil && e.vectorReady {
+	if e.embedder != nil && e.getVectorReady() {
 		embedCtx, cancel := context.WithTimeout(ctx, embedCallTimeout)
 		vectors, err := e.embedder.Embed(embedCtx, []string{query})
 		cancel()
@@ -377,4 +412,62 @@ func (e *esIndexer) Search(ctx context.Context, query string, limit, offset int)
 		slugs = append(slugs, hit.Source.Slug)
 	}
 	return slugs, nil
+}
+
+// GetArticleIndexSnapshot observes current derived state without generating embeddings.
+func (e *esIndexer) GetArticleIndexSnapshot(ctx context.Context, slug string) (*biz.ArticleIndexSnapshot, error) {
+	res, err := e.client.Get(e.index, slug, e.client.Get.WithContext(ctx), e.client.Get.WithRealtime(true))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	var payload struct {
+		Found  *bool         `json:"found"`
+		Source *esArticleDoc `json:"_source"`
+		Error  struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if res.StatusCode != 200 && res.StatusCode != 404 {
+		return nil, fmt.Errorf("es snapshot status %d", res.StatusCode)
+	}
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		return nil, err
+	}
+	if res.StatusCode == 404 && payload.Error.Type == "index_not_found_exception" {
+		return nil, biz.ErrArticleSearchIndexMissing
+	}
+	if payload.Found == nil || (res.StatusCode == 200 && !*payload.Found) || (res.StatusCode == 404 && *payload.Found) {
+		return nil, fmt.Errorf("invalid es snapshot response")
+	}
+	snapshot := &biz.ArticleIndexSnapshot{Exists: *payload.Found, SemanticExpected: e.embedder != nil}
+	if snapshot.Exists {
+		if payload.Source == nil || payload.Source.Slug != slug {
+			return nil, fmt.Errorf("invalid es document source")
+		}
+		doc := payload.Source
+		snapshot.Article = &biz.Article{Slug: doc.Slug, Title: doc.Title, Summary: doc.Summary, ContentMD: doc.Content, Tags: doc.Tags, PublishedAt: &doc.PublishedAt, Status: biz.ArticleStatusPublished}
+	}
+	if snapshot.SemanticExpected {
+		dims, err := e.liveVectorDimensions(ctx)
+		if err != nil {
+			return nil, err
+		}
+		expected := esIndexDimensions(e.embedder)
+		snapshot.SemanticRepairable = dims > 0 && (expected == 0 || dims == expected)
+		e.setVectorReady(snapshot.SemanticRepairable)
+		snapshot.SemanticReady = snapshot.Exists && snapshot.SemanticRepairable && len(payload.Source.Embedding) == dims
+	}
+	return snapshot, nil
+}
+
+func (e *esIndexer) getVectorReady() bool {
+	e.vectorMu.RLock()
+	defer e.vectorMu.RUnlock()
+	return e.vectorReady
+}
+func (e *esIndexer) setVectorReady(ready bool) {
+	e.vectorMu.Lock()
+	defer e.vectorMu.Unlock()
+	e.vectorReady = ready
 }

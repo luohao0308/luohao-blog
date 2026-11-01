@@ -20,11 +20,11 @@ export function usePageSeo(input: {
     ogTitle: title,
     ogDescription: description,
     ogType: input.type ?? 'website',
-    ogUrl: canonical,
-    ogImage: image,
+    ogUrl: () => canonical.value || undefined,
+    ogImage: () => image.value || undefined,
     twitterCard: 'summary_large_image',
     twitterTitle: title,
     twitterDescription: description,
-    twitterImage: image,
+    twitterImage: () => image.value || undefined,
   })
 }

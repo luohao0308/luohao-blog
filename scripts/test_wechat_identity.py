@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rehearse v15→v16 and real-driver identity tests on isolated Docker fixtures.
+"""Rehearse v15→v16, then test the current app on isolated Docker fixtures.
 
 No production configuration is loaded. The default creates disposable fixtures
 on loopback ports 13316/16389 and removes only the containers it created. An
@@ -40,6 +40,14 @@ def fixture_environment():
     # must never inherit those overrides over its generated fixture config.
     return {key: value for key, value in os.environ.items()
             if key != "GOROOT" and not key.startswith("KRATOS")}
+
+
+def latest_schema_version(migrations):
+    versions = [int(match.group(1)) for path in migrations.glob("*.up.sql")
+                if path.is_file() and (match := re.fullmatch(r"([0-9]{6})_.+\.up\.sql", path.name))]
+    if not versions:
+        raise ValueError("application migrations missing")
+    return max(versions)
 
 
 def main():
@@ -148,6 +156,24 @@ def main():
             assert sql("SELECT * FROM articles ORDER BY id;", restored) == article_snapshot
             assert sql("SELECT version,dirty FROM schema_migrations;", restored).strip() == "16\t0"
             assert sql("SELECT user_id,app_id,openid FROM wechat_identities;", restored) == sql("SELECT user_id,app_id,openid FROM wechat_identities;", database)
+
+            # The backfill command deliberately requires v16. Only after its
+            # checks and backup rehearsal may the current application schema
+            # advance: generated Ent queries include columns added after v16.
+            columns = [line.split("\t", 1)[0] for line in sql("SHOW COLUMNS FROM articles;", database).splitlines()]
+            assert columns and all(re.fullmatch(r"[a-z_]+", column) for column in columns)
+            legacy_articles = "SELECT " + ",".join("`" + column + "`" for column in columns) + " FROM articles ORDER BY id;"
+            assert sql(legacy_articles, database) == article_snapshot
+            identity_snapshot = sql("SELECT * FROM wechat_identities ORDER BY id;", database)
+            application_schema = latest_schema_version(ROOT / "backend/migrations")
+            assert application_schema >= 18
+            for _ in range(2):
+                assert run([binary, str(application_schema)], env=env).decode().strip() == f"{application_schema} false"
+            assert sql("SELECT * FROM users ORDER BY id;", database) == snapshot
+            assert sql(legacy_articles, database) == article_snapshot
+            assert sql("SELECT * FROM wechat_identities ORDER BY id;", database) == identity_snapshot
+            assert sql("SELECT version FROM articles;", database).strip() == "1"
+            assert sql("SELECT COUNT(*) FROM article_revisions;", database).strip() == "0"
             # Repositories own only their generated rows; remove the rehearsal
             # sentinel before backfill tests whose fixtures count all holders.
             sql(f"DELETE FROM users WHERE id='{sentinel}';", database)
@@ -166,6 +192,7 @@ def main():
             for name in required:
                 assert re.search(r"^--- PASS: " + re.escape(name) + r"(?: \(|$)", output, re.MULTILINE), "required real-driver test missing: " + name
             print(json.dumps({"baseline": 15, "target": 16, "dirty": False,
+                              "application_schema": application_schema,
                               "legacy_preserved": True, "no_automatic_backfill": True,
                               "cli_dryrun_apply_idempotent": True, "backup_restore": True,
                               "real_mysql_redis_http_tests": "passed", "silent_skips": 0}))

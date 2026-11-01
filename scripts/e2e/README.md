@@ -173,3 +173,10 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 ### 最新 CMS 的收藏与详情回归
 
 `scripts/e2e/current_reading_e2e.cjs` 使用 `output/current-reading/live-baseline/{articles,projects,about}.json` 的新鲜匿名 GET 快照和 `docs/content/portfolio-revision-2026-10.json` 内容提案，不连接线上写接口。先运行前端构建，并在 backend 执行 `BLOG_REVISION_RENDERED=<绝对路径>/output/current-reading/rendered-articles.json go test ./cmd/seed -run TestContentRevisionProposal -count=1`，用真实渲染器准备 HTML；再运行 `NODE_PATH=<已有Playwright包目录> node scripts/e2e/current_reading_e2e.cjs`。可通过 `BLOG_E2E_CHROMIUM` 指定浏览器。本地预览运行 `node scripts/e2e/current_reading_fixture.cjs`，默认端口 13030。缺少快照或 CMS 版本与提案不一致时拒绝预览，避免静默覆盖更新。
+
+
+## 文章版本与修订（2026-11）
+
+前端构建后用已有Playwright运行 `article_cas_e2e.cjs`、`article_revisions_e2e.cjs` 与 `draft_protection_e2e.cjs`，支持 `BLOG_E2E_CHROMIUM`。均为本机隔离mock，无生产写入；覆盖两窗口CAS、保留草稿、历史/恢复、纯文本差异、安全与超限、迟到响应。
+
+后端 `article_revisions_mysql_test.go` 是显式opt-in测试：只有 `BLOG_REVISION_MYSQL_DSN` 指向**任务自有可销毁MySQL**时执行。它会执行待升级迁移、创建测试数据和受控触发器；禁止指向生产/共享数据库。测试验证真实SQL CAS、事务故障与分类并发锁；默认不配置则跳过。完整证据见 `output/article-revisions/`，正式发布规则见 [修订契约](../../docs/contracts/ARTICLE-REVISIONS.md)。

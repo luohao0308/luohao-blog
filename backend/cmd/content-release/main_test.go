@@ -82,13 +82,13 @@ func TestManifestAndHash(t *testing.T) {
 }
 func TestSchemaVersionGate(t *testing.T) {
 	want, err := highestMigration()
-	if err != nil || want != 16 {
+	if err != nil || want != 18 {
 		t.Fatalf("migration source: %d %v", want, err)
 	}
 	for _, tc := range []struct {
 		v         uint64
 		dirty, ok bool
-	}{{16, false, true}, {15, false, false}, {17, false, false}, {16, true, false}, {0, false, false}} {
+	}{{uint64(want), false, true}, {uint64(want - 1), false, false}, {uint64(want + 1), false, false}, {uint64(want), true, false}, {0, false, false}} {
 		if (checkVersion(tc.v, want, tc.dirty) == nil) != tc.ok {
 			t.Fatal(tc)
 		}
@@ -129,9 +129,9 @@ func TestArticlePreflightRendersWithoutWriting(t *testing.T) {
 		t.Fatal(err)
 	}
 	stamp := time.Now()
-	m := &articleMemory{value: &biz.Article{Slug: b.Operations[0].Slug, Title: "old", Status: biz.ArticleStatusPublished, PublishedAt: &stamp, CoverURL: "/v1/assets/media/0123456789abcdef0123456789abcdef.webp", Featured: true, CategorySlug: "engineering", ViewCount: 20, LikeCount: 5}}
+	m := &articleMemory{value: &biz.Article{Slug: b.Operations[0].Slug, Title: "old", Status: biz.ArticleStatusPublished, PublishedAt: &stamp, CoverURL: "/v1/assets/media/0123456789abcdef0123456789abcdef.webp", Featured: true, CategorySlug: "engineering", ViewCount: 20, LikeCount: 5, Version: 1}}
 	ar := &articles{ArticleRepo: m, dry: true, created: map[string]*biz.Article{}}
-	r := &runner{a: service.NewArticleService(biz.NewArticleUsecase(ar, nil))}
+	r := &runner{a: service.NewArticleService(biz.NewArticleUsecase(ar, nil)), articleVersions: map[string]uint64{b.Operations[0].Slug: 1}}
 	ctx := biz.NewAuthContext(context.Background(), &biz.Claims{Role: biz.UserRoleAdmin})
 	if err = r.write(ctx, b.Operations[0]); err != nil {
 		t.Fatal(err)
@@ -204,13 +204,13 @@ type failingIndex struct{ biz.ArticleSearchIndex }
 func (failingIndex) IndexArticle(context.Context, *biz.Article) error { return errRelease }
 func TestIndexFailureCaptured(t *testing.T) {
 	i := &checkedIndex{ArticleSearchIndex: failingIndex{}}
-	if i.IndexArticle(context.Background(), &biz.Article{}) == nil || i.err == nil {
+	if i.IndexArticle(context.Background(), &biz.Article{Version: 1}) == nil || i.err == nil {
 		t.Fatal("lost index failure")
 	}
 }
 
 func TestCreatedDraftDatabaseTimestampPrecision(t *testing.T) {
-	created := &v1.Article{Id: "same-id", Slug: "new-article", Title: "A", ContentMd: "body", ContentHtml: "<p>body</p>", Tags: []string{"Go", "Ent"}, Status: v1.ArticleStatus_ARTICLE_STATUS_DRAFT, CoverUrl: proto.String(""), Featured: proto.Bool(false), UpdatedAt: timestamppb.New(time.Unix(100, 800000000))}
+	created := &v1.Article{Id: "same-id", Slug: "new-article", Title: "A", ContentMd: "body", ContentHtml: "<p>body</p>", Tags: []string{"Go", "Ent"}, Status: v1.ArticleStatus_ARTICLE_STATUS_DRAFT, CoverUrl: proto.String(""), Featured: proto.Bool(false), UpdatedAt: timestamppb.New(time.Unix(100, 800000000)), Version: 1}
 	for _, ts := range []time.Time{time.Unix(100, 0), time.Unix(101, 0)} {
 		fresh := proto.Clone(created).(*v1.Article)
 		fresh.UpdatedAt = timestamppb.New(ts)
@@ -245,7 +245,7 @@ func TestMySQLCreateReadPublish(t *testing.T) {
 	svc := service.NewArticleService(biz.NewArticleUsecase(data.NewArticleRepo(store, nil), nil))
 	ctx := biz.NewAuthContext(context.Background(), &biz.Claims{Role: biz.UserRoleAdmin})
 	slug := "precision-" + time.Now().Format("150405000000")
-	created, err := svc.CreateArticle(ctx, &v1.CreateArticleRequest{Article: &v1.Article{Slug: slug, Title: "precision check", ContentMd: "# test", Tags: []string{"test"}, Status: v1.ArticleStatus_ARTICLE_STATUS_PUBLISHED}})
+	created, err := svc.CreateArticle(ctx, &v1.CreateArticleRequest{Article: &v1.Article{Slug: slug, Title: "precision check", ContentMd: "# test", Tags: []string{"test"}, Status: v1.ArticleStatus_ARTICLE_STATUS_PUBLISHED, Version: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestMySQLCreateReadPublish(t *testing.T) {
 	if !sameCreatedDraft(created, fresh) {
 		t.Fatalf("valid MySQL draft must pass real timestamp precision check: created=%v fresh=%v", created, fresh)
 	}
-	_, err = svc.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: &v1.Article{Slug: slug, Status: v1.ArticleStatus_ARTICLE_STATUS_PUBLISHED}, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"status"}}})
+	_, err = svc.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: &v1.Article{Slug: slug, Status: v1.ArticleStatus_ARTICLE_STATUS_PUBLISHED, Version: 1}, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"status"}}, ExpectedVersion: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

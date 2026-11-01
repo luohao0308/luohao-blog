@@ -77,6 +77,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "version", Type: field.TypeUint64, Default: 1},
 		{Name: "slug", Type: field.TypeString, Unique: true},
 		{Name: "title", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "summary", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -98,7 +99,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "articles_categories_articles",
-				Columns:    []*schema.Column{ArticlesColumns[14]},
+				Columns:    []*schema.Column{ArticlesColumns[15]},
 				RefColumns: []*schema.Column{CategoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -112,17 +113,40 @@ var (
 			{
 				Name:    "article_status",
 				Unique:  false,
-				Columns: []*schema.Column{ArticlesColumns[8]},
+				Columns: []*schema.Column{ArticlesColumns[9]},
 			},
 			{
 				Name:    "article_published_at",
 				Unique:  false,
-				Columns: []*schema.Column{ArticlesColumns[9]},
+				Columns: []*schema.Column{ArticlesColumns[10]},
 			},
 			{
 				Name:    "article_featured_published_at",
 				Unique:  false,
-				Columns: []*schema.Column{ArticlesColumns[13], ArticlesColumns[9]},
+				Columns: []*schema.Column{ArticlesColumns[14], ArticlesColumns[10]},
+			},
+		},
+	}
+	// ArticleRevisionsColumns holds the columns for the "article_revisions" table.
+	ArticleRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "article_id", Type: field.TypeUUID},
+		{Name: "version", Type: field.TypeUint64},
+		{Name: "action", Type: field.TypeString, Size: 32},
+		{Name: "actor_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "snapshot", Type: field.TypeJSON},
+	}
+	// ArticleRevisionsTable holds the schema information for the "article_revisions" table.
+	ArticleRevisionsTable = &schema.Table{
+		Name:       "article_revisions",
+		Columns:    ArticleRevisionsColumns,
+		PrimaryKey: []*schema.Column{ArticleRevisionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "articlerevision_article_id_version",
+				Unique:  true,
+				Columns: []*schema.Column{ArticleRevisionsColumns[1], ArticleRevisionsColumns[2]},
 			},
 		},
 	}
@@ -446,6 +470,7 @@ var (
 		AboutsTable,
 		AccountEmailTokensTable,
 		ArticlesTable,
+		ArticleRevisionsTable,
 		CategoriesTable,
 		CollectionsTable,
 		CommentsTable,

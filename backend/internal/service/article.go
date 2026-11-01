@@ -178,6 +178,9 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 // UpdateArticle updates an article via field mask. The slug is immutable and
 // only identifies the target record.
 func (s *ArticleService) UpdateArticle(ctx context.Context, req *v1.UpdateArticleRequest) (*v1.Article, error) {
+	if req.GetExpectedVersion() == 0 {
+		return nil, biz.ErrArticleVersionRequired
+	}
 	if req.GetArticle().GetSlug() == "" || req.GetUpdateMask() == nil || len(req.GetUpdateMask().GetPaths()) == 0 {
 		return nil, biz.ErrArticleInvalidArgument
 	}
@@ -191,7 +194,9 @@ func (s *ArticleService) UpdateArticle(ctx context.Context, req *v1.UpdateArticl
 		return nil, err
 	}
 	fieldmask.Update(req.GetUpdateMask(), current, req.GetArticle())
-	article, err := s.uc.UpdateArticle(ctx, convertArticle(current))
+	input := convertArticle(current)
+	input.Version = req.GetExpectedVersion()
+	article, err := s.uc.UpdateArticle(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +205,7 @@ func (s *ArticleService) UpdateArticle(ctx context.Context, req *v1.UpdateArticl
 
 // DeleteArticle soft-deletes an article.
 func (s *ArticleService) DeleteArticle(ctx context.Context, req *v1.DeleteArticleRequest) (*emptypb.Empty, error) {
-	if err := s.uc.DeleteArticle(ctx, req.GetSlug()); err != nil {
+	if err := s.uc.DeleteArticle(ctx, req.GetSlug(), req.GetExpectedVersion()); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
@@ -253,6 +258,7 @@ func convertArticleReply(in *biz.Article) *v1.Article {
 		return nil
 	}
 	out := &v1.Article{
+		Version:     in.Version,
 		Id:          in.ID.String(),
 		Slug:        in.Slug,
 		Title:       in.Title,
@@ -291,4 +297,22 @@ func convertArticleStatus(in biz.ArticleStatus) v1.ArticleStatus {
 	default:
 		return v1.ArticleStatus_ARTICLE_STATUS_UNSPECIFIED
 	}
+}
+
+func (s *ArticleService) GetArticleSearchSync(ctx context.Context, req *v1.GetArticleSearchSyncRequest) (*v1.ArticleSearchSyncStatus, error) {
+	result, err := s.uc.GetArticleSearchSync(ctx, req.GetSlug())
+	if err != nil {
+		return nil, err
+	}
+	return searchSyncReply(result), nil
+}
+func (s *ArticleService) RetryArticleSearchSync(ctx context.Context, req *v1.GetArticleSearchSyncRequest) (*v1.ArticleSearchSyncStatus, error) {
+	result, err := s.uc.RetryArticleSearchSync(ctx, req.GetSlug())
+	if err != nil {
+		return nil, err
+	}
+	return searchSyncReply(result), nil
+}
+func searchSyncReply(result *biz.ArticleSearchSyncStatus) *v1.ArticleSearchSyncStatus {
+	return &v1.ArticleSearchSyncStatus{ArticleSlug: result.ArticleSlug, State: v1.ArticleSearchSyncState(result.State), CanRetry: result.CanRetry, Message: result.Message, CheckedAt: timestamppb.New(result.CheckedAt), SemanticReady: result.SemanticReady}
 }

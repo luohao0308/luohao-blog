@@ -18,8 +18,12 @@ const loadFailed = ref(false)
 let disposed = false
 onBeforeUnmount(() => { disposed = true })
 const submitting = ref(false)
-const formRef = ref<{ markSaved: (payload: FormPayload) => void, dirty: boolean } | null>(null)
+const searchSync = ref<{ refresh: () => Promise<void> } | null>(null)
+const formRef = ref<{ markSaved: (payload: FormPayload, version?: string) => void, dirty: boolean, baseVersion: string, canRestore: boolean, replaceWithServer: (article: Article, expected: string) => boolean } | null>(null)
 const saveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+const conflict = ref(false)
+const restoreBusy = ref(false)
+const restoreNotice = ref('')
 const saveLabel = computed(() => {
   if (saveState.value === 'saving') return '保存中…'
   if (saveState.value === 'error') return '保存失败，修改已保留，请重试'
@@ -36,6 +40,8 @@ async function loadArticle() {
   article.value = null
   loadFailed.value = false
   saveState.value = 'idle'
+  conflict.value = false
+  restoreBusy.value = false; restoreNotice.value = ''
   try {
     const loaded = await authFetch<Article>(`/api/v1/articles/${encodeURIComponent(slug.value)}`)
     if (version === loadVersion)
@@ -59,6 +65,7 @@ interface FormPayload {
   status: number
   cover_url: string
   featured: boolean
+  expected_version: string
 }
 
 async function onSubmit(payload: FormPayload) {
@@ -66,36 +73,67 @@ async function onSubmit(payload: FormPayload) {
     return
   submitting.value = true
   saveState.value = 'saving'
+  conflict.value = false
+  restoreNotice.value = ''
   const owner = formRef.value
   try {
     // slug stays read-only in the form and out of the mask: it only
     // identifies the record here. A cleared select sends an empty category
     // brief, which the server stores as uncategorized.
-    await authFetch<Article>('/api/v1/articles/update', {
+    const { expected_version, ...content } = payload
+    const updated = await authFetch<Article>('/api/v1/articles/update', {
       method: 'PUT',
-      query: { update_mask: 'title,summary,content_md,tags,category,status,cover_url,featured' },
+      query: { expected_version, update_mask: 'title,summary,content_md,tags,category,status,cover_url,featured' },
       body: {
-        ...payload,
+        ...content,
         slug: slug.value,
         category: payload.category_slug ? { slug: payload.category_slug } : {},
       },
     })
     if (disposed || owner !== formRef.value)
       return
-    owner?.markSaved(payload)
+    owner?.markSaved(payload, updated.version)
+    article.value = updated
     saveState.value = 'saved'
-    message.success('已保存')
+    message.success('正文已保存')
+    void searchSync.value?.refresh()
   }
-  catch {
+  catch (error: unknown) {
     if (disposed || owner !== formRef.value)
       return
     saveState.value = 'error'
-    message.error('保存失败')
+    conflict.value = (error as { response?: { status?: number } })?.response?.status === 409
+    message.error(conflict.value ? '文章已有新版本，修改与本地草稿已保留，请对照后整理。' : '保存失败')
   }
   finally {
     submitting.value = false
   }
 }
+async function restoreRevision(version: string) {
+  const owner = formRef.value
+  if (!owner?.canRestore || submitting.value || restoreBusy.value) return
+  const expected = owner.baseVersion
+  const articleSlug = slug.value
+  restoreBusy.value = true; restoreNotice.value = ''
+  try {
+    const updated = await authFetch<Article>(`/api/v1/articles/${encodeURIComponent(articleSlug)}/revisions/${encodeURIComponent(version)}/restore`, { method: 'POST', body: { expected_version: expected } })
+    if (disposed || owner !== formRef.value || slug.value !== articleSlug) return
+    if (!owner.replaceWithServer(updated, expected)) { restoreNotice.value = '恢复结果需要核对，请打开最新版本对照；当前输入已保留。'; return }
+    article.value = updated
+    saveState.value = 'saved'; conflict.value = false
+    message.success('已恢复为新版本')
+    void searchSync.value?.refresh()
+  } catch (error: unknown) {
+    if (disposed || owner !== formRef.value || slug.value !== articleSlug) return
+    const status = (error as { response?: { status?: number } })?.response?.status
+    const reason = (error as { data?: { reason?: string } })?.data?.reason
+    restoreNotice.value = reason === 'ARTICLE_REVISION_CATEGORY_UNAVAILABLE' ? '历史分类已失效，当前内容未被覆盖，请核对分类后再整理。'
+      : reason === 'ARTICLE_REVISION_MEDIA_UNAVAILABLE' ? '历史封面已不可用，当前内容未被覆盖，请核对媒体后再整理。'
+        : status === 409 ? '恢复发生版本冲突，请打开最新版本对照；当前内容未被覆盖。'
+          : '恢复未确认成功，输入已保留；请核对版本后再试。'
+  } finally { if (!disposed && owner === formRef.value) restoreBusy.value = false }
+}
+
 </script>
 
 <template>
@@ -118,12 +156,21 @@ async function onSubmit(payload: FormPayload) {
       文章加载失败，可能不存在或网络异常。
     </p>
 
+    <div v-if="conflict" role="alert" class="space-y-2 rounded-xl border border-amber-300 p-4 text-sm">
+      <p>文章已有新版本，本次修改尚未保存，输入与本地草稿均已保留。</p>
+      <a :href="`/admin/posts/${encodeURIComponent(slug)}/edit`" target="_blank" rel="noopener noreferrer" class="ui-link">打开最新版本对照</a>
+    </div>
+    <p v-if="restoreNotice" role="alert" class="text-sm text-amber-700 dark:text-amber-300">{{ restoreNotice }}</p>
+    <AdminArticleRevisions v-if="article" :article="article" :base-version="formRef?.baseVersion || ''" :can-restore="formRef?.canRestore || false" :busy="submitting || restoreBusy" @restore="restoreRevision" />
+    <AdminArticleSearchSync v-if="article" ref="searchSync" :slug="article.slug" />
+
     <AdminArticleForm
       v-if="article"
       ref="formRef"
       :key="article.slug"
       :initial="article"
-      :submitting="submitting"
+      :submitting="submitting || restoreBusy"
+      :frozen="restoreBusy"
       @submit="onSubmit"
     >
       <template #actions>

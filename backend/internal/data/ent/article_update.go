@@ -39,6 +39,27 @@ func (_u *ArticleUpdate) SetUpdatedAt(v time.Time) *ArticleUpdate {
 	return _u
 }
 
+// SetVersion sets the "version" field.
+func (_u *ArticleUpdate) SetVersion(v uint64) *ArticleUpdate {
+	_u.mutation.ResetVersion()
+	_u.mutation.SetVersion(v)
+	return _u
+}
+
+// SetNillableVersion sets the "version" field if the given value is not nil.
+func (_u *ArticleUpdate) SetNillableVersion(v *uint64) *ArticleUpdate {
+	if v != nil {
+		_u.SetVersion(*v)
+	}
+	return _u
+}
+
+// AddVersion adds value to the "version" field.
+func (_u *ArticleUpdate) AddVersion(v int64) *ArticleUpdate {
+	_u.mutation.AddVersion(v)
+	return _u
+}
+
 // SetSlug sets the "slug" field.
 func (_u *ArticleUpdate) SetSlug(v string) *ArticleUpdate {
 	_u.mutation.SetSlug(v)
@@ -412,6 +433,12 @@ func (_u *ArticleUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(article.FieldUpdatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.Version(); ok {
+		_spec.SetField(article.FieldVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedVersion(); ok {
+		_spec.AddField(article.FieldVersion, field.TypeUint64, value)
+	}
 	if value, ok := _u.mutation.Slug(); ok {
 		_spec.SetField(article.FieldSlug, field.TypeString, value)
 	}
@@ -611,6 +638,27 @@ type ArticleUpdateOne struct {
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ArticleUpdateOne) SetUpdatedAt(v time.Time) *ArticleUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetVersion sets the "version" field.
+func (_u *ArticleUpdateOne) SetVersion(v uint64) *ArticleUpdateOne {
+	_u.mutation.ResetVersion()
+	_u.mutation.SetVersion(v)
+	return _u
+}
+
+// SetNillableVersion sets the "version" field if the given value is not nil.
+func (_u *ArticleUpdateOne) SetNillableVersion(v *uint64) *ArticleUpdateOne {
+	if v != nil {
+		_u.SetVersion(*v)
+	}
+	return _u
+}
+
+// AddVersion adds value to the "version" field.
+func (_u *ArticleUpdateOne) AddVersion(v int64) *ArticleUpdateOne {
+	_u.mutation.AddVersion(v)
 	return _u
 }
 
@@ -1016,6 +1064,12 @@ func (_u *ArticleUpdateOne) sqlSave(ctx context.Context) (_node *Article, err er
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(article.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Version(); ok {
+		_spec.SetField(article.FieldVersion, field.TypeUint64, value)
+	}
+	if value, ok := _u.mutation.AddedVersion(); ok {
+		_spec.AddField(article.FieldVersion, field.TypeUint64, value)
 	}
 	if value, ok := _u.mutation.Slug(); ok {
 		_spec.SetField(article.FieldSlug, field.TypeString, value)

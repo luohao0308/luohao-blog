@@ -132,9 +132,71 @@ func (SearchOutcome) EnumDescriptor() ([]byte, []int) {
 	return file_blog_v1_article_proto_rawDescGZIP(), []int{1}
 }
 
+type ArticleSearchSyncState int32
+
+const (
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_UNKNOWN      ArticleSearchSyncState = 0
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_SYNCED       ArticleSearchSyncState = 1
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_MISSING      ArticleSearchSyncState = 2
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_STALE        ArticleSearchSyncState = 3
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_NOT_REQUIRED ArticleSearchSyncState = 4
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_UNAVAILABLE  ArticleSearchSyncState = 5
+	ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_PARTIAL      ArticleSearchSyncState = 6
+)
+
+// Enum value maps for ArticleSearchSyncState.
+var (
+	ArticleSearchSyncState_name = map[int32]string{
+		0: "ARTICLE_SEARCH_SYNC_STATE_UNKNOWN",
+		1: "ARTICLE_SEARCH_SYNC_STATE_SYNCED",
+		2: "ARTICLE_SEARCH_SYNC_STATE_MISSING",
+		3: "ARTICLE_SEARCH_SYNC_STATE_STALE",
+		4: "ARTICLE_SEARCH_SYNC_STATE_NOT_REQUIRED",
+		5: "ARTICLE_SEARCH_SYNC_STATE_UNAVAILABLE",
+		6: "ARTICLE_SEARCH_SYNC_STATE_PARTIAL",
+	}
+	ArticleSearchSyncState_value = map[string]int32{
+		"ARTICLE_SEARCH_SYNC_STATE_UNKNOWN":      0,
+		"ARTICLE_SEARCH_SYNC_STATE_SYNCED":       1,
+		"ARTICLE_SEARCH_SYNC_STATE_MISSING":      2,
+		"ARTICLE_SEARCH_SYNC_STATE_STALE":        3,
+		"ARTICLE_SEARCH_SYNC_STATE_NOT_REQUIRED": 4,
+		"ARTICLE_SEARCH_SYNC_STATE_UNAVAILABLE":  5,
+		"ARTICLE_SEARCH_SYNC_STATE_PARTIAL":      6,
+	}
+)
+
+func (x ArticleSearchSyncState) Enum() *ArticleSearchSyncState {
+	p := new(ArticleSearchSyncState)
+	*p = x
+	return p
+}
+
+func (x ArticleSearchSyncState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ArticleSearchSyncState) Descriptor() protoreflect.EnumDescriptor {
+	return file_blog_v1_article_proto_enumTypes[2].Descriptor()
+}
+
+func (ArticleSearchSyncState) Type() protoreflect.EnumType {
+	return &file_blog_v1_article_proto_enumTypes[2]
+}
+
+func (x ArticleSearchSyncState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ArticleSearchSyncState.Descriptor instead.
+func (ArticleSearchSyncState) EnumDescriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{2}
+}
+
 // Article is the canonical representation of a blog article.
 type Article struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Version uint64                 `protobuf:"varint,17,opt,name=version,proto3" json:"version,omitempty"`
 	// Application-generated UUIDv7 identifier. Read-only on create.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
@@ -207,6 +269,13 @@ func (x *Article) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Article.ProtoReflect.Descriptor instead.
 func (*Article) Descriptor() ([]byte, []int) {
 	return file_blog_v1_article_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Article) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 func (x *Article) GetId() string {
@@ -632,6 +701,8 @@ func (x *ListArticlesRequest) GetOrderBy() string {
 // UpdateArticleRequest is the input for ArticleService.UpdateArticle.
 type UpdateArticleRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
+	ExpectedVersion uint64 `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
 	// The article carrying the new field values. article.slug identifies the
 	// target record and must be set.
 	Article *Article `protobuf:"bytes,1,opt,name=article,proto3" json:"article,omitempty"`
@@ -675,6 +746,13 @@ func (*UpdateArticleRequest) Descriptor() ([]byte, []int) {
 	return file_blog_v1_article_proto_rawDescGZIP(), []int{6}
 }
 
+func (x *UpdateArticleRequest) GetExpectedVersion() uint64 {
+	if x != nil {
+		return x.ExpectedVersion
+	}
+	return 0
+}
+
 func (x *UpdateArticleRequest) GetArticle() *Article {
 	if x != nil {
 		return x.Article
@@ -692,6 +770,8 @@ func (x *UpdateArticleRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
 // DeleteArticleRequest is the input for ArticleService.DeleteArticle.
 type DeleteArticleRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
+	ExpectedVersion uint64 `protobuf:"varint,2,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
 	// Unique slug of the article to delete.
 	Slug          string `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -726,6 +806,13 @@ func (x *DeleteArticleRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteArticleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteArticleRequest) Descriptor() ([]byte, []int) {
 	return file_blog_v1_article_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DeleteArticleRequest) GetExpectedVersion() uint64 {
+	if x != nil {
+		return x.ExpectedVersion
+	}
+	return 0
 }
 
 func (x *DeleteArticleRequest) GetSlug() string {
@@ -831,12 +918,460 @@ func (x *MarkArticleLikedRequest) GetSlug() string {
 	return ""
 }
 
+type GetArticleSearchSyncRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetArticleSearchSyncRequest) Reset() {
+	*x = GetArticleSearchSyncRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArticleSearchSyncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArticleSearchSyncRequest) ProtoMessage() {}
+
+func (x *GetArticleSearchSyncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArticleSearchSyncRequest.ProtoReflect.Descriptor instead.
+func (*GetArticleSearchSyncRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetArticleSearchSyncRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type ArticleSearchSyncStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ArticleSlug   string                 `protobuf:"bytes,1,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
+	State         ArticleSearchSyncState `protobuf:"varint,2,opt,name=state,proto3,enum=blog.v1.ArticleSearchSyncState" json:"state,omitempty"`
+	CanRetry      bool                   `protobuf:"varint,3,opt,name=can_retry,json=canRetry,proto3" json:"can_retry,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	CheckedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
+	SemanticReady bool                   `protobuf:"varint,6,opt,name=semantic_ready,json=semanticReady,proto3" json:"semantic_ready,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArticleSearchSyncStatus) Reset() {
+	*x = ArticleSearchSyncStatus{}
+	mi := &file_blog_v1_article_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArticleSearchSyncStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArticleSearchSyncStatus) ProtoMessage() {}
+
+func (x *ArticleSearchSyncStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArticleSearchSyncStatus.ProtoReflect.Descriptor instead.
+func (*ArticleSearchSyncStatus) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ArticleSearchSyncStatus) GetArticleSlug() string {
+	if x != nil {
+		return x.ArticleSlug
+	}
+	return ""
+}
+
+func (x *ArticleSearchSyncStatus) GetState() ArticleSearchSyncState {
+	if x != nil {
+		return x.State
+	}
+	return ArticleSearchSyncState_ARTICLE_SEARCH_SYNC_STATE_UNKNOWN
+}
+
+func (x *ArticleSearchSyncStatus) GetCanRetry() bool {
+	if x != nil {
+		return x.CanRetry
+	}
+	return false
+}
+
+func (x *ArticleSearchSyncStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ArticleSearchSyncStatus) GetCheckedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CheckedAt
+	}
+	return nil
+}
+
+func (x *ArticleSearchSyncStatus) GetSemanticReady() bool {
+	if x != nil {
+		return x.SemanticReady
+	}
+	return false
+}
+
+type ListArticleRevisionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListArticleRevisionsRequest) Reset() {
+	*x = ListArticleRevisionsRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListArticleRevisionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListArticleRevisionsRequest) ProtoMessage() {}
+
+func (x *ListArticleRevisionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListArticleRevisionsRequest.ProtoReflect.Descriptor instead.
+func (*ListArticleRevisionsRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListArticleRevisionsRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *ListArticleRevisionsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListArticleRevisionsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type GetArticleRevisionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Version       uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetArticleRevisionRequest) Reset() {
+	*x = GetArticleRevisionRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArticleRevisionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArticleRevisionRequest) ProtoMessage() {}
+
+func (x *GetArticleRevisionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArticleRevisionRequest.ProtoReflect.Descriptor instead.
+func (*GetArticleRevisionRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetArticleRevisionRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *GetArticleRevisionRequest) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+type ArticleRevision struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ArticleSlug string                 `protobuf:"bytes,1,opt,name=article_slug,json=articleSlug,proto3" json:"article_slug,omitempty"`
+	Version     uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Action      string                 `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
+	ActorId     string                 `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Detail only; safe HTML is rendered from the immutable Markdown at read time.
+	Snapshot *Article `protobuf:"bytes,6,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// Detail only: historical category identity, not a live foreign key.
+	CategoryId    string `protobuf:"bytes,7,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArticleRevision) Reset() {
+	*x = ArticleRevision{}
+	mi := &file_blog_v1_article_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArticleRevision) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArticleRevision) ProtoMessage() {}
+
+func (x *ArticleRevision) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArticleRevision.ProtoReflect.Descriptor instead.
+func (*ArticleRevision) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ArticleRevision) GetArticleSlug() string {
+	if x != nil {
+		return x.ArticleSlug
+	}
+	return ""
+}
+
+func (x *ArticleRevision) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ArticleRevision) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ArticleRevision) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *ArticleRevision) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ArticleRevision) GetSnapshot() *Article {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+func (x *ArticleRevision) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+type ArticleRevisionSet struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Revisions     []*ArticleRevision     `protobuf:"bytes,1,rep,name=revisions,proto3" json:"revisions,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArticleRevisionSet) Reset() {
+	*x = ArticleRevisionSet{}
+	mi := &file_blog_v1_article_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArticleRevisionSet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArticleRevisionSet) ProtoMessage() {}
+
+func (x *ArticleRevisionSet) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArticleRevisionSet.ProtoReflect.Descriptor instead.
+func (*ArticleRevisionSet) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ArticleRevisionSet) GetRevisions() []*ArticleRevision {
+	if x != nil {
+		return x.Revisions
+	}
+	return nil
+}
+
+func (x *ArticleRevisionSet) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type RestoreArticleRevisionRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Slug    string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Version uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	// Required. Last-read current article version, not the historical version.
+	ExpectedVersion uint64 `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RestoreArticleRevisionRequest) Reset() {
+	*x = RestoreArticleRevisionRequest{}
+	mi := &file_blog_v1_article_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreArticleRevisionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreArticleRevisionRequest) ProtoMessage() {}
+
+func (x *RestoreArticleRevisionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_article_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreArticleRevisionRequest.ProtoReflect.Descriptor instead.
+func (*RestoreArticleRevisionRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_article_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *RestoreArticleRevisionRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *RestoreArticleRevisionRequest) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *RestoreArticleRevisionRequest) GetExpectedVersion() uint64 {
+	if x != nil {
+		return x.ExpectedVersion
+	}
+	return 0
+}
+
 var File_blog_v1_article_proto protoreflect.FileDescriptor
 
 const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf7\x04\n" +
-	"\aArticle\x12\x0e\n" +
+	"\x15blog/v1/article.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x05\n" +
+	"\aArticle\x12\x1d\n" +
+	"\aversion\x18\x11 \x01(\x04B\x03\xe0A\x03R\aversion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04slug\x18\x02 \x01(\tB\x03\xe0A\x02R\x04slug\x12\x19\n" +
 	"\x05title\x18\x03 \x01(\tB\x03\xe0A\x02R\x05title\x12\x18\n" +
@@ -879,17 +1414,54 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
 	"\x06filter\x18\x03 \x01(\tR\x06filter\x12\x19\n" +
-	"\border_by\x18\x04 \x01(\tR\aorderBy\"\x89\x01\n" +
-	"\x14UpdateArticleRequest\x12/\n" +
+	"\border_by\x18\x04 \x01(\tR\aorderBy\"\xb4\x01\n" +
+	"\x14UpdateArticleRequest\x12)\n" +
+	"\x10expected_version\x18\x03 \x01(\x04R\x0fexpectedVersion\x12/\n" +
 	"\aarticle\x18\x01 \x01(\v2\x10.blog.v1.ArticleB\x03\xe0A\x02R\aarticle\x12@\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x03\xe0A\x02R\n" +
-	"updateMask\"/\n" +
-	"\x14DeleteArticleRequest\x12\x17\n" +
+	"updateMask\"Z\n" +
+	"\x14DeleteArticleRequest\x12)\n" +
+	"\x10expected_version\x18\x02 \x01(\x04R\x0fexpectedVersion\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"3\n" +
 	"\x18MarkArticleViewedRequest\x12\x17\n" +
 	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"2\n" +
 	"\x17MarkArticleLikedRequest\x12\x17\n" +
-	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug*\x83\x01\n" +
+	"\x04slug\x18\x01 \x01(\tB\x03\xe0A\x02R\x04slug\"1\n" +
+	"\x1bGetArticleSearchSyncRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x8c\x02\n" +
+	"\x17ArticleSearchSyncStatus\x12!\n" +
+	"\farticle_slug\x18\x01 \x01(\tR\varticleSlug\x125\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x1f.blog.v1.ArticleSearchSyncStateR\x05state\x12\x1b\n" +
+	"\tcan_retry\x18\x03 \x01(\bR\bcanRetry\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x129\n" +
+	"\n" +
+	"checked_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\x12%\n" +
+	"\x0esemantic_ready\x18\x06 \x01(\bR\rsemanticReady\"m\n" +
+	"\x1bListArticleRevisionsRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"I\n" +
+	"\x19GetArticleRevisionRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\"\x8b\x02\n" +
+	"\x0fArticleRevision\x12!\n" +
+	"\farticle_slug\x18\x01 \x01(\tR\varticleSlug\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\x12\x16\n" +
+	"\x06action\x18\x03 \x01(\tR\x06action\x12\x19\n" +
+	"\bactor_id\x18\x04 \x01(\tR\aactorId\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12,\n" +
+	"\bsnapshot\x18\x06 \x01(\v2\x10.blog.v1.ArticleR\bsnapshot\x12\x1f\n" +
+	"\vcategory_id\x18\a \x01(\tR\n" +
+	"categoryId\"t\n" +
+	"\x12ArticleRevisionSet\x126\n" +
+	"\trevisions\x18\x01 \x03(\v2\x18.blog.v1.ArticleRevisionR\trevisions\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"x\n" +
+	"\x1dRestoreArticleRevisionRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\x12)\n" +
+	"\x10expected_version\x18\x03 \x01(\x04R\x0fexpectedVersion*\x83\x01\n" +
 	"\rArticleStatus\x12\x1e\n" +
 	"\x1aARTICLE_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ARTICLE_STATUS_DRAFT\x10\x01\x12\x1c\n" +
@@ -898,8 +1470,21 @@ const file_blog_v1_article_proto_rawDesc = "" +
 	"\rSearchOutcome\x12\x1e\n" +
 	"\x1aSEARCH_OUTCOME_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18SEARCH_OUTCOME_AVAILABLE\x10\x01\x12\x1e\n" +
-	"\x1aSEARCH_OUTCOME_UNAVAILABLE\x10\x022\xe4\x05\n" +
-	"\x0eArticleService\x12f\n" +
+	"\x1aSEARCH_OUTCOME_UNAVAILABLE\x10\x02*\xaf\x02\n" +
+	"\x16ArticleSearchSyncState\x12%\n" +
+	"!ARTICLE_SEARCH_SYNC_STATE_UNKNOWN\x10\x00\x12$\n" +
+	" ARTICLE_SEARCH_SYNC_STATE_SYNCED\x10\x01\x12%\n" +
+	"!ARTICLE_SEARCH_SYNC_STATE_MISSING\x10\x02\x12#\n" +
+	"\x1fARTICLE_SEARCH_SYNC_STATE_STALE\x10\x03\x12*\n" +
+	"&ARTICLE_SEARCH_SYNC_STATE_NOT_REQUIRED\x10\x04\x12)\n" +
+	"%ARTICLE_SEARCH_SYNC_STATE_UNAVAILABLE\x10\x05\x12%\n" +
+	"!ARTICLE_SEARCH_SYNC_STATE_PARTIAL\x10\x062\x9d\v\n" +
+	"\x0eArticleService\x12\x8e\x01\n" +
+	"\x16RestoreArticleRevision\x12&.blog.v1.RestoreArticleRevisionRequest\x1a\x10.blog.v1.Article\":\x82\xd3\xe4\x93\x024:\x01*\"//v1/articles/{slug}/revisions/{version}/restore\x12\x80\x01\n" +
+	"\x14ListArticleRevisions\x12$.blog.v1.ListArticleRevisionsRequest\x1a\x1b.blog.v1.ArticleRevisionSet\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/articles/{slug}/revisions\x12\x83\x01\n" +
+	"\x12GetArticleRevision\x12\".blog.v1.GetArticleRevisionRequest\x1a\x18.blog.v1.ArticleRevision\"/\x82\xd3\xe4\x93\x02)\x12'/v1/articles/{slug}/revisions/{version}\x12\x87\x01\n" +
+	"\x14GetArticleSearchSync\x12$.blog.v1.GetArticleSearchSyncRequest\x1a .blog.v1.ArticleSearchSyncStatus\"'\x82\xd3\xe4\x93\x02!\x12\x1f/v1/articles/{slug}/search-sync\x12\x92\x01\n" +
+	"\x16RetryArticleSearchSync\x12$.blog.v1.GetArticleSearchSyncRequest\x1a .blog.v1.ArticleSearchSyncStatus\"0\x82\xd3\xe4\x93\x02*:\x01*\"%/v1/articles/{slug}/search-sync/retry\x12f\n" +
 	"\rCreateArticle\x12\x1d.blog.v1.CreateArticleRequest\x1a\x10.blog.v1.Article\"$\x82\xd3\xe4\x93\x02\x1e:\aarticle\"\x13/v1/articles/create\x12\\\n" +
 	"\fListArticles\x12\x1c.blog.v1.ListArticlesRequest\x1a\x13.blog.v1.ArticleSet\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/articles/list\x12W\n" +
 	"\n" +
@@ -922,55 +1507,78 @@ func file_blog_v1_article_proto_rawDescGZIP() []byte {
 	return file_blog_v1_article_proto_rawDescData
 }
 
-var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_blog_v1_article_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_blog_v1_article_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_blog_v1_article_proto_goTypes = []any{
-	(ArticleStatus)(0),               // 0: blog.v1.ArticleStatus
-	(SearchOutcome)(0),               // 1: blog.v1.SearchOutcome
-	(*Article)(nil),                  // 2: blog.v1.Article
-	(*CategoryBrief)(nil),            // 3: blog.v1.CategoryBrief
-	(*ArticleSet)(nil),               // 4: blog.v1.ArticleSet
-	(*CreateArticleRequest)(nil),     // 5: blog.v1.CreateArticleRequest
-	(*GetArticleRequest)(nil),        // 6: blog.v1.GetArticleRequest
-	(*ListArticlesRequest)(nil),      // 7: blog.v1.ListArticlesRequest
-	(*UpdateArticleRequest)(nil),     // 8: blog.v1.UpdateArticleRequest
-	(*DeleteArticleRequest)(nil),     // 9: blog.v1.DeleteArticleRequest
-	(*MarkArticleViewedRequest)(nil), // 10: blog.v1.MarkArticleViewedRequest
-	(*MarkArticleLikedRequest)(nil),  // 11: blog.v1.MarkArticleLikedRequest
-	(*timestamppb.Timestamp)(nil),    // 12: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),    // 13: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),            // 14: google.protobuf.Empty
+	(ArticleStatus)(0),                    // 0: blog.v1.ArticleStatus
+	(SearchOutcome)(0),                    // 1: blog.v1.SearchOutcome
+	(ArticleSearchSyncState)(0),           // 2: blog.v1.ArticleSearchSyncState
+	(*Article)(nil),                       // 3: blog.v1.Article
+	(*CategoryBrief)(nil),                 // 4: blog.v1.CategoryBrief
+	(*ArticleSet)(nil),                    // 5: blog.v1.ArticleSet
+	(*CreateArticleRequest)(nil),          // 6: blog.v1.CreateArticleRequest
+	(*GetArticleRequest)(nil),             // 7: blog.v1.GetArticleRequest
+	(*ListArticlesRequest)(nil),           // 8: blog.v1.ListArticlesRequest
+	(*UpdateArticleRequest)(nil),          // 9: blog.v1.UpdateArticleRequest
+	(*DeleteArticleRequest)(nil),          // 10: blog.v1.DeleteArticleRequest
+	(*MarkArticleViewedRequest)(nil),      // 11: blog.v1.MarkArticleViewedRequest
+	(*MarkArticleLikedRequest)(nil),       // 12: blog.v1.MarkArticleLikedRequest
+	(*GetArticleSearchSyncRequest)(nil),   // 13: blog.v1.GetArticleSearchSyncRequest
+	(*ArticleSearchSyncStatus)(nil),       // 14: blog.v1.ArticleSearchSyncStatus
+	(*ListArticleRevisionsRequest)(nil),   // 15: blog.v1.ListArticleRevisionsRequest
+	(*GetArticleRevisionRequest)(nil),     // 16: blog.v1.GetArticleRevisionRequest
+	(*ArticleRevision)(nil),               // 17: blog.v1.ArticleRevision
+	(*ArticleRevisionSet)(nil),            // 18: blog.v1.ArticleRevisionSet
+	(*RestoreArticleRevisionRequest)(nil), // 19: blog.v1.RestoreArticleRevisionRequest
+	(*timestamppb.Timestamp)(nil),         // 20: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),         // 21: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),                 // 22: google.protobuf.Empty
 }
 var file_blog_v1_article_proto_depIdxs = []int32{
 	0,  // 0: blog.v1.Article.status:type_name -> blog.v1.ArticleStatus
-	12, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
-	12, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
-	12, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
-	3,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
-	2,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
+	20, // 1: blog.v1.Article.published_at:type_name -> google.protobuf.Timestamp
+	20, // 2: blog.v1.Article.created_at:type_name -> google.protobuf.Timestamp
+	20, // 3: blog.v1.Article.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 4: blog.v1.Article.category:type_name -> blog.v1.CategoryBrief
+	3,  // 5: blog.v1.ArticleSet.articles:type_name -> blog.v1.Article
 	1,  // 6: blog.v1.ArticleSet.search_outcome:type_name -> blog.v1.SearchOutcome
-	2,  // 7: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
-	2,  // 8: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
-	13, // 9: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
-	5,  // 10: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
-	7,  // 11: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
-	6,  // 12: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
-	8,  // 13: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
-	9,  // 14: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
-	10, // 15: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
-	11, // 16: blog.v1.ArticleService.MarkArticleLiked:input_type -> blog.v1.MarkArticleLikedRequest
-	2,  // 17: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
-	4,  // 18: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
-	2,  // 19: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
-	2,  // 20: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
-	14, // 21: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
-	14, // 22: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
-	14, // 23: blog.v1.ArticleService.MarkArticleLiked:output_type -> google.protobuf.Empty
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	3,  // 7: blog.v1.CreateArticleRequest.article:type_name -> blog.v1.Article
+	3,  // 8: blog.v1.UpdateArticleRequest.article:type_name -> blog.v1.Article
+	21, // 9: blog.v1.UpdateArticleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	2,  // 10: blog.v1.ArticleSearchSyncStatus.state:type_name -> blog.v1.ArticleSearchSyncState
+	20, // 11: blog.v1.ArticleSearchSyncStatus.checked_at:type_name -> google.protobuf.Timestamp
+	20, // 12: blog.v1.ArticleRevision.created_at:type_name -> google.protobuf.Timestamp
+	3,  // 13: blog.v1.ArticleRevision.snapshot:type_name -> blog.v1.Article
+	17, // 14: blog.v1.ArticleRevisionSet.revisions:type_name -> blog.v1.ArticleRevision
+	19, // 15: blog.v1.ArticleService.RestoreArticleRevision:input_type -> blog.v1.RestoreArticleRevisionRequest
+	15, // 16: blog.v1.ArticleService.ListArticleRevisions:input_type -> blog.v1.ListArticleRevisionsRequest
+	16, // 17: blog.v1.ArticleService.GetArticleRevision:input_type -> blog.v1.GetArticleRevisionRequest
+	13, // 18: blog.v1.ArticleService.GetArticleSearchSync:input_type -> blog.v1.GetArticleSearchSyncRequest
+	13, // 19: blog.v1.ArticleService.RetryArticleSearchSync:input_type -> blog.v1.GetArticleSearchSyncRequest
+	6,  // 20: blog.v1.ArticleService.CreateArticle:input_type -> blog.v1.CreateArticleRequest
+	8,  // 21: blog.v1.ArticleService.ListArticles:input_type -> blog.v1.ListArticlesRequest
+	7,  // 22: blog.v1.ArticleService.GetArticle:input_type -> blog.v1.GetArticleRequest
+	9,  // 23: blog.v1.ArticleService.UpdateArticle:input_type -> blog.v1.UpdateArticleRequest
+	10, // 24: blog.v1.ArticleService.DeleteArticle:input_type -> blog.v1.DeleteArticleRequest
+	11, // 25: blog.v1.ArticleService.MarkArticleViewed:input_type -> blog.v1.MarkArticleViewedRequest
+	12, // 26: blog.v1.ArticleService.MarkArticleLiked:input_type -> blog.v1.MarkArticleLikedRequest
+	3,  // 27: blog.v1.ArticleService.RestoreArticleRevision:output_type -> blog.v1.Article
+	18, // 28: blog.v1.ArticleService.ListArticleRevisions:output_type -> blog.v1.ArticleRevisionSet
+	17, // 29: blog.v1.ArticleService.GetArticleRevision:output_type -> blog.v1.ArticleRevision
+	14, // 30: blog.v1.ArticleService.GetArticleSearchSync:output_type -> blog.v1.ArticleSearchSyncStatus
+	14, // 31: blog.v1.ArticleService.RetryArticleSearchSync:output_type -> blog.v1.ArticleSearchSyncStatus
+	3,  // 32: blog.v1.ArticleService.CreateArticle:output_type -> blog.v1.Article
+	5,  // 33: blog.v1.ArticleService.ListArticles:output_type -> blog.v1.ArticleSet
+	3,  // 34: blog.v1.ArticleService.GetArticle:output_type -> blog.v1.Article
+	3,  // 35: blog.v1.ArticleService.UpdateArticle:output_type -> blog.v1.Article
+	22, // 36: blog.v1.ArticleService.DeleteArticle:output_type -> google.protobuf.Empty
+	22, // 37: blog.v1.ArticleService.MarkArticleViewed:output_type -> google.protobuf.Empty
+	22, // 38: blog.v1.ArticleService.MarkArticleLiked:output_type -> google.protobuf.Empty
+	27, // [27:39] is the sub-list for method output_type
+	15, // [15:27] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_article_proto_init() }
@@ -984,8 +1592,8 @@ func file_blog_v1_article_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_article_proto_rawDesc), len(file_blog_v1_article_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   10,
+			NumEnums:      3,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

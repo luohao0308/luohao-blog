@@ -51,7 +51,13 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	}
 	wechatSyncSettings := data.NewWechatSyncSettings(bootstrap)
 	wechatSyncUsecase := biz.NewWechatSyncUsecase(wechatSyncRepo, articleRepo, wechatPublisher, wechatSyncSettings)
-	articleUsecase := biz.NewArticleUsecaseWithWechat(articleRepo, articleSearchIndex, wechatSyncUsecase)
+	mediaStore, err := data.NewMediaStore(confData)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	mediaUsecase := biz.NewMediaUsecase(mediaStore)
+	articleUsecase := biz.NewArticleUsecaseWithWechat(articleRepo, articleSearchIndex, wechatSyncUsecase, mediaUsecase)
 	articleService := service.NewArticleService(articleUsecase)
 	categoryRepo := data.NewCategoryRepo(dataData)
 	categoryUsecase := biz.NewCategoryUsecase(categoryRepo)
@@ -89,12 +95,6 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	}
 	accountEmailUsecase := biz.NewAccountEmailUsecase(userUsecase, accountEmailTokenRepo, emailRateLimiter, accountMailSender, sessionRepo, accountEmailSettings)
 	authService := service.NewAuthServiceWithEmail(authUsecase, wechatUsecase, accountEmailUsecase, auth)
-	mediaStore, err := data.NewMediaStore(confData)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	mediaUsecase := biz.NewMediaUsecase(mediaStore)
 	mediaService := service.NewMediaService(mediaUsecase)
 	commentRepo := data.NewCommentRepo(dataData)
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)

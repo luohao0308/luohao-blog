@@ -6,10 +6,11 @@ const themeScript = `(function(){var p='light';try{var s=localStorage.getItem('t
 
 const route = useRoute()
 const config = useRuntimeConfig()
+const pageError = useError()
 const publicOrigin = siteOrigin(config.public.siteUrl)
 const isPrivatePage = computed(() =>
-  route.path.startsWith('/admin')
-  || ['/login', '/register', '/settings', '/collections', '/forgot-password', '/reset-password', '/verify-email'].some(path => route.path === path || route.path.startsWith(`${path}/`)),
+  !publicOrigin || !!pageError.value || route.path.startsWith('/admin')
+  || ['/preview', '/error', '/login', '/register', '/settings', '/collections', '/forgot-password', '/reset-password', '/verify-email'].some(path => route.path === path || route.path.startsWith(`${path}/`)),
 )
 const canonicalUrl = computed(() => siteURL(publicOrigin, route.path === '/' ? '/' : route.path))
 const defaultImage = siteURL(publicOrigin, DEFAULT_SEO_IMAGE)
@@ -34,11 +35,11 @@ useSeoMeta({
   ogDescription: DEFAULT_SEO_DESCRIPTION,
   ogType: 'website',
   ogUrl: () => isPrivatePage.value ? undefined : canonicalUrl.value,
-  ogImage: defaultImage,
+  ogImage: defaultImage || undefined,
   twitterCard: 'summary_large_image',
   twitterTitle: 'luohao-blog',
   twitterDescription: DEFAULT_SEO_DESCRIPTION,
-  twitterImage: defaultImage,
+  twitterImage: defaultImage || undefined,
 })
 </script>
 

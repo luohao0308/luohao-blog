@@ -34,7 +34,7 @@ async function main() {
     const seed = await seedResponse.json()
     if (!/^##\s/m.test(seed.content_md || '')) {
       const seededContent = `${String(seed.content_md || '').trimEnd()}\n\n## 集成目录\n\n真实 BFF 上传验证。`
-      const seedUpdate = await adminContext.request.put(`${base}/api/v1/articles/update?update_mask=content_md`, {
+      const seedUpdate = await adminContext.request.put(`${base}/api/v1/articles/update?update_mask=content_md&expected_version=${encodeURIComponent(seed.version)}`, {
         headers: authHeaders,
         data: {
           slug: seed.slug,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-interface CitedArticle { slug: string, title: string, summary?: string }
-interface Reply { answer?: string, citations?: CitedArticle[], outcome?: number | string }
+interface CitedArticle { slug: string, title: string, summary?: string, section_title?: string, anchor?: string, excerpt?: string }
+interface Reply { answer?: string, citations?: CitedArticle[], outcome?: number | string, article_slug?: string }
 interface Question {
   id: number
   query: string
@@ -9,6 +9,8 @@ interface Question {
   error?: string
   copyNotice?: string
 }
+const props = defineProps<{ articleSlug?: string }>()
+let generation = 0
 const questions = ref<Question[]>([])
 const input = ref('')
 const composer = ref<HTMLTextAreaElement | null>(null)
@@ -52,32 +54,41 @@ async function send(question: Question) {
   busy.value = true
   question.state = 'pending'
   question.error = ''
+  const version = generation
   controller = new AbortController()
   try {
     const reply = await $fetch<Reply>('/api/v1/chat', {
-      method: 'POST', body: { query: question.query }, signal: controller.signal,
+      method: 'POST', body: { query: question.query, ...(props.articleSlug ? { article_slug: props.articleSlug } : {}) }, signal: controller.signal,
       // A retry of a paid request is always an explicit reader action.
       retry: 0,
       timeout: 130_000,
     })
-    if (disposed) return
+    if (disposed || version !== generation) return
+    if (props.articleSlug && reply.article_slug !== props.articleSlug) {
+      question.error = '当前服务暂不支持问本文，请稍后重试。'
+      question.state = 'failed'
+      return
+    }
     if ((outcome(reply) === 1 && !reply.answer?.trim()) || (!reply.answer?.trim() && !reply.citations?.length && ![2, 3, 4].includes(outcome(reply))))
       throw new Error('Empty chat result')
     question.reply = reply
     question.state = 'returned'
   }
   catch (err: unknown) {
-    if (disposed) return
+    if (disposed || version !== generation) return
     const status = (err as { response?: { status?: number } })?.response?.status
     question.error = status === 429 ? '提问太频繁了，请稍后再试。'
       : status === 400 ? '问题不符合要求，请编辑后重试（最多 500 字）。'
+        : status === 404 ? '这篇文章已不可用，请刷新页面后重试。'
         : status === 503 ? '问答服务暂时不可用，请稍后重试。'
           : '回答请求失败，问题已保留，可以重试。'
     question.state = 'failed'
   }
   finally {
-    if (!disposed) busy.value = false
-    controller = undefined
+    if (!disposed && version === generation) {
+      busy.value = false
+      controller = undefined
+    }
   }
 }
 async function ask() {
@@ -87,6 +98,19 @@ async function ask() {
   input.value = ''
   await send(question)
 }
+function citationPath(citation: CitedArticle) {
+  const path = `/posts/${encodeURIComponent(citation.slug)}`
+  const found = citation.anchor && (!props.articleSlug || citation.slug !== props.articleSlug
+    || (import.meta.client && [...document.querySelectorAll('.markdown-body h2, .markdown-body h3')].some(h => h.id === citation.anchor)))
+  return found ? `${path}#${encodeURIComponent(citation.anchor!)}` : path
+}
+watch(() => props.articleSlug, () => {
+  generation++
+  controller?.abort()
+  busy.value = false
+  clear()
+  input.value = ''
+})
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing || composing.value || event.keyCode === 229) return
   if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -120,6 +144,7 @@ function clear() {
 }
 onBeforeUnmount(() => {
   disposed = true
+  generation++
   controller?.abort()
   for (const timer of copyTimers.values()) clearTimeout(timer)
 })
@@ -129,8 +154,8 @@ onBeforeUnmount(() => {
   <section class="space-y-5 border-t border-[var(--border-default)] py-6" aria-label="AI 问答">
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="text-lg font-medium">问一问</h2>
-        <p class="mt-1 text-sm leading-6 text-[var(--text-muted)]">基于博客已发布文章回答，每次问题独立处理。</p>
+        <h2 class="text-lg font-medium">{{ articleSlug ? '问本文' : '问一问' }}</h2>
+        <p class="mt-1 text-sm leading-6 text-[var(--text-muted)]">{{ articleSlug ? '仅基于当前文章回答，参考段落供你核对。每次问题独立处理。' : '基于博客已发布文章回答，每次问题独立处理。' }}</p>
       </div>
       <button v-if="questions.length" type="button" :disabled="busy" class="ui-link min-h-11 px-2 text-sm disabled:opacity-50" @click="clear">清空记录</button>
     </header>
@@ -142,11 +167,12 @@ onBeforeUnmount(() => {
           <p role="status" class="text-xs text-[var(--text-muted)]">{{ resultLabel(question.reply) }}</p>
           <p v-if="question.reply?.answer" data-testid="chat-answer" class="whitespace-pre-wrap break-words text-sm leading-7">{{ question.reply.answer }}</p>
           <div v-if="question.reply?.citations?.length" class="space-y-2">
-            <h3 class="text-xs font-medium text-[var(--text-muted)]">参考文章</h3>
+            <h3 class="text-xs font-medium text-[var(--text-muted)]">{{ articleSlug ? '参考段落' : '参考文章' }}</h3>
             <div class="grid min-w-0 gap-2 sm:grid-cols-2">
-              <NuxtLink v-for="citation in question.reply.citations" :key="citation.slug" :to="`/posts/${encodeURIComponent(citation.slug)}`" class="ui-panel min-w-0 space-y-1 p-3 hover:border-[var(--accent)]">
-                <span class="ui-link block break-words text-sm font-medium">{{ citation.title }}</span>
-                <span v-if="citation.summary" class="line-clamp-2 block text-xs leading-6 text-[var(--text-muted)]">{{ citation.summary }}</span>
+              <NuxtLink v-for="citation in question.reply.citations" :key="`${citation.slug}:${citation.anchor || citation.section_title || citation.title}`" :to="citationPath(citation)" class="ui-panel min-w-0 space-y-1 p-3 hover:border-[var(--accent)]">
+                <span class="ui-link block break-words text-sm font-medium">{{ citation.section_title || citation.title }}</span>
+                <span v-if="citation.excerpt" class="block whitespace-pre-wrap break-words text-xs leading-6 text-[var(--text-muted)]">{{ citation.excerpt }}</span>
+                <span v-else-if="citation.summary" class="line-clamp-2 block text-xs leading-6 text-[var(--text-muted)]">{{ citation.summary }}</span>
               </NuxtLink>
             </div>
           </div>
@@ -162,7 +188,7 @@ onBeforeUnmount(() => {
     </div>
     <form class="ui-panel space-y-2 p-3 focus-within:border-[var(--accent)]" @submit.prevent="ask">
       <label for="blog-question" class="sr-only">你的问题</label>
-      <textarea id="blog-question" ref="composer" v-model="input" aria-label="你的问题" aria-describedby="blog-question-help" rows="2" placeholder="比如：多对多关系怎么建模？" class="max-h-60 min-h-16 w-full resize-none rounded-lg border-0 bg-transparent p-2 text-base leading-7 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false" />
+      <textarea id="blog-question" ref="composer" v-model="input" aria-label="你的问题" aria-describedby="blog-question-help" rows="2" :placeholder="articleSlug ? '本文讲了什么？' : '比如：多对多关系怎么建模？'" class="max-h-60 min-h-16 w-full resize-none rounded-lg border-0 bg-transparent p-2 text-base leading-7 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false" />
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p id="blog-question-help" class="text-xs leading-6 text-[var(--text-muted)]">Enter 提问，Shift+Enter 换行 · <span class="tabular-nums" :class="inputSize > 500 ? 'text-[var(--status-error)]' : ''">{{ inputSize }}/500 字</span></p>
         <button type="submit" :disabled="!canAsk || composing" class="ui-button px-4 text-sm">提问</button>

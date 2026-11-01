@@ -24,6 +24,8 @@ type Article struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Version holds the value of the "version" field.
+	Version uint64 `json:"version,omitempty"`
 	// Slug holds the value of the "slug" field.
 	Slug string `json:"slug,omitempty"`
 	// Title holds the value of the "title" field.
@@ -102,7 +104,7 @@ func (*Article) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case article.FieldFeatured:
 			values[i] = new(sql.NullBool)
-		case article.FieldStatus, article.FieldViewCount, article.FieldLikeCount:
+		case article.FieldVersion, article.FieldStatus, article.FieldViewCount, article.FieldLikeCount:
 			values[i] = new(sql.NullInt64)
 		case article.FieldSlug, article.FieldTitle, article.FieldSummary, article.FieldContentMd, article.FieldContentHTML, article.FieldCoverURL:
 			values[i] = new(sql.NullString)
@@ -144,6 +146,12 @@ func (_m *Article) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
+			}
+		case article.FieldVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field version", values[i])
+			} else if value.Valid {
+				_m.Version = uint64(value.Int64)
 			}
 		case article.FieldSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -275,6 +283,9 @@ func (_m *Article) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
 	builder.WriteString("slug=")
 	builder.WriteString(_m.Slug)

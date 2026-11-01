@@ -47,17 +47,17 @@ func newTestArticleRepo(t *testing.T) (biz.ArticleRepo, *ent.Client) {
 func TestDeletedArticleRetainsSlug(t *testing.T) {
 	ctx := context.Background()
 	repo, db := newTestArticleRepo(t)
-	created, err := repo.CreateArticle(ctx, &biz.Article{Slug: "deleted-demo", Title: "original", ContentMD: "body"})
+	created, err := repo.CreateArticle(ctx, &biz.Article{Slug: "deleted-demo", Title: "original", ContentMD: "body", Version: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.DeleteArticle(ctx, created.Slug); err != nil {
+	if err := repo.DeleteArticle(ctx, created.Slug, 1); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repo.FindBySlug(ctx, created.Slug); !biz.ErrArticleNotFound.Is(err) {
 		t.Fatalf("read tombstone: %v", err)
 	}
-	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: created.Slug, Title: "replacement", ContentMD: "body"}); !biz.ErrArticleSlugConflict.Is(err) {
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: created.Slug, Title: "replacement", ContentMD: "body", Version: 1}); !biz.ErrArticleSlugConflict.Is(err) {
 		t.Fatalf("create occupied slug: %v", err)
 	}
 	row, err := db.Article.Query().Where(article.SlugEQ(created.Slug)).Only(ctx)
@@ -134,7 +134,7 @@ func TestArticleRepoListStatusFilter(t *testing.T) {
 	ctx := context.Background()
 	repo, _ := newTestArticleRepo(t)
 	for _, slug := range []string{"draft-a", "published-a", "published-b"} {
-		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"})
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c", Version: 1})
 		if err != nil {
 			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
 		}
@@ -201,7 +201,7 @@ func TestArticleRepoCRUD(t *testing.T) {
 		ContentMD: "# hi",
 		Tags:      []string{"go", "kratos"},
 		CoverURL:  "/v1/assets/media/0123456789abcdef0123456789abcdef.webp",
-		Featured:  true,
+		Featured:  true, Version: 1,
 	})
 	if err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
@@ -231,7 +231,7 @@ func TestArticleRepoCRUD(t *testing.T) {
 		Status:    biz.ArticleStatusPublished,
 		Tags:      []string{"kratos", "blog"},
 		CoverURL:  created.CoverURL,
-		Featured:  true,
+		Featured:  true, Version: 1,
 	})
 	if err != nil {
 		t.Fatalf("UpdateArticle() error = %v", err)
@@ -264,7 +264,7 @@ func TestArticleRepoFeaturedFilterOrderKeepsPublicBoundary(t *testing.T) {
 		{"regular-published", false, true, now},
 		{"featured-draft", true, false, time.Time{}},
 	} {
-		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: item.slug, Title: item.slug, ContentMD: "body", Featured: item.featured})
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: item.slug, Title: item.slug, ContentMD: "body", Featured: item.featured, Version: 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -309,10 +309,10 @@ func TestArticleRepoSlugConflict(t *testing.T) {
 	ctx := context.Background()
 	repo, _ := newTestArticleRepo(t)
 
-	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "dup", Title: "a", ContentMD: "a"}); err != nil {
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "dup", Title: "a", ContentMD: "a", Version: 1}); err != nil {
 		t.Fatalf("CreateArticle(first) error = %v", err)
 	}
-	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "dup", Title: "b", ContentMD: "b"}); !kratoserrors.IsConflict(err) {
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "dup", Title: "b", ContentMD: "b", Version: 1}); !kratoserrors.IsConflict(err) {
 		t.Fatalf("CreateArticle(duplicate) error = %v, want slug conflict", err)
 	}
 }
@@ -321,12 +321,12 @@ func TestArticleRepoDeleteIsSoft(t *testing.T) {
 	ctx := context.Background()
 	repo, client := newTestArticleRepo(t)
 
-	created, err := repo.CreateArticle(ctx, &biz.Article{Slug: "soft-delete-me", Title: "t", ContentMD: "c"})
+	created, err := repo.CreateArticle(ctx, &biz.Article{Slug: "soft-delete-me", Title: "t", ContentMD: "c", Version: 1})
 	if err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}
 
-	if err := repo.DeleteArticle(ctx, created.Slug); err != nil {
+	if err := repo.DeleteArticle(ctx, created.Slug, 1); err != nil {
 		t.Fatalf("DeleteArticle() error = %v", err)
 	}
 
@@ -350,10 +350,10 @@ func TestArticleRepoDeleteIsSoft(t *testing.T) {
 	if len(articles) != 0 {
 		t.Fatalf("ListArticles() len = %d, want 0", len(articles))
 	}
-	if _, err := repo.UpdateArticle(ctx, &biz.Article{Slug: created.Slug, Title: "revive", ContentMD: "c", Status: biz.ArticleStatusDraft}); !kratoserrors.IsNotFound(err) {
+	if _, err := repo.UpdateArticle(ctx, &biz.Article{Slug: created.Slug, Title: "revive", ContentMD: "c", Status: biz.ArticleStatusDraft, Version: 1}); !kratoserrors.IsNotFound(err) {
 		t.Fatalf("UpdateArticle() after delete error = %v, want not found", err)
 	}
-	if err := repo.DeleteArticle(ctx, created.Slug); !kratoserrors.IsNotFound(err) {
+	if err := repo.DeleteArticle(ctx, created.Slug, 1); !kratoserrors.IsNotFound(err) {
 		t.Fatalf("DeleteArticle() twice error = %v, want not found", err)
 	}
 }
@@ -363,7 +363,7 @@ func TestArticleRepoListPagination(t *testing.T) {
 	repo, _ := newTestArticleRepo(t)
 
 	for _, slug := range []string{"a-first", "b-second", "c-third"} {
-		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"}); err != nil {
+		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c", Version: 1}); err != nil {
 			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
 		}
 	}
@@ -399,7 +399,7 @@ func TestArticleRepoPublicListFiltersDrafts(t *testing.T) {
 	ctx := context.Background()
 	repo, _ := newTestArticleRepo(t)
 	for _, slug := range []string{"draft-post", "published-post"} {
-		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"})
+		created, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c", Version: 1})
 		if err != nil {
 			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
 		}
@@ -431,7 +431,7 @@ func TestArticleRepoListDefaultOrderIsStable(t *testing.T) {
 	slugs := make([]string, 0, total)
 	for i := range total {
 		slug := "post-" + string(rune('a'+i))
-		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"}); err != nil {
+		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c", Version: 1}); err != nil {
 			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
 		}
 		slugs = append(slugs, slug)
@@ -463,7 +463,7 @@ func TestArticleRepoListOrderByDesc(t *testing.T) {
 	repo, _ := newTestArticleRepo(t)
 
 	for _, slug := range []string{"alpha", "beta", "gamma"} {
-		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c"}); err != nil {
+		if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "c", Version: 1}); err != nil {
 			t.Fatalf("CreateArticle(%q) error = %v", slug, err)
 		}
 	}
@@ -488,10 +488,10 @@ func TestArticleRepoListOrderByDesc(t *testing.T) {
 func TestArticleRepoIncrementViewDedup(t *testing.T) {
 	ctx := context.Background()
 	repo, _ := newTestArticleRepo(t)
-	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c"}); err != nil {
+	if _, err := repo.CreateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c", Version: 1}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}
-	if _, err := repo.UpdateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c", Status: biz.ArticleStatusPublished}); err != nil {
+	if _, err := repo.UpdateArticle(ctx, &biz.Article{Slug: "viewed", Title: "t", ContentMD: "c", Status: biz.ArticleStatusPublished, Version: 1}); err != nil {
 		t.Fatalf("UpdateArticle(publish) error = %v", err)
 	}
 
@@ -531,7 +531,7 @@ func TestArticleRepoListTagFilter(t *testing.T) {
 		{"special-public", []string{special}, true, ""},
 		{"untagged-public", nil, true, ""},
 	} {
-		a, err := repo.CreateArticle(ctx, &biz.Article{Slug: fixture.slug, Title: fixture.slug, ContentMD: "body", Tags: fixture.tags, CategorySlug: fixture.category})
+		a, err := repo.CreateArticle(ctx, &biz.Article{Slug: fixture.slug, Title: fixture.slug, ContentMD: "body", Tags: fixture.tags, CategorySlug: fixture.category, Version: 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -542,7 +542,7 @@ func TestArticleRepoListTagFilter(t *testing.T) {
 			}
 		}
 	}
-	if err := repo.DeleteArticle(ctx, "go-deleted"); err != nil {
+	if err := repo.DeleteArticle(ctx, "go-deleted", 2); err != nil {
 		t.Fatal(err)
 	}
 	decls, err := filtering.NewDeclarations(filtering.DeclareStandardFunctions(), filtering.DeclareIdent("tag", filtering.TypeString), filtering.DeclareIdent("category", filtering.TypeString), filtering.DeclareIdent("status", filtering.TypeString))

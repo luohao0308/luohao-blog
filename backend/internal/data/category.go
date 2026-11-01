@@ -2,6 +2,8 @@ package data
 
 import (
 	"context"
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
@@ -126,13 +128,51 @@ func (r *categoryRepo) DeleteCategory(ctx context.Context, slug string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := tx.Article.Update().
-		Where(article.HasCategoryWith(category.SlugEQ(slug))).
-		ClearCategory().
-		Save(ctx); err != nil {
+	// This must be the first query: a locking current read does not establish
+	// a stale repeatable-read snapshot before pending FK attaches have committed.
+	_, err = tx.Category.Query().Where(category.SlugEQ(slug), func(selector *sql.Selector) {
+		if selector.Dialect() == dialect.MySQL {
+			selector.ForUpdate()
+		}
+	}).Only(ctx)
+	if ent.IsNotFound(err) {
+		_ = tx.Rollback()
+		return biz.ErrCategoryNotFound
+	}
+	if err != nil {
 		_ = tx.Rollback()
 		return err
 	}
+	rows, err := tx.Article.Query().Where(article.HasCategoryWith(category.SlugEQ(slug))).WithTags().WithCategory().Order(article.ByID()).All(ctx)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	for _, before := range rows {
+		n, e := tx.Article.Update().Where(article.IDEQ(before.ID), article.VersionEQ(before.Version)).AddVersion(1).Save(ctx)
+		if e != nil {
+			_ = tx.Rollback()
+			return e
+		}
+		if n != 1 {
+			_ = tx.Rollback()
+			return biz.ErrArticleVersionConflict
+		}
+		if _, e = tx.Article.UpdateOneID(before.ID).ClearCategory().Save(ctx); e != nil {
+			_ = tx.Rollback()
+			return e
+		}
+		after, e := loadRevisionArticle(ctx, tx.Client(), before.ID)
+		if e != nil {
+			_ = tx.Rollback()
+			return e
+		}
+		if e = preserveRevision(ctx, tx.Client(), before, after, "category_detach"); e != nil {
+			_ = tx.Rollback()
+			return e
+		}
+	}
+
 	affected, err := tx.Category.Delete().
 		Where(category.SlugEQ(slug)).
 		Exec(ctx)

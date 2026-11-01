@@ -20,13 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ArticleService_CreateArticle_FullMethodName     = "/blog.v1.ArticleService/CreateArticle"
-	ArticleService_ListArticles_FullMethodName      = "/blog.v1.ArticleService/ListArticles"
-	ArticleService_GetArticle_FullMethodName        = "/blog.v1.ArticleService/GetArticle"
-	ArticleService_UpdateArticle_FullMethodName     = "/blog.v1.ArticleService/UpdateArticle"
-	ArticleService_DeleteArticle_FullMethodName     = "/blog.v1.ArticleService/DeleteArticle"
-	ArticleService_MarkArticleViewed_FullMethodName = "/blog.v1.ArticleService/MarkArticleViewed"
-	ArticleService_MarkArticleLiked_FullMethodName  = "/blog.v1.ArticleService/MarkArticleLiked"
+	ArticleService_RestoreArticleRevision_FullMethodName = "/blog.v1.ArticleService/RestoreArticleRevision"
+	ArticleService_ListArticleRevisions_FullMethodName   = "/blog.v1.ArticleService/ListArticleRevisions"
+	ArticleService_GetArticleRevision_FullMethodName     = "/blog.v1.ArticleService/GetArticleRevision"
+	ArticleService_GetArticleSearchSync_FullMethodName   = "/blog.v1.ArticleService/GetArticleSearchSync"
+	ArticleService_RetryArticleSearchSync_FullMethodName = "/blog.v1.ArticleService/RetryArticleSearchSync"
+	ArticleService_CreateArticle_FullMethodName          = "/blog.v1.ArticleService/CreateArticle"
+	ArticleService_ListArticles_FullMethodName           = "/blog.v1.ArticleService/ListArticles"
+	ArticleService_GetArticle_FullMethodName             = "/blog.v1.ArticleService/GetArticle"
+	ArticleService_UpdateArticle_FullMethodName          = "/blog.v1.ArticleService/UpdateArticle"
+	ArticleService_DeleteArticle_FullMethodName          = "/blog.v1.ArticleService/DeleteArticle"
+	ArticleService_MarkArticleViewed_FullMethodName      = "/blog.v1.ArticleService/MarkArticleViewed"
+	ArticleService_MarkArticleLiked_FullMethodName       = "/blog.v1.ArticleService/MarkArticleLiked"
 )
 
 // ArticleServiceClient is the client API for ArticleService service.
@@ -36,6 +41,15 @@ const (
 // ArticleService manages blog articles. The public identifier of an article is
 // its slug: it is unique, URL-safe, and immutable after creation.
 type ArticleServiceClient interface {
+	// Administrator-only content restoration; current publication state is preserved.
+	RestoreArticleRevision(ctx context.Context, in *RestoreArticleRevisionRequest, opts ...grpc.CallOption) (*Article, error)
+	// Administrator-only immutable revision metadata; bodies are returned by Get.
+	ListArticleRevisions(ctx context.Context, in *ListArticleRevisionsRequest, opts ...grpc.CallOption) (*ArticleRevisionSet, error)
+	GetArticleRevision(ctx context.Context, in *GetArticleRevisionRequest, opts ...grpc.CallOption) (*ArticleRevision, error)
+	// Administrator-only live index inspection and single-article repair.
+	GetArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...grpc.CallOption) (*ArticleSearchSyncStatus, error)
+	// Administrator-only repair using the current database version.
+	RetryArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...grpc.CallOption) (*ArticleSearchSyncStatus, error)
 	// CreateArticle creates a new article and returns the persisted record with
 	// the server-assigned id, timestamps, rendered HTML, and DRAFT status.
 	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -90,6 +104,56 @@ type articleServiceClient struct {
 
 func NewArticleServiceClient(cc grpc.ClientConnInterface) ArticleServiceClient {
 	return &articleServiceClient{cc}
+}
+
+func (c *articleServiceClient) RestoreArticleRevision(ctx context.Context, in *RestoreArticleRevisionRequest, opts ...grpc.CallOption) (*Article, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Article)
+	err := c.cc.Invoke(ctx, ArticleService_RestoreArticleRevision_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articleServiceClient) ListArticleRevisions(ctx context.Context, in *ListArticleRevisionsRequest, opts ...grpc.CallOption) (*ArticleRevisionSet, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ArticleRevisionSet)
+	err := c.cc.Invoke(ctx, ArticleService_ListArticleRevisions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articleServiceClient) GetArticleRevision(ctx context.Context, in *GetArticleRevisionRequest, opts ...grpc.CallOption) (*ArticleRevision, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ArticleRevision)
+	err := c.cc.Invoke(ctx, ArticleService_GetArticleRevision_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articleServiceClient) GetArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...grpc.CallOption) (*ArticleSearchSyncStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ArticleSearchSyncStatus)
+	err := c.cc.Invoke(ctx, ArticleService_GetArticleSearchSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articleServiceClient) RetryArticleSearchSync(ctx context.Context, in *GetArticleSearchSyncRequest, opts ...grpc.CallOption) (*ArticleSearchSyncStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ArticleSearchSyncStatus)
+	err := c.cc.Invoke(ctx, ArticleService_RetryArticleSearchSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *articleServiceClient) CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*Article, error) {
@@ -169,6 +233,15 @@ func (c *articleServiceClient) MarkArticleLiked(ctx context.Context, in *MarkArt
 // ArticleService manages blog articles. The public identifier of an article is
 // its slug: it is unique, URL-safe, and immutable after creation.
 type ArticleServiceServer interface {
+	// Administrator-only content restoration; current publication state is preserved.
+	RestoreArticleRevision(context.Context, *RestoreArticleRevisionRequest) (*Article, error)
+	// Administrator-only immutable revision metadata; bodies are returned by Get.
+	ListArticleRevisions(context.Context, *ListArticleRevisionsRequest) (*ArticleRevisionSet, error)
+	GetArticleRevision(context.Context, *GetArticleRevisionRequest) (*ArticleRevision, error)
+	// Administrator-only live index inspection and single-article repair.
+	GetArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error)
+	// Administrator-only repair using the current database version.
+	RetryArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error)
 	// CreateArticle creates a new article and returns the persisted record with
 	// the server-assigned id, timestamps, rendered HTML, and DRAFT status.
 	// Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -225,6 +298,21 @@ type ArticleServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedArticleServiceServer struct{}
 
+func (UnimplementedArticleServiceServer) RestoreArticleRevision(context.Context, *RestoreArticleRevisionRequest) (*Article, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestoreArticleRevision not implemented")
+}
+func (UnimplementedArticleServiceServer) ListArticleRevisions(context.Context, *ListArticleRevisionsRequest) (*ArticleRevisionSet, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListArticleRevisions not implemented")
+}
+func (UnimplementedArticleServiceServer) GetArticleRevision(context.Context, *GetArticleRevisionRequest) (*ArticleRevision, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetArticleRevision not implemented")
+}
+func (UnimplementedArticleServiceServer) GetArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetArticleSearchSync not implemented")
+}
+func (UnimplementedArticleServiceServer) RetryArticleSearchSync(context.Context, *GetArticleSearchSyncRequest) (*ArticleSearchSyncStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method RetryArticleSearchSync not implemented")
+}
 func (UnimplementedArticleServiceServer) CreateArticle(context.Context, *CreateArticleRequest) (*Article, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateArticle not implemented")
 }
@@ -265,6 +353,96 @@ func RegisterArticleServiceServer(s grpc.ServiceRegistrar, srv ArticleServiceSer
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ArticleService_ServiceDesc, srv)
+}
+
+func _ArticleService_RestoreArticleRevision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreArticleRevisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).RestoreArticleRevision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_RestoreArticleRevision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).RestoreArticleRevision(ctx, req.(*RestoreArticleRevisionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArticleService_ListArticleRevisions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListArticleRevisionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).ListArticleRevisions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_ListArticleRevisions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).ListArticleRevisions(ctx, req.(*ListArticleRevisionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArticleService_GetArticleRevision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArticleRevisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).GetArticleRevision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_GetArticleRevision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).GetArticleRevision(ctx, req.(*GetArticleRevisionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArticleService_GetArticleSearchSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArticleSearchSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).GetArticleSearchSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_GetArticleSearchSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).GetArticleSearchSync(ctx, req.(*GetArticleSearchSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArticleService_RetryArticleSearchSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArticleSearchSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).RetryArticleSearchSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_RetryArticleSearchSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).RetryArticleSearchSync(ctx, req.(*GetArticleSearchSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ArticleService_CreateArticle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -400,6 +578,26 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "blog.v1.ArticleService",
 	HandlerType: (*ArticleServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RestoreArticleRevision",
+			Handler:    _ArticleService_RestoreArticleRevision_Handler,
+		},
+		{
+			MethodName: "ListArticleRevisions",
+			Handler:    _ArticleService_ListArticleRevisions_Handler,
+		},
+		{
+			MethodName: "GetArticleRevision",
+			Handler:    _ArticleService_GetArticleRevision_Handler,
+		},
+		{
+			MethodName: "GetArticleSearchSync",
+			Handler:    _ArticleService_GetArticleSearchSync_Handler,
+		},
+		{
+			MethodName: "RetryArticleSearchSync",
+			Handler:    _ArticleService_RetryArticleSearchSync_Handler,
+		},
 		{
 			MethodName: "CreateArticle",
 			Handler:    _ArticleService_CreateArticle_Handler,

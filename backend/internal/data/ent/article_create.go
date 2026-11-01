@@ -53,6 +53,20 @@ func (_c *ArticleCreate) SetNillableUpdatedAt(v *time.Time) *ArticleCreate {
 	return _c
 }
 
+// SetVersion sets the "version" field.
+func (_c *ArticleCreate) SetVersion(v uint64) *ArticleCreate {
+	_c.mutation.SetVersion(v)
+	return _c
+}
+
+// SetNillableVersion sets the "version" field if the given value is not nil.
+func (_c *ArticleCreate) SetNillableVersion(v *uint64) *ArticleCreate {
+	if v != nil {
+		_c.SetVersion(*v)
+	}
+	return _c
+}
+
 // SetSlug sets the "slug" field.
 func (_c *ArticleCreate) SetSlug(v string) *ArticleCreate {
 	_c.mutation.SetSlug(v)
@@ -305,6 +319,10 @@ func (_c *ArticleCreate) defaults() {
 		v := article.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Version(); !ok {
+		v := article.DefaultVersion
+		_c.mutation.SetVersion(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := article.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -338,6 +356,9 @@ func (_c *ArticleCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Article.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Version(); !ok {
+		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "Article.version"`)}
 	}
 	if _, ok := _c.mutation.Slug(); !ok {
 		return &ValidationError{Name: "slug", err: errors.New(`ent: missing required field "Article.slug"`)}
@@ -409,6 +430,10 @@ func (_c *ArticleCreate) createSpec() (*Article, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(article.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.Version(); ok {
+		_spec.SetField(article.FieldVersion, field.TypeUint64, value)
+		_node.Version = value
 	}
 	if value, ok := _c.mutation.Slug(); ok {
 		_spec.SetField(article.FieldSlug, field.TypeString, value)

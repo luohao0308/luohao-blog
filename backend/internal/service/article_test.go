@@ -25,7 +25,7 @@ func TestConvertArticleCarriesStatus(t *testing.T) {
 		{"unspecified stays zero", v1.ArticleStatus_ARTICLE_STATUS_UNSPECIFIED, biz.ArticleStatusUnspecified},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := convertArticle(&v1.Article{Slug: "s", Title: "t", ContentMd: "md", Status: tc.status})
+			got := convertArticle(&v1.Article{Slug: "s", Title: "t", ContentMd: "md", Status: tc.status, Version: 1})
 			if got.Status != tc.want {
 				t.Fatalf("status = %d, want %d", got.Status, tc.want)
 			}
@@ -62,7 +62,7 @@ func (s *stubArticleRepo) UpdateArticle(_ context.Context, article *biz.Article)
 	s.updated = article
 	return article, nil
 }
-func (s *stubArticleRepo) DeleteArticle(context.Context, string) error {
+func (s *stubArticleRepo) DeleteArticle(context.Context, string, uint64) error {
 	return biz.ErrArticleInvalidArgument
 }
 func (s *stubArticleRepo) IncrementView(context.Context, string, string) (uint64, bool, error) {
@@ -117,10 +117,10 @@ func TestListArticlesFilterHandling(t *testing.T) {
 func TestUpdateArticleRejectsUnknownUpdateMaskPath(t *testing.T) {
 	svc := NewArticleService(biz.NewArticleUsecase(&stubArticleRepo{}, nil))
 	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
-		Article: &v1.Article{Slug: "demo"},
+		Article: &v1.Article{Slug: "demo", Version: 1},
 		UpdateMask: &fieldmaskpb.FieldMask{
 			Paths: []string{"unknown_field"},
-		},
+		}, ExpectedVersion: 1,
 	})
 	if !kratoserrors.IsBadRequest(err) {
 		t.Fatalf("error = %v, want bad request", err)
@@ -134,12 +134,12 @@ func TestConvertArticleCarriesCategorySlug(t *testing.T) {
 		Slug:      "s",
 		Title:     "t",
 		ContentMd: "md",
-		Category:  &v1.CategoryBrief{Slug: "engineering", Name: "工程实践"},
+		Category:  &v1.CategoryBrief{Slug: "engineering", Name: "工程实践"}, Version: 1,
 	})
 	if got.CategorySlug != "engineering" {
 		t.Fatalf("category slug = %q, want engineering", got.CategorySlug)
 	}
-	if convertArticle(&v1.Article{Slug: "s"}).CategorySlug != "" {
+	if convertArticle(&v1.Article{Slug: "s", Version: 1}).CategorySlug != "" {
 		t.Fatal("uncategorized article must convert to an empty category slug")
 	}
 }
@@ -149,7 +149,7 @@ func TestArticleMetadataConversionAndLegacyMaskPreservation(t *testing.T) {
 	featured := true
 	domain := convertArticle(&v1.Article{
 		Slug: "metadata", Title: "title", ContentMd: "body",
-		CoverUrl: &cover, Featured: &featured,
+		CoverUrl: &cover, Featured: &featured, Version: 1,
 	})
 	if domain.CoverURL != cover || !domain.Featured {
 		t.Fatalf("convertArticle metadata = (%q, %v)", domain.CoverURL, domain.Featured)
@@ -164,12 +164,12 @@ func TestArticleMetadataConversionAndLegacyMaskPreservation(t *testing.T) {
 	// update_mask.
 	repo := &stubArticleRepo{current: &biz.Article{
 		Slug: "metadata", Title: "old", ContentMD: "body",
-		Status: biz.ArticleStatusPublished, CoverURL: cover, Featured: true,
+		Status: biz.ArticleStatusPublished, CoverURL: cover, Featured: true, Version: 1,
 	}}
 	svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
 	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
-		Article:    &v1.Article{Slug: "metadata", Title: "new"},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}},
+		Article:    &v1.Article{Slug: "metadata", Title: "new", Version: 1},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}}, ExpectedVersion: 1,
 	})
 	if err != nil {
 		t.Fatalf("legacy UpdateArticle() error = %v", err)
@@ -185,9 +185,9 @@ func TestArticleMetadataConversionAndLegacyMaskPreservation(t *testing.T) {
 	repo.updated = nil
 	_, err = svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{
 		Article: &v1.Article{
-			Slug: "metadata", CoverUrl: &emptyCover, Featured: &notFeatured,
+			Slug: "metadata", CoverUrl: &emptyCover, Featured: &notFeatured, Version: 1,
 		},
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"cover_url", "featured"}},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"cover_url", "featured"}}, ExpectedVersion: 1,
 	})
 	if err != nil {
 		t.Fatalf("clear metadata UpdateArticle() error = %v", err)
@@ -231,5 +231,25 @@ func TestListArticlesAcceptsTagFilter(t *testing.T) {
 				t.Fatal("parsed tag filter and public boundary must reach repository")
 			}
 		})
+	}
+}
+
+func TestArticleVersionRequired(t *testing.T) {
+	svc := NewArticleService(biz.NewArticleUsecase(&stubArticleRepo{}, nil))
+	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{Article: &v1.Article{Slug: "test"}, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}}})
+	if !biz.ErrArticleVersionRequired.Is(err) {
+		t.Fatal(err)
+	}
+	_, err = svc.DeleteArticle(context.Background(), &v1.DeleteArticleRequest{Slug: "test"})
+	if !biz.ErrArticleVersionRequired.Is(err) {
+		t.Fatal(err)
+	}
+}
+func TestUpdateUsesSubmittedVersion(t *testing.T) {
+	repo := &stubArticleRepo{current: &biz.Article{Slug: "test", Title: "title", ContentMD: "body", Status: biz.ArticleStatusPublished, Version: 7}}
+	svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
+	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{Article: &v1.Article{Slug: "test", Title: "edited"}, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}}, ExpectedVersion: 3})
+	if err != nil || repo.updated.Version != 3 {
+		t.Fatalf("submitted version replaced: %+v %v", repo.updated, err)
 	}
 }

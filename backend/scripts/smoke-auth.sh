@@ -134,7 +134,8 @@ jq -r '.reason // empty' /tmp/s2_r.json | grep -q AUTH_FORBIDDEN && ok "reason A
 CODE=$(curl -s -o /tmp/s2_r.json -w '%{http_code}' -X POST "$BASE/v1/articles/create" -H "Authorization: Bearer $ACCESS" -H 'Content-Type: application/json' -d '{"slug":"smoke-rbac-admin","title":"RBAC smoke","content_md":"# smoke"}')
 expect_code "article create as admin" 200 "$CODE"
 jq -e '.slug == "smoke-rbac-admin"' /tmp/s2_r.json >/dev/null && ok "admin write persisted" || bad "admin write body: $(cat /tmp/s2_r.json)"
-CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE/v1/articles/smoke-rbac-admin" -H "Authorization: Bearer $ACCESS")
+ARTICLE_VERSION=$(jq -r ' .version // empty' /tmp/s2_r.json)
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BASE/v1/articles/smoke-rbac-admin?expected_version=$ARTICLE_VERSION" -H "Authorization: Bearer $ACCESS")
 expect_code "admin cleanup" 200 "$CODE"
 
 say "12. login rate limit -> 429 after window exhausted"

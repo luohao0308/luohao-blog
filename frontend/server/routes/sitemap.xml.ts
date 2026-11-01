@@ -41,6 +41,7 @@ async function collectPages<T>(
     if (!Array.isArray(pageItems)) throw new Error(`invalid ${itemKey} response`)
     items.push(...pageItems as T[])
     if (items.length > MAX_URLS) throw new Error(`${itemKey} record limit exceeded`)
+    if (page.next_page_token != null && typeof page.next_page_token !== 'string') throw new Error('invalid continuation token')
     const next = typeof page.next_page_token === 'string' ? page.next_page_token : ''
     if (next && pageItems.length === 0) throw new Error(`empty ${itemKey} page returned a continuation token`)
     if (next && seenTokens.has(next)) throw new Error(`repeated ${itemKey} page token`)
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
   const origin = siteOrigin(config.public.siteUrl)
   try {
+    if (!origin) throw new Error('Public site origin is not configured')
     const [rawArticles, rawProjects] = await Promise.all([
       collectPages<SitemapArticle>(`${config.backendBase}/v1/articles/list`, 'articles', {
         page_size: 100,

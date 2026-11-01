@@ -55,3 +55,5 @@ _状态：M1/S1 起维护 | 权威范围：对外可观察的 API、事件、Sch
 ## 搜索与问答
 
 [结果状态与兼容策略](SEARCH-CHAT-OUTCOMES.md)：增量outcome、降级语义与消费者回归入口。
+
+- [文章版本与修订历史](ARTICLE-REVISIONS.md)：CAS前置条件、管理员历史/恢复、迁移17–18和回退边界。

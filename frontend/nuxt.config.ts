@@ -16,7 +16,7 @@ export default defineNuxtConfig({
       // Public origin and ICP registration are supplied by the deployment as
       // NUXT_PUBLIC_SITE_URL / NUXT_PUBLIC_ICP_NUMBER. Development keeps a
       // local origin and hides the ICP link when no registration is set.
-      siteUrl: 'http://localhost:3000',
+      siteUrl: '',
       icpNumber: '',
     },
   },

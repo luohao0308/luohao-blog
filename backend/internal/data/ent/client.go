@@ -19,6 +19,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/articlerevision"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -41,6 +42,8 @@ type Client struct {
 	AccountEmailToken *AccountEmailTokenClient
 	// Article is the client for interacting with the Article builders.
 	Article *ArticleClient
+	// ArticleRevision is the client for interacting with the ArticleRevision builders.
+	ArticleRevision *ArticleRevisionClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
 	// Collection is the client for interacting with the Collection builders.
@@ -73,6 +76,7 @@ func (c *Client) init() {
 	c.About = NewAboutClient(c.config)
 	c.AccountEmailToken = NewAccountEmailTokenClient(c.config)
 	c.Article = NewArticleClient(c.config)
+	c.ArticleRevision = NewArticleRevisionClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Collection = NewCollectionClient(c.config)
 	c.Comment = NewCommentClient(c.config)
@@ -177,6 +181,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		About:             NewAboutClient(cfg),
 		AccountEmailToken: NewAccountEmailTokenClient(cfg),
 		Article:           NewArticleClient(cfg),
+		ArticleRevision:   NewArticleRevisionClient(cfg),
 		Category:          NewCategoryClient(cfg),
 		Collection:        NewCollectionClient(cfg),
 		Comment:           NewCommentClient(cfg),
@@ -208,6 +213,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		About:             NewAboutClient(cfg),
 		AccountEmailToken: NewAccountEmailTokenClient(cfg),
 		Article:           NewArticleClient(cfg),
+		ArticleRevision:   NewArticleRevisionClient(cfg),
 		Category:          NewCategoryClient(cfg),
 		Collection:        NewCollectionClient(cfg),
 		Comment:           NewCommentClient(cfg),
@@ -246,8 +252,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
-		c.Project, c.Subscriber, c.Tag, c.User, c.WechatIdentity, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.ArticleRevision, c.Category,
+		c.Collection, c.Comment, c.Project, c.Subscriber, c.Tag, c.User,
+		c.WechatIdentity, c.WechatSyncTask,
 	} {
 		n.Use(hooks...)
 	}
@@ -257,8 +264,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.About, c.AccountEmailToken, c.Article, c.Category, c.Collection, c.Comment,
-		c.Project, c.Subscriber, c.Tag, c.User, c.WechatIdentity, c.WechatSyncTask,
+		c.About, c.AccountEmailToken, c.Article, c.ArticleRevision, c.Category,
+		c.Collection, c.Comment, c.Project, c.Subscriber, c.Tag, c.User,
+		c.WechatIdentity, c.WechatSyncTask,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -273,6 +281,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AccountEmailToken.mutate(ctx, m)
 	case *ArticleMutation:
 		return c.Article.mutate(ctx, m)
+	case *ArticleRevisionMutation:
+		return c.ArticleRevision.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
 	case *CollectionMutation:
@@ -740,6 +750,139 @@ func (c *ArticleClient) mutate(ctx context.Context, m *ArticleMutation) (Value, 
 		return (&ArticleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Article mutation op: %q", m.Op())
+	}
+}
+
+// ArticleRevisionClient is a client for the ArticleRevision schema.
+type ArticleRevisionClient struct {
+	config
+}
+
+// NewArticleRevisionClient returns a client for the ArticleRevision from the given config.
+func NewArticleRevisionClient(c config) *ArticleRevisionClient {
+	return &ArticleRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `articlerevision.Hooks(f(g(h())))`.
+func (c *ArticleRevisionClient) Use(hooks ...Hook) {
+	c.hooks.ArticleRevision = append(c.hooks.ArticleRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `articlerevision.Intercept(f(g(h())))`.
+func (c *ArticleRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ArticleRevision = append(c.inters.ArticleRevision, interceptors...)
+}
+
+// Create returns a builder for creating a ArticleRevision entity.
+func (c *ArticleRevisionClient) Create() *ArticleRevisionCreate {
+	mutation := newArticleRevisionMutation(c.config, OpCreate)
+	return &ArticleRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ArticleRevision entities.
+func (c *ArticleRevisionClient) CreateBulk(builders ...*ArticleRevisionCreate) *ArticleRevisionCreateBulk {
+	return &ArticleRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ArticleRevisionClient) MapCreateBulk(slice any, setFunc func(*ArticleRevisionCreate, int)) *ArticleRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ArticleRevisionCreateBulk{err: fmt.Errorf("calling to ArticleRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ArticleRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ArticleRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ArticleRevision.
+func (c *ArticleRevisionClient) Update() *ArticleRevisionUpdate {
+	mutation := newArticleRevisionMutation(c.config, OpUpdate)
+	return &ArticleRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ArticleRevisionClient) UpdateOne(_m *ArticleRevision) *ArticleRevisionUpdateOne {
+	mutation := newArticleRevisionMutation(c.config, OpUpdateOne, withArticleRevision(_m))
+	return &ArticleRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ArticleRevisionClient) UpdateOneID(id uuid.UUID) *ArticleRevisionUpdateOne {
+	mutation := newArticleRevisionMutation(c.config, OpUpdateOne, withArticleRevisionID(id))
+	return &ArticleRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ArticleRevision.
+func (c *ArticleRevisionClient) Delete() *ArticleRevisionDelete {
+	mutation := newArticleRevisionMutation(c.config, OpDelete)
+	return &ArticleRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ArticleRevisionClient) DeleteOne(_m *ArticleRevision) *ArticleRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ArticleRevisionClient) DeleteOneID(id uuid.UUID) *ArticleRevisionDeleteOne {
+	builder := c.Delete().Where(articlerevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ArticleRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for ArticleRevision.
+func (c *ArticleRevisionClient) Query() *ArticleRevisionQuery {
+	return &ArticleRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeArticleRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ArticleRevision entity by its id.
+func (c *ArticleRevisionClient) Get(ctx context.Context, id uuid.UUID) (*ArticleRevision, error) {
+	return c.Query().Where(articlerevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ArticleRevisionClient) GetX(ctx context.Context, id uuid.UUID) *ArticleRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ArticleRevisionClient) Hooks() []Hook {
+	return c.hooks.ArticleRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *ArticleRevisionClient) Interceptors() []Interceptor {
+	return c.inters.ArticleRevision
+}
+
+func (c *ArticleRevisionClient) mutate(ctx context.Context, m *ArticleRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ArticleRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ArticleRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ArticleRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ArticleRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ArticleRevision mutation op: %q", m.Op())
 	}
 }
 
@@ -2055,11 +2198,13 @@ func (c *WechatSyncTaskClient) mutate(ctx context.Context, m *WechatSyncTaskMuta
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
-		Subscriber, Tag, User, WechatIdentity, WechatSyncTask []ent.Hook
+		About, AccountEmailToken, Article, ArticleRevision, Category, Collection,
+		Comment, Project, Subscriber, Tag, User, WechatIdentity,
+		WechatSyncTask []ent.Hook
 	}
 	inters struct {
-		About, AccountEmailToken, Article, Category, Collection, Comment, Project,
-		Subscriber, Tag, User, WechatIdentity, WechatSyncTask []ent.Interceptor
+		About, AccountEmailToken, Article, ArticleRevision, Category, Collection,
+		Comment, Project, Subscriber, Tag, User, WechatIdentity,
+		WechatSyncTask []ent.Interceptor
 	}
 )

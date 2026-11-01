@@ -35,10 +35,10 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	articles := biz.NewArticleUsecase(NewArticleRepo(d, rdb), nil)
-	if _, err = articles.CreateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章"}); err != nil {
+	if _, err = articles.CreateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章", Version: 1}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章", Status: biz.ArticleStatusPublished}); err != nil {
+	if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章", Status: biz.ArticleStatusPublished, Version: 1}); err != nil {
 		t.Fatal(err)
 	}
 	authConfig := jwtTestConfig("comment-fixture-only-signing-key", time.Hour)
@@ -126,7 +126,7 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 	if first["comments"].([]any)[0].(map[string]any)["id"] == second["comments"].([]any)[0].(map[string]any)["id"] {
 		t.Fatal("pagination repeated a row")
 	}
-	if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "content", Status: biz.ArticleStatusDraft}); err != nil {
+	if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "content", Status: biz.ArticleStatusDraft, Version: 2}); err != nil {
 		t.Fatal(err)
 	}
 	public = request("GET", "/v1/articles/ai-delivery-guard/comments", "", nil, http.StatusOK)
@@ -137,7 +137,7 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 	// Opt-in local browser fixture, shares the same tested HTTP stack. The URL
 	// file contains no credentials; all accounts above are disposable examples.
 	if output := os.Getenv("BLOG_COMMENT_BROWSER_FIXTURE"); output != "" {
-		if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章", Status: biz.ArticleStatusPublished}); err != nil {
+		if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "# 评论验证\n本地测试文章", Status: biz.ArticleStatusPublished, Version: 3}); err != nil {
 			t.Fatal(err)
 		}
 		for i := 0; i < 76; i++ {

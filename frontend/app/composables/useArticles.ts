@@ -22,6 +22,7 @@ export type ArticleTimestamp = string | { seconds?: string | number, nanos?: num
 
 export interface Article {
   id: string
+  version?: string
   slug: string
   title: string
   summary: string
