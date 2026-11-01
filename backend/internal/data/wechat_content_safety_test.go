@@ -1,8 +1,10 @@
 package data
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -96,6 +98,44 @@ func TestWechatContentSafetyKnownRiskIsNotRetryableOutage(t *testing.T) {
 	result, err := c.CheckText(context.Background(), biz.ContentSafetyInput{OpenID: "openid-fixture", Content: "fixture", Scene: biz.ContentSafetyComment})
 	if err != nil || result.Decision != biz.ContentSafetyRisky {
 		t.Fatalf("known rejection misclassified as retryable service outage: %v / %v", result.Decision, err)
+	}
+}
+
+func TestWechatContentSafetyDiagnosticsDoNotExposePrivateFields(t *testing.T) {
+	for _, stage := range []string{"stable_token", "msg_sec_check"} {
+		t.Run(stage, func(t *testing.T) {
+			var output bytes.Buffer
+			previous := slog.Default()
+			slog.SetDefault(slog.New(slog.NewTextHandler(&output, nil)))
+			defer slog.SetDefault(previous)
+			c, _ := safetyFixture(t, func(w http.ResponseWriter, r *http.Request) {
+				if stage == "msg_sec_check" && r.URL.Path == "/cgi-bin/stable_token" {
+					_, _ = w.Write([]byte(`{"access_token":"fixture-token","expires_in":7200}`))
+					return
+				}
+				code := 40125
+				if stage == "msg_sec_check" {
+					code = 61010
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"errcode": code, "errmsg": "secret-fixture openid-fixture content-fixture private-response-marker fixture-token"})
+			})
+			if _, err := c.CheckText(context.Background(), biz.ContentSafetyInput{OpenID: "openid-fixture", Content: "content-fixture", Scene: biz.ContentSafetyComment}); err == nil {
+				t.Fatal("upstream failure accepted")
+			}
+			log := output.String()
+			code := "40125"
+			if stage == "msg_sec_check" {
+				code = "61010"
+			}
+			if !strings.Contains(log, code) || !strings.Contains(log, stage) {
+				t.Fatal("safe upstream code is not diagnosable")
+			}
+			for _, private := range []string{"secret-fixture", "openid-fixture", "content-fixture", "private-response-marker", "fixture-token", c.baseURL} {
+				if strings.Contains(log, private) {
+					t.Fatal("diagnostic exposed a private field")
+				}
+			}
+		})
 	}
 }
 

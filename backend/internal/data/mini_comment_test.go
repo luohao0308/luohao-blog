@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,18 +14,56 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
+	entcomment "github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	entuser "github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
-	"sync/atomic"
 )
 
 func miniFixture(t *testing.T) (biz.MiniCommentRepo, *ent.Client, biz.MiniCommentActor) {
 	t.Helper()
-	_, db := newTestCommentRepo(t)
+	var db *ent.Client
+	if os.Getenv("BLOG_MINI_CONTENT_MYSQL_DSN") != "" {
+		db, _ = miniMySQL(t)
+	} else {
+		_, db = newTestCommentRepo(t)
+	}
 	ctx := context.Background()
 	author, e := db.User.Create().SetEmail(t.Name() + "@example.invalid").SetPasswordHash("synthetic-only").SetDisplayName("原始昵称").SetRole(biz.UserRoleReader).Save(ctx)
 	if e != nil {
 		t.Fatal(e)
 	}
+	// Track created comment IDs even if a test deletes its author (SET NULL).
+	var createdIDs []uuid.UUID
+	var createdMu sync.Mutex
+	db.Comment.Use(func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			value, err := next.Mutate(ctx, m)
+			if err == nil && m.Op().Is(ent.OpCreate) {
+				if row, ok := value.(*ent.Comment); ok {
+					createdMu.Lock()
+					createdIDs = append(createdIDs, row.ID)
+					createdMu.Unlock()
+				}
+			}
+			return value, err
+		})
+	})
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := db.WechatCommentCheck.Delete().Where(wechatcommentcheck.AuthorIDEQ(author.ID)).Exec(cleanupCtx); err != nil {
+			t.Error("fixture checks cleanup failed")
+		}
+		createdMu.Lock()
+		ids := append([]uuid.UUID(nil), createdIDs...)
+		createdMu.Unlock()
+		if _, err := db.Comment.Delete().Where(entcomment.Or(entcomment.IDIn(ids...), entcomment.UserIDEQ(author.ID))).Exec(cleanupCtx); err != nil {
+			t.Error("fixture comments cleanup failed")
+		}
+		if _, err := db.User.Delete().Where(entuser.IDEQ(author.ID)).Exec(cleanupCtx); err != nil {
+			t.Error("fixture author cleanup failed")
+		}
+	})
 	identity, e := db.WechatIdentity.Create().SetUserID(author.ID).SetAppID("wx-mini-fixture").SetOpenid("openid-fixture").Save(ctx)
 	if e != nil {
 		t.Fatal(e)

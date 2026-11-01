@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -102,6 +103,9 @@ func (c *wechatContentSafetyClient) token(ctx context.Context) (string, error) {
 		ErrCode     int    `json:"errcode"`
 	}
 	e = c.post(ctx, "/cgi-bin/stable_token", map[string]any{"grant_type": "client_credential", "appid": c.appID, "secret": c.secret, "force_refresh": false}, &response)
+	if e == nil && response.ErrCode != 0 {
+		slog.Warn("wechat content safety rejected", "stage", "stable_token", "errcode", response.ErrCode)
+	}
 	if e != nil || response.ErrCode != 0 || !validSafetyToken(response.AccessToken) || response.ExpiresIn <= 0 || response.ExpiresIn > 7200 {
 		return "", biz.ErrContentSafetyUnavailable
 	}
@@ -144,6 +148,11 @@ func (c *wechatContentSafetyClient) CheckText(ctx context.Context, input biz.Con
 	}
 	if response.ErrCode == nil {
 		return zero, biz.ErrContentSafetyUnavailable
+	}
+	if *response.ErrCode != 0 && *response.ErrCode != 87014 {
+		// Numeric upstream codes allow live setup diagnostics without reading
+		// private response text or logging credential-bearing request URLs.
+		slog.Warn("wechat content safety rejected", "stage", "msg_sec_check", "errcode", *response.ErrCode)
 	}
 	switch *response.ErrCode {
 	case 87014:

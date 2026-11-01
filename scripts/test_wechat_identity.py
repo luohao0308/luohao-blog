@@ -23,10 +23,26 @@ ROOT = Path(__file__).resolve().parents[1]
 LABEL = "formal-miniprogram"
 
 
-def run(args, *, data=None, env=None, cwd=None):
+def run(args, *, data=None, env=None, cwd=None, diagnostic=True):
     result = subprocess.run(args, input=data, capture_output=True, env=env, cwd=cwd)
     if result.returncode:
         # Captured output/arguments may include DSNs. Never echo them.
+        if not diagnostic:
+            raise RuntimeError("fixture command failed: " + Path(args[0]).name)
+        setup_log = ROOT / "output/task-board-audit/fixture-command-failure.private.log"
+        setup_log.parent.mkdir(parents=True, exist_ok=True)
+        setup_log.write_bytes(result.stdout + result.stderr)
+        setup_log.chmod(0o600)
+        mysql_codes = re.findall(rb"ERROR ([0-9]{3,5})", result.stderr)
+        print("Fixture command failed: " + Path(args[0]).name +
+              "; mysql error codes: " + ",".join(code.decode() for code in mysql_codes))
+        if list(args[:2]) == ["go", "test"]:
+            private = ROOT / "output/task-board-audit/real-driver-failure.private.log"
+            private.parent.mkdir(parents=True, exist_ok=True)
+            private.write_bytes(result.stdout + result.stderr)
+            private.chmod(0o600)
+            failures = re.findall(rb"^--- FAIL: ([A-Za-z0-9_/]+)", result.stdout, re.MULTILINE)
+            print("Real-driver failed tests: " + ", ".join(name.decode() for name in failures))
         raise RuntimeError("fixture command failed: " + Path(args[0]).name)
     return result.stdout
 
@@ -39,7 +55,9 @@ def fixture_environment():
     # The backfill CLI supports KRATOS overrides for operator use. A rehearsal
     # must never inherit those overrides over its generated fixture config.
     return {key: value for key, value in os.environ.items()
-            if key != "GOROOT" and not key.startswith("KRATOS")}
+            if key not in {"GOROOT", "BLOG_MINI_CONTENT_MYSQL_DSN",
+                           "BLOG_WECHAT_IDENTITY_MYSQL_DSN", "MYSQL_MIGRATION_DSN"}
+            and not key.startswith("KRATOS")}
 
 
 def latest_schema_version(migrations):
@@ -87,17 +105,17 @@ def main():
             assert info["NetworkSettings"]["Ports"][service_port] == [{"HostIp": "127.0.0.1", "HostPort": host_port}]
             assert info["State"]["Running"]
 
-        def sql(statement, database=None):
+        def sql(statement, database=None, *, diagnostic=True):
             if database is not None:
                 assert re.fullmatch(r"website_completion_[a-f0-9_]+", database)
             command = 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -N --default-character-set=utf8mb4'
             if database:
                 command += " " + database
-            return run(["docker", "exec", "-i", mysql_id, "sh", "-c", command], data=statement.encode()).decode()
+            return run(["docker", "exec", "-i", mysql_id, "sh", "-c", command], data=statement.encode(), diagnostic=diagnostic).decode()
 
         for attempt in range(60):
             try:
-                sql("SELECT 1;")
+                sql("SELECT 1;", diagnostic=False)
                 break
             except RuntimeError:
                 if attempt == 59:
@@ -105,7 +123,8 @@ def main():
                 time.sleep(1)
         database = "website_completion_" + uuid.uuid4().hex[:12]
         restored = database + "_b"
-        for name in (database, restored):
+        restored_safety = database + "_c"
+        for name in (database, restored, restored_safety):
             sql(f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;")
             databases.append(name)
         env["MYSQL_MIGRATION_DSN"] = f"root:{password}@tcp(127.0.0.1:13316)/{database}?multiStatements=true&parseTime=true"
@@ -165,8 +184,24 @@ def main():
             legacy_articles = "SELECT " + ",".join("`" + column + "`" for column in columns) + " FROM articles ORDER BY id;"
             assert sql(legacy_articles, database) == article_snapshot
             identity_snapshot = sql("SELECT * FROM wechat_identities ORDER BY id;", database)
+            # Rehearse the actual safety rollout baseline separately from the
+            # v16 identity backfill contract and its already-verified backup.
+            assert run([binary, "18"], env=env).decode().strip() == "18 false"
+            legacy_comment = "00000000-0000-0000-0000-000000000003"
+            sql("INSERT INTO comments(id,created_at,updated_at,article_slug,display_name,content,status,user_id) VALUES("
+                f"'{legacy_comment}',NOW(),NOW(),'identity-fixture','保留昵称','迁移前评论',2,'{sentinel}');", database)
+            comments_snapshot = sql("SELECT * FROM comments ORDER BY id;", database)
+            articles_v18 = sql("SELECT * FROM articles ORDER BY id;", database)
+            dump_v18 = run(["docker", "exec", mysql_id, "sh", "-c",
+                            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF ' + database])
+            sql(gzip.decompress(gzip.compress(dump_v18)).decode(), restored_safety)
+            assert sql("SELECT version,dirty FROM schema_migrations;", restored_safety).strip() == "18\t0"
+            assert sql("SELECT * FROM comments ORDER BY id;", restored_safety) == comments_snapshot
+            assert sql("SELECT * FROM articles ORDER BY id;", restored_safety) == articles_v18
+            assert sql("SELECT * FROM users ORDER BY id;", restored_safety) == snapshot
+            assert sql("SELECT * FROM wechat_identities ORDER BY id;", restored_safety) == identity_snapshot
             application_schema = latest_schema_version(ROOT / "backend/migrations")
-            assert application_schema >= 18
+            assert application_schema >= 19
             for _ in range(2):
                 assert run([binary, str(application_schema)], env=env).decode().strip() == f"{application_schema} false"
             assert sql("SELECT * FROM users ORDER BY id;", database) == snapshot
@@ -174,12 +209,17 @@ def main():
             assert sql("SELECT * FROM wechat_identities ORDER BY id;", database) == identity_snapshot
             assert sql("SELECT version FROM articles;", database).strip() == "1"
             assert sql("SELECT COUNT(*) FROM article_revisions;", database).strip() == "0"
+            assert sql("SELECT * FROM comments ORDER BY id;", database) == comments_snapshot
+            assert sql("SELECT * FROM articles ORDER BY id;", database) == articles_v18
+            assert sql("SELECT COUNT(*) FROM wechat_comment_checks;", database).strip() == "0"
             # Repositories own only their generated rows; remove the rehearsal
             # sentinel before backfill tests whose fixtures count all holders.
+            sql(f"DELETE FROM comments WHERE id='{legacy_comment}';", database)
             sql(f"DELETE FROM users WHERE id='{sentinel}';", database)
             env["BLOG_WECHAT_IDENTITY_MYSQL_DSN"] = env["MYSQL_MIGRATION_DSN"]
+            env["BLOG_MINI_CONTENT_MYSQL_DSN"] = env["MYSQL_MIGRATION_DSN"]
             env["REDIS_INTEGRATION_ADDR"] = "127.0.0.1:16389"
-            output = run(["go", "test", "./internal/data", "-run", "TestWechat", "-count=1", "-v"], cwd=ROOT / "backend", env=env).decode()
+            output = run(["go", "test", "./internal/data", "-run", "TestWechat|TestMiniComment", "-count=1", "-timeout=120s", "-v"], cwd=ROOT / "backend", env=env).decode()
             assert "--- SKIP:" not in output and "--- FAIL:" not in output
             required = ["TestWechatIdentityMySQL", "TestWechatIdentityMySQLConcurrentUnique",
                         "TestWechatIdentityMySQLPasswordLockOrdering", "TestWechatIdentityMySQLBackfill",
@@ -187,7 +227,9 @@ def main():
                         "TestWechatBindingStoreRealRedis", "TestWechatHTTPDisabledPreservesWebsiteAuthAndRead",
                         "TestWechatHTTPDisabledMySQLPreservesWebsiteAuthAndRead",
                         "TestWechatHTTPFormalBindingPreservesLegacyAndWebsiteAccount",
-                        "TestWechatHTTPBindingNegativeCases", "TestWechatHTTPPostIssueResetRealRedis"]
+                        "TestWechatHTTPBindingNegativeCases", "TestWechatHTTPPostIssueResetRealRedis",
+                        "TestMiniCommentMySQLHTTP", "TestMiniCommentMySQLSchemaAndNullableTimes",
+                        "TestMiniCommentMySQLConcurrentAtMostOne", "TestMiniCommentMySQLLatePassLockOrdering"]
             # Test names are an explicit no-silent-skip gate, not merely exit 0.
             for name in required:
                 assert re.search(r"^--- PASS: " + re.escape(name) + r"(?: \(|$)", output, re.MULTILINE), "required real-driver test missing: " + name
@@ -195,6 +237,9 @@ def main():
                               "application_schema": application_schema,
                               "legacy_preserved": True, "no_automatic_backfill": True,
                               "cli_dryrun_apply_idempotent": True, "backup_restore": True,
+                              "mini_content_safety_mysql_http": "passed",
+                              "v18_backup_restore": True, "legacy_comments_preserved": True,
+                              "no_automatic_safety_backfill": True,
                               "real_mysql_redis_http_tests": "passed", "silent_skips": 0}))
     finally:
         if "sql" in locals():

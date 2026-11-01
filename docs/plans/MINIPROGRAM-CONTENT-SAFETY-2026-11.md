@@ -48,3 +48,13 @@ parent: T-017
 测试补齐合法双trace后的旧代/删除回调，确保命中真实代数/删除保护。真实HTTP/JWT/RBAC/codec+SQLite/miniredis生命周期验证通过，分页按扫描游标，网站旧API保持回归。独立复核发现的账号刷新清UI、旧页清新意图、迟到401跨账号重放均先复现后修复，消费者复核CLEAR；后端复核APPROVE。
 
 后端全量build/vet/test、定向race、全量lint0 issues，小程序typecheck/test通过；旧最高迁移测试同步19。专用请求超时对齐服务端检查链，guard明确传递。仍未运行真实MySQL/正式微信接口，未部署或上传新安全候选；S3继续隔离真实数据库与端到端验收。
+
+## S3 本地验证与正式承接门
+
+隔离Docker MySQL8.4/Redis runner通过：真实18→19迁移、v18独立备份恢复、旧文章/账号/微信身份/评论保持，无自动pass回填。必需MySQL Schema/HTTP/并发幂等和锁序测试全部通过、silent_skips=0；使用performance_schema可观测锁等待而非盲睡。原v15→v16回填/备份契约仍独立验证，不改为最新版本后冒称旧CLI安全门通过。
+
+真实HTTP客户端组合使用SQLite/miniredis和显式本地httptest微信上游，覆盖换码/令牌/两scene协议、结果和异常处置；MySQLHTTP用实际MySQL和fake checker，真实Redis有独立回归。它们是分层证据，不声称同一条正式微信端到端链路。后台全量build/vet/test、targeted race、lint0和小程序typecheck/test通过；两阶段数值码诊断测试覆盖Token/OpenID/正文/errmsg/URL不泄露。
+
+正式AppID模拟器编译后，仅用合成页面数据观察公开/待审/风险/故障及重试按钮渲染，截图标明本地合成样例；没有写入认证storage或发送真实评论，结束后已刷新清场，无mock安装。该证据是视觉检查，不替代真实网络/账号/手机联调。
+
+本地实现和隔离验收已完成，S3仍等待准确Git交付、生产承接和正式API数据传输授权；不标为正式接口已验收，不上传新安全包或提审。新候选拟0.1.1，旧0.1.0开发包不可直接作为本安全版本提交审核。生产备份、只更新后端、19迁移回退边界、真实联调数据用途见[承接Runbook](../operations/runbooks/wechat-content-safety.md)。
