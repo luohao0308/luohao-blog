@@ -42,3 +42,9 @@
 - [微信image文档](https://developers.weixin.qq.com/miniprogram/dev/component/image.html)支持SVG，但有百分比单位和style元素限制；本轮七张实际SVG均未使用这两项。[previewImage文档](https://developers.weixin.qq.com/miniprogram/dev/api/media/image/wx.previewImage.html)没有保证SVG全屏格式兼容，因此模拟器通过后仍保留手机视觉验收。
 - 当前只有本地修复候选，尚未生成手机代码预览、上传体验版、提审或正式发布。新预览将向微信传送候选代码，按正式接入计划绑定准确源版本与AppID取得一次性授权后执行；随后由用户在手机验收首次评论登录态、正文图片/全屏图库、退出与再次登录。
 - 平台备案/隐私/UGC/域名/版本状态仍待官方后台新鲜核验；浏览器控制连接未就绪，不以旧截图或当前DevTools登录替代平台证据。
+
+## 手机预览推送
+
+用户确认绑定候选 `f0650f3fdf19e2f92e9ced511181c0947290504c`、小程序树 `230550fed70581742341a5edb3f98e0c3c043eb2` 和正式AppID的一次手机预览。调用前核对全部候选文件摘要、urlCheck和有效登录态；auto_preview仅调用一次并返回success，包大小72126字节，入口为 `pages/post/post?slug=ent-m2m-edge-case-study`。未重复生成，也未调用体验版上传、提审或正式发布。
+
+预览成功只表示调试代码推送完成。手机图片/图库、首次评论登录态、退出与重登仍等待用户实际反馈；服务器会话即时撤销不从本地退出界面推定。一次性授权和原始工具结果留在 `output/task-board-audit/`。
