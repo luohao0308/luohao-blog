@@ -52,6 +52,17 @@ async function main() {
   assert.ok(decorateArticleHtml("<IMG SRC='/api/v1/assets/media/image-fixture.jpg'>").includes(`SRC='${absoluteImage}'`))
   assert.ok(decorateArticleHtml('<img data-src="unchanged" src="/api/v1/assets/media/image-fixture.jpg">').includes('data-src="unchanged"'))
   assert.ok(decorateArticleHtml('<img src="https://images.example.invalid/public.jpg">').includes('src="https://images.example.invalid/public.jpg"'))
+  // Current public CMS articles also reference frontend editorial assets.
+  for (const source of ['/images/editorial/delivery-flow.svg', '/images/editorial/ent-official-relations.png', '/images/editorial/covers/guard.webp']) {
+    const decorated = decorateArticleHtml(`<p><img src="${source}"></p>`)
+    const absolute = 'https://makerhao.cn' + source
+    assert.ok(decorated.includes(`src="${absolute}"`), 'editorial image paths must resolve against the public site')
+    assert.equal(articleContentBlocks(decorated)[0].src, absolute, 'editorial images must enter the native preview gallery')
+    assert.equal(decorateArticleHtml(`<img src="${absolute}">`).match(/src="([^"]+)"/)[1], absolute, 'absolute editorial paths remain stable')
+  }
+  for (const source of ['/images/editorial/../private.png', '/images/editorial/%2e%2e/private.png', '/images/editorial-other/a.png', '//other.example.invalid/a.png']) {
+    assert.ok(decorateArticleHtml(`<img src="${source}">`).includes(`src="${source}"`), 'only registered editorial path shapes may be rebased')
+  }
   const noImageHtml = '<h2>Title</h2><ul><li>First</li><li>Second</li></ul><pre><code>&lt;img&gt;</code></pre>'
   assert.equal(articleContentBlocks(noImageHtml)[0].html, noImageHtml, 'text-only article HTML must remain unchanged')
   const twoImages = articleContentBlocks(decorateArticleHtml(`<p>Before</p><p><img src="${relativeImage}" alt="first > image"></p><p>Between</p><p><a href="https://example.invalid"><img src='https://images.example.invalid/second.jpg?x=1&amp;y=2'></a></p><p>After</p>`))
@@ -320,6 +331,11 @@ async function main() {
   post.data.imageUrls = [absoluteImage, 'https://images.example.invalid/second.jpg']
   post.previewPostImage({ currentTarget: { dataset: { src: post.data.imageUrls[1] } } })
   assert.deepEqual(previewedImage, { current: post.data.imageUrls[1], urls: post.data.imageUrls }, 'the tapped image must open at its correct gallery position')
+  respond = () => ({ statusCode: 200, header: {}, data: { title: '当前正文静态图', content_html: '<p><img src="/images/editorial/delivery-flow.svg"></p><p>说明文字</p><p><img src="/images/editorial/ent-official-relations.png"></p>' } })
+  await post.fetch()
+  assert.deepEqual(post.data.imageUrls, ['https://makerhao.cn/images/editorial/delivery-flow.svg', 'https://makerhao.cn/images/editorial/ent-official-relations.png'])
+  post.previewPostImage({ currentTarget: { dataset: { src: post.data.imageUrls[1] } } })
+  assert.deepEqual(previewedImage, { current: post.data.imageUrls[1], urls: post.data.imageUrls }, 'fetched editorial images must reach the preview handler as absolute URLs')
   const postMarkup = fs.readFileSync(path.join(root, 'miniprogram/pages/post/post.wxml'), 'utf8')
   assert.match(postMarkup, /<image[^>]*data-src="{{item.src}}"[^>]*bindtap="previewPostImage"/)
   assert.match(postMarkup, /wx:elif="{{commentAuthLoading}}"[^>]*class="composer-status"/)
