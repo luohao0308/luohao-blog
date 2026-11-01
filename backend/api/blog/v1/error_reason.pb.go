@@ -77,6 +77,10 @@ const (
 	ErrorReason_ARTICLE_VERSION_CONFLICT              ErrorReason = 45
 	ErrorReason_ARTICLE_REVISION_CATEGORY_UNAVAILABLE ErrorReason = 46
 	ErrorReason_ARTICLE_REVISION_MEDIA_UNAVAILABLE    ErrorReason = 47
+	ErrorReason_CONTENT_SAFETY_DISABLED               ErrorReason = 48
+	ErrorReason_CONTENT_SAFETY_INPUT                  ErrorReason = 49
+	ErrorReason_CONTENT_SAFETY_IDENTITY               ErrorReason = 50
+	ErrorReason_CONTENT_SAFETY_UNAVAILABLE            ErrorReason = 51
 )
 
 // Enum value maps for ErrorReason.
@@ -130,6 +134,10 @@ var (
 		45: "ARTICLE_VERSION_CONFLICT",
 		46: "ARTICLE_REVISION_CATEGORY_UNAVAILABLE",
 		47: "ARTICLE_REVISION_MEDIA_UNAVAILABLE",
+		48: "CONTENT_SAFETY_DISABLED",
+		49: "CONTENT_SAFETY_INPUT",
+		50: "CONTENT_SAFETY_IDENTITY",
+		51: "CONTENT_SAFETY_UNAVAILABLE",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":                   0,
@@ -180,6 +188,10 @@ var (
 		"ARTICLE_VERSION_CONFLICT":              45,
 		"ARTICLE_REVISION_CATEGORY_UNAVAILABLE": 46,
 		"ARTICLE_REVISION_MEDIA_UNAVAILABLE":    47,
+		"CONTENT_SAFETY_DISABLED":               48,
+		"CONTENT_SAFETY_INPUT":                  49,
+		"CONTENT_SAFETY_IDENTITY":               50,
+		"CONTENT_SAFETY_UNAVAILABLE":            51,
 	}
 )
 
@@ -214,8 +226,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xf8\n" +
-	"\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xec\v\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -265,7 +276,11 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x18ARTICLE_VERSION_REQUIRED\x10,\x12\x1c\n" +
 	"\x18ARTICLE_VERSION_CONFLICT\x10-\x12)\n" +
 	"%ARTICLE_REVISION_CATEGORY_UNAVAILABLE\x10.\x12&\n" +
-	"\"ARTICLE_REVISION_MEDIA_UNAVAILABLE\x10/BQ\n" +
+	"\"ARTICLE_REVISION_MEDIA_UNAVAILABLE\x10/\x12\x1b\n" +
+	"\x17CONTENT_SAFETY_DISABLED\x100\x12\x18\n" +
+	"\x14CONTENT_SAFETY_INPUT\x101\x12\x1b\n" +
+	"\x17CONTENT_SAFETY_IDENTITY\x102\x12\x1e\n" +
+	"\x1aCONTENT_SAFETY_UNAVAILABLE\x103BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (
