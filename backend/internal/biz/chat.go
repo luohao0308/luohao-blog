@@ -52,9 +52,11 @@ const (
 
 // ChatAnswer carries plain text and retrieved reference candidates, best-match first.
 type ChatAnswer struct {
-	Outcome   ChatOutcome
-	Answer    string
-	Citations []*Article
+	ArticleSlug string
+	Sections    []ChatSectionCitation
+	Outcome     ChatOutcome
+	Answer      string
+	Citations   []*Article
 }
 
 // ChatUsecase answers visitor questions over the published articles:

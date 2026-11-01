@@ -54,7 +54,7 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 	defer remote.Close()
 	settings := biz.WechatSyncSettings{Enabled: true, Configured: true, Mode: "publish", SiteURL: "https://blog.example.com", ThumbMediaID: "cover", AccountID: "makerhao1", AccountFingerprint: "fixture-account", AccountName: "makerhao"}
 	syncUC := biz.NewWechatSyncUsecase(NewWechatSyncRepo(d), repo, testOfficialAccountPublisher(remote), settings)
-	articles := biz.NewArticleUsecaseWithWechat(repo, nil, syncUC)
+	articles := biz.NewArticleUsecaseWithWechat(repo, nil, syncUC, nil)
 	projectUC := biz.NewProjectUsecase(NewProjectRepo(d))
 	for _, p := range []*biz.Project{
 		{Slug: "luohao-blog", Name: "luohao-blog", Summary: "本站：Go + Kratos 后端、Nuxt 4 SSR 前端的全栈个人站", Description: "单体仓库全栈项目", Stack: []string{"Go", "Kratos", "Nuxt 4"}, Role: "独立设计与开发", RepoURL: "https://github.com/luohao0308/luohao-blog", Emoji: "🛠️", Year: "2026", Featured: true, Published: true, Sort: 10},
@@ -212,7 +212,7 @@ func TestOfficialAccountHTTPLifecycle(t *testing.T) {
 	if e != nil || len(rows) != 0 {
 		t.Fatal("draft enqueued")
 	}
-	request("PUT", "/v1/articles/update?update_mask=status", admin, map[string]any{"slug": create["slug"], "title": create["title"], "content_md": create["content_md"], "status": 2}, 200)
+	request("PUT", "/v1/articles/update?update_mask=status&expected_version=1", admin, map[string]any{"slug": create["slug"], "title": create["title"], "content_md": create["content_md"], "status": 2}, 200)
 	rows, e = NewWechatSyncRepo(d).List(ctx, 10, 0)
 	if e != nil || len(rows) != 1 || rows[0].State != "queued" {
 		t.Fatalf("outbox: %+v %v", rows, e)

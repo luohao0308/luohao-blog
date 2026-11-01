@@ -49,7 +49,7 @@ services:
     logging: *default-logging
     environment:
       NUXT_BACKEND_BASE: http://backend:8000
-      NUXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+      NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-${PUBLIC_SITE_URL:-https://makerhao.cn}}
       NUXT_PUBLIC_ICP_NUMBER: ${ICP_NUMBER:-}
     depends_on:
       backend:

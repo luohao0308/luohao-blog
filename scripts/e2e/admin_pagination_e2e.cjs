@@ -11,6 +11,7 @@ let articles = Array.from({ length: 120 }, (_, index) => {
   const number = 120 - index
   return {
     id: String(number),
+    version: '1',
     slug: `post-${String(number).padStart(3, '0')}`,
     title: `文章 ${String(number).padStart(3, '0')}`,
     summary: '',
@@ -87,11 +88,15 @@ async function main() {
       const body = route.request().postDataJSON()
       const article = articles.find(item => item.slug === body.slug)
       assert.ok(article, `updated article ${body.slug} must exist`)
+      assert.equal(new URL(route.request().url()).searchParams.get('expected_version'), article.version)
+      article.version = String(BigInt(article.version) + 1n)
       article.status = body.status
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(article) })
     })
     await page.route('**/api/v1/articles/post-*', async (route) => {
       const slug = decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop())
+      const current = articles.find(article => article.slug === slug)
+      assert.equal(new URL(route.request().url()).searchParams.get('expected_version'), current.version)
       articles = articles.filter(article => article.slug !== slug)
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
     })

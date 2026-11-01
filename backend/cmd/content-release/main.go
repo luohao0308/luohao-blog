@@ -287,10 +287,11 @@ func (r *about) UpdateAbout(c context.Context, a *biz.About) (*biz.About, error)
 }
 
 type runner struct {
-	db *sql.DB
-	a  *service.ArticleService
-	p  *service.ProjectService
-	b  *service.AboutService
+	articleVersions map[string]uint64
+	db              *sql.DB
+	a               *service.ArticleService
+	p               *service.ProjectService
+	b               *service.AboutService
 }
 
 func timestampMatches(t *timestamppb.Timestamp, expected string) bool {
@@ -351,6 +352,12 @@ func (r *runner) check(ctx context.Context, o operation) (proto.Message, error) 
 			return nil, err
 		}
 	}
+	if a, ok := m.(*v1.Article); ok {
+		if r.articleVersions == nil {
+			r.articleVersions = map[string]uint64{}
+		}
+		r.articleVersions[o.Slug] = a.Version
+	}
 	return m, nil
 }
 
@@ -393,10 +400,10 @@ func (r *runner) write(ctx context.Context, o operation) error {
 				return errRelease
 			}
 			a = &v1.Article{Slug: created.Slug, Status: v1.ArticleStatus_ARTICLE_STATUS_PUBLISHED}
-			_, err = r.a.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: a, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"status"}}})
+			_, err = r.a.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: a, ExpectedVersion: fresh.Version, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"status"}}})
 			return err
 		}
-		_, err := r.a.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: a, UpdateMask: &fieldmaskpb.FieldMask{Paths: o.Mask}})
+		_, err := r.a.UpdateArticle(ctx, &v1.UpdateArticleRequest{Article: a, ExpectedVersion: r.articleVersions[o.Slug], UpdateMask: &fieldmaskpb.FieldMask{Paths: o.Mask}})
 		return err
 	case "create_project", "update_project":
 		p := &v1.Project{}

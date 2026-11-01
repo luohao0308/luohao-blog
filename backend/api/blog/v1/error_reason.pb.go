@@ -73,6 +73,10 @@ const (
 	ErrorReason_AUTH_EMAIL_TOO_MANY_ATTEMPTS          ErrorReason = 41
 	ErrorReason_AUTH_EMAIL_DELIVERY_FAILED            ErrorReason = 42
 	ErrorReason_AUTH_EMAIL_TOKEN_STORE_UNAVAILABLE    ErrorReason = 43
+	ErrorReason_ARTICLE_VERSION_REQUIRED              ErrorReason = 44
+	ErrorReason_ARTICLE_VERSION_CONFLICT              ErrorReason = 45
+	ErrorReason_ARTICLE_REVISION_CATEGORY_UNAVAILABLE ErrorReason = 46
+	ErrorReason_ARTICLE_REVISION_MEDIA_UNAVAILABLE    ErrorReason = 47
 )
 
 // Enum value maps for ErrorReason.
@@ -122,6 +126,10 @@ var (
 		41: "AUTH_EMAIL_TOO_MANY_ATTEMPTS",
 		42: "AUTH_EMAIL_DELIVERY_FAILED",
 		43: "AUTH_EMAIL_TOKEN_STORE_UNAVAILABLE",
+		44: "ARTICLE_VERSION_REQUIRED",
+		45: "ARTICLE_VERSION_CONFLICT",
+		46: "ARTICLE_REVISION_CATEGORY_UNAVAILABLE",
+		47: "ARTICLE_REVISION_MEDIA_UNAVAILABLE",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":                   0,
@@ -168,6 +176,10 @@ var (
 		"AUTH_EMAIL_TOO_MANY_ATTEMPTS":          41,
 		"AUTH_EMAIL_DELIVERY_FAILED":            42,
 		"AUTH_EMAIL_TOKEN_STORE_UNAVAILABLE":    43,
+		"ARTICLE_VERSION_REQUIRED":              44,
+		"ARTICLE_VERSION_CONFLICT":              45,
+		"ARTICLE_REVISION_CATEGORY_UNAVAILABLE": 46,
+		"ARTICLE_REVISION_MEDIA_UNAVAILABLE":    47,
 	}
 )
 
@@ -202,7 +214,8 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xe9\t\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xf8\n" +
+	"\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -248,7 +261,11 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x1bAUTH_EMAIL_REQUEST_COOLDOWN\x10(\x12 \n" +
 	"\x1cAUTH_EMAIL_TOO_MANY_ATTEMPTS\x10)\x12\x1e\n" +
 	"\x1aAUTH_EMAIL_DELIVERY_FAILED\x10*\x12&\n" +
-	"\"AUTH_EMAIL_TOKEN_STORE_UNAVAILABLE\x10+BQ\n" +
+	"\"AUTH_EMAIL_TOKEN_STORE_UNAVAILABLE\x10+\x12\x1c\n" +
+	"\x18ARTICLE_VERSION_REQUIRED\x10,\x12\x1c\n" +
+	"\x18ARTICLE_VERSION_CONFLICT\x10-\x12)\n" +
+	"%ARTICLE_REVISION_CATEGORY_UNAVAILABLE\x10.\x12&\n" +
+	"\"ARTICLE_REVISION_MEDIA_UNAVAILABLE\x10/BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (

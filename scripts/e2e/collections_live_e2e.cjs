@@ -148,7 +148,8 @@ async function main() {
     assert.equal((await list(contextA, accountA.access_token)).entries.length, 105)
 
     // Hide an already saved article, changing its private title as well.
-    await request(admin, 'PUT', '/api/v1/articles/update?update_mask=status,title,content_md', author.access_token, { slug: last.slug, title: 'PRIVATE_ONLY_COLLECTION_TITLE', content_md: '私密内容只存在于fixture。', status: 1 })
+    const beforeHide = await (await request(admin, 'GET', `/api/v1/articles/${encodeURIComponent(last.slug)}`, author.access_token)).json()
+    await request(admin, 'PUT', `/api/v1/articles/update?update_mask=status,title,content_md&expected_version=${encodeURIComponent(beforeHide.version)}`, author.access_token, { slug: last.slug, title: 'PRIVATE_ONLY_COLLECTION_TITLE', content_md: '私密内容只存在于fixture。', status: 1 })
     const visible = await list(contextA, accountA.access_token)
     assert.equal(visible.entries.length, 104)
     assert.ok(!visible.entries.some(entry => entry.article.slug === last.slug))

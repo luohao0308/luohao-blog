@@ -4,10 +4,15 @@ export default defineEventHandler((event) => {
   const { public: publicConfig } = useRuntimeConfig(event)
   const origin = siteOrigin(publicConfig.siteUrl)
   setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
+  setResponseHeader(event, 'Cache-Control', 'no-store')
+  if (!origin) return 'User-agent: *\nDisallow: /\n'
   return [
     'User-agent: *',
     'Allow: /',
-    'Disallow: /admin/',
+    'Disallow: /admin',
+    'Disallow: /preview',
+    'Disallow: /api/',
+    'Disallow: /health',
     'Disallow: /login',
     'Disallow: /register',
     'Disallow: /settings',

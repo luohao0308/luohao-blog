@@ -49,6 +49,7 @@ func toBiz(po *ent.Article, tagNames []string, cat *ent.Category) *biz.Article {
 		UpdatedAt:   po.UpdatedAt,
 		ViewCount:   po.ViewCount,
 		LikeCount:   po.LikeCount,
+		Version:     po.Version,
 		CoverURL:    po.CoverURL,
 		Featured:    po.Featured,
 	}
@@ -448,15 +449,30 @@ func (r *articleRepo) ListArticles(ctx context.Context, opts ...biz.ListOption) 
 }
 
 func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.Article, error) {
-	tags, err := ensureTags(ctx, r.data.db, a.Tags)
+	tx, e := r.data.db.Tx(ctx)
+	if e != nil {
+		return nil, e
+	}
+	out, e := createArticle(ctx, tx.Client(), a)
+	if e != nil {
+		_ = tx.Rollback()
+		return nil, e
+	}
+	if e = tx.Commit(); e != nil {
+		return nil, e
+	}
+	return out, nil
+}
+func createArticle(ctx context.Context, client *ent.Client, a *biz.Article) (*biz.Article, error) {
+	tags, err := ensureTags(ctx, client, a.Tags)
 	if err != nil {
 		return nil, err
 	}
-	cat, err := ensureCategory(ctx, r.data.db, a.CategorySlug)
+	cat, err := ensureCategory(ctx, client, a.CategorySlug)
 	if err != nil {
 		return nil, err
 	}
-	creator := r.data.db.Article.Create().
+	creator := client.Article.Create().
 		SetSlug(a.Slug).
 		SetTitle(a.Title).
 		SetSummary(a.Summary).
@@ -478,26 +494,60 @@ func (r *articleRepo) CreateArticle(ctx context.Context, a *biz.Article) (*biz.A
 		}
 		return nil, err
 	}
+	after, err := loadRevisionArticle(ctx, client, po.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = preserveRevision(ctx, client, nil, after, "create"); err != nil {
+		return nil, err
+	}
 	return toBiz(po, tagNamesOfRows(tags), cat), nil
 }
 
 func (r *articleRepo) UpdateArticle(ctx context.Context, a *biz.Article) (*biz.Article, error) {
-	return updateArticle(ctx, r.data.db, a)
+	tx, err := r.data.db.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	updated, err := updateArticle(ctx, tx.Client(), a)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 // updateArticle is shared by the ordinary write and the atomic publication
 // boundary, ensuring they apply identical article, tag and category changes.
 func updateArticle(ctx context.Context, client *ent.Client, a *biz.Article) (*biz.Article, error) {
+	return updateArticleWithAction(ctx, client, a, "update")
+}
+func updateArticleWithAction(ctx context.Context, client *ent.Client, a *biz.Article, action string) (*biz.Article, error) {
+	if a.Version == 0 {
+		return nil, biz.ErrArticleVersionRequired
+	}
 	// status moves through this path (draft <-> published); DELETED only
 	// happens through DeleteArticle, and every path hides deleted rows.
 	current, err := client.Article.Query().
 		Where(article.SlugEQ(a.Slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
-		Only(ctx)
+		WithTags().WithCategory().Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, biz.ErrArticleNotFound
 		}
 		return nil, err
+	}
+	// Ent's edge updater may expand WHERE into an ID list. Claim the row using
+	// a scalar-only conditional UPDATE first; this lock lasts through the transaction.
+	affected, err := client.Article.Update().Where(article.IDEQ(current.ID), article.VersionEQ(a.Version), article.StatusNEQ(biz.ArticleStatusDeleted)).AddVersion(1).Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if affected != 1 {
+		return nil, biz.ErrArticleVersionConflict
 	}
 	tags, err := ensureTags(ctx, client, a.Tags)
 	if err != nil {
@@ -535,6 +585,13 @@ func updateArticle(ctx context.Context, client *ent.Client, a *biz.Article) (*bi
 	if err != nil {
 		return nil, err
 	}
+	after, err := loadRevisionArticle(ctx, client, po.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = preserveRevision(ctx, client, current, after, action); err != nil {
+		return nil, err
+	}
 	return toBiz(po, tagNamesOfRows(tags), cat), nil
 }
 
@@ -563,26 +620,39 @@ func (r *articleRepo) UpdateArticleAndEnqueue(ctx context.Context, a *biz.Articl
 
 // DeleteArticle soft-deletes an article by flipping its status to deleted.
 // The row is kept so it stays auditable, and every read path filters it out.
-func (r *articleRepo) DeleteArticle(ctx context.Context, slug string) error {
-	affected, err := r.data.db.Article.Update().
-		Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).
-		SetStatus(biz.ArticleStatusDeleted).
-		Save(ctx)
-	if err != nil {
-		return err
+func (r *articleRepo) DeleteArticle(ctx context.Context, slug string, expectedVersion uint64) error {
+	if expectedVersion == 0 {
+		return biz.ErrArticleVersionRequired
 	}
-	if affected == 0 {
+	tx, e := r.data.db.Tx(ctx)
+	if e != nil {
+		return e
+	}
+	defer func() { _ = tx.Rollback() }()
+	before, e := tx.Article.Query().Where(article.SlugEQ(slug), article.StatusNEQ(biz.ArticleStatusDeleted)).WithTags().WithCategory().Only(ctx)
+	if ent.IsNotFound(e) {
 		return biz.ErrArticleNotFound
 	}
-	return nil
+	if e != nil {
+		return e
+	}
+	n, e := tx.Article.Update().Where(article.IDEQ(before.ID), article.VersionEQ(expectedVersion), article.StatusNEQ(biz.ArticleStatusDeleted)).AddVersion(1).SetStatus(biz.ArticleStatusDeleted).Save(ctx)
+	if e != nil {
+		return e
+	}
+	if n != 1 {
+		return biz.ErrArticleVersionConflict
+	}
+	after, e := loadRevisionArticle(ctx, tx.Client(), before.ID)
+	if e != nil {
+		return e
+	}
+	if e = preserveRevision(ctx, tx.Client(), before, after, "delete"); e != nil {
+		return e
+	}
+	return tx.Commit()
 }
 
-// counterDedup reports whether this (prefix, slug, client) pair may count
-// inside the dedup window. Redis holds the window; when it is unavailable
-// the call degrades to counting every request (fail-open on dedup, the
-// counter itself is never lost), because under- or not-counting would
-// corrupt the metric permanently while over-counting self-heals as windows
-// expire.
 func (r *articleRepo) counterDedup(ctx context.Context, prefix, slug, clientKey string) bool {
 	ok, err := r.rdb.SetNX(ctx, prefix+slug+":"+clientKey, 1, viewDedupWindow).Result()
 	if err == nil {

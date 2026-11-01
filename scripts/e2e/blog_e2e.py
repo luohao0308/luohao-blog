@@ -318,8 +318,11 @@ def t14(page, ctx):
     assert anon.locator(".markdown-body h1").count() >= 1, "发布正文未渲染"
     # 清理：后台列表 UI 崩溃（P1），删除走 API
     token = api_login(ctx)
+    current = ctx.request.get(f"{BASE_URL}/api/v1/articles/{slug}", headers={"Authorization": f"Bearer {token}"})
+    assert current.ok, "cleanup must read current article version"
+    expected_version = current.json()["version"]
     dele = ctx.request.delete(
-        f"{BASE_URL}/api/v1/articles/{slug}",
+        f"{BASE_URL}/api/v1/articles/{slug}?expected_version={expected_version}",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert dele.ok, f"API 删除失败: HTTP {dele.status}"

@@ -12,6 +12,7 @@ const pixelPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0
 function makeArticle(overrides = {}) {
   return {
     id: 'article-1',
+    version: '1',
     slug: 'demo',
     title: '目录与媒体演示',
     summary: '这是一段独立摘要，用于验证详情页展示。',
@@ -60,7 +61,9 @@ async function installRoutes(page, state) {
       url: route.request().url(),
       body: route.request().postDataJSON(),
     }
+    assert.equal(new URL(state.updateRequest.url).searchParams.get('expected_version'), state.article.version)
     Object.assign(state.article, state.updateRequest.body)
+    state.article.version = String(BigInt(state.article.version) + 1n)
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(state.article) })
   })
   await page.route('**/api/v1/articles/demo/view', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }))

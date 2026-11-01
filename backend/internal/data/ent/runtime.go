@@ -10,6 +10,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/articlerevision"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -159,36 +160,57 @@ func init() {
 	article.DefaultUpdatedAt = articleDescUpdatedAt.Default.(func() time.Time)
 	// article.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	article.UpdateDefaultUpdatedAt = articleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// articleDescVersion is the schema descriptor for version field.
+	articleDescVersion := articleFields[0].Descriptor()
+	// article.DefaultVersion holds the default value on creation for the version field.
+	article.DefaultVersion = articleDescVersion.Default.(uint64)
 	// articleDescSlug is the schema descriptor for slug field.
-	articleDescSlug := articleFields[0].Descriptor()
+	articleDescSlug := articleFields[1].Descriptor()
 	// article.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
 	article.SlugValidator = articleDescSlug.Validators[0].(func(string) error)
 	// articleDescStatus is the schema descriptor for status field.
-	articleDescStatus := articleFields[5].Descriptor()
+	articleDescStatus := articleFields[6].Descriptor()
 	// article.DefaultStatus holds the default value on creation for the status field.
 	article.DefaultStatus = biz.ArticleStatus(articleDescStatus.Default.(int32))
 	// articleDescViewCount is the schema descriptor for view_count field.
-	articleDescViewCount := articleFields[7].Descriptor()
+	articleDescViewCount := articleFields[8].Descriptor()
 	// article.DefaultViewCount holds the default value on creation for the view_count field.
 	article.DefaultViewCount = articleDescViewCount.Default.(uint64)
 	// articleDescLikeCount is the schema descriptor for like_count field.
-	articleDescLikeCount := articleFields[8].Descriptor()
+	articleDescLikeCount := articleFields[9].Descriptor()
 	// article.DefaultLikeCount holds the default value on creation for the like_count field.
 	article.DefaultLikeCount = articleDescLikeCount.Default.(uint64)
 	// articleDescCoverURL is the schema descriptor for cover_url field.
-	articleDescCoverURL := articleFields[9].Descriptor()
+	articleDescCoverURL := articleFields[10].Descriptor()
 	// article.DefaultCoverURL holds the default value on creation for the cover_url field.
 	article.DefaultCoverURL = articleDescCoverURL.Default.(string)
 	// article.CoverURLValidator is a validator for the "cover_url" field. It is called by the builders before save.
 	article.CoverURLValidator = articleDescCoverURL.Validators[0].(func(string) error)
 	// articleDescFeatured is the schema descriptor for featured field.
-	articleDescFeatured := articleFields[10].Descriptor()
+	articleDescFeatured := articleFields[11].Descriptor()
 	// article.DefaultFeatured holds the default value on creation for the featured field.
 	article.DefaultFeatured = articleDescFeatured.Default.(bool)
 	// articleDescID is the schema descriptor for id field.
 	articleDescID := articleMixinFields0[0].Descriptor()
 	// article.DefaultID holds the default value on creation for the id field.
 	article.DefaultID = articleDescID.Default.(func() uuid.UUID)
+	articlerevisionMixin := schema.ArticleRevision{}.Mixin()
+	articlerevisionMixinFields0 := articlerevisionMixin[0].Fields()
+	_ = articlerevisionMixinFields0
+	articlerevisionFields := schema.ArticleRevision{}.Fields()
+	_ = articlerevisionFields
+	// articlerevisionDescAction is the schema descriptor for action field.
+	articlerevisionDescAction := articlerevisionFields[2].Descriptor()
+	// articlerevision.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	articlerevision.ActionValidator = articlerevisionDescAction.Validators[0].(func(string) error)
+	// articlerevisionDescCreatedAt is the schema descriptor for created_at field.
+	articlerevisionDescCreatedAt := articlerevisionFields[4].Descriptor()
+	// articlerevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	articlerevision.DefaultCreatedAt = articlerevisionDescCreatedAt.Default.(func() time.Time)
+	// articlerevisionDescID is the schema descriptor for id field.
+	articlerevisionDescID := articlerevisionMixinFields0[0].Descriptor()
+	// articlerevision.DefaultID holds the default value on creation for the id field.
+	articlerevision.DefaultID = articlerevisionDescID.Default.(func() uuid.UUID)
 	categoryMixin := schema.Category{}.Mixin()
 	categoryMixinFields0 := categoryMixin[0].Fields()
 	_ = categoryMixinFields0

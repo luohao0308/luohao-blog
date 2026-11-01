@@ -83,7 +83,7 @@ func newCommentTestUsecase(t *testing.T, limiter CommentRateLimiter) (*CommentUs
 	t.Helper()
 	ctx := context.Background()
 	articles := NewArticleUsecase(newFakeArticleRepo(), nil)
-	if _, err := articles.CreateArticle(ctx, &Article{Slug: "commentable", Title: "t", ContentMD: "c"}); err != nil {
+	if _, err := articles.CreateArticle(ctx, &Article{Slug: "commentable", Title: "t", ContentMD: "c", Version: 1}); err != nil {
 		t.Fatalf("CreateArticle() error = %v", err)
 	}
 	users := NewUserUsecase(newFakeUserRepo())
@@ -98,7 +98,7 @@ func newCommentTestUsecase(t *testing.T, limiter CommentRateLimiter) (*CommentUs
 
 func publishCommentableArticle(t *testing.T, articles *ArticleUsecase) {
 	t.Helper()
-	if _, err := articles.UpdateArticle(context.Background(), &Article{Slug: "commentable", Title: "t", ContentMD: "c", Status: ArticleStatusPublished}); err != nil {
+	if _, err := articles.UpdateArticle(context.Background(), &Article{Slug: "commentable", Title: "t", ContentMD: "c", Status: ArticleStatusPublished, Version: 1}); err != nil {
 		t.Fatalf("UpdateArticle(publish) error = %v", err)
 	}
 }

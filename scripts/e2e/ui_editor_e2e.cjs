@@ -26,13 +26,14 @@ async function main() {
     for (let i = 0; i < 200 && !release; i++) await page.waitForTimeout(50)
     assert.ok(release, 'save request must begin')
   }
-  const article = { slug: 'fixture', title: '原始标题', summary: '', content_md: '原始正文', tags: [], status: 1, cover_url: '', featured: false }
+  const article = { version: '1', slug: 'fixture', title: '原始标题', summary: '', content_md: '原始正文', tags: [], status: 1, cover_url: '', featured: false }
   await context.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/auth/refresh')) return route.fulfill({ json: { access_token: 'fixture', user: { id: '1', role: 1, display_name: '管理员' } } })
     if (url.pathname.endsWith('/articles/update')) {
       pending = route.request().postDataJSON()
       await new Promise(resolve => { release = resolve })
+      if (!fail) { Object.assign(article, pending); article.version = String(BigInt(article.version) + 1n) }
       return route.fulfill({ status: fail ? 500 : 200, json: fail ? { message: 'failed' } : article })
     }
     if (url.pathname.includes('/categories')) return route.fulfill({ json: { categories: [] } })

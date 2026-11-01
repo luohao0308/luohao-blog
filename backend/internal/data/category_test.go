@@ -77,7 +77,7 @@ func TestListCategoriesCountsPublishedOnly(t *testing.T) {
 	mustCreateCategory(t, catRepo, "notes", "随笔", 2)
 	seedArticle := func(slug string, status biz.ArticleStatus, category string) {
 		t.Helper()
-		a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "md", Status: status, CategorySlug: category})
+		a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "md", Status: status, CategorySlug: category, Version: 1})
 		if err != nil {
 			t.Fatalf("seed article %s: %v", slug, err)
 		}
@@ -114,7 +114,7 @@ func TestArticleCategoryAttachClearAndFilter(t *testing.T) {
 
 	mustCreateCategory(t, catRepo, "engineering", "工程实践", 1)
 	mustCreateCategory(t, catRepo, "notes", "随笔", 2)
-	a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: "with-cat", Title: "t", ContentMD: "md", CategorySlug: "engineering"})
+	a, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: "with-cat", Title: "t", ContentMD: "md", CategorySlug: "engineering", Version: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestArticleCategoryAttachClearAndFilter(t *testing.T) {
 	if got.CategorySlug != "engineering" || got.CategoryName != "工程实践" {
 		t.Fatalf("category = %q/%q, want engineering/工程实践", got.CategorySlug, got.CategoryName)
 	}
-	if _, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: "bad-cat", Title: "t", ContentMD: "md", CategorySlug: "missing"}); err == nil {
+	if _, err := articleRepo.CreateArticle(ctx, &biz.Article{Slug: "bad-cat", Title: "t", ContentMD: "md", CategorySlug: "missing", Version: 1}); err == nil {
 		t.Fatal("unknown category slug accepted, want NOT_FOUND")
 	}
 
@@ -185,7 +185,7 @@ func TestLikeCountingAndDedup(t *testing.T) {
 	repo := &articleRepo{data: data, rdb: rdb}
 	usecase := biz.NewArticleUsecase(repo, nil)
 
-	a, err := repo.CreateArticle(ctx, &biz.Article{Slug: "like-me", Title: "t", ContentMD: "md"})
+	a, err := repo.CreateArticle(ctx, &biz.Article{Slug: "like-me", Title: "t", ContentMD: "md", Version: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

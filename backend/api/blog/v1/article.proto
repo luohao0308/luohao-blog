@@ -16,6 +16,25 @@ option java_outer_classname = "ArticleProto";
 // ArticleService manages blog articles. The public identifier of an article is
 // its slug: it is unique, URL-safe, and immutable after creation.
 service ArticleService {
+  // Administrator-only content restoration; current publication state is preserved.
+  rpc RestoreArticleRevision(RestoreArticleRevisionRequest) returns (Article) {
+    option (google.api.http) = { post: "/v1/articles/{slug}/revisions/{version}/restore" body: "*" };
+  }
+  // Administrator-only immutable revision metadata; bodies are returned by Get.
+  rpc ListArticleRevisions(ListArticleRevisionsRequest) returns (ArticleRevisionSet) {
+    option (google.api.http) = { get: "/v1/articles/{slug}/revisions" };
+  }
+  rpc GetArticleRevision(GetArticleRevisionRequest) returns (ArticleRevision) {
+    option (google.api.http) = { get: "/v1/articles/{slug}/revisions/{version}" };
+  }
+  // Administrator-only live index inspection and single-article repair.
+  rpc GetArticleSearchSync(GetArticleSearchSyncRequest) returns (ArticleSearchSyncStatus) {
+    option (google.api.http) = { get: "/v1/articles/{slug}/search-sync" };
+  }
+  // Administrator-only repair using the current database version.
+  rpc RetryArticleSearchSync(GetArticleSearchSyncRequest) returns (ArticleSearchSyncStatus) {
+    option (google.api.http) = { post: "/v1/articles/{slug}/search-sync/retry" body: "*" };
+  }
   // CreateArticle creates a new article and returns the persisted record with
   // the server-assigned id, timestamps, rendered HTML, and DRAFT status.
   // Authorization: ADMIN only (Authorization: Bearer). Returns 401 without a
@@ -117,6 +136,7 @@ enum ArticleStatus {
 
 // Article is the canonical representation of a blog article.
 message Article {
+  uint64 version = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Application-generated UUIDv7 identifier. Read-only on create.
   string id = 1;
   // Unique URL-safe identifier in [a-z0-9-]. Immutable after creation.
@@ -233,6 +253,8 @@ message ListArticlesRequest {
 
 // UpdateArticleRequest is the input for ArticleService.UpdateArticle.
 message UpdateArticleRequest {
+  // Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
+  uint64 expected_version = 3;
   // The article carrying the new field values. article.slug identifies the
   // target record and must be set.
   Article article = 1 [(google.api.field_behavior) = REQUIRED];
@@ -246,6 +268,8 @@ message UpdateArticleRequest {
 
 // DeleteArticleRequest is the input for ArticleService.DeleteArticle.
 message DeleteArticleRequest {
+  // Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
+  uint64 expected_version = 2;
   // Unique slug of the article to delete.
   string slug = 1 [(google.api.field_behavior) = REQUIRED];
 }
@@ -264,4 +288,45 @@ message MarkArticleViewedRequest {
 message MarkArticleLikedRequest {
   // Unique slug of the article being liked.
   string slug = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetArticleSearchSyncRequest { string slug = 1; }
+enum ArticleSearchSyncState {
+ ARTICLE_SEARCH_SYNC_STATE_UNKNOWN = 0;
+ ARTICLE_SEARCH_SYNC_STATE_SYNCED = 1;
+ ARTICLE_SEARCH_SYNC_STATE_MISSING = 2;
+ ARTICLE_SEARCH_SYNC_STATE_STALE = 3;
+ ARTICLE_SEARCH_SYNC_STATE_NOT_REQUIRED = 4;
+ ARTICLE_SEARCH_SYNC_STATE_UNAVAILABLE = 5;
+ ARTICLE_SEARCH_SYNC_STATE_PARTIAL = 6;
+}
+message ArticleSearchSyncStatus {
+ string article_slug = 1;
+ ArticleSearchSyncState state = 2;
+ bool can_retry = 3;
+ string message = 4;
+ google.protobuf.Timestamp checked_at = 5;
+ bool semantic_ready = 6;
+}
+
+message ListArticleRevisionsRequest { string slug = 1; int32 page_size = 2; string page_token = 3; }
+message GetArticleRevisionRequest { string slug = 1; uint64 version = 2; }
+message ArticleRevision {
+ string article_slug = 1;
+ uint64 version = 2;
+ string action = 3;
+ string actor_id = 4;
+ google.protobuf.Timestamp created_at = 5;
+ // Detail only; safe HTML is rendered from the immutable Markdown at read time.
+ Article snapshot = 6;
+ // Detail only: historical category identity, not a live foreign key.
+ string category_id = 7;
+}
+message ArticleRevisionSet { repeated ArticleRevision revisions = 1; string next_page_token = 2; }
+
+message RestoreArticleRevisionRequest {
+ string slug = 1;
+ uint64 version = 2;
+ // Required. Last-read current article version, not the historical version.
+ uint64 expected_version = 3;
 }

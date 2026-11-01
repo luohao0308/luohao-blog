@@ -123,7 +123,7 @@ func syncFixture(mode string) (*WechatSyncUsecase, *syncMemoryRepo, *syncPublish
 	repo := newSyncMemoryRepo()
 	pub := &syncPublisher{}
 	articles := newFakeArticleRepo()
-	a := &Article{ID: uuid.Must(uuid.NewV7()), Slug: "wechat-fixture", Title: "测试文章", ContentMD: "hello", ContentHTML: "<p>hello</p>", Status: ArticleStatusPublished}
+	a := &Article{ID: uuid.Must(uuid.NewV7()), Slug: "wechat-fixture", Title: "测试文章", ContentMD: "hello", ContentHTML: "<p>hello</p>", Status: ArticleStatusPublished, Version: 1}
 	articles.articles[a.Slug] = a
 	return NewWechatSyncUsecase(repo, articles, pub, WechatSyncSettings{Enabled: true, Configured: true, Mode: mode, SiteURL: "https://blog.example.com", ThumbMediaID: "cover", AccountID: "public-account", AccountFingerprint: "account-a"}), repo, pub, articles, a
 }
@@ -299,7 +299,7 @@ func TestArticlePublicationQueuesOnceAndKeepsEditsLocal(t *testing.T) {
 	a.Status = ArticleStatusDraft
 	atomic := &syncAtomicArticleRepo{fakeArticleRepo: articles, queue: queue}
 	syncUC.articles = atomic
-	uc := NewArticleUsecaseWithWechat(atomic, nil, syncUC)
+	uc := NewArticleUsecaseWithWechat(atomic, nil, syncUC, nil)
 	published := *a
 	published.Status = ArticleStatusPublished
 	if _, err := uc.UpdateArticle(context.Background(), &published); err != nil {

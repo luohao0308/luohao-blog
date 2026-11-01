@@ -132,3 +132,26 @@ func TestRoleSubject(t *testing.T) {
 		}
 	}
 }
+
+func TestSearchSyncPolicy(t *testing.T) {
+	authz := newTestAuthorizer(t)
+	for _, op := range []struct{ path, act string }{{"/v1/articles/{slug}/search-sync", "GET"}, {"/v1/articles/{slug}/search-sync/retry", "POST"}, {"/blog.v1.ArticleService/GetArticleSearchSync", "*"}, {"/blog.v1.ArticleService/RetryArticleSearchSync", "*"}} {
+		for _, subject := range []string{"public", "reader", "admin"} {
+			allowed := authz.Allowed(subject, op.path, op.act)
+			if allowed != (subject == "admin") {
+				t.Fatalf("%s %s = %v", subject, op.path, allowed)
+			}
+		}
+	}
+}
+
+func TestArticleRevisionPolicy(t *testing.T) {
+	a := newTestAuthorizer(t)
+	for _, op := range []struct{ path, act string }{{"/v1/articles/{slug}/revisions", "GET"}, {"/v1/articles/{slug}/revisions/{version}", "GET"}, {"/blog.v1.ArticleService/ListArticleRevisions", "*"}, {"/blog.v1.ArticleService/GetArticleRevision", "*"}} {
+		for _, role := range []string{"public", "reader", "admin"} {
+			if got := a.Allowed(role, op.path, op.act); got != (role == "admin") {
+				t.Fatalf("%s %s %v", role, op.path, got)
+			}
+		}
+	}
+}

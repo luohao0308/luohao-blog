@@ -307,6 +307,12 @@ paths:
                  INVALID_ARGUMENT if update_mask references unknown fields.
             operationId: ArticleService_UpdateArticle
             parameters:
+                - name: expected_version
+                  in: query
+                  required: true
+                  description: Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
+                  schema:
+                    type: string
                 - name: update_mask
                   in: query
                   description: |-
@@ -369,6 +375,12 @@ paths:
                   in: path
                   description: Unique slug of the article to delete.
                   required: true
+                  schema:
+                    type: string
+                - name: expected_version
+                  in: query
+                  required: true
+                  description: Required. Last-read version; zero is rejected with ARTICLE_VERSION_REQUIRED.
                   schema:
                     type: string
             responses:
@@ -438,6 +450,131 @@ paths:
                 "200":
                     description: OK
                     content: {}
+    /v1/articles/{slug}/revisions:
+        get:
+            tags:
+                - ArticleService
+            description: Administrator-only immutable revision metadata; bodies are returned by Get.
+            operationId: ArticleService_ListArticleRevisions
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ArticleRevisionSet'
+    /v1/articles/{slug}/revisions/{version}:
+        get:
+            tags:
+                - ArticleService
+            operationId: ArticleService_GetArticleRevision
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: version
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ArticleRevision'
+    /v1/articles/{slug}/revisions/{version}/restore:
+        post:
+            tags:
+                - ArticleService
+            description: Administrator-only content restoration; current publication state is preserved.
+            operationId: ArticleService_RestoreArticleRevision
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: version
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RestoreArticleRevisionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Article'
+    /v1/articles/{slug}/search-sync:
+        get:
+            tags:
+                - ArticleService
+            description: Administrator-only live index inspection and single-article repair.
+            operationId: ArticleService_GetArticleSearchSync
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ArticleSearchSyncStatus'
+    /v1/articles/{slug}/search-sync/retry:
+        post:
+            tags:
+                - ArticleService
+            description: Administrator-only repair using the current database version.
+            operationId: ArticleService_RetryArticleSearchSync
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.GetArticleSearchSyncRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.ArticleSearchSyncStatus'
     /v1/articles/{slug}/view:
         post:
             tags:
@@ -1376,6 +1513,9 @@ components:
                 - content_md
             type: object
             properties:
+                version:
+                    readOnly: true
+                    type: string
                 id:
                     type: string
                     description: Application-generated UUIDv7 identifier. Read-only on create.
@@ -1447,6 +1587,53 @@ components:
                     type: boolean
                     description: Whether editors have selected the article for featured placements.
             description: Article is the canonical representation of a blog article.
+        blog.v1.ArticleRevision:
+            type: object
+            properties:
+                article_slug:
+                    type: string
+                version:
+                    type: string
+                action:
+                    type: string
+                actor_id:
+                    type: string
+                created_at:
+                    type: string
+                    format: date-time
+                snapshot:
+                    allOf:
+                        - $ref: '#/components/schemas/blog.v1.Article'
+                    description: Detail only; safe HTML is rendered from the immutable Markdown at read time.
+                category_id:
+                    type: string
+                    description: 'Detail only: historical category identity, not a live foreign key.'
+        blog.v1.ArticleRevisionSet:
+            type: object
+            properties:
+                revisions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.ArticleRevision'
+                next_page_token:
+                    type: string
+        blog.v1.ArticleSearchSyncStatus:
+            type: object
+            properties:
+                article_slug:
+                    type: string
+                state:
+                    type: integer
+                    format: enum
+                can_retry:
+                    type: boolean
+                message:
+                    type: string
+                checked_at:
+                    type: string
+                    format: date-time
+                semantic_ready:
+                    type: boolean
         blog.v1.ArticleSet:
             type: object
             properties:
@@ -1558,6 +1745,9 @@ components:
                     type: integer
                     description: Explicit result, including degraded HTTP 200 responses.
                     format: enum
+                article_slug:
+                    type: string
+                    description: Effective scope, empty for corpus-wide requests.
             description: ChatReply is the retrieval-augmented answer.
         blog.v1.ChatRequest:
             required:
@@ -1567,10 +1757,13 @@ components:
                 query:
                     type: string
                     description: The visitor's question, answered from published article content.
-                topK:
+                top_k:
                     type: integer
                     description: Optional. How many articles to retrieve as context (1-8). Defaults to 4.
                     format: int32
+                article_slug:
+                    type: string
+                    description: Optional. Restrict context to this published article.
             description: ChatRequest is the input for ChatService.Chat.
         blog.v1.CitedArticle:
             type: object
@@ -1580,6 +1773,12 @@ components:
                 title:
                     type: string
                 summary:
+                    type: string
+                section_title:
+                    type: string
+                anchor:
+                    type: string
+                excerpt:
                     type: string
             description: CitedArticle identifies a retrieved reference candidate.
         blog.v1.Collection:
@@ -1605,7 +1804,7 @@ components:
                 id:
                     type: string
                     description: Application-generated UUIDv7 identifier. Read-only.
-                articleSlug:
+                article_slug:
                     type: string
                     description: Slug of the commented article.
                 displayName:
@@ -1671,11 +1870,11 @@ components:
                     description: New password; 8-1024 UTF-8 bytes.
         blog.v1.CreateCommentRequest:
             required:
-                - articleSlug
+                - article_slug
                 - content
             type: object
             properties:
-                articleSlug:
+                article_slug:
                     type: string
                     description: |-
                         Slug of the article being commented on. Must reference a PUBLISHED
@@ -1686,6 +1885,11 @@ components:
             description: |-
                 CreateCommentRequest is the input for CommentService.CreateComment. The
                  author is the authenticated caller; the payload carries no identity.
+        blog.v1.GetArticleSearchSyncRequest:
+            type: object
+            properties:
+                slug:
+                    type: string
         blog.v1.LoginReply:
             type: object
             properties:
@@ -1856,6 +2060,18 @@ components:
             properties:
                 email:
                     type: string
+        blog.v1.RestoreArticleRevisionRequest:
+            required:
+                - expected_version
+            type: object
+            properties:
+                slug:
+                    type: string
+                version:
+                    type: string
+                expected_version:
+                    type: string
+                    description: Required. Last-read current article version, not the historical version.
         blog.v1.RetryWechatSyncTaskRequest:
             required:
                 - id
@@ -2077,7 +2293,7 @@ components:
                 updated_at:
                     type: string
                     format: date-time
-                canRetry:
+                can_retry:
                     type: boolean
                 nextAttemptAt:
                     type: string

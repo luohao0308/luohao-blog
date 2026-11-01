@@ -144,7 +144,7 @@ func (gateArticleRepo) UpdateArticle(context.Context, *biz.Article) (*biz.Articl
 	return nil, biz.ErrArticleNotFound
 }
 
-func (gateArticleRepo) DeleteArticle(context.Context, string) error {
+func (gateArticleRepo) DeleteArticle(context.Context, string, uint64) error {
 	return biz.ErrArticleNotFound
 }
 

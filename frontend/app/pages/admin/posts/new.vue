@@ -16,7 +16,7 @@ const message = useMessage()
 let disposed = false
 onBeforeUnmount(() => { disposed = true })
 const submitting = ref(false)
-const formRef = ref<{ markSaved: (payload: FormPayload) => void, dirty: boolean } | null>(null)
+const formRef = ref<{ markSaved: (payload: FormPayload, version?: string) => void, dirty: boolean } | null>(null)
 const saveState = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 const saveLabel = computed(() => {
   if (saveState.value === 'saving') return '保存中…'
@@ -35,6 +35,7 @@ interface FormPayload {
   status: number
   cover_url: string
   featured: boolean
+  expected_version: string
 }
 
 // A chosen category rides as a CategoryBrief; an empty brief means
@@ -50,13 +51,14 @@ async function onSubmit(payload: FormPayload) {
   saveState.value = 'saving'
   const owner = formRef.value
   try {
+    const { expected_version: _version, ...content } = payload
     const article = await authFetch<Article>('/api/v1/articles/create', {
       method: 'POST',
-      body: { ...payload, category: categoryOf(payload) },
+      body: { ...content, category: categoryOf(payload) },
     })
     if (disposed || owner !== formRef.value)
       return
-    owner?.markSaved(payload)
+    owner?.markSaved(payload, article.version)
     saveState.value = 'saved'
     message.success('已创建')
     await navigateTo(`/admin/posts/${encodeURIComponent(article.slug)}/edit`)

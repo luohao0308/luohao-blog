@@ -15,6 +15,9 @@ type AccountEmailToken func(*sql.Selector)
 // Article is the predicate function for article builders.
 type Article func(*sql.Selector)
 
+// ArticleRevision is the predicate function for articlerevision builders.
+type ArticleRevision func(*sql.Selector)
+
 // Category is the predicate function for category builders.
 type Category func(*sql.Selector)
 

@@ -16,6 +16,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/about"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/accountemailtoken"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/articlerevision"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/category"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/collection"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
@@ -40,6 +41,7 @@ const (
 	TypeAbout             = "About"
 	TypeAccountEmailToken = "AccountEmailToken"
 	TypeArticle           = "Article"
+	TypeArticleRevision   = "ArticleRevision"
 	TypeCategory          = "Category"
 	TypeCollection        = "Collection"
 	TypeComment           = "Comment"
@@ -1801,6 +1803,8 @@ type ArticleMutation struct {
 	id                 *uuid.UUID
 	created_at         *time.Time
 	updated_at         *time.Time
+	version            *uint64
+	addversion         *int64
 	slug               *string
 	title              *string
 	summary            *string
@@ -2003,6 +2007,62 @@ func (m *ArticleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err er
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *ArticleMutation) ResetUpdatedAt() {
 	m.updated_at = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *ArticleMutation) SetVersion(u uint64) {
+	m.version = &u
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *ArticleMutation) Version() (r uint64, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the Article entity.
+// If the Article object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleMutation) OldVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds u to the "version" field.
+func (m *ArticleMutation) AddVersion(u int64) {
+	if m.addversion != nil {
+		*m.addversion += u
+	} else {
+		m.addversion = &u
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *ArticleMutation) AddedVersion() (r int64, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *ArticleMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
 }
 
 // SetSlug sets the "slug" field.
@@ -2707,12 +2767,15 @@ func (m *ArticleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ArticleMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, article.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, article.FieldUpdatedAt)
+	}
+	if m.version != nil {
+		fields = append(fields, article.FieldVersion)
 	}
 	if m.slug != nil {
 		fields = append(fields, article.FieldSlug)
@@ -2759,6 +2822,8 @@ func (m *ArticleMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case article.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case article.FieldVersion:
+		return m.Version()
 	case article.FieldSlug:
 		return m.Slug()
 	case article.FieldTitle:
@@ -2794,6 +2859,8 @@ func (m *ArticleMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldCreatedAt(ctx)
 	case article.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case article.FieldVersion:
+		return m.OldVersion(ctx)
 	case article.FieldSlug:
 		return m.OldSlug(ctx)
 	case article.FieldTitle:
@@ -2838,6 +2905,13 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case article.FieldVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
 		return nil
 	case article.FieldSlug:
 		v, ok := value.(string)
@@ -2924,6 +2998,9 @@ func (m *ArticleMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *ArticleMutation) AddedFields() []string {
 	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, article.FieldVersion)
+	}
 	if m.addstatus != nil {
 		fields = append(fields, article.FieldStatus)
 	}
@@ -2941,6 +3018,8 @@ func (m *ArticleMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *ArticleMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case article.FieldVersion:
+		return m.AddedVersion()
 	case article.FieldStatus:
 		return m.AddedStatus()
 	case article.FieldViewCount:
@@ -2956,6 +3035,13 @@ func (m *ArticleMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *ArticleMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case article.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
 	case article.FieldStatus:
 		v, ok := value.(biz.ArticleStatus)
 		if !ok {
@@ -3042,6 +3128,9 @@ func (m *ArticleMutation) ResetField(name string) error {
 		return nil
 	case article.FieldUpdatedAt:
 		m.ResetUpdatedAt()
+		return nil
+	case article.FieldVersion:
+		m.ResetVersion()
 		return nil
 	case article.FieldSlug:
 		m.ResetSlug()
@@ -3206,6 +3295,666 @@ func (m *ArticleMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Article edge %s", name)
+}
+
+// ArticleRevisionMutation represents an operation that mutates the ArticleRevision nodes in the graph.
+type ArticleRevisionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	article_id    *uuid.UUID
+	version       *uint64
+	addversion    *int64
+	action        *string
+	actor_id      *uuid.UUID
+	created_at    *time.Time
+	snapshot      **biz.ArticleRevisionSnapshot
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*ArticleRevision, error)
+	predicates    []predicate.ArticleRevision
+}
+
+var _ ent.Mutation = (*ArticleRevisionMutation)(nil)
+
+// articlerevisionOption allows management of the mutation configuration using functional options.
+type articlerevisionOption func(*ArticleRevisionMutation)
+
+// newArticleRevisionMutation creates new mutation for the ArticleRevision entity.
+func newArticleRevisionMutation(c config, op Op, opts ...articlerevisionOption) *ArticleRevisionMutation {
+	m := &ArticleRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeArticleRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withArticleRevisionID sets the ID field of the mutation.
+func withArticleRevisionID(id uuid.UUID) articlerevisionOption {
+	return func(m *ArticleRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ArticleRevision
+		)
+		m.oldValue = func(ctx context.Context) (*ArticleRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ArticleRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withArticleRevision sets the old ArticleRevision of the mutation.
+func withArticleRevision(node *ArticleRevision) articlerevisionOption {
+	return func(m *ArticleRevisionMutation) {
+		m.oldValue = func(context.Context) (*ArticleRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ArticleRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ArticleRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ArticleRevision entities.
+func (m *ArticleRevisionMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ArticleRevisionMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ArticleRevisionMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ArticleRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetArticleID sets the "article_id" field.
+func (m *ArticleRevisionMutation) SetArticleID(u uuid.UUID) {
+	m.article_id = &u
+}
+
+// ArticleID returns the value of the "article_id" field in the mutation.
+func (m *ArticleRevisionMutation) ArticleID() (r uuid.UUID, exists bool) {
+	v := m.article_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticleID returns the old "article_id" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldArticleID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticleID: %w", err)
+	}
+	return oldValue.ArticleID, nil
+}
+
+// ResetArticleID resets all changes to the "article_id" field.
+func (m *ArticleRevisionMutation) ResetArticleID() {
+	m.article_id = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *ArticleRevisionMutation) SetVersion(u uint64) {
+	m.version = &u
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *ArticleRevisionMutation) Version() (r uint64, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds u to the "version" field.
+func (m *ArticleRevisionMutation) AddVersion(u int64) {
+	if m.addversion != nil {
+		*m.addversion += u
+	} else {
+		m.addversion = &u
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *ArticleRevisionMutation) AddedVersion() (r int64, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *ArticleRevisionMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetAction sets the "action" field.
+func (m *ArticleRevisionMutation) SetAction(s string) {
+	m.action = &s
+}
+
+// Action returns the value of the "action" field in the mutation.
+func (m *ArticleRevisionMutation) Action() (r string, exists bool) {
+	v := m.action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAction returns the old "action" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldAction(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAction: %w", err)
+	}
+	return oldValue.Action, nil
+}
+
+// ResetAction resets all changes to the "action" field.
+func (m *ArticleRevisionMutation) ResetAction() {
+	m.action = nil
+}
+
+// SetActorID sets the "actor_id" field.
+func (m *ArticleRevisionMutation) SetActorID(u uuid.UUID) {
+	m.actor_id = &u
+}
+
+// ActorID returns the value of the "actor_id" field in the mutation.
+func (m *ArticleRevisionMutation) ActorID() (r uuid.UUID, exists bool) {
+	v := m.actor_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorID returns the old "actor_id" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldActorID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorID: %w", err)
+	}
+	return oldValue.ActorID, nil
+}
+
+// ClearActorID clears the value of the "actor_id" field.
+func (m *ArticleRevisionMutation) ClearActorID() {
+	m.actor_id = nil
+	m.clearedFields[articlerevision.FieldActorID] = struct{}{}
+}
+
+// ActorIDCleared returns if the "actor_id" field was cleared in this mutation.
+func (m *ArticleRevisionMutation) ActorIDCleared() bool {
+	_, ok := m.clearedFields[articlerevision.FieldActorID]
+	return ok
+}
+
+// ResetActorID resets all changes to the "actor_id" field.
+func (m *ArticleRevisionMutation) ResetActorID() {
+	m.actor_id = nil
+	delete(m.clearedFields, articlerevision.FieldActorID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ArticleRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ArticleRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ArticleRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *ArticleRevisionMutation) SetSnapshot(brs *biz.ArticleRevisionSnapshot) {
+	m.snapshot = &brs
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *ArticleRevisionMutation) Snapshot() (r *biz.ArticleRevisionSnapshot, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the ArticleRevision entity.
+// If the ArticleRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ArticleRevisionMutation) OldSnapshot(ctx context.Context) (v *biz.ArticleRevisionSnapshot, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *ArticleRevisionMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// Where appends a list predicates to the ArticleRevisionMutation builder.
+func (m *ArticleRevisionMutation) Where(ps ...predicate.ArticleRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ArticleRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ArticleRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ArticleRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ArticleRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ArticleRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ArticleRevision).
+func (m *ArticleRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ArticleRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.article_id != nil {
+		fields = append(fields, articlerevision.FieldArticleID)
+	}
+	if m.version != nil {
+		fields = append(fields, articlerevision.FieldVersion)
+	}
+	if m.action != nil {
+		fields = append(fields, articlerevision.FieldAction)
+	}
+	if m.actor_id != nil {
+		fields = append(fields, articlerevision.FieldActorID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, articlerevision.FieldCreatedAt)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, articlerevision.FieldSnapshot)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ArticleRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case articlerevision.FieldArticleID:
+		return m.ArticleID()
+	case articlerevision.FieldVersion:
+		return m.Version()
+	case articlerevision.FieldAction:
+		return m.Action()
+	case articlerevision.FieldActorID:
+		return m.ActorID()
+	case articlerevision.FieldCreatedAt:
+		return m.CreatedAt()
+	case articlerevision.FieldSnapshot:
+		return m.Snapshot()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ArticleRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case articlerevision.FieldArticleID:
+		return m.OldArticleID(ctx)
+	case articlerevision.FieldVersion:
+		return m.OldVersion(ctx)
+	case articlerevision.FieldAction:
+		return m.OldAction(ctx)
+	case articlerevision.FieldActorID:
+		return m.OldActorID(ctx)
+	case articlerevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case articlerevision.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	}
+	return nil, fmt.Errorf("unknown ArticleRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ArticleRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case articlerevision.FieldArticleID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticleID(v)
+		return nil
+	case articlerevision.FieldVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case articlerevision.FieldAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAction(v)
+		return nil
+	case articlerevision.FieldActorID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorID(v)
+		return nil
+	case articlerevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case articlerevision.FieldSnapshot:
+		v, ok := value.(*biz.ArticleRevisionSnapshot)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ArticleRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ArticleRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, articlerevision.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ArticleRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case articlerevision.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ArticleRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case articlerevision.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ArticleRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ArticleRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(articlerevision.FieldActorID) {
+		fields = append(fields, articlerevision.FieldActorID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ArticleRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ArticleRevisionMutation) ClearField(name string) error {
+	switch name {
+	case articlerevision.FieldActorID:
+		m.ClearActorID()
+		return nil
+	}
+	return fmt.Errorf("unknown ArticleRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ArticleRevisionMutation) ResetField(name string) error {
+	switch name {
+	case articlerevision.FieldArticleID:
+		m.ResetArticleID()
+		return nil
+	case articlerevision.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case articlerevision.FieldAction:
+		m.ResetAction()
+		return nil
+	case articlerevision.FieldActorID:
+		m.ResetActorID()
+		return nil
+	case articlerevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case articlerevision.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	}
+	return fmt.Errorf("unknown ArticleRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ArticleRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ArticleRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ArticleRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ArticleRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ArticleRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ArticleRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ArticleRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ArticleRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ArticleRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ArticleRevision edge %s", name)
 }
 
 // CategoryMutation represents an operation that mutates the Category nodes in the graph.

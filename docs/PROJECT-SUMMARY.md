@@ -149,3 +149,9 @@ _更新方式：只在稳定事实、仓库拓扑、模块边界、技术决策�
 - Milkdown正文通过同步ProseMirror事务维护，不依赖200ms防抖回调；文章表单保存快照、离开提醒和保存中继续编辑彼此隔离。初始化失败可在Markdown源码退路继续编辑/保存，无持久草稿或自动发布。
 - 本地浏览器入口与共享真实Go渲染fixture见[scripts/e2e/README.md](../scripts/e2e/README.md)的T-018章节；前端纯逻辑测试 `node --test tests/*.test.cjs` 已纳入现有CI通配入口。
 - 当前Crepe图片块会规范化Markdown图片alt为比例；本地Remark适配将缺省title转为空字符串，修复无title图片被schema静默丢弃。媒体回归按真实节点、URL及编辑/撤销/保存/刷新验证，不以alt字面量替代保图验收。
+
+## 文章版本与修订
+
+- Article.version采用数据库标量CAS，更新/删除必须提交expected_version；缺少400、过期409；uint64在JSON中用字符串。
+- 迁移17增加version、18增加不可变修订表；正文/关联/历史/outbox同事务。管理员List/Get与Restore接口见 [契约](contracts/ARTICLE-REVISIONS.md)。
+- 恢复生成新修订，保留当前发布状态/计数；分类ID及托管封面校验；后台差异计算有界，旧基准与本地草稿不自动重绑。

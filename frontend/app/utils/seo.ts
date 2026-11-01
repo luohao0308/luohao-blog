@@ -2,19 +2,22 @@ export const DEFAULT_SEO_DESCRIPTION = 'luohao 的个人技术博客，记录 Py
 export const DEFAULT_SEO_IMAGE = '/og-default.jpg'
 
 export function siteOrigin(value: string): string {
-  const url = new URL(value)
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
-    throw new Error('invalid public site origin')
-  return url.origin
+  try {
+    const url = new URL(value)
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password
+      || url.pathname !== '/' || url.search || url.hash) return ''
+    return url.origin
+  } catch { return '' }
 }
 
 export function siteURL(origin: string, path: string): string {
-  if (path.startsWith('//') || path.includes('\\') || /[\r\n]/.test(path)) throw new Error('invalid site path')
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
   const trustedOrigin = siteOrigin(origin)
-  const url = new URL(normalizedPath, `${trustedOrigin}/`)
-  if (url.origin !== trustedOrigin) throw new Error('site path escaped origin')
-  return url.toString()
+  if (!trustedOrigin || path.startsWith('//') || path.includes('\\') || /[\r\n]/.test(path)) return ''
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  try {
+    const url = new URL(normalizedPath, `${trustedOrigin}/`)
+    return url.origin === trustedOrigin ? url.toString() : ''
+  } catch { return '' }
 }
 
 export function publicAssetPath(path?: string | null): string {

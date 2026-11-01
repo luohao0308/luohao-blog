@@ -22,14 +22,21 @@ func NewChatService(uc *biz.ChatUsecase) *ChatService {
 // Chat answers one question with citations. The client IP feeds the
 // per-IP question budget (same derivation as the comment throttler).
 func (s *ChatService) Chat(ctx context.Context, req *v1.ChatRequest) (*v1.ChatReply, error) {
-	answer, err := s.uc.Ask(ctx, req.GetQuery(), int(req.GetTopK()), clientIP(ctx))
+	var answer *biz.ChatAnswer
+	var err error
+	if req.GetArticleSlug() != "" {
+		answer, err = s.uc.AskArticle(ctx, req.GetQuery(), req.GetArticleSlug(), clientIP(ctx))
+	} else {
+		answer, err = s.uc.Ask(ctx, req.GetQuery(), int(req.GetTopK()), clientIP(ctx))
+	}
 	if err != nil {
 		return nil, err
 	}
 	reply := &v1.ChatReply{
-		Answer:    answer.Answer,
-		Outcome:   v1.ChatOutcome(answer.Outcome),
-		Citations: make([]*v1.CitedArticle, 0, len(answer.Citations)),
+		Answer:      answer.Answer,
+		ArticleSlug: answer.ArticleSlug,
+		Outcome:     v1.ChatOutcome(answer.Outcome),
+		Citations:   make([]*v1.CitedArticle, 0, len(answer.Citations)),
 	}
 	for _, a := range answer.Citations {
 		reply.Citations = append(reply.Citations, &v1.CitedArticle{
@@ -37,6 +44,9 @@ func (s *ChatService) Chat(ctx context.Context, req *v1.ChatRequest) (*v1.ChatRe
 			Title:   a.Title,
 			Summary: a.Summary,
 		})
+	}
+	for _, section := range answer.Sections {
+		reply.Citations = append(reply.Citations, &v1.CitedArticle{Slug: section.Slug, Title: section.Title, Summary: section.Summary, SectionTitle: section.SectionTitle, Anchor: section.Anchor, Excerpt: section.Excerpt})
 	}
 	return reply, nil
 }

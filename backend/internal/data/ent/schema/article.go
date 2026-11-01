@@ -25,6 +25,7 @@ func (Article) Mixin() []ent.Mixin {
 // Fields of the Article.
 func (Article) Fields() []ent.Field {
 	return []ent.Field{
+ field.Uint64("version").Default(1),
 		// slug is the public identifier: unique, URL-safe ([a-z0-9-]),
 		// and immutable after creation. Validation of the format happens at
 		// the biz layer; the schema only guarantees non-empty uniqueness.

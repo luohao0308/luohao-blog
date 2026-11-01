@@ -30,7 +30,7 @@ func TestCollectionHTTPLifecycle(t *testing.T) {
 	articles := biz.NewArticleUsecase(articleRepo, nil)
 	for i := 0; i < 105; i++ {
 		slug := fmt.Sprintf("collection-fixture-%03d", i)
-		created, err := articles.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "body"})
+		created, err := articles.CreateArticle(ctx, &biz.Article{Slug: slug, Title: slug, ContentMD: "body", Version: 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,14 +39,14 @@ func TestCollectionHTTPLifecycle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := articles.CreateArticle(ctx, &biz.Article{Slug: "collection-hidden-draft", Title: "draft", ContentMD: "body"}); err != nil {
+	if _, err := articles.CreateArticle(ctx, &biz.Article{Slug: "collection-hidden-draft", Title: "draft", ContentMD: "body", Version: 1}); err != nil {
 		t.Fatal(err)
 	}
-	deleted, err := articles.CreateArticle(ctx, &biz.Article{Slug: "collection-hidden-deleted", Title: "deleted", ContentMD: "body"})
+	deleted, err := articles.CreateArticle(ctx, &biz.Article{Slug: "collection-hidden-deleted", Title: "deleted", ContentMD: "body", Version: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = articles.DeleteArticle(ctx, deleted.Slug); err != nil {
+	if err = articles.DeleteArticle(ctx, deleted.Slug, 1); err != nil {
 		t.Fatal(err)
 	}
 	sessions := NewSessionRepo(rdb)
