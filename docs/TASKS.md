@@ -12,7 +12,7 @@ _last-updated: 2026-11-02_
 
 ## 进行中 (In Progress)
 
-- [~] 2026-11-02 文章修订及此前能力交付发布：用户已要求提交发布，本地交付准备中；版本/生产迁移边界见 [发布准备](plans/ARTICLE-REVISIONS-RELEASE-2026-11.md)。远端/生产操作按准确版本守卫执行。
+- [~] 2026-11-02 文章修订及此前能力交付发布：已创建 Issue #122 / PR #123；首次 CI 因身份集成测试库停在 v16、缺少文章 version 列失败。已本地修复测试库升级顺序，完整 MySQL/Redis/HTTP 测试零跳过通过；等待修复提交的准确版本授权后更新 PR，尚未合并或生产迁移。边界见 [发布准备](plans/ARTICLE-REVISIONS-RELEASE-2026-11.md)。
 
 
 - 图文内容与创作者封面：用户已批准并指定 SSH 上线；在最新 main 隔离集成，代码/内容清单已完成本地验证。发布步骤与边界见 [发布计划](plans/CREATOR-CONTENT-RELEASE-2026-10.md)。

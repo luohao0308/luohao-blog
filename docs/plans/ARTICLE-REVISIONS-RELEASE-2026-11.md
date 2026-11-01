@@ -24,3 +24,11 @@
 - required CI、镜像构建、备份完整性、迁移dirty或关键冒烟任一失败就停止，不能用force version或down migration掩盖。
 - schema升级至18后，旧v16后端可能因缺少该迁移源拒绝启动，不能简单切回旧backend镜像。前端可在独立授权下回退并停写；后端恢复须用兼容schema18的修复版本，或针对准确备份另行授权数据恢复。
 - 此准备文件和概括发布请求不替代交付守卫要求的准确版本一次性授权；不能自行修改持久gitPolicy或复用过去已消费的grant。
+
+## PR 检查修复
+
+- Issue [#122](https://github.com/luohao0308/luohao-blog/issues/122)、PR [#123](https://github.com/luohao0308/luohao-blog/pull/123) 已按授权创建，首次 head 为 `6b01b1158d223d8c7dd2af69fa230ef5b077c0ed`。
+- CI [41331172877](https://github.com/luohao0308/luohao-blog/actions/runs/41331172877) 的前端/小程序通过，后端真实身份集成测试失败。本地隔离复现确认 `TestWechatHTTPDisabledMySQLPreservesWebsiteAuthAndRead` 查询 `articles.version` 时，fixture 仍为 schema16。
+- 保留 backfill CLI 仅允许 clean schema16 的门禁及原有回填/备份恢复检查；这些步骤完成后，仅把应用测试主库迁移至当前嵌入版本18，再运行原完整 TestWechat 列表。备份恢复库仍验证16；升级检查旧文章列、用户、身份绑定不变，版本默认1、修订表为空及迁移幂等。
+- 新鲜本地验证：`python3 -m unittest discover -s scripts -p test_wechat_identity_test.py`（3项通过）；`python3 scripts/test_wechat_identity.py`（真实 MySQL/Redis/HTTP 全通过、零跳过，v15→16回填/备份恢复及应用升级18均通过）；`git diff --check` 通过。脚本修复不改应用运行时代码。
+- 首次 push/PR 一次性授权已消费；修复提交改变 head SHA，需要重新绑定准确版本后更新 PR。尚未合并、构建发布镜像或操作生产。
