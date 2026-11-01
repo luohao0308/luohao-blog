@@ -23,6 +23,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
@@ -85,19 +86,20 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			about.Table:             about.ValidColumn,
-			accountemailtoken.Table: accountemailtoken.ValidColumn,
-			article.Table:           article.ValidColumn,
-			articlerevision.Table:   articlerevision.ValidColumn,
-			category.Table:          category.ValidColumn,
-			collection.Table:        collection.ValidColumn,
-			comment.Table:           comment.ValidColumn,
-			project.Table:           project.ValidColumn,
-			subscriber.Table:        subscriber.ValidColumn,
-			tag.Table:               tag.ValidColumn,
-			user.Table:              user.ValidColumn,
-			wechatidentity.Table:    wechatidentity.ValidColumn,
-			wechatsynctask.Table:    wechatsynctask.ValidColumn,
+			about.Table:              about.ValidColumn,
+			accountemailtoken.Table:  accountemailtoken.ValidColumn,
+			article.Table:            article.ValidColumn,
+			articlerevision.Table:    articlerevision.ValidColumn,
+			category.Table:           category.ValidColumn,
+			collection.Table:         collection.ValidColumn,
+			comment.Table:            comment.ValidColumn,
+			project.Table:            project.ValidColumn,
+			subscriber.Table:         subscriber.ValidColumn,
+			tag.Table:                tag.ValidColumn,
+			user.Table:               user.ValidColumn,
+			wechatcommentcheck.Table: wechatcommentcheck.ValidColumn,
+			wechatidentity.Table:     wechatidentity.ValidColumn,
+			wechatsynctask.Table:     wechatsynctask.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -100,7 +100,18 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	commentRateLimiter := data.NewCommentRateLimiter(universalClient, auth)
 	commentModerationPolicy := data.NewCommentModerationPolicy(auth)
 	commentUsecase := biz.NewCommentUsecase(commentRepo, articleUsecase, userUsecase, commentRateLimiter, commentModerationPolicy)
-	commentService := service.NewCommentService(commentUsecase)
+	miniContentIdentityUsecase := biz.NewMiniContentIdentityUsecase(userUsecase, wechatClient)
+	wechatSafetyCache, cleanup2 := data.NewWechatSafetyCache(confData)
+	contentSafetyChecker, err := data.NewConfiguredWechatContentSafetyClient(wechat, confData, wechatSafetyCache)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	miniCommentRepo := data.NewMiniCommentRepo(dataData)
+	miniCommentLimiter := data.NewMiniCommentLimiter(wechatSafetyCache, auth)
+	miniCommentUsecase := biz.NewMiniCommentUsecase(commentUsecase, miniContentIdentityUsecase, contentSafetyChecker, miniCommentRepo, miniCommentLimiter)
+	commentService := service.NewCommentServiceWithMini(commentUsecase, miniCommentUsecase)
 	subscriberRepo := data.NewSubscriberRepo(dataData)
 	subscribeRateLimiter := data.NewSubscribeRateLimiter(universalClient)
 	subscriberUsecase := biz.NewSubscriberUsecase(subscriberRepo, subscribeRateLimiter)
@@ -115,6 +126,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	grpcServer := server.NewGRPCServer(confServer, tokenIssuer, authorizer, articleService, categoryService, projectService, aboutService, collectionService, authService, mediaService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	avatarStore, err := data.NewAvatarStore(confData)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
@@ -122,11 +134,13 @@ func wireApp(confServer *conf.Server, confData *conf.Data, auth *conf.Auth, wech
 	userService := service.NewUserService(userUsecase, avatarUsecase)
 	httpServer, err := server.NewHTTPServer(confServer, tokenIssuer, authorizer, articleService, categoryService, projectService, aboutService, collectionService, authService, userService, mediaService, commentService, subscriberService, articleSearchService, chatService, officialAccountService)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	app := newApp(logger, grpcServer, httpServer, wechatSyncUsecase, accountEmailUsecase)
 	return app, func() {
+		cleanup2()
 		cleanup()
 	}, nil
 }

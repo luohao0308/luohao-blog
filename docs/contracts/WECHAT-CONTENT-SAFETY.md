@@ -1,6 +1,6 @@
 # 小程序公开评论内容安全契约
 
-状态：S1基础已实现、S2消费者/持久化契约待接入。关联[批准方案](../plans/MINIPROGRAM-CONTENT-SAFETY-2026-11.md)。
+状态：S1/S2已实现并完成隔离回归，真实MySQL与端到端验收在S3进行。关联[批准方案](../plans/MINIPROGRAM-CONTENT-SAFETY-2026-11.md)。
 
 ## 安全边界
 
@@ -25,7 +25,7 @@
 
 ## S2接口及持久化要求
 
-拟新增专用公开列表、已认证提交、作者本人列表与作者重检接口。DTO不携带OpenID/AppID；私有列表仅按JWT账号读取。公开投影不装饰未经媒体检测的头像。
+已新增专用公开列表、已认证提交、作者本人列表与作者重检接口（MiniCommentService）：GET /v1/mini/articles/{slug}/comments；POST /v1/mini/comments；GET /v1/mini/articles/{slug}/comments/mine；POST /v1/mini/comments/{id}/recheck。DTO不携带OpenID/AppID；私有列表仅按JWT账号读取。公开投影不装饰未经媒体检测的头像。
 
 提交必须先原子创建PENDING评论和检测记录，随后对该实际快照发起两个场景检查，网络调用不得占用SQL事务。不能先检测再调用会重新读取昵称并自动公开的旧Submit。仅两场景pass、原有本地审核允许且限流健康时，初次检查才能自动批准；否则保留原有人工审核门禁。
 
@@ -38,3 +38,14 @@
 ## 必须保留的验证
 
 两场景pass/review/risky及上游异常；不同AppID/账号错配和无身份；检测期间改昵称、审批和删除；旧代pass晚到；lease恢复；未审历史/网站评论不进入mini；管理员批准不绕过；失效哈希分页；作者跨账号读取拒绝；所有错误/日志不泄漏凭据。固定HTTP/Redis及真实数据库测试使用合成数据，不联系正式微信接口。
+
+## 接线、消费者与恢复
+
+- 新增迁移19及wechat_comment_checks表，不回填旧内容为pass。author删除级联清理，identity删除置空使旧证据失效；comment删除清正文和检测凭据，最小创建tombstone继续阻止同键重建。
+- wechat.content_safety_enabled默认false；正式启用还要求既有WeChat登录配置完整、Redis地址明确、数据库debug关闭。专用Redis池启用ContextTimeoutEnabled、独立清理和有限I/O，不修改网站共享Redis选项；限流仍沿用既有账号/IP预算键。
+- 返回MiniCommentRecord包含comment、数字safety_state、visible、can_recheck和固定safety_error；数字状态0/1/2/3/4/5/6分别为unknown/checking/pass/review/risky/unavailable/deleted，不返回身份、hash、trace或令牌。公开输出头像为空。已通过态若缺必要双trace或指纹失效，会降为unknown并允许重新检测。
+- 错误码87014作为确定风险终态，不转换成鼓励重试的服务故障；负向风险没有成功trace也不能成为pass。缺失通过态trace仍不放行。
+- 小程序全量切换四条专用路径，不回退Web；本人项按账号/文章与公开项合并、去重并使用visible判断。创建请求键按账号/文章/规范化正文保存，网络失败保留；新body或明确成功才更新意图，删除storage时匹配已确认requestID。新存储不包含微信code或Token。
+- 私有异步调用绑定账号与身份epoch：首次发送、刷新前后和重放前后检查；普通同账号token轮换不更改epoch，退出/切账号/重新登录使旧调用失效。刷新失败同步清除私有UI，卸载失效全部相关回调，不让旧成功清掉新页意图。
+- 检测业务总截止20秒；小程序创建/重检超时25秒并传递同一身份guard。每次服务端检测调用5秒上界，依次使用资料和评论场景，不在SQL事务中等待微信。正常错误保存待检结果，已持久化后检测确认丢失仍返回可找回的receipt；明确删除返回410而不回显旧待审对象。
+- 小程序本地保存草稿/提交凭据及向微信发送公开昵称与评论文本的用途需在正式联调前与隐私内容核对；不从“已更新/已声明”推断这些新增数据流已获说明。0.1.0旧开发包未切换安全路径，不作为本实现完成后的提审候选。

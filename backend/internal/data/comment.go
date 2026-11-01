@@ -7,6 +7,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
 
 	"github.com/go-kratos/aip-go/ents"
 	"github.com/google/uuid"
@@ -141,14 +142,27 @@ func (r *commentRepo) Approve(ctx context.Context, id uuid.UUID) (*biz.Comment, 
 // Delete removes a comment row permanently; comments are not soft-deleted
 // because they carry no history worth retaining.
 func (r *commentRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	affected, err := r.data.db.Comment.Delete().
-		Where(comment.IDEQ(id)).
-		Exec(ctx)
+	tx, err := r.data.db.Tx(ctx)
 	if err != nil {
-		return err
+		return biz.ErrContentSafetyUnavailable
 	}
-	if affected == 0 {
-		return biz.ErrCommentNotFound
+	defer func() { _ = tx.Rollback() }()
+	db := tx.Client()
+	if _, err = lockMiniComment(ctx, db, id); err != nil {
+		return miniDataError(err)
+	}
+	_, err = db.WechatCommentCheck.Update().Where(wechatcommentcheck.CommentIDEQ(id), wechatcommentcheck.ClientRequestIDNotNil()).SetState(string(biz.MiniCommentDeleted)).ClearIdentityID().SetInputHash("").SetNameTraceID("").SetContentTraceID("").ClearCheckedAt().SetErrorKind("").ClearLeaseUntil().AddGeneration(1).Save(ctx)
+	if err != nil {
+		return biz.ErrContentSafetyUnavailable
+	}
+	if _, err = db.WechatCommentCheck.Delete().Where(wechatcommentcheck.CommentIDEQ(id), wechatcommentcheck.ClientRequestIDIsNil()).Exec(ctx); err != nil {
+		return biz.ErrContentSafetyUnavailable
+	}
+	if err = db.Comment.DeleteOneID(id).Exec(ctx); err != nil {
+		return miniDataError(err)
+	}
+	if err = tx.Commit(); err != nil {
+		return biz.ErrContentSafetyUnavailable
 	}
 	return nil
 }

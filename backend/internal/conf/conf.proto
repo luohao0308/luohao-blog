@@ -67,6 +67,9 @@ message Wechat {
   string app_secret = 2;
   // Explicitly enables login and binding only when both credentials are set.
   bool enabled = 3;
+  // Explicit opt-in for server-side mini-program public-comment checks.
+  // Absent/false never sends comment text or profile snapshots to WeChat.
+  bool content_safety_enabled = 4;
 }
 
 message Llm {

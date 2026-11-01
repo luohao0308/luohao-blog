@@ -96,6 +96,8 @@ wechat:
   # git-ignored secrets file. Both login and binding require enabled=true
   # and complete credentials; deployments default to disabled.
   enabled: false # Override with KRATOS_WECHAT_ENABLED after typed config scan.
+  # Separate opt-in; verify privacy purposes and authorize live checks first.
+  content_safety_enabled: false
   app_id: ${WECHAT_APP_ID:}
   app_secret: ${WECHAT_APP_SECRET:}
 

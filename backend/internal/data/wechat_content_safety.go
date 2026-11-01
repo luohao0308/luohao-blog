@@ -146,6 +146,11 @@ func (c *wechatContentSafetyClient) CheckText(ctx context.Context, input biz.Con
 		return zero, biz.ErrContentSafetyUnavailable
 	}
 	switch *response.ErrCode {
+	case 87014:
+		// The generic WeChat error table identifies this as rejected content.
+		// It has no v2 success trace; keep it terminal and non-public instead
+		// of offering repeated retries as if the service were unavailable.
+		return biz.ContentSafetyResult{Decision: biz.ContentSafetyRisky}, nil
 	case 40001, 40014, 42001:
 		// Do not invalidate a token installed concurrently by another instance.
 		_ = c.redis.Eval(ctx, `if redis.call('GET',KEYS[1]) == ARGV[1] then return redis.call('DEL',KEYS[1]) end return 0`, []string{c.tokenKey()}, token).Err()

@@ -1226,6 +1226,102 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/mini/articles/{slug}/comments:
+        get:
+            tags:
+                - MiniCommentService
+            operationId: MiniCommentService_ListMiniArticleComments
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.CommentSet'
+    /v1/mini/articles/{slug}/comments/mine:
+        get:
+            tags:
+                - MiniCommentService
+            operationId: MiniCommentService_ListMyMiniArticleComments
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.MiniCommentRecords'
+    /v1/mini/comments:
+        post:
+            tags:
+                - MiniCommentService
+            operationId: MiniCommentService_CreateMiniComment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.CreateMiniCommentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.MiniCommentRecord'
+    /v1/mini/comments/{id}/recheck:
+        post:
+            tags:
+                - MiniCommentService
+            operationId: MiniCommentService_RecheckMiniComment
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.RecheckMiniCommentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.MiniCommentRecord'
     /v1/projects/list:
         get:
             tags:
@@ -1885,6 +1981,21 @@ components:
             description: |-
                 CreateCommentRequest is the input for CommentService.CreateComment. The
                  author is the authenticated caller; the payload carries no identity.
+        blog.v1.CreateMiniCommentRequest:
+            type: object
+            properties:
+                article_slug:
+                    type: string
+                content:
+                    type: string
+                wechatCode:
+                    type: string
+                    description: |-
+                        Required for a new creation; an existing idempotent receipt can be read
+                         without consuming another single-use code.
+                clientRequestId:
+                    type: string
+                    description: Stable for a single account/slug/normalized-content submission intent.
         blog.v1.GetArticleSearchSyncRequest:
             type: object
             properties:
@@ -1960,6 +2071,31 @@ components:
                 url:
                     type: string
                     description: Site-relative immutable URL under /v1/assets/media/.
+        blog.v1.MiniCommentRecord:
+            type: object
+            properties:
+                comment:
+                    $ref: '#/components/schemas/blog.v1.Comment'
+                safetyState:
+                    type: integer
+                    format: enum
+                visible:
+                    type: boolean
+                    description: Distinct from the shared website approval state.
+                canRecheck:
+                    type: boolean
+                safetyError:
+                    type: string
+                    description: Fixed category only, never raw upstream errors, identities or trace IDs.
+        blog.v1.MiniCommentRecords:
+            type: object
+            properties:
+                records:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/blog.v1.MiniCommentRecord'
+                next_page_token:
+                    type: string
         blog.v1.Project:
             required:
                 - slug
@@ -2023,6 +2159,13 @@ components:
                     items:
                         $ref: '#/components/schemas/blog.v1.Project'
                 next_page_token:
+                    type: string
+        blog.v1.RecheckMiniCommentRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                wechatCode:
                     type: string
         blog.v1.RefreshRequest:
             type: object
@@ -2365,6 +2508,11 @@ tags:
          open and submissions are rate limited per client IP and account.
     - name: MediaService
       description: MediaService stores article images on the persistent uploads volume.
+    - name: MiniCommentService
+      description: |-
+        This service always uses the mini-program safety projection. Its path is not
+         proof of caller origin; writes bind a fresh WeChat code to authenticated JWT
+         ownership. Existing website comment routes retain their separate behavior.
     - name: OfficialAccountService
       description: Administrative delivery status only; no account credentials are exposed.
     - name: ProjectService

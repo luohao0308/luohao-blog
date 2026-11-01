@@ -52,15 +52,16 @@
         <view class="comment-body">
           <view class="comment-head">
             <text class="comment-name">{{item.name}}</text>
-            <text wx:if="{{item.pending}}" class="comment-pending">审核中</text>
+            <text wx:if="{{item.pending}}" class="comment-pending">{{item.safetyLabel || '审核中'}}</text>
             <text class="comment-date">{{item.dateText}}</text>
           </view>
           <view class="comment-content">{{item.content}}</view>
+          <button wx:if="{{item.canRecheck}}" size="mini" data-id="{{item.id}}" bindtap="retryCommentSafety" loading="{{retryingCommentId === item.id}}" disabled="{{!!retryingCommentId}}">重试安全检测</button>
         </view>
       </view>
 
-      <view wx:if="{{!commentsFinished}}" class="comments-more {{commentLoading ? 'comments-more-disabled' : ''}}" bindtap="loadMoreComments">
-        {{commentLoading ? '加载中…' : '加载更多评论'}}
+      <view wx:if="{{!commentsFinished || (canComment && !mineFinished)}}" class="comments-more {{commentLoading || mineLoading ? 'comments-more-disabled' : ''}}" bindtap="loadMoreComments">
+        {{commentLoading || mineLoading ? '加载中…' : '加载更多评论'}}
       </view>
     </view>
   </view>

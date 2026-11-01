@@ -1,5 +1,6 @@
-import { http } from './request'
-import type { Article, ArticleSet, Comment, CommentSet, WechatLoginReply, ChatReply } from './types'
+import { http, UnauthorizedError } from './request'
+import { currentAccount, currentIdentityEpoch, clearSession } from './auth'
+import type { Article, ArticleSet, CommentSet, MiniCommentRecord, MiniCommentRecords, WechatLoginReply, ChatReply } from './types'
 
 // listArticles 按发布时间倒序取公开文章分页；与 Web 端 usePublishedArticles 同参。
 // filter 为可选的列表过滤器，如 tag:"go"、category:"engineering"。
@@ -38,15 +39,51 @@ export function likeArticle(slug: string): Promise<void> {
 
 // listComments 拉取文章已通过审核的公开评论。
 export function listComments(slug: string, pageToken = ''): Promise<CommentSet> {
-  return http.get<CommentSet>(`/articles/${encodeURIComponent(slug)}/comments`, {
+  return http.get<CommentSet>(`/mini/articles/${encodeURIComponent(slug)}/comments`, {
     page_size: 20,
     page_token: pageToken || undefined,
   })
 }
 
-// createComment 发表评论（需登录态）；返回状态决定立即公开或仅本会话显示待审。
-export function createComment(slug: string, content: string): Promise<Comment> {
-  return http.post<Comment>('/comments', { article_slug: slug, content })
+function scopedMiniRequest<T>(request: Promise<T>, guard: () => boolean): Promise<T> {
+  return request.catch(error => {
+    // A definitive auth rejection without a refresh token also invalidates
+    // local mini identity. Never clear a successor session on an old error.
+    if (error instanceof UnauthorizedError && guard()) clearSession()
+    throw error
+  })
+}
+
+function freshWechatCode(): Promise<string> {
+  return new Promise((resolve, reject) => wx.login({
+    success: reply => reply.code ? resolve(reply.code) : reject(new Error('微信身份获取失败，请重试')),
+    fail: () => reject(new Error('微信身份获取失败，请重试')),
+  }))
+}
+
+export async function createComment(slug: string, content: string, requestId: string): Promise<MiniCommentRecord> {
+  const owner = currentAccount()?.id
+  const epoch = currentIdentityEpoch()
+  const guard = () => Boolean(owner) && owner === currentAccount()?.id && epoch === currentIdentityEpoch()
+  const code = await freshWechatCode()
+  if (!guard()) throw new Error('登录账号已变化，请重新操作')
+  return scopedMiniRequest(http.postTimeout<MiniCommentRecord>('/mini/comments', { article_slug: slug, content, wechat_code: code, client_request_id: requestId }, 25000, guard), guard)
+}
+
+export function listMyComments(slug: string, pageToken = ''): Promise<MiniCommentRecords> {
+  const owner = currentAccount()?.id
+  const epoch = currentIdentityEpoch()
+  const guard = () => Boolean(owner) && owner === currentAccount()?.id && epoch === currentIdentityEpoch()
+  return scopedMiniRequest(http.get<MiniCommentRecords>(`/mini/articles/${encodeURIComponent(slug)}/comments/mine`, { page_size: 20, page_token: pageToken || undefined }, guard), guard)
+}
+
+export async function recheckComment(id: string): Promise<MiniCommentRecord> {
+  const owner = currentAccount()?.id
+  const epoch = currentIdentityEpoch()
+  const guard = () => Boolean(owner) && owner === currentAccount()?.id && epoch === currentIdentityEpoch()
+  const code = await freshWechatCode()
+  if (!guard()) throw new Error('登录账号已变化，请重新操作')
+  return scopedMiniRequest(http.postTimeout<MiniCommentRecord>(`/mini/comments/${encodeURIComponent(id)}/recheck`, { wechat_code: code }, 25000, guard), guard)
 }
 
 // searchArticles 走 ES 混合搜索（关键词 + 语义）。

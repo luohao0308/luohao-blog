@@ -62,8 +62,11 @@ function saveAccount(user: UserReply | Account): Account {
 }
 
 let sessionVersion = 0
+let identityEpoch = 0
+export function currentIdentityEpoch(): number { return identityEpoch }
 
-function saveSession(reply: LoginReply, refreshToken?: string) {
+function saveSession(reply: LoginReply, refreshToken?: string, rotation = false) {
+  if (!rotation) identityEpoch++
   sessionVersion++
   const account = toAccount(reply.user)
   setAccessToken(reply.access_token)
@@ -79,6 +82,7 @@ function saveSession(reply: LoginReply, refreshToken?: string) {
 }
 
 export function clearSession() {
+  identityEpoch++
   sessionVersion++
   setAccessToken('')
   try {
@@ -120,7 +124,7 @@ export function refreshSession(): Promise<boolean> {
       // A completed rotation still supplies its new token to logout, but must
       // never restore auth after local logout or replace a newer login.
       if (version !== sessionVersion) return false
-      saveSession(data, attempt.token)
+      saveSession(data, attempt.token, true)
       return true
     } catch {
       if (version === sessionVersion) clearSession()

@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package blog.v1;
+
+import "google/api/annotations.proto";
+import "blog/v1/comment.proto";
+
+option go_package = "github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1";
+
+// This service always uses the mini-program safety projection. Its path is not
+// proof of caller origin; writes bind a fresh WeChat code to authenticated JWT
+// ownership. Existing website comment routes retain their separate behavior.
+service MiniCommentService {
+  rpc ListMiniArticleComments (ListMiniArticleCommentsRequest) returns (CommentSet) {
+    option (google.api.http) = { get: "/v1/mini/articles/{slug}/comments" };
+  }
+  rpc CreateMiniComment (CreateMiniCommentRequest) returns (MiniCommentRecord) {
+    option (google.api.http) = { post: "/v1/mini/comments" body: "*" };
+  }
+  rpc ListMyMiniArticleComments (ListMyMiniArticleCommentsRequest) returns (MiniCommentRecords) {
+    option (google.api.http) = { get: "/v1/mini/articles/{slug}/comments/mine" };
+  }
+  rpc RecheckMiniComment (RecheckMiniCommentRequest) returns (MiniCommentRecord) {
+    option (google.api.http) = { post: "/v1/mini/comments/{id}/recheck" body: "*" };
+  }
+}
+
+enum MiniCommentSafetyState {
+  MINI_COMMENT_SAFETY_UNKNOWN = 0;
+  MINI_COMMENT_SAFETY_CHECKING = 1;
+  MINI_COMMENT_SAFETY_PASS = 2;
+  MINI_COMMENT_SAFETY_REVIEW = 3;
+  MINI_COMMENT_SAFETY_RISKY = 4;
+  MINI_COMMENT_SAFETY_UNAVAILABLE = 5;
+  MINI_COMMENT_SAFETY_DELETED = 6;
+}
+
+message MiniCommentRecord {
+  Comment comment = 1;
+  MiniCommentSafetyState safety_state = 2;
+  // Distinct from the shared website approval state.
+  bool visible = 3;
+  bool can_recheck = 4;
+  // Fixed category only, never raw upstream errors, identities or trace IDs.
+  string safety_error = 5;
+}
+
+message MiniCommentRecords {
+  repeated MiniCommentRecord records = 1;
+  string next_page_token = 2;
+}
+
+message ListMiniArticleCommentsRequest {
+  string slug = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListMyMiniArticleCommentsRequest {
+  string slug = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message CreateMiniCommentRequest {
+  string article_slug = 1;
+  string content = 2;
+  // Required for a new creation; an existing idempotent receipt can be read
+  // without consuming another single-use code.
+  string wechat_code = 3;
+  // Stable for a single account/slug/normalized-content submission intent.
+  string client_request_id = 4;
+}
+
+message RecheckMiniCommentRequest {
+  string id = 1;
+  string wechat_code = 2;
+}

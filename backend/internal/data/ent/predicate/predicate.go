@@ -39,6 +39,9 @@ type Tag func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// WechatCommentCheck is the predicate function for wechatcommentcheck builders.
+type WechatCommentCheck func(*sql.Selector)
+
 // WechatIdentity is the predicate function for wechatidentity builders.
 type WechatIdentity func(*sql.Selector)
 

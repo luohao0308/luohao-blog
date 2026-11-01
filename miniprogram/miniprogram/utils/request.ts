@@ -70,16 +70,22 @@ function rawRequest<T>(method: 'GET' | 'POST', path: string, query?: Query, data
   })
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown, timeoutMs?: number): Promise<T> {
+async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, data?: unknown, timeoutMs?: number, guard?: () => boolean): Promise<T> {
+  const checkOwner = () => { if (guard && !guard()) throw new Error('登录会话已变化，请重新操作') }
+  checkOwner()
   try {
     const { data: body } = await rawRequest<T>(method, path, query, data, undefined, timeoutMs)
+    checkOwner()
     return body
   } catch (error) {
     if (error instanceof UnauthorizedError && unauthorizedHandler) {
       // 刷新成功后重放原请求一次；仍 401 则把错误抛给调用方。
+      checkOwner()
       const retried = await unauthorizedHandler()
+      checkOwner()
       if (retried) {
         const { data: body } = await rawRequest<T>(method, path, query, data, undefined, timeoutMs)
+        checkOwner()
         return body
       }
     }
@@ -88,19 +94,19 @@ async function request<T>(method: 'GET' | 'POST', path: string, query?: Query, d
 }
 
 export const http = {
-  get<T>(path: string, query?: Query): Promise<T> {
-    return request<T>('GET', path, query)
+  get<T>(path: string, query?: Query, guard?: () => boolean): Promise<T> {
+    return request<T>('GET', path, query, undefined, undefined, guard)
   },
-  post<T>(path: string, data?: unknown): Promise<T> {
-    return request<T>('POST', path, undefined, data)
+  post<T>(path: string, data?: unknown, guard?: () => boolean): Promise<T> {
+    return request<T>('POST', path, undefined, data, undefined, guard)
   },
   // postRaw 暴露完整响应（refresh token 经 Set-Cookie 下发）。
   postRaw<T>(path: string, data?: unknown, extraHeaders?: HeaderBag): Promise<{ res: WechatMiniprogram.RequestSuccessCallbackResult, data: T }> {
     return rawRequest<T>('POST', path, undefined, data, extraHeaders)
   },
   // postTimeout 长超时 POST（AI 问答这类慢端点用；其余请求保持 15s 默认）。
-  postTimeout<T>(path: string, data?: unknown, timeoutMs?: number): Promise<T> {
-    return request<T>('POST', path, undefined, data, timeoutMs)
+  postTimeout<T>(path: string, data?: unknown, timeoutMs?: number, guard?: () => boolean): Promise<T> {
+    return request<T>('POST', path, undefined, data, timeoutMs, guard)
   },
 }
 

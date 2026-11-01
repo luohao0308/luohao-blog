@@ -85,6 +85,20 @@ func TestWechatContentSafetyInvalidResponse(t *testing.T) {
 	}
 }
 
+func TestWechatContentSafetyKnownRiskIsNotRetryableOutage(t *testing.T) {
+	c, _ := safetyFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/cgi-bin/stable_token" {
+			_, _ = w.Write([]byte(`{"access_token":"fixture-token","expires_in":7200}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"errcode":87014,"errmsg":"synthetic private response"}`))
+	})
+	result, err := c.CheckText(context.Background(), biz.ContentSafetyInput{OpenID: "openid-fixture", Content: "fixture", Scene: biz.ContentSafetyComment})
+	if err != nil || result.Decision != biz.ContentSafetyRisky {
+		t.Fatalf("known rejection misclassified as retryable service outage: %v / %v", result.Decision, err)
+	}
+}
+
 func TestWechatContentSafetyDisabledAndInput(t *testing.T) {
 	var calls atomic.Int32
 	c, _ := safetyFixture(t, func(http.ResponseWriter, *http.Request) { calls.Add(1) })

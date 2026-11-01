@@ -19,6 +19,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
@@ -514,6 +515,61 @@ func init() {
 	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
+	wechatcommentcheckMixin := schema.WechatCommentCheck{}.Mixin()
+	wechatcommentcheckMixinFields0 := wechatcommentcheckMixin[0].Fields()
+	_ = wechatcommentcheckMixinFields0
+	wechatcommentcheckFields := schema.WechatCommentCheck{}.Fields()
+	_ = wechatcommentcheckFields
+	// wechatcommentcheckDescAppID is the schema descriptor for app_id field.
+	wechatcommentcheckDescAppID := wechatcommentcheckFields[2].Descriptor()
+	// wechatcommentcheck.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
+	wechatcommentcheck.AppIDValidator = wechatcommentcheckDescAppID.Validators[0].(func(string) error)
+	// wechatcommentcheckDescClientRequestID is the schema descriptor for client_request_id field.
+	wechatcommentcheckDescClientRequestID := wechatcommentcheckFields[3].Descriptor()
+	// wechatcommentcheck.ClientRequestIDValidator is a validator for the "client_request_id" field. It is called by the builders before save.
+	wechatcommentcheck.ClientRequestIDValidator = wechatcommentcheckDescClientRequestID.Validators[0].(func(string) error)
+	// wechatcommentcheckDescCreateRequestHash is the schema descriptor for create_request_hash field.
+	wechatcommentcheckDescCreateRequestHash := wechatcommentcheckFields[4].Descriptor()
+	// wechatcommentcheck.DefaultCreateRequestHash holds the default value on creation for the create_request_hash field.
+	wechatcommentcheck.DefaultCreateRequestHash = wechatcommentcheckDescCreateRequestHash.Default.(string)
+	// wechatcommentcheck.CreateRequestHashValidator is a validator for the "create_request_hash" field. It is called by the builders before save.
+	wechatcommentcheck.CreateRequestHashValidator = wechatcommentcheckDescCreateRequestHash.Validators[0].(func(string) error)
+	// wechatcommentcheckDescInputHash is the schema descriptor for input_hash field.
+	wechatcommentcheckDescInputHash := wechatcommentcheckFields[6].Descriptor()
+	// wechatcommentcheck.DefaultInputHash holds the default value on creation for the input_hash field.
+	wechatcommentcheck.DefaultInputHash = wechatcommentcheckDescInputHash.Default.(string)
+	// wechatcommentcheck.InputHashValidator is a validator for the "input_hash" field. It is called by the builders before save.
+	wechatcommentcheck.InputHashValidator = wechatcommentcheckDescInputHash.Validators[0].(func(string) error)
+	// wechatcommentcheckDescState is the schema descriptor for state field.
+	wechatcommentcheckDescState := wechatcommentcheckFields[7].Descriptor()
+	// wechatcommentcheck.StateValidator is a validator for the "state" field. It is called by the builders before save.
+	wechatcommentcheck.StateValidator = wechatcommentcheckDescState.Validators[0].(func(string) error)
+	// wechatcommentcheckDescGeneration is the schema descriptor for generation field.
+	wechatcommentcheckDescGeneration := wechatcommentcheckFields[8].Descriptor()
+	// wechatcommentcheck.DefaultGeneration holds the default value on creation for the generation field.
+	wechatcommentcheck.DefaultGeneration = wechatcommentcheckDescGeneration.Default.(uint64)
+	// wechatcommentcheckDescNameTraceID is the schema descriptor for name_trace_id field.
+	wechatcommentcheckDescNameTraceID := wechatcommentcheckFields[10].Descriptor()
+	// wechatcommentcheck.DefaultNameTraceID holds the default value on creation for the name_trace_id field.
+	wechatcommentcheck.DefaultNameTraceID = wechatcommentcheckDescNameTraceID.Default.(string)
+	// wechatcommentcheck.NameTraceIDValidator is a validator for the "name_trace_id" field. It is called by the builders before save.
+	wechatcommentcheck.NameTraceIDValidator = wechatcommentcheckDescNameTraceID.Validators[0].(func(string) error)
+	// wechatcommentcheckDescContentTraceID is the schema descriptor for content_trace_id field.
+	wechatcommentcheckDescContentTraceID := wechatcommentcheckFields[11].Descriptor()
+	// wechatcommentcheck.DefaultContentTraceID holds the default value on creation for the content_trace_id field.
+	wechatcommentcheck.DefaultContentTraceID = wechatcommentcheckDescContentTraceID.Default.(string)
+	// wechatcommentcheck.ContentTraceIDValidator is a validator for the "content_trace_id" field. It is called by the builders before save.
+	wechatcommentcheck.ContentTraceIDValidator = wechatcommentcheckDescContentTraceID.Validators[0].(func(string) error)
+	// wechatcommentcheckDescErrorKind is the schema descriptor for error_kind field.
+	wechatcommentcheckDescErrorKind := wechatcommentcheckFields[13].Descriptor()
+	// wechatcommentcheck.DefaultErrorKind holds the default value on creation for the error_kind field.
+	wechatcommentcheck.DefaultErrorKind = wechatcommentcheckDescErrorKind.Default.(string)
+	// wechatcommentcheck.ErrorKindValidator is a validator for the "error_kind" field. It is called by the builders before save.
+	wechatcommentcheck.ErrorKindValidator = wechatcommentcheckDescErrorKind.Validators[0].(func(string) error)
+	// wechatcommentcheckDescID is the schema descriptor for id field.
+	wechatcommentcheckDescID := wechatcommentcheckMixinFields0[0].Descriptor()
+	// wechatcommentcheck.DefaultID holds the default value on creation for the id field.
+	wechatcommentcheck.DefaultID = wechatcommentcheckDescID.Default.(func() uuid.UUID)
 	wechatidentityMixin := schema.WechatIdentity{}.Mixin()
 	wechatidentityMixinFields0 := wechatidentityMixin[0].Fields()
 	_ = wechatidentityMixinFields0

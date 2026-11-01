@@ -81,6 +81,9 @@ const (
 	ErrorReason_CONTENT_SAFETY_INPUT                  ErrorReason = 49
 	ErrorReason_CONTENT_SAFETY_IDENTITY               ErrorReason = 50
 	ErrorReason_CONTENT_SAFETY_UNAVAILABLE            ErrorReason = 51
+	ErrorReason_MINI_COMMENT_CONFLICT                 ErrorReason = 52
+	ErrorReason_MINI_COMMENT_CHECK_BUSY               ErrorReason = 53
+	ErrorReason_MINI_COMMENT_DELETED                  ErrorReason = 54
 )
 
 // Enum value maps for ErrorReason.
@@ -138,6 +141,9 @@ var (
 		49: "CONTENT_SAFETY_INPUT",
 		50: "CONTENT_SAFETY_IDENTITY",
 		51: "CONTENT_SAFETY_UNAVAILABLE",
+		52: "MINI_COMMENT_CONFLICT",
+		53: "MINI_COMMENT_CHECK_BUSY",
+		54: "MINI_COMMENT_DELETED",
 	}
 	ErrorReason_value = map[string]int32{
 		"ARTICLE_UNSPECIFIED":                   0,
@@ -192,6 +198,9 @@ var (
 		"CONTENT_SAFETY_INPUT":                  49,
 		"CONTENT_SAFETY_IDENTITY":               50,
 		"CONTENT_SAFETY_UNAVAILABLE":            51,
+		"MINI_COMMENT_CONFLICT":                 52,
+		"MINI_COMMENT_CHECK_BUSY":               53,
+		"MINI_COMMENT_DELETED":                  54,
 	}
 )
 
@@ -226,7 +235,7 @@ var File_blog_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xec\v\n" +
+	"\x1ablog/v1/error_reason.proto\x12\ablog.v1*\xbe\f\n" +
 	"\vErrorReason\x12\x17\n" +
 	"\x13ARTICLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ARTICLE_NOT_FOUND\x10\x01\x12\x1c\n" +
@@ -280,7 +289,10 @@ const file_blog_v1_error_reason_proto_rawDesc = "" +
 	"\x17CONTENT_SAFETY_DISABLED\x100\x12\x18\n" +
 	"\x14CONTENT_SAFETY_INPUT\x101\x12\x1b\n" +
 	"\x17CONTENT_SAFETY_IDENTITY\x102\x12\x1e\n" +
-	"\x1aCONTENT_SAFETY_UNAVAILABLE\x103BQ\n" +
+	"\x1aCONTENT_SAFETY_UNAVAILABLE\x103\x12\x19\n" +
+	"\x15MINI_COMMENT_CONFLICT\x104\x12\x1b\n" +
+	"\x17MINI_COMMENT_CHECK_BUSY\x105\x12\x18\n" +
+	"\x14MINI_COMMENT_DELETED\x106BQ\n" +
 	"\ablog.v1P\x01Z8github.com/luohao0308/luohao-blog/backend/api/blog/v1;v1\xa2\x02\tAPIBlogV1b\x06proto3"
 
 var (
