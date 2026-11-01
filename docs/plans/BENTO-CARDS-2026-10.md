@@ -1,5 +1,7 @@
 # 公开网页卡片统一
 
+> 2026-11-02对账：T-020已由PR #107/#108交付；早期Bento外观被#113封面卡片及后继方案替代，不再另行发布旧外观。 统一状态见[本轮对账](TASK-BOARD-RECONCILIATION-2026-11.md)。
+
 状态：本地实现与验证完成，未发布；2026-10-18。首轮用户选择只统一视觉和悬浮；后续明确要求文章卡片加入原地展开，仍以真实文章详情路由承载正文。
 
 参考：[068 Bento Portfolio](https://miaai-lab.github.io/Claude-Opus-5.5-100-HTML-Files/068-bento-portfolio.html)。

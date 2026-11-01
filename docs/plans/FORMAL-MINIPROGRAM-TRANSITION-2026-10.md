@@ -1,10 +1,12 @@
 # 正式小程序接入与身份隔离
 
+> 2026-11-02当前状态：#100/#101补丁已包含在生产源码78513c7，旧“补丁未交付”是历史时点。当前修复静态正文图地址的本地候选通过逻辑回归、独立复核与正式AppID模拟器SVG/PNG显示和图库预览；手机代码预览及真实设备/平台验收仍待对应版本授权和结果。最新待办统一见[本轮对账](TASK-BOARD-RECONCILIATION-2026-11.md)，不以历史备案/隐私快照作为当前状态。
+
 status: approved
 parent: [后台与小程序收尾](ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md)，S2 → S3
 formal_app_id: wxf27116cc66cc49a4
 legacy_preview_app_id: wx58089476f518fd3f
-current_slice: F2 (core phone acceptance passed; privacy/UGC and body-image coverage pending)
+current_slice: F2 (current candidate phone acceptance and fresh platform verification pending)
 
 ## 目标与已确认事实
 
