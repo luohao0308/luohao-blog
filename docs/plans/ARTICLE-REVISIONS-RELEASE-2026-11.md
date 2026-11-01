@@ -31,4 +31,13 @@
 - CI [41331172877](https://github.com/luohao0308/luohao-blog/actions/runs/41331172877) 的前端/小程序通过，后端真实身份集成测试失败。本地隔离复现确认 `TestWechatHTTPDisabledMySQLPreservesWebsiteAuthAndRead` 查询 `articles.version` 时，fixture 仍为 schema16。
 - 保留 backfill CLI 仅允许 clean schema16 的门禁及原有回填/备份恢复检查；这些步骤完成后，仅把应用测试主库迁移至当前嵌入版本18，再运行原完整 TestWechat 列表。备份恢复库仍验证16；升级检查旧文章列、用户、身份绑定不变，版本默认1、修订表为空及迁移幂等。
 - 新鲜本地验证：`python3 -m unittest discover -s scripts -p test_wechat_identity_test.py`（3项通过）；`python3 scripts/test_wechat_identity.py`（真实 MySQL/Redis/HTTP 全通过、零跳过，v15→16回填/备份恢复及应用升级18均通过）；`git diff --check` 通过。脚本修复不改应用运行时代码。
-- 首次 push/PR 一次性授权已消费；修复提交改变 head SHA，需要重新绑定准确版本后更新 PR。尚未合并、构建发布镜像或操作生产。
+- 修复提交改变 head SHA 后，已重新取得准确版本授权并更新 PR；修复后的 CI 全通过。
+
+## 发布结果
+
+- 2026-11-02，PR #123 合并为 `78513c7216acea98862e19505772445265190663`，源码树与批准版本一致。[main CI](https://github.com/luohao0308/luohao-blog/actions/runs/41333303358) 与 [release](https://github.com/luohao0308/luohao-blog/actions/runs/41333303415) 全部通过。
+- 合并时发生守卫编排错误：授权记录缺少 PR 编号，guard 返回 deny 后误继续执行合并。已明确告知用户并保留原拒绝记录，未事后补写为前置通过；生产暂停后，另获针对固定原始 OCI 镜像和后续操作的准确确认，才继续生产。
+- 生产仅替换 backend/frontend，保留两者原完整 Compose 覆盖链，Caddy/MySQL/Redis/ES 容器 ID 未变。数据库和 uploads 备份通过压缩/归档/摘要验证，自动迁移17/18成功、dirty=false；旧文章/用户/微信身份的内容指纹、上传文件和私密配置保留。
+- 服务器直拉缓慢，预下载有计划中止，改用完整原始 OCI 归档传输；所有引用 blob、传输包、服务器原始 index/platform manifest 和 RootFS 序列均校验一致后才更新容器。未转换镜像摘要或扩大部署组件范围。
+- 上线验证：23项公开页面/API/静态资源、搜索、canonical/BlogPosting/sitemap及匿名权限拒绝通过；独立 Chrome 无头确认文章目录、代码复制按钮与问本文入口完成客户端加载。生产后台编辑/修订恢复写入未执行，相关写行为以本地真实数据库及浏览器测试为证据。
+- RSS 已在既有任务边界中明确移除，`/rss.xml` 返回404符合当前范围，不作为本轮缺陷或恢复待办。一次性镜像、容器、备份及检查明细保留在受控交付 artifacts，不提交数据库、私密配置或运行日志。
