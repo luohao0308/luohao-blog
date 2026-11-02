@@ -144,6 +144,37 @@ func testCommentHTTPModerationLifecycle(t *testing.T, mode string) {
 	if first["comments"].([]any)[0].(map[string]any)["id"] == second["comments"].([]any)[0].(map[string]any)["id"] {
 		t.Fatal("pagination repeated a row")
 	}
+	// Author-reply routes exercise the actual JWT/Casbin/HTTP stack.
+	replyPath := "/v1/comments/" + ordinary["id"].(string) + "/author-reply"
+	replyBody := map[string]any{"content": "作者答复", "expected_reply_version": 0}
+	for _, method := range []string{"GET", "PUT"} {
+		request(method, replyPath, "", replyBody, http.StatusUnauthorized)
+		request(method, replyPath, readerToken.Token, replyBody, http.StatusForbidden)
+	}
+	request("PUT", replyPath, adminToken.Token, map[string]any{"content": "缺版本"}, http.StatusBadRequest)
+	reply := request("PUT", replyPath, adminToken.Token, replyBody, http.StatusOK)
+	if reply["parent_id"] != ordinary["id"] || fmt.Sprint(reply["reply_version"]) != "1" {
+		t.Fatal("reply create contract", reply)
+	}
+	request("GET", replyPath, adminToken.Token, nil, http.StatusOK)
+	request("PUT", replyPath, adminToken.Token, replyBody, http.StatusConflict)
+	other, err := users.CreateAuthor(ctx, "other-admin@example.invalid", "longenough1", "其他管理员")
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherToken, err := issuer.Issue(ctx, other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replyBody["expected_reply_version"] = 1
+	replyBody["content"] = "更新答复"
+	request("PUT", replyPath, otherToken.Token, replyBody, http.StatusForbidden)
+	reply = request("PUT", replyPath, adminToken.Token, replyBody, http.StatusOK)
+	if fmt.Sprint(reply["reply_version"]) != "2" {
+		t.Fatal("reply edit version", reply)
+	}
+	request("PUT", replyPath, adminToken.Token, replyBody, http.StatusConflict)
+
 	if _, err = articles.UpdateArticle(ctx, &biz.Article{Slug: "ai-delivery-guard", Title: "评论验证", ContentMD: "content", Status: biz.ArticleStatusDraft, Version: 2}); err != nil {
 		t.Fatal(err)
 	}
@@ -189,4 +220,5 @@ func testCommentHTTPModerationLifecycle(t *testing.T, mode string) {
 			t.Fatal("browser fixture timeout")
 		}
 	}
+
 }

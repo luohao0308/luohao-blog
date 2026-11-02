@@ -293,16 +293,20 @@ func init() {
 	comment.DefaultUpdatedAt = commentDescUpdatedAt.Default.(func() time.Time)
 	// comment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	comment.UpdateDefaultUpdatedAt = commentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// commentDescReplyVersion is the schema descriptor for reply_version field.
+	commentDescReplyVersion := commentFields[1].Descriptor()
+	// comment.DefaultReplyVersion holds the default value on creation for the reply_version field.
+	comment.DefaultReplyVersion = commentDescReplyVersion.Default.(uint64)
 	// commentDescArticleSlug is the schema descriptor for article_slug field.
-	commentDescArticleSlug := commentFields[0].Descriptor()
+	commentDescArticleSlug := commentFields[2].Descriptor()
 	// comment.ArticleSlugValidator is a validator for the "article_slug" field. It is called by the builders before save.
 	comment.ArticleSlugValidator = commentDescArticleSlug.Validators[0].(func(string) error)
 	// commentDescDisplayName is the schema descriptor for display_name field.
-	commentDescDisplayName := commentFields[1].Descriptor()
+	commentDescDisplayName := commentFields[3].Descriptor()
 	// comment.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
 	comment.DisplayNameValidator = commentDescDisplayName.Validators[0].(func(string) error)
 	// commentDescStatus is the schema descriptor for status field.
-	commentDescStatus := commentFields[3].Descriptor()
+	commentDescStatus := commentFields[5].Descriptor()
 	// comment.DefaultStatus holds the default value on creation for the status field.
 	comment.DefaultStatus = biz.CommentStatus(commentDescStatus.Default.(int32))
 	// commentDescID is the schema descriptor for id field.

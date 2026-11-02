@@ -11,3 +11,5 @@
 - [域名与 HTTPS 切换](domain-cutover.md)：DNS、备案展示、Secure Cookie、微信与状态页切换及回退。
 
 - [网站能力补齐交付与恢复](website-completion.md)：S1–S6、迁移12–15、真实邮件前提及保留数据的回退边界。
+
+- [作者回复迁移与恢复](author-replies.md)：版本19→20、父子审核隔离、旧数据保留和兼容恢复。

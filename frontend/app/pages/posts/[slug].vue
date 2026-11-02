@@ -176,6 +176,7 @@ useHead(() => ({
         <span class="flex items-center justify-between gap-3 font-medium">{{ item.name }} <span aria-hidden="true">↗</span></span>
       </NuxtLink>
     </section>
+    <ArticleSeriesNavigation :slug="slug" />
     <ChatWindow :article-slug="slug" />
     <CommentSection :slug="slug" />
     <nav v-if="adjacent.newer || adjacent.older" aria-label="相邻文章" class="grid gap-6 border-t border-slate-200 pt-8 sm:grid-cols-2 dark:border-slate-800">

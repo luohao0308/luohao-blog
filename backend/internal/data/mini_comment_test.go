@@ -412,7 +412,7 @@ func TestMiniCommentListUsesBoundedBatchQueries(t *testing.T) {
 	if err != nil || len(public) != 12 {
 		t.Fatal("public batch", err)
 	}
-	if n := count.Swap(0); n > 3 {
+	if n := count.Swap(0); n > 4 {
 		t.Fatalf("public list used %d queries for 12 rows", n)
 	}
 	mine, _, err := r.ListMine(ctx, "post", a.UserID, a.AppID, 100, 0)

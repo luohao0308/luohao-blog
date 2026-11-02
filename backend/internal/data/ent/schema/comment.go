@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -33,6 +35,8 @@ func (Comment) Fields() []ent.Field {
 		// article_slug is the public identifier of the commented article.
 		// Field limits (name ≤ 32 runes, content ≤ 1000 runes) are enforced
 		// at the biz layer; the schema only guarantees presence.
+		field.UUID("parent_id", uuid.UUID{}).Optional().Nillable(),
+		field.Uint64("reply_version").Default(0),
 		field.String("article_slug").NotEmpty(),
 		field.String("display_name").NotEmpty(),
 		// content has no fixed upper bound in storage; the 1000-rune limit
@@ -55,6 +59,11 @@ func (Comment) Fields() []ent.Field {
 func (Comment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("article_slug"),
+		index.Fields("parent_id").Unique(),
 		index.Fields("status"),
 	}
+}
+
+func (Comment) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("author_reply", Comment.Type).Unique().Annotations(entsql.OnDelete(entsql.Restrict)).From("parent").Unique().Field("parent_id")}
 }

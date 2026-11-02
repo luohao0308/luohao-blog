@@ -10,7 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/article"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/comment"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 )
@@ -25,6 +27,18 @@ func miniDataError(err error) error {
 	return biz.ErrContentSafetyUnavailable
 }
 func lockMiniComment(ctx context.Context, db *ent.Client, id uuid.UUID) (*ent.Comment, error) {
+	snapshot, e := db.Comment.Get(ctx, id)
+	if e != nil {
+		return nil, e
+	}
+	if snapshot.ParentID != nil {
+		if _, e = lockCommentRow(ctx, db, *snapshot.ParentID); e != nil {
+			return nil, e
+		}
+	}
+	return lockCommentRow(ctx, db, id)
+}
+func lockCommentRow(ctx context.Context, db *ent.Client, id uuid.UUID) (*ent.Comment, error) {
 	return db.Comment.Query().Where(comment.IDEQ(id)).Where(func(s *entsql.Selector) {
 		if s.Dialect() == dialect.MySQL {
 			s.ForUpdate()
@@ -77,6 +91,16 @@ func invalidateMiniVerdict(record *biz.MiniComment) *biz.MiniComment {
 	return record
 }
 func miniProjection(ctx context.Context, db *ent.Client, c *ent.Comment, check *ent.WechatCommentCheck) (*biz.MiniComment, error) {
+	out, e := miniProjectionBase(ctx, db, c, check)
+	if e != nil {
+		return nil, e
+	}
+	if e = applyMiniParentVisibility(ctx, db, []*biz.MiniComment{out}, out.AppID); e != nil {
+		return nil, e
+	}
+	return out, nil
+}
+func miniProjectionBase(ctx context.Context, db *ent.Client, c *ent.Comment, check *ent.WechatCommentCheck) (*biz.MiniComment, error) {
 	if check == nil || check.IdentityID == nil || c.UserID == nil {
 		return miniProjectionWithIdentity(c, check, nil), nil
 	}
@@ -92,6 +116,9 @@ func miniProjection(ctx context.Context, db *ent.Client, c *ent.Comment, check *
 func miniBatchProjections(ctx context.Context, db *ent.Client, rows []*ent.Comment, app string) ([]*biz.MiniComment, error) {
 	out := make([]*biz.MiniComment, 0, len(rows))
 	if len(rows) == 0 {
+		if e := applyMiniParentVisibility(ctx, db, out, app); e != nil {
+			return nil, e
+		}
 		return out, nil
 	}
 	ids := make([]uuid.UUID, 0, len(rows))
@@ -135,6 +162,9 @@ func miniBatchProjections(ctx context.Context, db *ent.Client, rows []*ent.Comme
 			item.AppID = app
 		}
 		out = append(out, item)
+	}
+	if e := applyMiniParentVisibility(ctx, db, out, app); e != nil {
+		return nil, e
 	}
 	return out, nil
 }
@@ -263,6 +293,18 @@ func (r *miniCommentRepo) BeginRecheck(ctx context.Context, id uuid.UUID, actor 
 	}
 	defer func() { _ = tx.Rollback() }()
 	db := tx.Client()
+	// A first check inserts an author FK. Lock that user before the thread,
+	// matching reply edits and avoiding a root-to-user lock inversion.
+	if _, e = db.User.Query().Where(user.IDEQ(actor.UserID)).Where(func(s *entsql.Selector) {
+		if s.Dialect() == dialect.MySQL {
+			s.ForUpdate()
+		}
+	}).Only(ctx); e != nil {
+		if ent.IsNotFound(e) {
+			return nil, false, biz.ErrContentSafetyIdentity
+		}
+		return nil, false, biz.ErrContentSafetyUnavailable
+	}
 	c, e := lockMiniComment(ctx, db, id)
 	if e != nil {
 		return nil, false, miniDataError(e)
@@ -388,7 +430,7 @@ func (r *miniCommentRepo) ListPublic(ctx context.Context, slug, app string, limi
 	}
 	// Filter approval/app/pass before applying the cursor. Hash-invalid rows still
 	// consume cursor positions so stale evidence cannot truncate later pages.
-	rows, e := r.data.db.Comment.Query().Where(comment.ArticleSlugEQ(slug), comment.StatusEQ(biz.CommentStatusApproved)).Where(func(s *entsql.Selector) {
+	rows, e := r.data.db.Comment.Query().Where(comment.ParentIDIsNil(), comment.ArticleSlugEQ(slug), comment.StatusEQ(biz.CommentStatusApproved)).Where(func(s *entsql.Selector) {
 		checks := entsql.Table(wechatcommentcheck.Table)
 		s.Where(entsql.In(s.C(comment.FieldID), entsql.Select(checks.C(wechatcommentcheck.FieldCommentID)).From(checks).Where(entsql.And(entsql.EQ(checks.C(wechatcommentcheck.FieldAppID), app), entsql.EQ(checks.C(wechatcommentcheck.FieldState), string(biz.MiniCommentPass))))))
 	}).Order(ent.Desc(comment.FieldCreatedAt), ent.Desc(comment.FieldID)).Offset(offset).Limit(limit + 1).All(ctx)
@@ -408,6 +450,29 @@ func (r *miniCommentRepo) ListPublic(ctx context.Context, slug, app string, limi
 	for _, item := range items {
 		if item.Visible() {
 			out = append(out, item)
+		}
+	}
+	ids := make([]uuid.UUID, 0, len(out))
+	by := map[uuid.UUID]*biz.MiniComment{}
+	for _, item := range out {
+		ids = append(ids, item.Comment.ID)
+		by[item.Comment.ID] = item
+	}
+	if len(ids) > 0 {
+		children, err := r.data.db.Comment.Query().Where(comment.ParentIDIn(ids...), comment.StatusEQ(biz.CommentStatusApproved)).All(ctx)
+		if err != nil {
+			return nil, -1, biz.ErrContentSafetyUnavailable
+		}
+		projections, err := miniBatchProjections(ctx, r.data.db, children, app)
+		if err != nil {
+			return nil, -1, err
+		}
+		for _, child := range projections {
+			if child.Visible() && child.Comment.ParentID != nil {
+				if parent := by[*child.Comment.ParentID]; parent != nil {
+					parent.Comment.AuthorReply = child.Comment
+				}
+			}
 		}
 	}
 	return out, next, nil
@@ -436,4 +501,45 @@ func (r *miniCommentRepo) ListMine(ctx context.Context, slug string, owner uuid.
 		return nil, -1, err
 	}
 	return out, next, nil
+}
+
+func applyMiniParentVisibility(ctx context.Context, db *ent.Client, items []*biz.MiniComment, app string) error {
+	ids := []uuid.UUID{}
+	slugs := []string{}
+	for _, item := range items {
+		if item != nil && item.Comment != nil && item.Comment.ParentID != nil {
+			ids = append(ids, *item.Comment.ParentID)
+			slugs = append(slugs, item.Comment.ArticleSlug)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	parents, e := db.Comment.Query().Where(comment.IDIn(ids...), comment.ParentIDIsNil()).All(ctx)
+	if e != nil {
+		return biz.ErrContentSafetyUnavailable
+	}
+	projected, e := miniBatchProjections(ctx, db, parents, app)
+	if e != nil {
+		return e
+	}
+	by := map[uuid.UUID]*biz.MiniComment{}
+	for _, p := range projected {
+		by[p.Comment.ID] = p
+	}
+	articles, e := db.Article.Query().Where(article.SlugIn(slugs...), article.StatusEQ(biz.ArticleStatusPublished)).All(ctx)
+	if e != nil {
+		return biz.ErrContentSafetyUnavailable
+	}
+	published := map[string]bool{}
+	for _, a := range articles {
+		published[a.Slug] = true
+	}
+	for _, item := range items {
+		if item.Comment.ParentID != nil {
+			p := by[*item.Comment.ParentID]
+			item.ParentVisible = p != nil && p.Visible() && p.Comment.ArticleSlug == item.Comment.ArticleSlug && published[item.Comment.ArticleSlug]
+		}
+	}
+	return nil
 }

@@ -22,6 +22,9 @@ option java_outer_classname = "CommentProto";
 // display name. Admin operations require the ADMIN role; public reads stay
 // open and submissions are rate limited per client IP and account.
 service CommentService {
+ rpc GetAuthorReply(GetAuthorReplyRequest) returns (Comment) { option (google.api.http) = { get: "/v1/comments/{id}/author-reply" }; }
+ rpc PutAuthorReply(PutAuthorReplyRequest) returns (Comment) { option (google.api.http) = { put: "/v1/comments/{id}/author-reply" body: "*" }; }
+
   // CreateComment submits a comment authored by the calling account. The
   // returned status determines visibility: APPROVED is public immediately;
   // PENDING waits for admin review. Rate-limiter outages also hold for review. The
@@ -111,6 +114,9 @@ message Comment {
   // legacy anonymous comments and accounts without an upload; clients fall
   // back to an initials disc.
   string avatar_url = 9;
+ string parent_id = 10;
+ uint64 reply_version = 11;
+ Comment author_reply = 12;
 }
 
 // CommentSet is a paginated collection of comments.
@@ -167,3 +173,6 @@ message DeleteCommentRequest {
   // Identifier of the comment to delete.
   string id = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+message GetAuthorReplyRequest { string id = 1; }
+message PutAuthorReplyRequest { string id = 1; string content = 2; optional uint64 expected_reply_version = 3; }

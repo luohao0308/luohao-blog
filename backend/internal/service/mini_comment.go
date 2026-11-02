@@ -39,6 +39,10 @@ func (s *CommentService) ListMiniArticleComments(ctx context.Context, req *v1.Li
 	for _, r := range rows {
 		c := convertCommentReply(r.Comment)
 		c.AvatarUrl = ""
+		if c.AuthorReply != nil {
+			c.AuthorReply.AvatarUrl = ""
+			c.AuthorReply.AuthorReply = nil
+		}
 		result.Comments = append(result.Comments, c)
 	}
 	if next >= 0 && pageOffsetWithinWindow(int64(next)) {
@@ -120,6 +124,10 @@ func (s *CommentService) convertMiniComment(r *biz.MiniComment) *v1.MiniCommentR
 	}
 	c := convertCommentReply(r.Comment)
 	c.AvatarUrl = ""
+	if c.AuthorReply != nil {
+		c.AuthorReply.AvatarUrl = ""
+		c.AuthorReply.AuthorReply = nil
+	}
 	state := v1.MiniCommentSafetyState_MINI_COMMENT_SAFETY_UNKNOWN
 	switch r.State {
 	case biz.MiniCommentChecking:

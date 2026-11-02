@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/predicate"
@@ -64,6 +65,16 @@ func CreatedAt(v time.Time) predicate.Comment {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.Comment {
 	return predicate.Comment(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// ParentID applies equality check predicate on the "parent_id" field. It's identical to ParentIDEQ.
+func ParentID(v uuid.UUID) predicate.Comment {
+	return predicate.Comment(sql.FieldEQ(FieldParentID, v))
+}
+
+// ReplyVersion applies equality check predicate on the "reply_version" field. It's identical to ReplyVersionEQ.
+func ReplyVersion(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldEQ(FieldReplyVersion, v))
 }
 
 // ArticleSlug applies equality check predicate on the "article_slug" field. It's identical to ArticleSlugEQ.
@@ -170,6 +181,76 @@ func UpdatedAtLT(v time.Time) predicate.Comment {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.Comment {
 	return predicate.Comment(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// ParentIDEQ applies the EQ predicate on the "parent_id" field.
+func ParentIDEQ(v uuid.UUID) predicate.Comment {
+	return predicate.Comment(sql.FieldEQ(FieldParentID, v))
+}
+
+// ParentIDNEQ applies the NEQ predicate on the "parent_id" field.
+func ParentIDNEQ(v uuid.UUID) predicate.Comment {
+	return predicate.Comment(sql.FieldNEQ(FieldParentID, v))
+}
+
+// ParentIDIn applies the In predicate on the "parent_id" field.
+func ParentIDIn(vs ...uuid.UUID) predicate.Comment {
+	return predicate.Comment(sql.FieldIn(FieldParentID, vs...))
+}
+
+// ParentIDNotIn applies the NotIn predicate on the "parent_id" field.
+func ParentIDNotIn(vs ...uuid.UUID) predicate.Comment {
+	return predicate.Comment(sql.FieldNotIn(FieldParentID, vs...))
+}
+
+// ParentIDIsNil applies the IsNil predicate on the "parent_id" field.
+func ParentIDIsNil() predicate.Comment {
+	return predicate.Comment(sql.FieldIsNull(FieldParentID))
+}
+
+// ParentIDNotNil applies the NotNil predicate on the "parent_id" field.
+func ParentIDNotNil() predicate.Comment {
+	return predicate.Comment(sql.FieldNotNull(FieldParentID))
+}
+
+// ReplyVersionEQ applies the EQ predicate on the "reply_version" field.
+func ReplyVersionEQ(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldEQ(FieldReplyVersion, v))
+}
+
+// ReplyVersionNEQ applies the NEQ predicate on the "reply_version" field.
+func ReplyVersionNEQ(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldNEQ(FieldReplyVersion, v))
+}
+
+// ReplyVersionIn applies the In predicate on the "reply_version" field.
+func ReplyVersionIn(vs ...uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldIn(FieldReplyVersion, vs...))
+}
+
+// ReplyVersionNotIn applies the NotIn predicate on the "reply_version" field.
+func ReplyVersionNotIn(vs ...uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldNotIn(FieldReplyVersion, vs...))
+}
+
+// ReplyVersionGT applies the GT predicate on the "reply_version" field.
+func ReplyVersionGT(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldGT(FieldReplyVersion, v))
+}
+
+// ReplyVersionGTE applies the GTE predicate on the "reply_version" field.
+func ReplyVersionGTE(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldGTE(FieldReplyVersion, v))
+}
+
+// ReplyVersionLT applies the LT predicate on the "reply_version" field.
+func ReplyVersionLT(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldLT(FieldReplyVersion, v))
+}
+
+// ReplyVersionLTE applies the LTE predicate on the "reply_version" field.
+func ReplyVersionLTE(v uint64) predicate.Comment {
+	return predicate.Comment(sql.FieldLTE(FieldReplyVersion, v))
 }
 
 // ArticleSlugEQ applies the EQ predicate on the "article_slug" field.
@@ -479,6 +560,52 @@ func UserIDIsNil() predicate.Comment {
 // UserIDNotNil applies the NotNil predicate on the "user_id" field.
 func UserIDNotNil() predicate.Comment {
 	return predicate.Comment(sql.FieldNotNull(FieldUserID))
+}
+
+// HasParent applies the HasEdge predicate on the "parent" edge.
+func HasParent() predicate.Comment {
+	return predicate.Comment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, ParentTable, ParentColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasParentWith applies the HasEdge predicate on the "parent" edge with a given conditions (other predicates).
+func HasParentWith(preds ...predicate.Comment) predicate.Comment {
+	return predicate.Comment(func(s *sql.Selector) {
+		step := newParentStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasAuthorReply applies the HasEdge predicate on the "author_reply" edge.
+func HasAuthorReply() predicate.Comment {
+	return predicate.Comment(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, AuthorReplyTable, AuthorReplyColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAuthorReplyWith applies the HasEdge predicate on the "author_reply" edge with a given conditions (other predicates).
+func HasAuthorReplyWith(preds ...predicate.Comment) predicate.Comment {
+	return predicate.Comment(func(s *sql.Selector) {
+		step := newAuthorReplyStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

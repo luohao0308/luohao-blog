@@ -21,9 +21,24 @@ from test_mysql_migrations import GO_HELPER
 
 ROOT = Path(__file__).resolve().parents[1]
 LABEL = "formal-miniprogram"
+DOCKER_CONTEXT = None
+
+def require_local_docker():
+    host = os.environ.get("DOCKER_HOST", "")
+    if host and not host.startswith(("unix://", "npipe://")):
+        raise RuntimeError("refusing a non-local Docker host")
+    context = subprocess.check_output(["docker", "context", "show"], text=True).strip()
+    endpoint = json.loads(subprocess.check_output(["docker", "context", "inspect", context, "--format", "{{json .Endpoints.docker.Host}}"], text=True))
+    if not isinstance(endpoint, str) or not endpoint.startswith(("unix://", "npipe://")):
+        raise RuntimeError("refusing a non-local Docker context")
+    return context
+
 
 
 def run(args, *, data=None, env=None, cwd=None, diagnostic=True):
+    if args and args[0] == "docker":
+        assert DOCKER_CONTEXT is not None, "Docker context must be checked before fixture access"
+        args = ["docker", "--context", DOCKER_CONTEXT, *args[1:]]
     result = subprocess.run(args, input=data, capture_output=True, env=env, cwd=cwd)
     if result.returncode:
         # Captured output/arguments may include DSNs. Never echo them.
@@ -69,6 +84,8 @@ def latest_schema_version(migrations):
 
 
 def main():
+    global DOCKER_CONTEXT
+    DOCKER_CONTEXT = require_local_docker()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--existing-fixture", type=Path,
                         help="private JSON with task-owned mysqlContainer, redisContainer and MYSQL_ROOT_PASSWORD")
@@ -124,7 +141,8 @@ def main():
         database = "website_completion_" + uuid.uuid4().hex[:12]
         restored = database + "_b"
         restored_safety = database + "_c"
-        for name in (database, restored, restored_safety):
+        restored_replies = database + "_d"
+        for name in (database, restored, restored_safety, restored_replies):
             sql(f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;")
             databases.append(name)
         env["MYSQL_MIGRATION_DSN"] = f"root:{password}@tcp(127.0.0.1:13316)/{database}?multiStatements=true&parseTime=true"
@@ -190,18 +208,33 @@ def main():
             legacy_comment = "00000000-0000-0000-0000-000000000003"
             sql("INSERT INTO comments(id,created_at,updated_at,article_slug,display_name,content,status,user_id) VALUES("
                 f"'{legacy_comment}',NOW(),NOW(),'identity-fixture','保留昵称','迁移前评论',2,'{sentinel}');", database)
-            comments_snapshot = sql("SELECT * FROM comments ORDER BY id;", database)
+            comment_columns = [line.split("\t", 1)[0] for line in sql("SHOW COLUMNS FROM comments;", database).splitlines()]
+            assert comment_columns and all(re.fullmatch(r"[a-z_]+", column) for column in comment_columns)
+            legacy_comments = "SELECT " + ",".join("`" + column + "`" for column in comment_columns) + " FROM comments ORDER BY id;"
+            comments_snapshot = sql(legacy_comments, database)
             articles_v18 = sql("SELECT * FROM articles ORDER BY id;", database)
             dump_v18 = run(["docker", "exec", mysql_id, "sh", "-c",
                             'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF ' + database])
             sql(gzip.decompress(gzip.compress(dump_v18)).decode(), restored_safety)
             assert sql("SELECT version,dirty FROM schema_migrations;", restored_safety).strip() == "18\t0"
-            assert sql("SELECT * FROM comments ORDER BY id;", restored_safety) == comments_snapshot
+            assert sql(legacy_comments, restored_safety) == comments_snapshot
             assert sql("SELECT * FROM articles ORDER BY id;", restored_safety) == articles_v18
             assert sql("SELECT * FROM users ORDER BY id;", restored_safety) == snapshot
             assert sql("SELECT * FROM wechat_identities ORDER BY id;", restored_safety) == identity_snapshot
+            # The actual production baseline for author replies is v19. Verify
+            # its backup independently before an additive upgrade to v20+.
+            assert run([binary, "19"], env=env).decode().strip() == "19 false"
+            dump_v19 = run(["docker", "exec", mysql_id, "sh", "-c",
+                            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --skip-comments --no-tablespaces --set-gtid-purged=OFF ' + database])
+            sql(gzip.decompress(gzip.compress(dump_v19)).decode(), restored_replies)
+            assert sql("SELECT version,dirty FROM schema_migrations;", restored_replies).strip() == "19\t0"
+            for name in (database, restored_replies):
+                assert sql(legacy_comments, name) == comments_snapshot
+                assert sql("SELECT * FROM articles ORDER BY id;", name) == articles_v18
+                assert sql("SELECT * FROM users ORDER BY id;", name) == snapshot
+                assert sql("SELECT * FROM wechat_identities ORDER BY id;", name) == identity_snapshot
             application_schema = latest_schema_version(ROOT / "backend/migrations")
-            assert application_schema >= 19
+            assert application_schema >= 20
             for _ in range(2):
                 assert run([binary, str(application_schema)], env=env).decode().strip() == f"{application_schema} false"
             assert sql("SELECT * FROM users ORDER BY id;", database) == snapshot
@@ -209,9 +242,18 @@ def main():
             assert sql("SELECT * FROM wechat_identities ORDER BY id;", database) == identity_snapshot
             assert sql("SELECT version FROM articles;", database).strip() == "1"
             assert sql("SELECT COUNT(*) FROM article_revisions;", database).strip() == "0"
-            assert sql("SELECT * FROM comments ORDER BY id;", database) == comments_snapshot
+            assert sql(legacy_comments, database) == comments_snapshot
             assert sql("SELECT * FROM articles ORDER BY id;", database) == articles_v18
             assert sql("SELECT COUNT(*) FROM wechat_comment_checks;", database).strip() == "0"
+            restored_env = env | {"MYSQL_MIGRATION_DSN": env["MYSQL_MIGRATION_DSN"].replace("/" + database + "?", "/" + restored_replies + "?")}
+            assert run([binary, str(application_schema)], env=restored_env).decode().strip() == f"{application_schema} false"
+            for name in (database, restored_replies):
+                assert sql(legacy_comments, name) == comments_snapshot
+                assert sql("SELECT parent_id IS NULL,reply_version FROM comments;", name).strip() == "1\t0"
+                assert sql("SELECT * FROM articles ORDER BY id;", name) == articles_v18
+                assert sql("SELECT * FROM users ORDER BY id;", name) == snapshot
+                assert sql("SELECT * FROM wechat_identities ORDER BY id;", name) == identity_snapshot
+                assert sql("SELECT COUNT(*) FROM wechat_comment_checks;", name).strip() == "0"
             # Repositories own only their generated rows; remove the rehearsal
             # sentinel before backfill tests whose fixtures count all holders.
             sql(f"DELETE FROM comments WHERE id='{legacy_comment}';", database)
@@ -219,7 +261,11 @@ def main():
             env["BLOG_WECHAT_IDENTITY_MYSQL_DSN"] = env["MYSQL_MIGRATION_DSN"]
             env["BLOG_MINI_CONTENT_MYSQL_DSN"] = env["MYSQL_MIGRATION_DSN"]
             env["REDIS_INTEGRATION_ADDR"] = "127.0.0.1:16389"
-            output = run(["go", "test", "./internal/data", "-run", "TestWechat|TestMiniComment", "-count=1", "-timeout=120s", "-v"], cwd=ROOT / "backend", env=env).decode()
+            output = run(["go", "test", "./internal/data", "-run", "TestWechat|TestMiniComment|TestAuthorReplyMySQL", "-count=1", "-timeout=120s", "-v"], cwd=ROOT / "backend", env=env).decode()
+            evidence = ROOT / "output/wechat-identity/real-driver.log"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text(output)
+            evidence.chmod(0o600)
             assert "--- SKIP:" not in output and "--- FAIL:" not in output
             required = ["TestWechatIdentityMySQL", "TestWechatIdentityMySQLConcurrentUnique",
                         "TestWechatIdentityMySQLPasswordLockOrdering", "TestWechatIdentityMySQLBackfill",
@@ -229,7 +275,7 @@ def main():
                         "TestWechatHTTPFormalBindingPreservesLegacyAndWebsiteAccount",
                         "TestWechatHTTPBindingNegativeCases", "TestWechatHTTPPostIssueResetRealRedis",
                         "TestMiniCommentMySQLHTTP", "TestMiniCommentMySQLSchemaAndNullableTimes",
-                        "TestMiniCommentMySQLConcurrentAtMostOne", "TestMiniCommentMySQLLatePassLockOrdering"]
+                        "TestMiniCommentMySQLConcurrentAtMostOne", "TestMiniCommentMySQLLatePassLockOrdering", "TestAuthorReplyMySQLLifecycle", "TestAuthorReplyMySQLConcurrentCreate", "TestAuthorReplyMySQLRecheckLockOrder"]
             # Test names are an explicit no-silent-skip gate, not merely exit 0.
             for name in required:
                 assert re.search(r"^--- PASS: " + re.escape(name) + r"(?: \(|$)", output, re.MULTILINE), "required real-driver test missing: " + name
@@ -238,7 +284,8 @@ def main():
                               "legacy_preserved": True, "no_automatic_backfill": True,
                               "cli_dryrun_apply_idempotent": True, "backup_restore": True,
                               "mini_content_safety_mysql_http": "passed",
-                              "v18_backup_restore": True, "legacy_comments_preserved": True,
+                              "v18_backup_restore": True, "v19_backup_restore_upgrade": True, "legacy_comments_preserved": True,
+                              "old_comment_columns_preserved": True, "old_comments_are_roots_version_zero": True,
                               "no_automatic_safety_backfill": True,
                               "real_mysql_redis_http_tests": "passed", "silent_skips": 0}))
     finally:
@@ -258,4 +305,6 @@ if __name__ == "__main__":
         main()
     except Exception as error:
         print("WeChat fixture verification failed: " + type(error).__name__)
+        if isinstance(error, RuntimeError) and str(error).startswith("refusing a non-local Docker"):
+            print(str(error))
         raise SystemExit(1)

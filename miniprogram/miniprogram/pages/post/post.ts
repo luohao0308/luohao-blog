@@ -14,6 +14,8 @@ interface CommentItem {
   content: string
   avatarUrl: string
   initial: string
+  parentId?: string
+  authorReply?: CommentItem
   pending: boolean
   safetyLabel?: string
   canRecheck?: boolean
@@ -24,6 +26,8 @@ function toCommentItem(c: Comment): CommentItem {
   const displayName = c.display_name || '访客'
   return {
     id: c.id,
+    parentId: c.parent_id,
+    authorReply: c.author_reply?.parent_id === c.id && c.author_reply.status === COMMENT_STATUS_APPROVED ? { id: c.author_reply.id, name: c.author_reply.display_name, dateText: formatDate(c.author_reply.created_at), content: c.author_reply.content, avatarUrl: '', initial: '作', pending: false } : undefined,
     name: displayName,
     dateText: formatDate(c.created_at),
     content: c.content,
@@ -37,6 +41,7 @@ function privateComment(record: MiniCommentRecord): CommentItem {
   const item = toCommentItem(record.comment)
   item.pending = !record.visible
   item.canRecheck = record.can_recheck
+  if (item.parentId) item.name = `作者回复（所属评论 ${item.parentId}） · ${item.name}`
   item.safetyLabel = record.visible ? '' : ({
     0: '尚未检测，仅你可见', 1: '安全检测中，仅你可见',
     2: '安全检测通过，评论尚未公开', 3: '暂未通过自动检测，请修改后重新发送',
@@ -55,6 +60,18 @@ function uniqueComments(comments: CommentItem[]): CommentItem[] {
     if (ids.has(comment.id)) return false
     ids.add(comment.id)
     return true
+  })
+}
+
+// Private reply records stay independently addressable for fresh-code rechecks;
+// only their presentation is folded under an already-loaded root.
+function displayComments(items: CommentItem[]): CommentItem[] {
+  const unique = uniqueComments(items)
+  const roots = new Set(unique.filter(item => !item.parentId).map(item => item.id))
+  return unique.filter(item => !item.parentId || !roots.has(item.parentId)).map(item => {
+    if (item.parentId) return item
+    const ownedReply = unique.find(child => child.parentId === item.id)
+    return ownedReply ? { ...item, authorReply: ownedReply } : item
   })
 }
 
@@ -150,7 +167,7 @@ Page({
     const previousAccountId = this.data.commentAccountId
     const accountChanged = this.data.commentAccountId !== '' && this.data.commentAccountId !== accountId
     if (accountChanged) {
-      const comments = uniqueComments(this.data.publicComments)
+      const comments = displayComments(this.data.publicComments)
       this.setData({
         canComment: isLoggedIn(),
         commentAuthLoading: false,
@@ -269,7 +286,7 @@ Page({
       const nextPublic = uniqueComments(publicComments.concat(more))
       const publicIds = new Set(nextPublic.map((comment) => comment.id))
       const sessionComments = this.data.sessionComments.filter((comment) => !publicIds.has(comment.id))
-      const comments = uniqueComments(sessionComments.concat(nextPublic))
+      const comments = displayComments(sessionComments.concat(nextPublic))
       const nextToken = set.next_page_token ?? ''
       this.setData({
         publicComments: nextPublic,
@@ -306,7 +323,7 @@ Page({
       const privateIds = new Set(sessionComments.map(c => c.id))
       const heldIds = new Set(sessionComments.filter(c => c.pending).map(c => c.id))
       const publicComments = this.data.publicComments.filter(c => !heldIds.has(c.id))
-      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: uniqueComments(sessionComments.concat(publicComments.filter(c => !privateIds.has(c.id)))), mineToken: result.next_page_token ?? '', mineFinished: !result.next_page_token })
+      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: displayComments(sessionComments.concat(publicComments.filter(c => !privateIds.has(c.id)))), mineToken: result.next_page_token ?? '', mineFinished: !result.next_page_token })
     } catch {
       if (revision === this.data.mineRevision && owner !== (currentAccount()?.id ?? '')) this.applyComposerState()
     }
@@ -333,7 +350,7 @@ Page({
       const item = privateComment(result)
       const sessionComments = [item].concat(this.data.sessionComments.filter(c => c.id !== id))
       const publicComments = item.pending ? this.data.publicComments.filter(c => c.id !== id) : this.data.publicComments
-      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: uniqueComments(sessionComments.concat(publicComments)) })
+      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: displayComments(sessionComments.concat(publicComments)) })
       if (result.visible) {
         let currentIntent = this.data.pendingIntents[key]
         try { currentIntent = wx.getStorageSync(key) || currentIntent } catch { /* in-page recovery */ }
@@ -422,7 +439,7 @@ Page({
         } catch { /* no credentials are stored here */ }
       }
       const sessionComments = uniqueComments([created].concat(this.data.sessionComments))
-      const comments = uniqueComments(sessionComments.concat(this.data.publicComments))
+      const comments = displayComments(sessionComments.concat(this.data.publicComments))
       this.setData({
         sessionComments,
         comments,

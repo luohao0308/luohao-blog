@@ -47,11 +47,14 @@ var (
 
 // Comment is a visitor comment on an article.
 type Comment struct {
-	ID          uuid.UUID
-	ArticleSlug string
-	DisplayName string
-	Content     string
-	Status      CommentStatus
+	ParentID     *uuid.UUID
+	ReplyVersion uint64
+	AuthorReply  *Comment
+	ID           uuid.UUID
+	ArticleSlug  string
+	DisplayName  string
+	Content      string
+	Status       CommentStatus
 	// UserID is the authoring account; nil only for legacy rows from the
 	// anonymous era. New comments always carry one.
 	UserID *uuid.UUID
@@ -148,6 +151,9 @@ func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims
 	if err != nil {
 		return nil, ErrAuthUnauthorized
 	}
+	c.ParentID = nil
+	c.ReplyVersion = 0
+	c.AuthorReply = nil
 	c.ID = uuid.Nil
 	c.UserID = &author.ID
 	c.DisplayName = author.DisplayName

@@ -82,7 +82,7 @@ func TestManifestAndHash(t *testing.T) {
 }
 func TestSchemaVersionGate(t *testing.T) {
 	want, err := highestMigration()
-	if err != nil || want != 19 {
+	if err != nil || want != 20 {
 		t.Fatalf("migration source: %d %v", want, err)
 	}
 	for _, tc := range []struct {

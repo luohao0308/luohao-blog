@@ -1,0 +1,1 @@
+ALTER TABLE comments ADD COLUMN parent_id char(36) COLLATE utf8mb4_bin NULL, ADD COLUMN reply_version bigint unsigned NOT NULL DEFAULT 0, ADD UNIQUE KEY comment_parent_id (parent_id), ADD CONSTRAINT comments_comments_author_reply FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE RESTRICT;

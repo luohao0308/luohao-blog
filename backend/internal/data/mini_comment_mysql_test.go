@@ -43,8 +43,8 @@ func miniMySQL(t *testing.T) (*ent.Client, *sql.DB) {
 	defer cancel()
 	var version int
 	var dirty bool
-	if err := db.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 19 || dirty {
-		t.Fatal("mini fixture must have clean migration 19")
+	if err := db.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 20 || dirty {
+		t.Fatal("mini fixture must have clean migration 20")
 	}
 	client := ent.NewClient(ent.Driver(entsql.OpenDB(dialect.MySQL, db)))
 	return client, db

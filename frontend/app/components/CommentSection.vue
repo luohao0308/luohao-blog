@@ -160,6 +160,10 @@ function formatDate(ts?: import('~/composables/useArticles').ArticleTimestamp): 
             <time class="text-xs text-slate-500 dark:text-slate-400">{{ formatDate(c.created_at) }}</time>
           </div>
           <p class="break-words text-sm leading-7 text-slate-700 dark:text-slate-300">{{ c.content }}</p>
+          <div v-if="c.author_reply?.status === COMMENT_STATUS.APPROVED && c.author_reply.parent_id === c.id" class="mt-3 space-y-1 border-l-2 border-[var(--accent)] pl-3" aria-label="作者回复">
+            <p class="text-xs text-slate-500">作者回复 · {{ c.author_reply.display_name }} · {{ formatDate(c.author_reply.updated_at) }}</p>
+            <p class="whitespace-pre-wrap break-words text-sm leading-7">{{ c.author_reply.content }}</p>
+          </div>
         </div>
       </li>
     </ul>

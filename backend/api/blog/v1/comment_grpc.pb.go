@@ -20,6 +20,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	CommentService_GetAuthorReply_FullMethodName      = "/blog.v1.CommentService/GetAuthorReply"
+	CommentService_PutAuthorReply_FullMethodName      = "/blog.v1.CommentService/PutAuthorReply"
 	CommentService_CreateComment_FullMethodName       = "/blog.v1.CommentService/CreateComment"
 	CommentService_ListArticleComments_FullMethodName = "/blog.v1.CommentService/ListArticleComments"
 	CommentService_ListComments_FullMethodName        = "/blog.v1.CommentService/ListComments"
@@ -41,6 +43,8 @@ const (
 // display name. Admin operations require the ADMIN role; public reads stay
 // open and submissions are rate limited per client IP and account.
 type CommentServiceClient interface {
+	GetAuthorReply(ctx context.Context, in *GetAuthorReplyRequest, opts ...grpc.CallOption) (*Comment, error)
+	PutAuthorReply(ctx context.Context, in *PutAuthorReplyRequest, opts ...grpc.CallOption) (*Comment, error)
 	// CreateComment submits a comment authored by the calling account. The
 	// returned status determines visibility: APPROVED is public immediately;
 	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
@@ -77,6 +81,26 @@ type commentServiceClient struct {
 
 func NewCommentServiceClient(cc grpc.ClientConnInterface) CommentServiceClient {
 	return &commentServiceClient{cc}
+}
+
+func (c *commentServiceClient) GetAuthorReply(ctx context.Context, in *GetAuthorReplyRequest, opts ...grpc.CallOption) (*Comment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Comment)
+	err := c.cc.Invoke(ctx, CommentService_GetAuthorReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commentServiceClient) PutAuthorReply(ctx context.Context, in *PutAuthorReplyRequest, opts ...grpc.CallOption) (*Comment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Comment)
+	err := c.cc.Invoke(ctx, CommentService_PutAuthorReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *commentServiceClient) CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*Comment, error) {
@@ -143,6 +167,8 @@ func (c *commentServiceClient) DeleteComment(ctx context.Context, in *DeleteComm
 // display name. Admin operations require the ADMIN role; public reads stay
 // open and submissions are rate limited per client IP and account.
 type CommentServiceServer interface {
+	GetAuthorReply(context.Context, *GetAuthorReplyRequest) (*Comment, error)
+	PutAuthorReply(context.Context, *PutAuthorReplyRequest) (*Comment, error)
 	// CreateComment submits a comment authored by the calling account. The
 	// returned status determines visibility: APPROVED is public immediately;
 	// PENDING waits for admin review. Rate-limiter outages also hold for review. The
@@ -181,6 +207,12 @@ type CommentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCommentServiceServer struct{}
 
+func (UnimplementedCommentServiceServer) GetAuthorReply(context.Context, *GetAuthorReplyRequest) (*Comment, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAuthorReply not implemented")
+}
+func (UnimplementedCommentServiceServer) PutAuthorReply(context.Context, *PutAuthorReplyRequest) (*Comment, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutAuthorReply not implemented")
+}
 func (UnimplementedCommentServiceServer) CreateComment(context.Context, *CreateCommentRequest) (*Comment, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateComment not implemented")
 }
@@ -215,6 +247,42 @@ func RegisterCommentServiceServer(s grpc.ServiceRegistrar, srv CommentServiceSer
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&CommentService_ServiceDesc, srv)
+}
+
+func _CommentService_GetAuthorReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAuthorReplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentServiceServer).GetAuthorReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentService_GetAuthorReply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentServiceServer).GetAuthorReply(ctx, req.(*GetAuthorReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CommentService_PutAuthorReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutAuthorReplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentServiceServer).PutAuthorReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentService_PutAuthorReply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentServiceServer).PutAuthorReply(ctx, req.(*PutAuthorReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CommentService_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -314,6 +382,14 @@ var CommentService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "blog.v1.CommentService",
 	HandlerType: (*CommentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetAuthorReply",
+			Handler:    _CommentService_GetAuthorReply_Handler,
+		},
+		{
+			MethodName: "PutAuthorReply",
+			Handler:    _CommentService_PutAuthorReply_Handler,
+		},
 		{
 			MethodName: "CreateComment",
 			Handler:    _CommentService_CreateComment_Handler,

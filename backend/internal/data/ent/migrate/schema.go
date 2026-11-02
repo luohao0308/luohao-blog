@@ -217,17 +217,27 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "reply_version", Type: field.TypeUint64, Default: 0},
 		{Name: "article_slug", Type: field.TypeString},
 		{Name: "display_name", Type: field.TypeString},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "status", Type: field.TypeInt32, Default: 1},
 		{Name: "user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "parent_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// CommentsTable holds the schema information for the "comments" table.
 	CommentsTable = &schema.Table{
 		Name:       "comments",
 		Columns:    CommentsColumns,
 		PrimaryKey: []*schema.Column{CommentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "comments_comments_author_reply",
+				Columns:    []*schema.Column{CommentsColumns[9]},
+				RefColumns: []*schema.Column{CommentsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "comment_updated_at",
@@ -237,12 +247,17 @@ var (
 			{
 				Name:    "comment_article_slug",
 				Unique:  false,
-				Columns: []*schema.Column{CommentsColumns[3]},
+				Columns: []*schema.Column{CommentsColumns[4]},
+			},
+			{
+				Name:    "comment_parent_id",
+				Unique:  true,
+				Columns: []*schema.Column{CommentsColumns[9]},
 			},
 			{
 				Name:    "comment_status",
 				Unique:  false,
-				Columns: []*schema.Column{CommentsColumns[6]},
+				Columns: []*schema.Column{CommentsColumns[7]},
 			},
 		},
 	}
@@ -544,6 +559,7 @@ func init() {
 	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
 	CollectionsTable.ForeignKeys[0].RefTable = ArticlesTable
 	CollectionsTable.ForeignKeys[1].RefTable = UsersTable
+	CommentsTable.ForeignKeys[0].RefTable = CommentsTable
 	WechatCommentChecksTable.ForeignKeys[0].RefTable = UsersTable
 	WechatCommentChecksTable.ForeignKeys[1].RefTable = WechatIdentitiesTable
 	WechatCommentChecksTable.Annotation = &entsql.Annotation{

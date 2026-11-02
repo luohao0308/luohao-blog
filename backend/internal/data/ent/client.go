@@ -1316,6 +1316,38 @@ func (c *CommentClient) GetX(ctx context.Context, id uuid.UUID) *Comment {
 	return obj
 }
 
+// QueryParent queries the parent edge of a Comment.
+func (c *CommentClient) QueryParent(_m *Comment) *CommentQuery {
+	query := (&CommentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(comment.Table, comment.FieldID, id),
+			sqlgraph.To(comment.Table, comment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, comment.ParentTable, comment.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAuthorReply queries the author_reply edge of a Comment.
+func (c *CommentClient) QueryAuthorReply(_m *Comment) *CommentQuery {
+	query := (&CommentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(comment.Table, comment.FieldID, id),
+			sqlgraph.To(comment.Table, comment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, comment.AuthorReplyTable, comment.AuthorReplyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CommentClient) Hooks() []Hook {
 	return c.hooks.Comment

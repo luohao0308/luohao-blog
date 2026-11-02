@@ -1226,6 +1226,47 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/blog.v1.Comment'
+    /v1/comments/{id}/author-reply:
+        get:
+            tags:
+                - CommentService
+            operationId: CommentService_GetAuthorReply
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Comment'
+        put:
+            tags:
+                - CommentService
+            operationId: CommentService_PutAuthorReply
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/blog.v1.PutAuthorReplyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/blog.v1.Comment'
     /v1/mini/articles/{slug}/comments:
         get:
             tags:
@@ -1932,6 +1973,12 @@ components:
                         Author avatar as a site-relative path (see User.avatar_url). Empty for
                          legacy anonymous comments and accounts without an upload; clients fall
                          back to an initials disc.
+                parentId:
+                    type: string
+                replyVersion:
+                    type: string
+                authorReply:
+                    $ref: '#/components/schemas/blog.v1.Comment'
             description: Comment is the canonical representation of an article comment.
         blog.v1.CommentSet:
             type: object
@@ -2159,6 +2206,15 @@ components:
                     items:
                         $ref: '#/components/schemas/blog.v1.Project'
                 next_page_token:
+                    type: string
+        blog.v1.PutAuthorReplyRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                content:
+                    type: string
+                expectedReplyVersion:
                     type: string
         blog.v1.RecheckMiniCommentRequest:
             type: object

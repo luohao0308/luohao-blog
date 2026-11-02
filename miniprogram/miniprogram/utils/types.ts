@@ -73,6 +73,9 @@ export const WECHAT_STATUS_BINDING_REQUIRED = 2
 // --- 评论 wire 类型 ---
 
 export interface Comment {
+  parent_id?: string
+  reply_version?: string | number
+  author_reply?: Comment
   id: string
   article_slug: string
   display_name: string

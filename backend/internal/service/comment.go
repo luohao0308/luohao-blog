@@ -172,14 +172,23 @@ func convertCommentReply(in *biz.Comment) *v1.Comment {
 		return nil
 	}
 	out := &v1.Comment{
-		Id:          in.ID.String(),
-		ArticleSlug: in.ArticleSlug,
-		DisplayName: in.DisplayName,
-		Content:     in.Content,
-		Status:      convertCommentStatus(in.Status),
-		AvatarUrl:   in.AvatarURL,
-		CreatedAt:   timestamppb.New(in.CreatedAt),
-		UpdatedAt:   timestamppb.New(in.UpdatedAt),
+		ReplyVersion: in.ReplyVersion,
+		Id:           in.ID.String(),
+		ArticleSlug:  in.ArticleSlug,
+		DisplayName:  in.DisplayName,
+		Content:      in.Content,
+		Status:       convertCommentStatus(in.Status),
+		AvatarUrl:    in.AvatarURL,
+		CreatedAt:    timestamppb.New(in.CreatedAt),
+		UpdatedAt:    timestamppb.New(in.UpdatedAt),
+	}
+	if in.ParentID != nil {
+		out.ParentId = in.ParentID.String()
+	}
+	if in.AuthorReply != nil {
+		child := *in.AuthorReply
+		child.AuthorReply = nil
+		out.AuthorReply = convertCommentReply(&child)
 	}
 	if in.UserID != nil {
 		out.UserId = in.UserID.String()
@@ -199,4 +208,30 @@ func convertCommentStatus(in biz.CommentStatus) v1.CommentStatus {
 	default:
 		return v1.CommentStatus_COMMENT_STATUS_UNSPECIFIED
 	}
+}
+
+func (s *CommentService) GetAuthorReply(ctx context.Context, r *v1.GetAuthorReplyRequest) (*v1.Comment, error) {
+	id, e := parseCommentID(r.GetId())
+	if e != nil {
+		return nil, e
+	}
+	c, e := s.uc.GetAuthorReply(ctx, id)
+	if e != nil {
+		return nil, e
+	}
+	return convertCommentReply(c), nil
+}
+func (s *CommentService) PutAuthorReply(ctx context.Context, r *v1.PutAuthorReplyRequest) (*v1.Comment, error) {
+	if r == nil || r.ExpectedReplyVersion == nil {
+		return nil, biz.ErrCommentInvalidArgument
+	}
+	id, e := parseCommentID(r.GetId())
+	if e != nil {
+		return nil, e
+	}
+	c, e := s.uc.PutAuthorReply(ctx, id, r.GetContent(), r.GetExpectedReplyVersion(), clientIP(ctx))
+	if e != nil {
+		return nil, e
+	}
+	return convertCommentReply(c), nil
 }

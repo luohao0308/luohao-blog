@@ -1,3 +1,4 @@
+import { articleSeries } from '../../app/data/articleSeries'
 import { siteOrigin, siteURL, sitemapLastmod, xmlEscape } from '../../app/utils/seo'
 
 interface SitemapArticle {
@@ -14,7 +15,7 @@ interface SitemapProject {
   updated_at?: string | { seconds?: string | number }
 }
 
-const STATIC_PATHS = ['/', '/posts', '/projects', '/about', '/archives', '/tags', '/categories', '/ranking']
+const STATIC_PATHS = ['/', '/posts', '/series', '/projects', '/about', '/archives', '/tags', '/categories', '/ranking']
 const MAX_URLS = 50_000
 const MAX_XML_BYTES = 50 * 1024 * 1024
 const MAX_PAGES_PER_RESOURCE = 500
@@ -84,6 +85,10 @@ export default defineEventHandler(async (event) => {
       add(`/posts/${encodeURIComponent(article.slug)}`, lastmod)
       for (const tag of article.tags ?? []) add(`/tags/${encodeURIComponent(tag)}`, lastmod)
       if (article.category?.slug) add(`/categories/${encodeURIComponent(article.category.slug)}`, lastmod)
+    }
+    const publicSlugs = new Set(articles.map(article => article.slug))
+    for (const series of articleSeries) {
+      if (series.articleSlugs.some(slug => publicSlugs.has(slug))) add(`/series/${encodeURIComponent(series.slug)}`)
     }
     for (const project of projects) add(`/projects/${encodeURIComponent(project.slug)}`, sitemapLastmod(project.updated_at))
 

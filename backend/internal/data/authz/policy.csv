@@ -161,3 +161,8 @@ p, admin, /blog.v1.ArticleService/GetArticleRevision, *
 
 p, admin, /v1/articles/{slug}/revisions/{version}/restore, POST
 p, admin, /blog.v1.ArticleService/RestoreArticleRevision, *
+
+p, admin, /v1/comments/{id}/author-reply, GET
+p, admin, /v1/comments/{id}/author-reply, PUT
+p, admin, /blog.v1.CommentService/GetAuthorReply, *
+p, admin, /blog.v1.CommentService/PutAuthorReply, *
