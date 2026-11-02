@@ -190,3 +190,7 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 ### 评论自动公开与退回修改
 
 先在frontend执行 `pnpm build`，然后仓库根运行 `node scripts/e2e/automatic_comments_e2e.cjs`。测试工具环境提供Playwright，`BLOG_E2E_CHROMIUM`可指定浏览器。脚本自启本地14350/14351的Nuxt与合成API，不使用真实账号、生产或微信API。覆盖1440/390px普通/含链接评论公开、400/503保稿与修改重发、提交中新输入、legacy pending兼容、退出后迟到私有响应、切换账号后迟到401禁止刷新重放。证据默认在本机output/automatic-comments。
+
+### 作品真实展示回归
+
+先在frontend执行 `pnpm build`，仓库根运行 `node scripts/e2e/portfolio_showcase_e2e.cjs`。使用已提交的作品提案与PNG素材构建只读fixture，默认14360/14361，Playwright由既有工具环境提供。验证两个项目在1440/390px的图片实际解码、来源说明、替代文本、原图新标签与无溢出；无生产或CMS写入。证据留在output/portfolio-real/browser。

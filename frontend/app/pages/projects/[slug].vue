@@ -45,6 +45,16 @@ usePageSeo({
       <p class="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-400">{{ project.summary }}</p>
     </header>
 
+    <section v-if="project.screenshots?.length" class="space-y-4">
+      <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目截图</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400">点击截图查看原图。</p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <a v-for="(image, index) in project.screenshots" :key="image" :href="assetUrl(image)" target="_blank" rel="noopener noreferrer" :aria-label="`查看 ${project.name} 截图 ${index + 1} 原图`" class="block min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]">
+          <img :src="assetUrl(image)" :alt="`${project.name} 截图 ${index + 1}`" class="detail-media rounded-xl border border-[var(--border-default)]" loading="lazy">
+        </a>
+      </div>
+    </section>
+
     <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_220px]">
       <section class="min-w-0 space-y-4">
         <section v-for="section in sections" :key="section.title" class="space-y-4 pb-5">
@@ -67,12 +77,7 @@ usePageSeo({
       </div>
     </section>
 
-    <section v-if="project.screenshots?.length" class="space-y-4">
-      <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目截图</h2>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <img v-for="(image, index) in project.screenshots" :key="image" :src="assetUrl(image)" :alt="`${project.name} 截图 ${index + 1}`" class="detail-media rounded-xl border border-[var(--border-default)]">
-      </div>
-    </section>
+
 
     <footer class="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] pt-8">
       <NuxtLink to="/projects" class="detail-button">← 返回作品集</NuxtLink>
