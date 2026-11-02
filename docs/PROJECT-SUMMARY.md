@@ -99,9 +99,9 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | RBAC | casbin（enforcer 挂 HTTP/gRPC 中间件） | S3 已实现；公开文章仅列已发布内容，admin 可管理草稿 | backend auth/article | active |
 | 管理后台编辑器 | Milkdown Crepe（所见即所得 Markdown） | S4 冒烟验证：`#`/`**` 实时渲染、markdownUpdated 回传 source；SSR 受阻时降级路径为 Tiptap+tiptap-markdown（未触发） | frontend admin | active |
 | BFF refresh cookie | `cookiePathRewrite {'/v1/auth': '/api/v1/auth'}` | S4 冒烟验证：后端契约不变，浏览器经 `/api/v1/auth/*` 自动携带 httpOnly cookie | frontend server/api | active |
-| 开放注册 | READER 自助注册，邮箱验证可选且不锁旧账号；注册独立 IP 限流 fail-open，邮箱恢复独立 fail-closed；评论由本地风险筛查与人工复核兜底（可切 manual 全量待审） | T-010/S1（PR #52）；T-016代码支持验证/恢复，真实投递状态见TASKS | auth/评论 | active |
+| 开放注册 | READER 自助注册，邮箱验证可选且不锁旧账号；注册独立 IP 限流 fail-open，邮箱恢复独立 fail-closed；评论策略见下方auto/smart/manual配置 | T-010/S1（PR #52）；T-016代码支持验证/恢复，真实投递状态见TASKS | auth/评论 | active |
 | 头像存储 | 后端本地磁盘卷（`data.uploads_dir`，JSON base64 上传，魔数 sniff，2MiB） | 生产拓扑无 MinIO、2C4G 不再加服务；文件名 UUIDv4 随机，GetAvatar 以 HttpBody 返回 + immutable 缓存 | 用户头像/评论头像 | active |
-| 评论审核 | 默认 smart：普通评论自动 APPROVED；链接/联系方式、导流词、连续重复字符和限流异常留 PENDING；manual/未知模式全部待审 | `auth.comment_moderation`；可追加 `review_keywords`，无外部调用费，无旧数据回填；本地反垃圾不能覆盖全部违规语义 | 评论后端 + Web/小程序 | active |
+| 评论审核 | 支持auto：正常评论/技术链接自动公开，明确本地垃圾400退回、检测故障503重试；小程序需微信昵称/正文双pass，失败保稿、故障恢复可自动公开。smart/manual及未知模式保守行为兼容，旧Web待审不批量放出 | `auth.comment_moderation`；本地反垃圾不等同语义审核；契约见 `docs/contracts/WECHAT-CONTENT-SAFETY.md` | backend/评论 + Web/mini | active |
 | 评论身份模型 | CreateComment 需认证，身份取自 token；`comments.user_id` 可空兼容旧匿名行 | T-010/S4（PR #55）契约测试 + SQLite 回归 | 评论（破坏性契约变更） | active |
 
 ## 8. 已知风险与技术债

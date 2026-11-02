@@ -160,10 +160,11 @@ message Data {
 
 message Auth {
   message CommentModeration {
+    // auto: publish accepted comments; reject local spam without a manual queue.
     // Empty or smart: publish ordinary comments, hold local spam signals.
     // manual (and unknown modes): hold every comment for an admin.
     string mode = 1;
-    // Additional substrings to hold for review (case/width/space normalized).
+    // Additional normalized risk substrings; auto rejects, smart holds for review.
     repeated string review_keywords = 2;
   }
   message JWT {

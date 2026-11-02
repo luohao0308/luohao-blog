@@ -156,6 +156,9 @@ func (uc *MiniCommentUsecase) Create(ctx context.Context, claims *Claims, slug, 
 	if err := uc.budget(ctx, user.ID, ip); err != nil {
 		return nil, err
 	}
+	if uc.base.moderation.automatic() && uc.base.moderation.status(c.DisplayName, c.Content) != CommentStatusApproved {
+		return nil, ErrCommentRejected
+	}
 	openid, err := uc.identity.Resolve(ctx, claims, code)
 	if err != nil {
 		return nil, err
@@ -192,7 +195,15 @@ func safetyErrorKind(err error) string {
 
 func (uc *MiniCommentUsecase) check(ctx context.Context, record *MiniComment, openid string, approve bool) (*MiniComment, error) {
 	v := MiniCommentVerdict{State: MiniCommentUnavailable, ErrorKind: "unavailable"}
-	for i, in := range []ContentSafetyInput{{OpenID: openid, Content: record.Comment.DisplayName, Scene: ContentSafetyProfile}, {OpenID: openid, Content: record.Comment.Content, Scene: ContentSafetyComment}} {
+	v.AutoApproveRecovery = approve && uc.base.moderation.automatic()
+	// Re-evaluate the persisted snapshot, including a nickname changed while
+	// the request was being stored. Local spam never consumes upstream quota.
+	inputs := []ContentSafetyInput{{OpenID: openid, Content: record.Comment.DisplayName, Scene: ContentSafetyProfile}, {OpenID: openid, Content: record.Comment.Content, Scene: ContentSafetyComment}}
+	if uc.base.moderation.automatic() && uc.base.moderation.status(record.Comment.DisplayName, record.Comment.Content) != CommentStatusApproved {
+		v = MiniCommentVerdict{State: MiniCommentRisky}
+		inputs = nil
+	}
+	for i, in := range inputs {
 		result, err := uc.checker.CheckText(ctx, in)
 		if err != nil {
 			v.ErrorKind = safetyErrorKind(err)
@@ -288,7 +299,8 @@ func (uc *MiniCommentUsecase) Recheck(ctx context.Context, claims *Claims, id uu
 	if !begun {
 		return miniSafeRecord(r), nil
 	}
-	return uc.check(ctx, r, openid, false)
+	approve := uc.base.moderation.automatic() && uc.base.moderation.status(r.Comment.DisplayName, r.Comment.Content) == CommentStatusApproved
+	return uc.check(ctx, r, openid, approve)
 }
 
 func (uc *MiniCommentUsecase) ListPublic(ctx context.Context, slug string, limit, offset int) ([]*MiniComment, int, error) {

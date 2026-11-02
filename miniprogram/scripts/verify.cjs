@@ -626,6 +626,77 @@ async function main() {
   assert.match(post.data.comments.find(c => c.id === 'unsafe-approved').safetyLabel, /未通过/)
   assert.equal(post.data.comments.find(c => c.id === 'unsafe-approved').canRecheck, false)
 
+  // Automatic detection failures retain text and idempotent intent.
+  for (const state of [1, 3, 4, 5]) {
+    calls = []
+    post.onCommentInput({ detail: { value: `automatic state ${state}` } })
+    respond = () => ({ statusCode: 200, header: {}, data: {
+      comment: { id: `automatic-${state}`, user_id: 'account-b', content: post.data.commentInput, status: 1 },
+      safety_state: state, visible: false, can_recheck: state === 5,
+    } })
+    await post.submitComment()
+    await post.submitComment()
+    const attempts = calls.filter(c => c.url.endsWith('/mini/comments'))
+    assert.equal(post.data.commentInput, `automatic state ${state}`)
+    assert.equal(attempts[0].data.client_request_id, attempts[1].data.client_request_id, 'non-public results must retain intent')
+    assert.ok(storage.get('mini:comment-intent:account-b:fixture'))
+    assert.match(post.data.commentError, state === 3 || state === 4 ? /修改/ : /检测|重试|稍后/)
+  }
+  respond = () => ({ statusCode: 200, header: {}, data: {
+    comment: { id: 'automatic-public', user_id: 'account-b', content: post.data.commentInput, status: 2 },
+    safety_state: 2, visible: true, can_recheck: false,
+  } })
+  await post.submitComment()
+  assert.equal(post.data.commentInput, '')
+  assert.equal(storage.get('mini:comment-intent:account-b:fixture'), undefined)
+  assert.equal(post.data.commentError, '')
+
+  // A late non-public result cannot replace newer text or its newer intent.
+  const lateDetection = deferred()
+  respond = options => options.method === 'POST' ? lateDetection.promise : ({ statusCode: 200, header: {}, data: { comments: [] } })
+  post.onCommentInput({ detail: { value: 'original in flight' } })
+  const checkingDraft = post.submitComment()
+  await new Promise(resolve => setImmediate(resolve))
+  post.onCommentInput({ detail: { value: 'newer draft while checking' } })
+  lateDetection.resolve({ statusCode: 200, header: {}, data: {
+    comment: { id: 'late-risky', user_id: 'account-b', content: 'original in flight', status: 1 },
+    safety_state: 4, visible: false, can_recheck: false,
+  } })
+  await checkingDraft
+  assert.equal(post.data.commentInput, 'newer draft while checking')
+  assert.equal(post.data.commentError, '')
+  assert.equal(storage.get('mini:comment-intent:account-b:fixture'), undefined, 'late result cannot restore old intent')
+
+  // Recheck publication clears only the original comment's matching draft/intent.
+  for (const change of ['same', 'new-draft', 'new-intent']) {
+    post.onCommentInput({ detail: { value: `recheck draft ${change}` } })
+    respond = () => ({ statusCode: 200, header: {}, data: {
+      comment: { id: `retry-public-${change}`, user_id: 'account-b', content: post.data.commentInput, status: 1 },
+      safety_state: 5, visible: false, can_recheck: true,
+    } })
+    await post.submitComment()
+    const originalText = post.data.commentInput
+    const intentKey = 'mini:comment-intent:account-b:fixture'
+    const originalIntent = storage.get(intentKey)
+    const completion = deferred()
+    respond = options => options.url.endsWith('/recheck') ? completion.promise : ({ statusCode: 200, header: {}, data: { comments: [] } })
+    const retry = post.retryCommentSafety({ currentTarget: { dataset: { id: `retry-public-${change}` } } })
+    await new Promise(resolve => setImmediate(resolve))
+    if (change === 'new-draft') post.onCommentInput({ detail: { value: 'new draft after retry' } })
+    if (change === 'new-intent') {
+      const newer = { ...originalIntent, requestId: 'different-intent', commentId: 'different-comment' }
+      storage.set(intentKey, newer); post.data.pendingIntents[intentKey] = newer
+    }
+    completion.resolve({ statusCode: 200, header: {}, data: {
+      comment: { id: `retry-public-${change}`, user_id: 'account-b', content: originalText, status: 2 },
+      safety_state: 2, visible: true, can_recheck: false,
+    } })
+    await retry
+    assert.equal(post.data.commentInput, change === 'same' ? '' : change === 'new-draft' ? 'new draft after retry' : originalText)
+    if (change === 'same') assert.equal(storage.get(intentKey), undefined)
+    if (change === 'new-intent') assert.equal(storage.get(intentKey).requestId, 'different-intent')
+  }
+
   // A network retry retains the same intent; changed text creates a new one.
   calls = []
   respond = () => ({ statusCode: 503, header: {}, data: {} })
@@ -669,7 +740,7 @@ async function main() {
     return { statusCode: 200, header: {}, data: { comment: { id: 'recover-check', user_id: 'account-b', content: 'saved', status: 1 }, safety_state: 2, visible: false, can_recheck: false } }
   }
   await post.retryCommentSafety({ currentTarget: { dataset: { id: 'recover-check' } } })
-  assert.match(post.data.comments.find(c => c.id === 'recover-check').safetyLabel, /管理员/)
+  assert.match(post.data.comments.find(c => c.id === 'recover-check').safetyLabel, /未公开/)
   assert.equal(post.data.comments.find(c => c.id === 'recover-check').canRecheck, false)
   assert.equal(post.data.retryingCommentId, '')
   handleMine = false

@@ -36,6 +36,7 @@ var (
 	ErrCommentInvalidArgument  = errors.BadRequest(v1.ErrorReason_COMMENT_INVALID_ARGUMENT.String(), "invalid comment argument")
 	ErrCommentTooManyAttempts  = errors.TooManyRequests(v1.ErrorReason_COMMENT_TOO_MANY_ATTEMPTS.String(), "too many comments, try again later")
 	ErrCommentArticleNotPublic = ErrArticleNotFound
+	ErrCommentRejected         = errors.BadRequest(v1.ErrorReason_COMMENT_INVALID_ARGUMENT.String(), "评论未通过自动检测，请修改后重新发送")
 	CommentDisplayNameMaxRunes = 32
 	CommentContentMaxRunes     = 1000
 	// DefaultCommentAttempts/DefaultCommentWindow bound submissions per
@@ -161,6 +162,9 @@ func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims
 		return nil, err
 	}
 	c.Status = uc.moderation.status(c.DisplayName, c.Content)
+	if uc.moderation.automatic() && uc.limiter == nil {
+		return nil, ErrContentSafetyUnavailable
+	}
 	if uc.limiter != nil {
 		keys := []string{"comment:user:" + author.ID.String()}
 		if clientIP != "" {
@@ -169,12 +173,18 @@ func (uc *CommentUsecase) Submit(ctx context.Context, c *Comment, claims *Claims
 		for _, key := range keys {
 			ok, err := uc.limiter.Allow(ctx, key)
 			if err != nil {
+				if uc.moderation.automatic() {
+					return nil, ErrContentSafetyUnavailable
+				}
 				log.Warn("comment: rate limiter unavailable, holding for review", "err", err)
 				c.Status = CommentStatusPending
 			} else if !ok {
 				return nil, ErrCommentTooManyAttempts
 			}
 		}
+	}
+	if uc.moderation.automatic() && c.Status != CommentStatusApproved {
+		return nil, ErrCommentRejected
 	}
 	c, err = uc.repo.Create(ctx, c)
 	if err != nil {

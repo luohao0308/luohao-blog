@@ -58,6 +58,9 @@ type MiniCommentVerdict struct {
 	NameTraceID    string
 	ContentTraceID string
 	ErrorKind      string
+	// Internal policy permission, never accepted from a client or persisted.
+	// Legacy smart/manual recovery does not grant automatic publication.
+	AutoApproveRecovery bool
 }
 
 func (c *MiniComment) Visible() bool {

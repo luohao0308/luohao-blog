@@ -357,7 +357,7 @@ func (r *miniCommentRepo) CompleteCheck(ctx context.Context, input *biz.MiniComm
 	if affected != 1 {
 		return nil, biz.ErrMiniCommentCheckBusy
 	}
-	if approve && check.ClientRequestID != nil && check.Generation == 1 && v.State == biz.MiniCommentPass && validSafetyTrace(v.NameTraceID) && validSafetyTrace(v.ContentTraceID) && c.Status == biz.CommentStatusPending {
+	if approve && check.ClientRequestID != nil && (check.Generation == 1 || v.AutoApproveRecovery) && v.State == biz.MiniCommentPass && validSafetyTrace(v.NameTraceID) && validSafetyTrace(v.ContentTraceID) && c.Status == biz.CommentStatusPending {
 		c, e = db.Comment.UpdateOneID(c.ID).SetStatus(biz.CommentStatusApproved).Save(ctx)
 		if e != nil {
 			return nil, biz.ErrContentSafetyUnavailable

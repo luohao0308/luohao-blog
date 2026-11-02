@@ -14,6 +14,7 @@ type miniRepoFixture struct {
 	storedName         string
 	creates, completes int
 	approve            bool
+	recoveryApproval   bool
 	completeErr        error
 }
 
@@ -44,6 +45,7 @@ func (f *miniRepoFixture) BeginRecheck(_ context.Context, _ uuid.UUID, _ MiniCom
 func (f *miniRepoFixture) CompleteCheck(_ context.Context, c *MiniComment, v MiniCommentVerdict, approve bool) (*MiniComment, error) {
 	f.completes++
 	f.approve = approve
+	f.recoveryApproval = v.AutoApproveRecovery
 	if f.completeErr != nil {
 		return nil, f.completeErr
 	}
