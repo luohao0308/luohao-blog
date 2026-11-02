@@ -101,7 +101,6 @@ const otherProjects = computed(() => featuredProjects.value.slice(2))
 </template>
 
 <style scoped>
-.home-page :deep(.home-visual) { min-height: 230px; max-width: 310px; }
 .home-page { max-width: 840px; margin-inline: auto; perspective: 1600px; }
 .home-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); align-items: center; gap: 2rem; padding: 1.8rem 0 1.6rem; }
 .home-intro { min-width: 0; transform-style: preserve-3d; }
