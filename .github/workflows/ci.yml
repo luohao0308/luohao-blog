@@ -60,6 +60,8 @@ jobs:
           python3 -m unittest discover -s ../scripts -p test_time_restore_shell.py
           python3 ../scripts/test_time_contract.py
           python3 ../scripts/test_time_contract_integration.py
+          python3 ../scripts/test_time_restore_compose.py
+          python3 ../scripts/test_time_restore_compose.py --bind-state
 
   frontend:
     name: Frontend lint & typecheck & build

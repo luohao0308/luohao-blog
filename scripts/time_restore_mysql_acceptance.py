@@ -29,11 +29,17 @@ if args[0]=='inspect':
  if 'running' in args[2]:
   running=(root/'running').exists();print(json.dumps({'id':cfg['backend_id'],'running':running,'status':'running' if running else 'exited'}))
  else:
-  print(json.dumps({'id':cfg['backend_id'],'image':cfg['image_id'],'files':'/owned/base.yml,/owned/release.yml','project':'owned-utc-test','directory':'/owned/deploy','mounts':[{'Destination':'/app/data/time-contract','Type':'bind','Source':cfg['state_dir']}]}))
+  print(json.dumps({'id':cfg['backend_id'],'image':cfg['image_id'],'files':'/owned/base.yml,/owned/release.yml','project':'owned-utc-test','directory':'/owned/deploy','mounts':[{'Destination':'/app/data/time-contract','Type':'bind','Source':cfg['state_dir'],'RW':False},{'Destination':'/app/data/uploads','Type':'bind','Source':str(pathlib.Path(cfg['state_dir']).parent/'uploads')}]}))
  sys.exit(0)
+if 'run' in args and any('/proc/self/mountinfo' in arg for arg in args):
+ overlay=pathlib.Path(next(arg for arg in args if arg.endswith('compose.operator.yml') or arg.endswith('compose.uploads.yml')))
+ mode='uploads' if overlay.name=='compose.uploads.yml' else 'operator'
+ expected=json.loads((overlay.parent/'mount-expectations.json').read_text())[mode]
+ print('\n'.join(path+' '+flags+',relatime' for path,flags in expected.items()));raise SystemExit(0)
 if '/app/time-contract' in args:
  op=args[args.index('/app/time-contract')+1:]
- operation_mount=next((v.split(':')[0] for v in args if ':/time-operation:' in v),None)
+ overlay=pathlib.Path(next(arg for arg in args if arg.endswith('compose.operator.yml')))
+ operation_mount=str(overlay.parent)
  translated=[]
  for arg in op:
   if arg=='/data/conf':arg=cfg['conf_dir']
