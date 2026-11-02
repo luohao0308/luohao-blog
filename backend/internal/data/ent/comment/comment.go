@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 )
@@ -19,6 +20,10 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldParentID holds the string denoting the parent_id field in the database.
+	FieldParentID = "parent_id"
+	// FieldReplyVersion holds the string denoting the reply_version field in the database.
+	FieldReplyVersion = "reply_version"
 	// FieldArticleSlug holds the string denoting the article_slug field in the database.
 	FieldArticleSlug = "article_slug"
 	// FieldDisplayName holds the string denoting the display_name field in the database.
@@ -29,8 +34,20 @@ const (
 	FieldStatus = "status"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
+	// EdgeParent holds the string denoting the parent edge name in mutations.
+	EdgeParent = "parent"
+	// EdgeAuthorReply holds the string denoting the author_reply edge name in mutations.
+	EdgeAuthorReply = "author_reply"
 	// Table holds the table name of the comment in the database.
 	Table = "comments"
+	// ParentTable is the table that holds the parent relation/edge.
+	ParentTable = "comments"
+	// ParentColumn is the table column denoting the parent relation/edge.
+	ParentColumn = "parent_id"
+	// AuthorReplyTable is the table that holds the author_reply relation/edge.
+	AuthorReplyTable = "comments"
+	// AuthorReplyColumn is the table column denoting the author_reply relation/edge.
+	AuthorReplyColumn = "parent_id"
 )
 
 // Columns holds all SQL columns for comment fields.
@@ -38,6 +55,8 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+	FieldParentID,
+	FieldReplyVersion,
 	FieldArticleSlug,
 	FieldDisplayName,
 	FieldContent,
@@ -62,6 +81,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultReplyVersion holds the default value on creation for the "reply_version" field.
+	DefaultReplyVersion uint64
 	// ArticleSlugValidator is a validator for the "article_slug" field. It is called by the builders before save.
 	ArticleSlugValidator func(string) error
 	// DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
@@ -90,6 +111,16 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
+// ByParentID orders the results by the parent_id field.
+func ByParentID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldParentID, opts...).ToFunc()
+}
+
+// ByReplyVersion orders the results by the reply_version field.
+func ByReplyVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReplyVersion, opts...).ToFunc()
+}
+
 // ByArticleSlug orders the results by the article_slug field.
 func ByArticleSlug(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldArticleSlug, opts...).ToFunc()
@@ -113,4 +144,32 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByUserID orders the results by the user_id field.
 func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByParentField orders the results by parent field.
+func ByParentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newParentStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByAuthorReplyField orders the results by author_reply field.
+func ByAuthorReplyField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAuthorReplyStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newParentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, ParentTable, ParentColumn),
+	)
+}
+func newAuthorReplyStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, AuthorReplyTable, AuthorReplyColumn),
+	)
 }

@@ -5233,21 +5233,27 @@ func (m *CollectionMutation) ResetEdge(name string) error {
 // CommentMutation represents an operation that mutates the Comment nodes in the graph.
 type CommentMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uuid.UUID
-	created_at    *time.Time
-	updated_at    *time.Time
-	article_slug  *string
-	display_name  *string
-	content       *string
-	status        *biz.CommentStatus
-	addstatus     *biz.CommentStatus
-	user_id       *uuid.UUID
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Comment, error)
-	predicates    []predicate.Comment
+	op                  Op
+	typ                 string
+	id                  *uuid.UUID
+	created_at          *time.Time
+	updated_at          *time.Time
+	reply_version       *uint64
+	addreply_version    *int64
+	article_slug        *string
+	display_name        *string
+	content             *string
+	status              *biz.CommentStatus
+	addstatus           *biz.CommentStatus
+	user_id             *uuid.UUID
+	clearedFields       map[string]struct{}
+	parent              *uuid.UUID
+	clearedparent       bool
+	author_reply        *uuid.UUID
+	clearedauthor_reply bool
+	done                bool
+	oldValue            func(context.Context) (*Comment, error)
+	predicates          []predicate.Comment
 }
 
 var _ ent.Mutation = (*CommentMutation)(nil)
@@ -5424,6 +5430,111 @@ func (m *CommentMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err er
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *CommentMutation) ResetUpdatedAt() {
 	m.updated_at = nil
+}
+
+// SetParentID sets the "parent_id" field.
+func (m *CommentMutation) SetParentID(u uuid.UUID) {
+	m.parent = &u
+}
+
+// ParentID returns the value of the "parent_id" field in the mutation.
+func (m *CommentMutation) ParentID() (r uuid.UUID, exists bool) {
+	v := m.parent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldParentID returns the old "parent_id" field's value of the Comment entity.
+// If the Comment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CommentMutation) OldParentID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldParentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldParentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldParentID: %w", err)
+	}
+	return oldValue.ParentID, nil
+}
+
+// ClearParentID clears the value of the "parent_id" field.
+func (m *CommentMutation) ClearParentID() {
+	m.parent = nil
+	m.clearedFields[comment.FieldParentID] = struct{}{}
+}
+
+// ParentIDCleared returns if the "parent_id" field was cleared in this mutation.
+func (m *CommentMutation) ParentIDCleared() bool {
+	_, ok := m.clearedFields[comment.FieldParentID]
+	return ok
+}
+
+// ResetParentID resets all changes to the "parent_id" field.
+func (m *CommentMutation) ResetParentID() {
+	m.parent = nil
+	delete(m.clearedFields, comment.FieldParentID)
+}
+
+// SetReplyVersion sets the "reply_version" field.
+func (m *CommentMutation) SetReplyVersion(u uint64) {
+	m.reply_version = &u
+	m.addreply_version = nil
+}
+
+// ReplyVersion returns the value of the "reply_version" field in the mutation.
+func (m *CommentMutation) ReplyVersion() (r uint64, exists bool) {
+	v := m.reply_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReplyVersion returns the old "reply_version" field's value of the Comment entity.
+// If the Comment object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CommentMutation) OldReplyVersion(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReplyVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReplyVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReplyVersion: %w", err)
+	}
+	return oldValue.ReplyVersion, nil
+}
+
+// AddReplyVersion adds u to the "reply_version" field.
+func (m *CommentMutation) AddReplyVersion(u int64) {
+	if m.addreply_version != nil {
+		*m.addreply_version += u
+	} else {
+		m.addreply_version = &u
+	}
+}
+
+// AddedReplyVersion returns the value that was added to the "reply_version" field in this mutation.
+func (m *CommentMutation) AddedReplyVersion() (r int64, exists bool) {
+	v := m.addreply_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetReplyVersion resets all changes to the "reply_version" field.
+func (m *CommentMutation) ResetReplyVersion() {
+	m.reply_version = nil
+	m.addreply_version = nil
 }
 
 // SetArticleSlug sets the "article_slug" field.
@@ -5652,6 +5763,72 @@ func (m *CommentMutation) ResetUserID() {
 	delete(m.clearedFields, comment.FieldUserID)
 }
 
+// ClearParent clears the "parent" edge to the Comment entity.
+func (m *CommentMutation) ClearParent() {
+	m.clearedparent = true
+	m.clearedFields[comment.FieldParentID] = struct{}{}
+}
+
+// ParentCleared reports if the "parent" edge to the Comment entity was cleared.
+func (m *CommentMutation) ParentCleared() bool {
+	return m.ParentIDCleared() || m.clearedparent
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ParentID instead. It exists only for internal usage by the builders.
+func (m *CommentMutation) ParentIDs() (ids []uuid.UUID) {
+	if id := m.parent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *CommentMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+}
+
+// SetAuthorReplyID sets the "author_reply" edge to the Comment entity by id.
+func (m *CommentMutation) SetAuthorReplyID(id uuid.UUID) {
+	m.author_reply = &id
+}
+
+// ClearAuthorReply clears the "author_reply" edge to the Comment entity.
+func (m *CommentMutation) ClearAuthorReply() {
+	m.clearedauthor_reply = true
+}
+
+// AuthorReplyCleared reports if the "author_reply" edge to the Comment entity was cleared.
+func (m *CommentMutation) AuthorReplyCleared() bool {
+	return m.clearedauthor_reply
+}
+
+// AuthorReplyID returns the "author_reply" edge ID in the mutation.
+func (m *CommentMutation) AuthorReplyID() (id uuid.UUID, exists bool) {
+	if m.author_reply != nil {
+		return *m.author_reply, true
+	}
+	return
+}
+
+// AuthorReplyIDs returns the "author_reply" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AuthorReplyID instead. It exists only for internal usage by the builders.
+func (m *CommentMutation) AuthorReplyIDs() (ids []uuid.UUID) {
+	if id := m.author_reply; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAuthorReply resets all changes to the "author_reply" edge.
+func (m *CommentMutation) ResetAuthorReply() {
+	m.author_reply = nil
+	m.clearedauthor_reply = false
+}
+
 // Where appends a list predicates to the CommentMutation builder.
 func (m *CommentMutation) Where(ps ...predicate.Comment) {
 	m.predicates = append(m.predicates, ps...)
@@ -5686,12 +5863,18 @@ func (m *CommentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CommentMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, comment.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, comment.FieldUpdatedAt)
+	}
+	if m.parent != nil {
+		fields = append(fields, comment.FieldParentID)
+	}
+	if m.reply_version != nil {
+		fields = append(fields, comment.FieldReplyVersion)
 	}
 	if m.article_slug != nil {
 		fields = append(fields, comment.FieldArticleSlug)
@@ -5720,6 +5903,10 @@ func (m *CommentMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case comment.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case comment.FieldParentID:
+		return m.ParentID()
+	case comment.FieldReplyVersion:
+		return m.ReplyVersion()
 	case comment.FieldArticleSlug:
 		return m.ArticleSlug()
 	case comment.FieldDisplayName:
@@ -5743,6 +5930,10 @@ func (m *CommentMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldCreatedAt(ctx)
 	case comment.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case comment.FieldParentID:
+		return m.OldParentID(ctx)
+	case comment.FieldReplyVersion:
+		return m.OldReplyVersion(ctx)
 	case comment.FieldArticleSlug:
 		return m.OldArticleSlug(ctx)
 	case comment.FieldDisplayName:
@@ -5775,6 +5966,20 @@ func (m *CommentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case comment.FieldParentID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetParentID(v)
+		return nil
+	case comment.FieldReplyVersion:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReplyVersion(v)
 		return nil
 	case comment.FieldArticleSlug:
 		v, ok := value.(string)
@@ -5819,6 +6024,9 @@ func (m *CommentMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *CommentMutation) AddedFields() []string {
 	var fields []string
+	if m.addreply_version != nil {
+		fields = append(fields, comment.FieldReplyVersion)
+	}
 	if m.addstatus != nil {
 		fields = append(fields, comment.FieldStatus)
 	}
@@ -5830,6 +6038,8 @@ func (m *CommentMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *CommentMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case comment.FieldReplyVersion:
+		return m.AddedReplyVersion()
 	case comment.FieldStatus:
 		return m.AddedStatus()
 	}
@@ -5841,6 +6051,13 @@ func (m *CommentMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *CommentMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case comment.FieldReplyVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddReplyVersion(v)
+		return nil
 	case comment.FieldStatus:
 		v, ok := value.(biz.CommentStatus)
 		if !ok {
@@ -5856,6 +6073,9 @@ func (m *CommentMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *CommentMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(comment.FieldParentID) {
+		fields = append(fields, comment.FieldParentID)
+	}
 	if m.FieldCleared(comment.FieldContent) {
 		fields = append(fields, comment.FieldContent)
 	}
@@ -5876,6 +6096,9 @@ func (m *CommentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *CommentMutation) ClearField(name string) error {
 	switch name {
+	case comment.FieldParentID:
+		m.ClearParentID()
+		return nil
 	case comment.FieldContent:
 		m.ClearContent()
 		return nil
@@ -5895,6 +6118,12 @@ func (m *CommentMutation) ResetField(name string) error {
 		return nil
 	case comment.FieldUpdatedAt:
 		m.ResetUpdatedAt()
+		return nil
+	case comment.FieldParentID:
+		m.ResetParentID()
+		return nil
+	case comment.FieldReplyVersion:
+		m.ResetReplyVersion()
 		return nil
 	case comment.FieldArticleSlug:
 		m.ResetArticleSlug()
@@ -5917,19 +6146,35 @@ func (m *CommentMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CommentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.parent != nil {
+		edges = append(edges, comment.EdgeParent)
+	}
+	if m.author_reply != nil {
+		edges = append(edges, comment.EdgeAuthorReply)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *CommentMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case comment.EdgeParent:
+		if id := m.parent; id != nil {
+			return []ent.Value{*id}
+		}
+	case comment.EdgeAuthorReply:
+		if id := m.author_reply; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CommentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -5941,25 +6186,53 @@ func (m *CommentMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CommentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.clearedparent {
+		edges = append(edges, comment.EdgeParent)
+	}
+	if m.clearedauthor_reply {
+		edges = append(edges, comment.EdgeAuthorReply)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *CommentMutation) EdgeCleared(name string) bool {
+	switch name {
+	case comment.EdgeParent:
+		return m.clearedparent
+	case comment.EdgeAuthorReply:
+		return m.clearedauthor_reply
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *CommentMutation) ClearEdge(name string) error {
+	switch name {
+	case comment.EdgeParent:
+		m.ClearParent()
+		return nil
+	case comment.EdgeAuthorReply:
+		m.ClearAuthorReply()
+		return nil
+	}
 	return fmt.Errorf("unknown Comment unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *CommentMutation) ResetEdge(name string) error {
+	switch name {
+	case comment.EdgeParent:
+		m.ResetParent()
+		return nil
+	case comment.EdgeAuthorReply:
+		m.ResetAuthorReply()
+		return nil
+	}
 	return fmt.Errorf("unknown Comment edge %s", name)
 }
 

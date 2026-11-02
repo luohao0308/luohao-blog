@@ -50,6 +50,34 @@ func (_c *CommentCreate) SetNillableUpdatedAt(v *time.Time) *CommentCreate {
 	return _c
 }
 
+// SetParentID sets the "parent_id" field.
+func (_c *CommentCreate) SetParentID(v uuid.UUID) *CommentCreate {
+	_c.mutation.SetParentID(v)
+	return _c
+}
+
+// SetNillableParentID sets the "parent_id" field if the given value is not nil.
+func (_c *CommentCreate) SetNillableParentID(v *uuid.UUID) *CommentCreate {
+	if v != nil {
+		_c.SetParentID(*v)
+	}
+	return _c
+}
+
+// SetReplyVersion sets the "reply_version" field.
+func (_c *CommentCreate) SetReplyVersion(v uint64) *CommentCreate {
+	_c.mutation.SetReplyVersion(v)
+	return _c
+}
+
+// SetNillableReplyVersion sets the "reply_version" field if the given value is not nil.
+func (_c *CommentCreate) SetNillableReplyVersion(v *uint64) *CommentCreate {
+	if v != nil {
+		_c.SetReplyVersion(*v)
+	}
+	return _c
+}
+
 // SetArticleSlug sets the "article_slug" field.
 func (_c *CommentCreate) SetArticleSlug(v string) *CommentCreate {
 	_c.mutation.SetArticleSlug(v)
@@ -118,6 +146,30 @@ func (_c *CommentCreate) SetNillableID(v *uuid.UUID) *CommentCreate {
 	return _c
 }
 
+// SetParent sets the "parent" edge to the Comment entity.
+func (_c *CommentCreate) SetParent(v *Comment) *CommentCreate {
+	return _c.SetParentID(v.ID)
+}
+
+// SetAuthorReplyID sets the "author_reply" edge to the Comment entity by ID.
+func (_c *CommentCreate) SetAuthorReplyID(id uuid.UUID) *CommentCreate {
+	_c.mutation.SetAuthorReplyID(id)
+	return _c
+}
+
+// SetNillableAuthorReplyID sets the "author_reply" edge to the Comment entity by ID if the given value is not nil.
+func (_c *CommentCreate) SetNillableAuthorReplyID(id *uuid.UUID) *CommentCreate {
+	if id != nil {
+		_c = _c.SetAuthorReplyID(*id)
+	}
+	return _c
+}
+
+// SetAuthorReply sets the "author_reply" edge to the Comment entity.
+func (_c *CommentCreate) SetAuthorReply(v *Comment) *CommentCreate {
+	return _c.SetAuthorReplyID(v.ID)
+}
+
 // Mutation returns the CommentMutation object of the builder.
 func (_c *CommentCreate) Mutation() *CommentMutation {
 	return _c.mutation
@@ -161,6 +213,10 @@ func (_c *CommentCreate) defaults() {
 		v := comment.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.ReplyVersion(); !ok {
+		v := comment.DefaultReplyVersion
+		_c.mutation.SetReplyVersion(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := comment.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -178,6 +234,9 @@ func (_c *CommentCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Comment.updated_at"`)}
+	}
+	if _, ok := _c.mutation.ReplyVersion(); !ok {
+		return &ValidationError{Name: "reply_version", err: errors.New(`ent: missing required field "Comment.reply_version"`)}
 	}
 	if _, ok := _c.mutation.ArticleSlug(); !ok {
 		return &ValidationError{Name: "article_slug", err: errors.New(`ent: missing required field "Comment.article_slug"`)}
@@ -241,6 +300,10 @@ func (_c *CommentCreate) createSpec() (*Comment, *sqlgraph.CreateSpec) {
 		_spec.SetField(comment.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
+	if value, ok := _c.mutation.ReplyVersion(); ok {
+		_spec.SetField(comment.FieldReplyVersion, field.TypeUint64, value)
+		_node.ReplyVersion = value
+	}
 	if value, ok := _c.mutation.ArticleSlug(); ok {
 		_spec.SetField(comment.FieldArticleSlug, field.TypeString, value)
 		_node.ArticleSlug = value
@@ -260,6 +323,39 @@ func (_c *CommentCreate) createSpec() (*Comment, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UserID(); ok {
 		_spec.SetField(comment.FieldUserID, field.TypeUUID, value)
 		_node.UserID = &value
+	}
+	if nodes := _c.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   comment.ParentTable,
+			Columns: []string{comment.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(comment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ParentID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AuthorReplyIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   comment.AuthorReplyTable,
+			Columns: []string{comment.AuthorReplyColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(comment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

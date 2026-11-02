@@ -18,6 +18,9 @@ export const COMMENT_STATUS_LABEL: Record<number, string> = {
 }
 
 export interface Comment {
+  parent_id?: string
+  reply_version?: string | number
+  author_reply?: Comment
   id: string
   article_slug: string
   display_name: string

@@ -22,14 +22,16 @@ func toBizComment(po *ent.Comment) *biz.Comment {
 		return nil
 	}
 	return &biz.Comment{
-		ID:          po.ID,
-		ArticleSlug: po.ArticleSlug,
-		DisplayName: po.DisplayName,
-		Content:     po.Content,
-		Status:      po.Status,
-		UserID:      po.UserID,
-		CreatedAt:   po.CreatedAt,
-		UpdatedAt:   po.UpdatedAt,
+		ParentID:     po.ParentID,
+		ReplyVersion: po.ReplyVersion,
+		ID:           po.ID,
+		ArticleSlug:  po.ArticleSlug,
+		DisplayName:  po.DisplayName,
+		Content:      po.Content,
+		Status:       po.Status,
+		UserID:       po.UserID,
+		CreatedAt:    po.CreatedAt,
+		UpdatedAt:    po.UpdatedAt,
 	}
 }
 
@@ -79,6 +81,7 @@ func (r *commentRepo) FindByID(ctx context.Context, id uuid.UUID) (*biz.Comment,
 func (r *commentRepo) ListApprovedBySlug(ctx context.Context, slug string, limit, offset int) ([]*biz.Comment, error) {
 	pos, err := r.data.db.Comment.Query().
 		Where(
+			comment.ParentIDIsNil(),
 			comment.ArticleSlugEQ(slug),
 			comment.StatusEQ(biz.CommentStatusApproved),
 		).
@@ -93,6 +96,9 @@ func (r *commentRepo) ListApprovedBySlug(ctx context.Context, slug string, limit
 	for _, po := range pos {
 		out = append(out, toBizComment(po))
 	}
+	if err := r.attachReplies(ctx, out, true); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -105,7 +111,7 @@ func (r *commentRepo) List(ctx context.Context, opts ...biz.CommentListOption) (
 		o.Limit = 20
 	}
 	pos, err := r.data.db.Comment.Query().
-		Where(ents.ApplyFilter(o.Filter.Filter)).
+		Where(comment.ParentIDIsNil(), ents.ApplyFilter(o.Filter.Filter)).
 		Order(ent.Desc(comment.FieldCreatedAt), ent.Desc(comment.FieldID)).
 		Limit(o.Limit).
 		Offset(o.Offset).
@@ -116,6 +122,9 @@ func (r *commentRepo) List(ctx context.Context, opts ...biz.CommentListOption) (
 	out := make([]*biz.Comment, 0, len(pos))
 	for _, po := range pos {
 		out = append(out, toBizComment(po))
+	}
+	if err := r.attachReplies(ctx, out, false); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -148,15 +157,34 @@ func (r *commentRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 	db := tx.Client()
-	if _, err = lockMiniComment(ctx, db, id); err != nil {
+	current, err := lockMiniComment(ctx, db, id)
+	if err != nil {
 		return miniDataError(err)
 	}
-	_, err = db.WechatCommentCheck.Update().Where(wechatcommentcheck.CommentIDEQ(id), wechatcommentcheck.ClientRequestIDNotNil()).SetState(string(biz.MiniCommentDeleted)).ClearIdentityID().SetInputHash("").SetNameTraceID("").SetContentTraceID("").ClearCheckedAt().SetErrorKind("").ClearLeaseUntil().AddGeneration(1).Save(ctx)
+	ids := []uuid.UUID{id}
+	if current.ParentID == nil {
+		children, e := db.Comment.Query().Where(comment.ParentIDEQ(id)).All(ctx)
+		if e != nil {
+			return biz.ErrContentSafetyUnavailable
+		}
+		for _, child := range children {
+			if _, e = lockMiniComment(ctx, db, child.ID); e != nil {
+				return miniDataError(e)
+			}
+			ids = append(ids, child.ID)
+		}
+	}
+	_, err = db.WechatCommentCheck.Update().Where(wechatcommentcheck.CommentIDIn(ids...), wechatcommentcheck.ClientRequestIDNotNil()).SetState(string(biz.MiniCommentDeleted)).ClearIdentityID().SetInputHash("").SetNameTraceID("").SetContentTraceID("").ClearCheckedAt().SetErrorKind("").ClearLeaseUntil().AddGeneration(1).Save(ctx)
 	if err != nil {
 		return biz.ErrContentSafetyUnavailable
 	}
-	if _, err = db.WechatCommentCheck.Delete().Where(wechatcommentcheck.CommentIDEQ(id), wechatcommentcheck.ClientRequestIDIsNil()).Exec(ctx); err != nil {
+	if _, err = db.WechatCommentCheck.Delete().Where(wechatcommentcheck.CommentIDIn(ids...), wechatcommentcheck.ClientRequestIDIsNil()).Exec(ctx); err != nil {
 		return biz.ErrContentSafetyUnavailable
+	}
+	if len(ids) > 1 {
+		if _, err = db.Comment.Delete().Where(comment.ParentIDEQ(id)).Exec(ctx); err != nil {
+			return miniDataError(err)
+		}
 	}
 	if err = db.Comment.DeleteOneID(id).Exec(ctx); err != nil {
 		return miniDataError(err)

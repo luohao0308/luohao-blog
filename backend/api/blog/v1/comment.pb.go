@@ -100,7 +100,10 @@ type Comment struct {
 	// Author avatar as a site-relative path (see User.avatar_url). Empty for
 	// legacy anonymous comments and accounts without an upload; clients fall
 	// back to an initials disc.
-	AvatarUrl     string `protobuf:"bytes,9,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	AvatarUrl     string   `protobuf:"bytes,9,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	ParentId      string   `protobuf:"bytes,10,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	ReplyVersion  uint64   `protobuf:"varint,11,opt,name=reply_version,json=replyVersion,proto3" json:"reply_version,omitempty"`
+	AuthorReply   *Comment `protobuf:"bytes,12,opt,name=author_reply,json=authorReply,proto3" json:"author_reply,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,6 +199,27 @@ func (x *Comment) GetAvatarUrl() string {
 		return x.AvatarUrl
 	}
 	return ""
+}
+
+func (x *Comment) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *Comment) GetReplyVersion() uint64 {
+	if x != nil {
+		return x.ReplyVersion
+	}
+	return 0
+}
+
+func (x *Comment) GetAuthorReply() *Comment {
+	if x != nil {
+		return x.AuthorReply
+	}
+	return nil
 }
 
 // CommentSet is a paginated collection of comments.
@@ -532,11 +556,115 @@ func (x *DeleteCommentRequest) GetId() string {
 	return ""
 }
 
+type GetAuthorReplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAuthorReplyRequest) Reset() {
+	*x = GetAuthorReplyRequest{}
+	mi := &file_blog_v1_comment_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAuthorReplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAuthorReplyRequest) ProtoMessage() {}
+
+func (x *GetAuthorReplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_comment_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAuthorReplyRequest.ProtoReflect.Descriptor instead.
+func (*GetAuthorReplyRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_comment_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetAuthorReplyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type PutAuthorReplyRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Content              string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	ExpectedReplyVersion *uint64                `protobuf:"varint,3,opt,name=expected_reply_version,json=expectedReplyVersion,proto3,oneof" json:"expected_reply_version,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *PutAuthorReplyRequest) Reset() {
+	*x = PutAuthorReplyRequest{}
+	mi := &file_blog_v1_comment_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutAuthorReplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutAuthorReplyRequest) ProtoMessage() {}
+
+func (x *PutAuthorReplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_blog_v1_comment_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutAuthorReplyRequest.ProtoReflect.Descriptor instead.
+func (*PutAuthorReplyRequest) Descriptor() ([]byte, []int) {
+	return file_blog_v1_comment_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PutAuthorReplyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PutAuthorReplyRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *PutAuthorReplyRequest) GetExpectedReplyVersion() uint64 {
+	if x != nil && x.ExpectedReplyVersion != nil {
+		return *x.ExpectedReplyVersion
+	}
+	return 0
+}
+
 var File_blog_v1_comment_proto protoreflect.FileDescriptor
 
 const file_blog_v1_comment_proto_rawDesc = "" +
 	"\n" +
-	"\x15blog/v1/comment.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd7\x02\n" +
+	"\x15blog/v1/comment.proto\x12\ablog.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xce\x03\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\farticle_slug\x18\x02 \x01(\tR\varticleSlug\x12!\n" +
@@ -549,7 +677,11 @@ const file_blog_v1_comment_proto_rawDesc = "" +
 	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x17\n" +
 	"\auser_id\x18\b \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\t \x01(\tR\tavatarUrl\"b\n" +
+	"avatar_url\x18\t \x01(\tR\tavatarUrl\x12\x1b\n" +
+	"\tparent_id\x18\n" +
+	" \x01(\tR\bparentId\x12#\n" +
+	"\rreply_version\x18\v \x01(\x04R\freplyVersion\x123\n" +
+	"\fauthor_reply\x18\f \x01(\v2\x10.blog.v1.CommentR\vauthorReply\"b\n" +
 	"\n" +
 	"CommentSet\x12,\n" +
 	"\bcomments\x18\x01 \x03(\v2\x10.blog.v1.CommentR\bcomments\x12&\n" +
@@ -570,12 +702,21 @@ const file_blog_v1_comment_proto_rawDesc = "" +
 	"\x15ApproveCommentRequest\x12\x13\n" +
 	"\x02id\x18\x01 \x01(\tB\x03\xe0A\x02R\x02id\"+\n" +
 	"\x14DeleteCommentRequest\x12\x13\n" +
-	"\x02id\x18\x01 \x01(\tB\x03\xe0A\x02R\x02id*h\n" +
+	"\x02id\x18\x01 \x01(\tB\x03\xe0A\x02R\x02id\"'\n" +
+	"\x15GetAuthorReplyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x97\x01\n" +
+	"\x15PutAuthorReplyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\x129\n" +
+	"\x16expected_reply_version\x18\x03 \x01(\x04H\x00R\x14expectedReplyVersion\x88\x01\x01B\x19\n" +
+	"\x17_expected_reply_version*h\n" +
 	"\rCommentStatus\x12\x1e\n" +
 	"\x1aCOMMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16COMMENT_STATUS_PENDING\x10\x01\x12\x1b\n" +
-	"\x17COMMENT_STATUS_APPROVED\x10\x022\x88\x04\n" +
-	"\x0eCommentService\x12Y\n" +
+	"\x17COMMENT_STATUS_APPROVED\x10\x022\xe3\x05\n" +
+	"\x0eCommentService\x12j\n" +
+	"\x0eGetAuthorReply\x12\x1e.blog.v1.GetAuthorReplyRequest\x1a\x10.blog.v1.Comment\"&\x82\xd3\xe4\x93\x02 \x12\x1e/v1/comments/{id}/author-reply\x12m\n" +
+	"\x0ePutAuthorReply\x12\x1e.blog.v1.PutAuthorReplyRequest\x1a\x10.blog.v1.Comment\")\x82\xd3\xe4\x93\x02#:\x01*\x1a\x1e/v1/comments/{id}/author-reply\x12Y\n" +
 	"\rCreateComment\x12\x1d.blog.v1.CreateCommentRequest\x1a\x10.blog.v1.Comment\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/comments\x12u\n" +
 	"\x13ListArticleComments\x12#.blog.v1.ListArticleCommentsRequest\x1a\x13.blog.v1.CommentSet\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/articles/{slug}/comments\x12W\n" +
 	"\fListComments\x12\x1c.blog.v1.ListCommentsRequest\x1a\x13.blog.v1.CommentSet\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/comments\x12h\n" +
@@ -596,7 +737,7 @@ func file_blog_v1_comment_proto_rawDescGZIP() []byte {
 }
 
 var file_blog_v1_comment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_blog_v1_comment_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_blog_v1_comment_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_blog_v1_comment_proto_goTypes = []any{
 	(CommentStatus)(0),                 // 0: blog.v1.CommentStatus
 	(*Comment)(nil),                    // 1: blog.v1.Comment
@@ -606,29 +747,36 @@ var file_blog_v1_comment_proto_goTypes = []any{
 	(*ListCommentsRequest)(nil),        // 5: blog.v1.ListCommentsRequest
 	(*ApproveCommentRequest)(nil),      // 6: blog.v1.ApproveCommentRequest
 	(*DeleteCommentRequest)(nil),       // 7: blog.v1.DeleteCommentRequest
-	(*timestamppb.Timestamp)(nil),      // 8: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),              // 9: google.protobuf.Empty
+	(*GetAuthorReplyRequest)(nil),      // 8: blog.v1.GetAuthorReplyRequest
+	(*PutAuthorReplyRequest)(nil),      // 9: blog.v1.PutAuthorReplyRequest
+	(*timestamppb.Timestamp)(nil),      // 10: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),              // 11: google.protobuf.Empty
 }
 var file_blog_v1_comment_proto_depIdxs = []int32{
-	0, // 0: blog.v1.Comment.status:type_name -> blog.v1.CommentStatus
-	8, // 1: blog.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
-	8, // 2: blog.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
-	1, // 3: blog.v1.CommentSet.comments:type_name -> blog.v1.Comment
-	3, // 4: blog.v1.CommentService.CreateComment:input_type -> blog.v1.CreateCommentRequest
-	4, // 5: blog.v1.CommentService.ListArticleComments:input_type -> blog.v1.ListArticleCommentsRequest
-	5, // 6: blog.v1.CommentService.ListComments:input_type -> blog.v1.ListCommentsRequest
-	6, // 7: blog.v1.CommentService.ApproveComment:input_type -> blog.v1.ApproveCommentRequest
-	7, // 8: blog.v1.CommentService.DeleteComment:input_type -> blog.v1.DeleteCommentRequest
-	1, // 9: blog.v1.CommentService.CreateComment:output_type -> blog.v1.Comment
-	2, // 10: blog.v1.CommentService.ListArticleComments:output_type -> blog.v1.CommentSet
-	2, // 11: blog.v1.CommentService.ListComments:output_type -> blog.v1.CommentSet
-	1, // 12: blog.v1.CommentService.ApproveComment:output_type -> blog.v1.Comment
-	9, // 13: blog.v1.CommentService.DeleteComment:output_type -> google.protobuf.Empty
-	9, // [9:14] is the sub-list for method output_type
-	4, // [4:9] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: blog.v1.Comment.status:type_name -> blog.v1.CommentStatus
+	10, // 1: blog.v1.Comment.created_at:type_name -> google.protobuf.Timestamp
+	10, // 2: blog.v1.Comment.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 3: blog.v1.Comment.author_reply:type_name -> blog.v1.Comment
+	1,  // 4: blog.v1.CommentSet.comments:type_name -> blog.v1.Comment
+	8,  // 5: blog.v1.CommentService.GetAuthorReply:input_type -> blog.v1.GetAuthorReplyRequest
+	9,  // 6: blog.v1.CommentService.PutAuthorReply:input_type -> blog.v1.PutAuthorReplyRequest
+	3,  // 7: blog.v1.CommentService.CreateComment:input_type -> blog.v1.CreateCommentRequest
+	4,  // 8: blog.v1.CommentService.ListArticleComments:input_type -> blog.v1.ListArticleCommentsRequest
+	5,  // 9: blog.v1.CommentService.ListComments:input_type -> blog.v1.ListCommentsRequest
+	6,  // 10: blog.v1.CommentService.ApproveComment:input_type -> blog.v1.ApproveCommentRequest
+	7,  // 11: blog.v1.CommentService.DeleteComment:input_type -> blog.v1.DeleteCommentRequest
+	1,  // 12: blog.v1.CommentService.GetAuthorReply:output_type -> blog.v1.Comment
+	1,  // 13: blog.v1.CommentService.PutAuthorReply:output_type -> blog.v1.Comment
+	1,  // 14: blog.v1.CommentService.CreateComment:output_type -> blog.v1.Comment
+	2,  // 15: blog.v1.CommentService.ListArticleComments:output_type -> blog.v1.CommentSet
+	2,  // 16: blog.v1.CommentService.ListComments:output_type -> blog.v1.CommentSet
+	1,  // 17: blog.v1.CommentService.ApproveComment:output_type -> blog.v1.Comment
+	11, // 18: blog.v1.CommentService.DeleteComment:output_type -> google.protobuf.Empty
+	12, // [12:19] is the sub-list for method output_type
+	5,  // [5:12] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_blog_v1_comment_proto_init() }
@@ -636,13 +784,14 @@ func file_blog_v1_comment_proto_init() {
 	if File_blog_v1_comment_proto != nil {
 		return
 	}
+	file_blog_v1_comment_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_blog_v1_comment_proto_rawDesc), len(file_blog_v1_comment_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

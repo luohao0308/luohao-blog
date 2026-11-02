@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The queue opens on comments held for review; ordinary comments publish automatically.
+// Show root comments in every state so automatically published comments can be answered.
 import { h, onMounted, ref, watch } from 'vue'
 import { NButton, NDataTable, NPopconfirm, NSelect, NTag, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -11,13 +11,14 @@ definePageMeta({ layout: 'admin', middleware: 'admin-auth' })
 
 useHead({ title: '评论管理' })
 
-const { authFetch } = useAuth()
+const { authFetch, user } = useAuth()
+const replyRoot = ref<Comment | null>(null)
 const message = useMessage()
 
 const comments = ref<Comment[]>([])
 const loading = ref(false)
 // Filter literals match the AIP filter contract: status is an int literal.
-const statusFilter = ref<string | null>('1')
+const statusFilter = ref<string | null>('ALL')
 const nextPageToken = ref('')
 const pageTokens = ref([''])
 const pageIndex = ref(0)
@@ -153,6 +154,7 @@ const columns: DataTableColumns<Comment> = [
     width: 160,
     render: (row) => {
       const buttons: ReturnType<typeof h>[] = []
+      if (!row.parent_id) buttons.push(h(NButton, { size: 'tiny', quaternary: true, onClick: () => { replyRoot.value = row } }, { default: () => '作者回复' }))
       if (row.status !== COMMENT_STATUS.APPROVED) {
         buttons.push(h(NButton, {
           size: 'tiny',
@@ -168,7 +170,7 @@ const columns: DataTableColumns<Comment> = [
         disabled: busyIds.value.has(row.id) || loading.value,
       }, {
         trigger: () => h(NButton, { size: 'tiny', quaternary: true, type: 'error', disabled: busyIds.value.has(row.id) || loading.value }, { default: () => '删除' }),
-        default: () => '确定删除这条评论吗？',
+        default: () => row.parent_id ? '确定删除这条作者回复吗？' : '确定删除这条评论及其作者回复吗？',
       }))
       return h('div', { class: 'flex items-center gap-1' }, { default: () => buttons })
     },
@@ -185,7 +187,9 @@ const columns: DataTableColumns<Comment> = [
       <NSelect v-model:value="statusFilter" :options="filterOptions" class="w-32" size="small" placeholder="全部状态" />
     </div>
 
-    <p class="text-sm text-slate-500 dark:text-slate-400">待审核列表集中展示需要人工处理的评论；已通过评论公开展示。</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400">正常评论自动公开。可在这里回复读者，或筛选需要处理的历史评论。</p>
+
+    <admin-author-reply-editor v-if="replyRoot && user" :key="`${user.id}:${replyRoot.id}`" :root="replyRoot" @close="replyRoot = null" @saved="load(true)" />
 
     <NDataTable
       :columns="columns"

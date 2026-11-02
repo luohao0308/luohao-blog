@@ -56,6 +56,12 @@
             <text class="comment-date">{{item.dateText}}</text>
           </view>
           <view class="comment-content">{{item.content}}</view>
+          <view wx:if="{{item.authorReply}}" class="author-reply">
+            <view class="comment-head"><text class="comment-name">作者回复 · {{item.authorReply.name}}</text><text class="comment-date">{{item.authorReply.dateText}}</text></view>
+            <view class="comment-content">{{item.authorReply.content}}</view>
+            <text wx:if="{{item.authorReply.pending}}" class="comment-pending">{{item.authorReply.safetyLabel}}</text>
+            <button wx:if="{{item.authorReply.canRecheck}}" size="mini" data-id="{{item.authorReply.id}}" bindtap="retryCommentSafety" loading="{{retryingCommentId === item.authorReply.id}}" disabled="{{!!retryingCommentId}}">重试回复安全检测</button>
+          </view>
           <button wx:if="{{item.canRecheck}}" size="mini" data-id="{{item.id}}" bindtap="retryCommentSafety" loading="{{retryingCommentId === item.id}}" disabled="{{!!retryingCommentId}}">重试安全检测</button>
         </view>
       </view>

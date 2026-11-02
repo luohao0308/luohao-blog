@@ -23,6 +23,10 @@ type Comment struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// ParentID holds the value of the "parent_id" field.
+	ParentID *uuid.UUID `json:"parent_id,omitempty"`
+	// ReplyVersion holds the value of the "reply_version" field.
+	ReplyVersion uint64 `json:"reply_version,omitempty"`
 	// ArticleSlug holds the value of the "article_slug" field.
 	ArticleSlug string `json:"article_slug,omitempty"`
 	// DisplayName holds the value of the "display_name" field.
@@ -32,8 +36,44 @@ type Comment struct {
 	// Status holds the value of the "status" field.
 	Status biz.CommentStatus `json:"status,omitempty"`
 	// UserID holds the value of the "user_id" field.
-	UserID       *uuid.UUID `json:"user_id,omitempty"`
+	UserID *uuid.UUID `json:"user_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the CommentQuery when eager-loading is set.
+	Edges        CommentEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// CommentEdges holds the relations/edges for other nodes in the graph.
+type CommentEdges struct {
+	// Parent holds the value of the parent edge.
+	Parent *Comment `json:"parent,omitempty"`
+	// AuthorReply holds the value of the author_reply edge.
+	AuthorReply *Comment `json:"author_reply,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// ParentOrErr returns the Parent value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CommentEdges) ParentOrErr() (*Comment, error) {
+	if e.Parent != nil {
+		return e.Parent, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: comment.Label}
+	}
+	return nil, &NotLoadedError{edge: "parent"}
+}
+
+// AuthorReplyOrErr returns the AuthorReply value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CommentEdges) AuthorReplyOrErr() (*Comment, error) {
+	if e.AuthorReply != nil {
+		return e.AuthorReply, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: comment.Label}
+	}
+	return nil, &NotLoadedError{edge: "author_reply"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -41,9 +81,9 @@ func (*Comment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case comment.FieldUserID:
+		case comment.FieldParentID, comment.FieldUserID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case comment.FieldStatus:
+		case comment.FieldReplyVersion, comment.FieldStatus:
 			values[i] = new(sql.NullInt64)
 		case comment.FieldArticleSlug, comment.FieldDisplayName, comment.FieldContent:
 			values[i] = new(sql.NullString)
@@ -83,6 +123,19 @@ func (_m *Comment) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
+			}
+		case comment.FieldParentID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field parent_id", values[i])
+			} else if value.Valid {
+				_m.ParentID = new(uuid.UUID)
+				*_m.ParentID = *value.S.(*uuid.UUID)
+			}
+		case comment.FieldReplyVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field reply_version", values[i])
+			} else if value.Valid {
+				_m.ReplyVersion = uint64(value.Int64)
 			}
 		case comment.FieldArticleSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -128,6 +181,16 @@ func (_m *Comment) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
+// QueryParent queries the "parent" edge of the Comment entity.
+func (_m *Comment) QueryParent() *CommentQuery {
+	return NewCommentClient(_m.config).QueryParent(_m)
+}
+
+// QueryAuthorReply queries the "author_reply" edge of the Comment entity.
+func (_m *Comment) QueryAuthorReply() *CommentQuery {
+	return NewCommentClient(_m.config).QueryAuthorReply(_m)
+}
+
 // Update returns a builder for updating this Comment.
 // Note that you need to call Comment.Unwrap() before calling this method if this Comment
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -156,6 +219,14 @@ func (_m *Comment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.ParentID; v != nil {
+		builder.WriteString("parent_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("reply_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ReplyVersion))
 	builder.WriteString(", ")
 	builder.WriteString("article_slug=")
 	builder.WriteString(_m.ArticleSlug)

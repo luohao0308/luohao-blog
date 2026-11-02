@@ -21,8 +21,10 @@ const _ = http.SupportPackageIsVersion3
 const OperationCommentServiceApproveComment = "/blog.v1.CommentService/ApproveComment"
 const OperationCommentServiceCreateComment = "/blog.v1.CommentService/CreateComment"
 const OperationCommentServiceDeleteComment = "/blog.v1.CommentService/DeleteComment"
+const OperationCommentServiceGetAuthorReply = "/blog.v1.CommentService/GetAuthorReply"
 const OperationCommentServiceListArticleComments = "/blog.v1.CommentService/ListArticleComments"
 const OperationCommentServiceListComments = "/blog.v1.CommentService/ListComments"
+const OperationCommentServicePutAuthorReply = "/blog.v1.CommentService/PutAuthorReply"
 
 type CommentServiceHTTPServer interface {
 	// ApproveComment ApproveComment moves a comment to APPROVED, making it publicly visible.
@@ -44,6 +46,7 @@ type CommentServiceHTTPServer interface {
 	// comments can both be deleted. Authorization: ADMIN only. Returns
 	// NOT_FOUND when the comment does not exist.
 	DeleteComment(context.Context, *DeleteCommentRequest) (*emptypb.Empty, error)
+	GetAuthorReply(context.Context, *GetAuthorReplyRequest) (*Comment, error)
 	// ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
 	// newest first. Non-public/missing articles return an empty list; pending
 	// comments are never included, even for their authors. Authorization: public.
@@ -53,15 +56,62 @@ type CommentServiceHTTPServer interface {
 	// an int literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
 	// Authorization: ADMIN only.
 	ListComments(context.Context, *ListCommentsRequest) (*CommentSet, error)
+	PutAuthorReply(context.Context, *PutAuthorReplyRequest) (*Comment, error)
 }
 
 func RegisterCommentServiceHTTPServer(s *http.Server, srv CommentServiceHTTPServer) {
 	r := s.Route("/")
+	r.Handle("GET", "/v1/comments/{id}/author-reply", _CommentService_GetAuthorReply0_HTTP_Handler(srv))
+	r.Handle("PUT", "/v1/comments/{id}/author-reply", _CommentService_PutAuthorReply0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/comments", _CommentService_CreateComment0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/articles/{slug}/comments", _CommentService_ListArticleComments0_HTTP_Handler(srv))
 	r.Handle("GET", "/v1/comments", _CommentService_ListComments0_HTTP_Handler(srv))
 	r.Handle("POST", "/v1/comments/{id}/approve", _CommentService_ApproveComment0_HTTP_Handler(srv))
 	r.Handle("DELETE", "/v1/comments/{id}", _CommentService_DeleteComment0_HTTP_Handler(srv))
+}
+
+func _CommentService_GetAuthorReply0_HTTP_Handler(srv CommentServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetAuthorReplyRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCommentServiceGetAuthorReply)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetAuthorReply(ctx, req.(*GetAuthorReplyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Comment)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CommentService_PutAuthorReply0_HTTP_Handler(srv CommentServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in PutAuthorReplyRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCommentServicePutAuthorReply)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.PutAuthorReply(ctx, req.(*PutAuthorReplyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*Comment)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _CommentService_CreateComment0_HTTP_Handler(srv CommentServiceHTTPServer) func(ctx http.Context) error {
@@ -188,6 +238,7 @@ type CommentServiceHTTPClient interface {
 	// comments can both be deleted. Authorization: ADMIN only. Returns
 	// NOT_FOUND when the comment does not exist.
 	DeleteComment(ctx context.Context, req *DeleteCommentRequest, opts ...http.CallOption) (rsp *emptypb.Empty, err error)
+	GetAuthorReply(ctx context.Context, req *GetAuthorReplyRequest, opts ...http.CallOption) (rsp *Comment, err error)
 	// ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
 	// newest first. Non-public/missing articles return an empty list; pending
 	// comments are never included, even for their authors. Authorization: public.
@@ -197,6 +248,7 @@ type CommentServiceHTTPClient interface {
 	// an int literal (1 = PENDING, 2 = APPROVED), e.g. `status = 1`.
 	// Authorization: ADMIN only.
 	ListComments(ctx context.Context, req *ListCommentsRequest, opts ...http.CallOption) (rsp *CommentSet, err error)
+	PutAuthorReply(ctx context.Context, req *PutAuthorReplyRequest, opts ...http.CallOption) (rsp *Comment, err error)
 }
 
 type CommentServiceHTTPClientImpl struct {
@@ -273,6 +325,22 @@ func (c *CommentServiceHTTPClientImpl) DeleteComment(ctx context.Context, in *De
 	return &out, nil
 }
 
+func (c *CommentServiceHTTPClientImpl) GetAuthorReply(ctx context.Context, in *GetAuthorReplyRequest, opts ...http.CallOption) (*Comment, error) {
+	var out Comment
+	pattern := "/v1/comments/{id}/author-reply"
+	path := http.BuildPath(pattern, in, http.WithQueryParams())
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.Operation(OperationCommentServiceGetAuthorReply),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListArticleComments ListArticleComments returns a page of APPROVED comments for an article,
 // newest first. Non-public/missing articles return an empty list; pending
 // comments are never included, even for their authors. Authorization: public.
@@ -306,6 +374,23 @@ func (c *CommentServiceHTTPClientImpl) ListComments(ctx context.Context, in *Lis
 		http.PathTemplate(pattern),
 	}, opts...)
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CommentServiceHTTPClientImpl) PutAuthorReply(ctx context.Context, in *PutAuthorReplyRequest, opts ...http.CallOption) (*Comment, error) {
+	var out Comment
+	pattern := "/v1/comments/{id}/author-reply"
+	path := http.BuildPath(pattern, in)
+	opts = append([]http.CallOption{
+		http.Accept("application/protojson"),
+		http.ContentType("application/protojson"),
+		http.Operation(OperationCommentServicePutAuthorReply),
+		http.PathTemplate(pattern),
+	}, opts...)
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

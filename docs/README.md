@@ -67,3 +67,9 @@ SDD/ATDD、TDD/EDD 是这条路径中的做法，不是每次都要执行的独�
 评论自动公开策略、免费能力边界与验收范围见[自动评论计划](plans/AUTOMATIC-COMMENTS-2026-11.md)；小程序检测/重检/幂等边界见[内容安全契约](contracts/WECHAT-CONTENT-SAFETY.md)。
 
 新增两篇深入案例源稿见[文章目录](content/articles/)；受限创建与无配置预览流程见[content-release说明](../backend/cmd/content-release/README.md)，准确发布提案为[两篇案例bundle](../content/releases/blog-case-studies-20261102.json)。
+
+系列阅读与作者答复的当前实现边界见[系列与作者回复计划](plans/SERIES-AUTHOR-REPLIES-2026-11.md)；发布状态以TASKS为准。
+
+作者回复的字段、管理写入、公开投影与删除语义见[作者回复契约](contracts/AUTHOR-REPLIES.md)。
+
+作者回复迁移与恢复边界见[作者回复Runbook](operations/runbooks/author-replies.md)。

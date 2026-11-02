@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_wechat_identity import fixture_environment, latest_schema_version
+from test_wechat_identity import fixture_environment, latest_schema_version, require_local_docker, run
 
 
 class FixtureEnvironmentTest(unittest.TestCase):
@@ -36,6 +36,28 @@ class FixtureEnvironmentTest(unittest.TestCase):
         }
         with patch.dict(os.environ, synthetic, clear=True):
             self.assertEqual(fixture_environment(), {"PATH": "/fixture/tools"})
+
+
+    def test_remote_daemon_is_refused_before_any_fixture_access(self):
+        for host in ("ssh://fixture-refused.invalid", "tcp://192.0.2.1:2376"):
+            with self.subTest(host=host), patch.dict(os.environ, {"DOCKER_HOST": host}, clear=True), patch("test_wechat_identity.subprocess.check_output") as call:
+                with self.assertRaisesRegex(RuntimeError, "refusing a non-local Docker host"):
+                    require_local_docker()
+                call.assert_not_called()
+
+    def test_remote_context_is_refused_and_local_context_is_returned(self):
+        with patch.dict(os.environ, {}, clear=True), patch("test_wechat_identity.subprocess.check_output", side_effect=["refused\n", '\"ssh://fixture-refused.invalid\"']):
+            with self.assertRaisesRegex(RuntimeError, "refusing a non-local Docker context"):
+                require_local_docker()
+        with patch.dict(os.environ, {}, clear=True), patch("test_wechat_identity.subprocess.check_output", side_effect=["owned-local\n", '\"unix:///fixture/docker.sock\"']):
+            self.assertEqual(require_local_docker(), "owned-local")
+
+    def test_docker_commands_are_pinned_to_the_checked_context(self):
+        with patch("test_wechat_identity.DOCKER_CONTEXT", "owned-local"), patch("test_wechat_identity.subprocess.run") as call:
+            call.return_value.returncode = 0
+            call.return_value.stdout = b"fixture"
+            self.assertEqual(run(["docker", "inspect", "owned-fixture"]), b"fixture")
+            self.assertEqual(call.call_args.args[0], ["docker", "--context", "owned-local", "inspect", "owned-fixture"])
 
 
 if __name__ == "__main__":

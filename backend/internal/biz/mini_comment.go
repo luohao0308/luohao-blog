@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +45,7 @@ type MiniComment struct {
 	AppID            string
 	IdentityID       uuid.UUID
 	InputHash        string
+	ParentVisible    bool
 	FingerprintValid bool
 	State            MiniCommentState
 	Generation       uint64
@@ -64,7 +66,7 @@ type MiniCommentVerdict struct {
 }
 
 func (c *MiniComment) Visible() bool {
-	return c != nil && c.Comment != nil && c.Comment.UserID != nil && c.IdentityID != uuid.Nil && c.AppID != "" && c.Comment.Status == CommentStatusApproved && c.State == MiniCommentPass && c.FingerprintValid && c.NameTraceID != "" && c.ContentTraceID != ""
+	return c != nil && c.Comment != nil && (c.Comment.ParentID == nil || c.ParentVisible) && c.Comment.UserID != nil && c.IdentityID != uuid.Nil && c.AppID != "" && c.Comment.Status == CommentStatusApproved && c.State == MiniCommentPass && c.FingerprintValid && c.NameTraceID != "" && c.ContentTraceID != ""
 }
 
 func (c *MiniComment) CanRecheck(now time.Time) bool {
@@ -82,6 +84,9 @@ func MiniCommentInputHash(c *Comment, appID string, identityID uuid.UUID) string
 		return ""
 	}
 	value, _ := json.Marshal([]string{"mini-comment-v1", c.ID.String(), c.UserID.String(), appID, identityID.String(), c.ArticleSlug, c.DisplayName, c.Content})
+	if c.ParentID != nil {
+		value, _ = json.Marshal([]string{"mini-comment-reply-v2", c.ParentID.String(), strconv.FormatUint(c.ReplyVersion, 10), c.ID.String(), c.UserID.String(), appID, identityID.String(), c.ArticleSlug, c.DisplayName, c.Content})
+	}
 	digest := sha256.Sum256(value)
 	return hex.EncodeToString(digest[:])
 }

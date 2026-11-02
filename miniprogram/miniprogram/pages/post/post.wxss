@@ -245,3 +245,5 @@
 .page {
   padding-bottom: 140rpx;
 }
+
+.author-reply { margin-top: 20rpx; padding-left: 20rpx; border-left: 4rpx solid #3c5d85; }
