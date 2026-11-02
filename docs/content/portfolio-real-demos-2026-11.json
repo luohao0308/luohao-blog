@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared_not_applied",
+  "target": "https://makerhao.cn",
+  "operations": [
+    {
+      "slug": "dev-workflow",
+      "id": "00000000-0000-7000-8000-000000000102",
+      "expectedUpdatedAt": "2026-10-31T10:45:04Z",
+      "before": {
+        "description": "## 把项目知识留在仓库里\n\n项目交接时，代码之外还需要知道当前任务做到哪里、哪份设计仍然有效、上次执行过哪些检查。dev-workflow 将协作约定、项目事实与任务状态组织成仓库中的文件，供不同 AI 工具和接手者继续读取。\n\n我将通用部分拆成 Core，将架构、设计、交付、契约、运维和功能清单做成可选流程包。使用者可以先安装基础规则，再根据项目触点增加流程包。Core 不依赖某个模型、常驻 CLI 或特定框架。\n\n## 安装器如何接入已有项目\n\n项目提供 Bash 与 PowerShell 安装器，流程包以 overlay 形式映射到目标仓库。安装前可以 dry-run，检查目标路径和已有文件；接入时先做项目画像，再把现有文档映射到职责对应的位置。\n\n安装清单记录版本、流程包、文件来源和原始哈希。Git 本地排除由 info/exclude 中的受管区块维护，避免把本机上下文、运行记录和安装状态带进团队仓库。既有文档与项目专属内容需要保留。\n\n## 让任务、设计和项目事实各有位置\n\nTASKS 负责当前任务，PROJECT-SUMMARY 保存稳定项目事实，WORKING-CONTEXT 承担本机短期交接。AGENTS.md 提供读取顺序，让接手者先找到当前任务，再按需打开设计、契约或运维文档。\n\nfeature-catalog 流程包补充机器可读的功能层级、实现状态、成熟度和证据。配套 Python 标准库工具支持初始化、查询、校验和生成矩阵，减少对整份文档的重复加载。\n\n## 把交付条件落到一次具体操作\n\ndelivery_guard 将流程要求、执行权限和质量门禁分开处理。一次交付需要对应仓库、remote、源与目标引用、准确 SHA、授权范围及托管平台证据；源提交改变后，需要重新核对。\n\n这些规则也用在本站的开发过程中。项目另外提供 workflow_check 与 workflow_config，用于只读体检、能力配置和接入状态检查。\n\n## 升级与跨平台维护\n\n升级涉及分发模板、目标项目的本地修改和旧版本来源。项目为此提供安装、审计、升级与卸载工具，结合清单核对文件归属和差异。\n\n实现主要采用 Markdown、Python 标准库、Bash 与 PowerShell；仓库保留 Python 单元测试和两类脚本的端到端测试入口，覆盖规则分发之外的安装行为。",
+        "screenshots": []
+      },
+      "after": {
+        "description": "## 实际安装演示\n\n这组截图来自 dev-workflow v0.13.1（9f76511）在隔离样例仓库中的真实运行。展示选择 Core 与 architecture、delivery 两个流程包，无需模型密钥。\n\n第一张是安装预览：先列出将写入的文件与来源，dry-run 返回 0，此时尚未写入目标项目。第二张是安装后的实际目录与接入审计；安装返回 0，审计返回 2，保留 onboarding=pending 的真实结果，提醒使用者继续完成项目画像和文档映射。\n\n图片是实际 CLI 输出节选的阅读版，展示了命令、返回码和版本。完整运行日志保留在演示来源记录中。\n\n## 本地复现路径\n\n在公开源码的 scripts 目录使用 install.sh，先对新的隔离样例仓库执行 --dry-run，再执行安装，最后运行 audit.sh 检查接入状态。命令中的 --target 只指向样例项目；实际接入既有项目时先查看预览，保留原有文档和用户改动。\n\n## 把项目知识留在仓库里\n\n项目交接时，代码之外还需要知道当前任务做到哪里、哪份设计仍然有效、上次执行过哪些检查。dev-workflow 将协作约定、项目事实与任务状态组织成仓库中的文件，供不同 AI 工具和接手者继续读取。\n\n我将通用部分拆成 Core，将架构、设计、交付、契约、运维和功能清单做成可选流程包。使用者可以先安装基础规则，再根据项目触点增加流程包。Core 不依赖某个模型、常驻 CLI 或特定框架。\n\n## 安装器如何接入已有项目\n\n项目提供 Bash 与 PowerShell 安装器，流程包以 overlay 形式映射到目标仓库。安装前可以 dry-run，检查目标路径和已有文件；接入时先做项目画像，再把现有文档映射到职责对应的位置。\n\n安装清单记录版本、流程包、文件来源和原始哈希。Git 本地排除由 info/exclude 中的受管区块维护，避免把本机上下文、运行记录和安装状态带进团队仓库。既有文档与项目专属内容需要保留。\n\n## 让任务、设计和项目事实各有位置\n\nTASKS 负责当前任务，PROJECT-SUMMARY 保存稳定项目事实，WORKING-CONTEXT 承担本机短期交接。AGENTS.md 提供读取顺序，让接手者先找到当前任务，再按需打开设计、契约或运维文档。\n\nfeature-catalog 流程包补充机器可读的功能层级、实现状态、成熟度和证据。配套 Python 标准库工具支持初始化、查询、校验和生成矩阵，减少对整份文档的重复加载。\n\n## 把交付条件落到一次具体操作\n\ndelivery_guard 将流程要求、执行权限和质量门禁分开处理。一次交付需要对应仓库、remote、源与目标引用、准确 SHA、授权范围及托管平台证据；源提交改变后，需要重新核对。\n\n这些规则也用在本站的开发过程中。项目另外提供 workflow_check 与 workflow_config，用于只读体检、能力配置和接入状态检查。\n\n## 升级与跨平台维护\n\n升级涉及分发模板、目标项目的本地修改和旧版本来源。项目为此提供安装、审计、升级与卸载工具，结合清单核对文件归属和差异。\n\n实现主要采用 Markdown、Python 标准库、Bash 与 PowerShell；仓库保留 Python 单元测试和两类脚本的端到端测试入口，覆盖规则分发之外的安装行为。",
+        "screenshots": [
+          "/v1/assets/media/68b7b09a649147c292f946570a9d6ae7.png",
+          "/v1/assets/media/a342f430f2204aceb489fc07911b9204.png"
+        ]
+      },
+      "updateMask": [
+        "description",
+        "screenshots"
+      ]
+    },
+    {
+      "slug": "forge-harness",
+      "id": "01a181a8-b45a-7db4-80cd-3a10dbde5599",
+      "expectedUpdatedAt": "2026-10-31T10:45:04Z",
+      "before": {
+        "description": "## 从目标到可追踪的执行计划\n\n我将 Agent Studio 配置、Workspace 目标、Planner 生成的版本化 Plan DAG 和 Executor 执行连接为主链路，并支持 Subagent 与 Multi-Agent 执行。控制台使用 React 和 TypeScript，服务端使用 FastAPI，配合 PostgreSQL、Redis 与后台任务处理。\n\nEvent Store 持久化 Run、Step、ModelCall、ToolCall、Approval 与成本记录。SSE 将运行过程传到界面，暂停、恢复、取消、重试和 Replay 则围绕这些记录工作，让一次任务可以从结果追溯到执行步骤。\n\n## RAG 与检索证据的生命周期\n\n知识模块维护知识源、文档版本、分块、检索与引用快照，同时处理作用域隔离与迁移恢复。中文内容提供 CJK lexical fallback，证据不足时停止给出缺乏依据的结果。\n\n检索证据与 Prompt Manifest、Context Manifest 和 ModelCall 绑定。这样可以回看一次调用实际取得的资料，而不仅是当前知识库里已经更新过的内容。Web Research 接入 Tavily，知识连接器对接 Dify 与 Coze，调用过程保留查询校验、访问策略和尝试记录。\n\n## 记忆和上下文预算\n\n长期记忆区分组织、Agent、用户与 Run 的作用域，保留来源、策略标记与过期删除机制。Context Router 在 token budget 内组织历史消息、固定上下文、压缩摘要、Memory、RAG、Web 和工具证据。\n\n上下文清单会随调用持久化，用于后续核对成本、输入内容与策略。这里关注的不只是能否记住信息，也包括具体运行中取用了哪些信息。\n\n## 工具能力、版本与审批\n\n工具能力从 CapabilityRegistry、AgentCapabilityAttachment、CapabilityVersion 进入 ToolRunner。项目支持能力发现、安装配置与版本快照，接入 MCP HTTP、SSE、stdio，以及 GitHub、Slack 和 Sandbox 适配器。\n\n工具调用统一经过策略、审批、沙箱、幂等与审计检查，未绑定的能力拒绝执行。将这些入口收束到同一条链路后，运行记录能够关联到当时使用的能力版本和审批依据。\n\n## Electron 本地工作区与自动化\n\n桌面端通过 Profile 隔离工作区，使用 SQLite offline-sync 保存 Run、事件、模型调用、工具调用与审批。文件写入需要审批，并处理离线执行、取消、崩溃恢复、Profile 切换与服务端证据导入。\n\nProject Knowledge 提供可信根目录扫描、ignore 规则、扫描预算、文档版本与 project:// 引用。Webhook、定时、文件和 Git Trigger 统一进入持久化 Invocation／Run，结合租约、fencing、重试和 kill switch 管理后台执行。\n\n## 评测、观测与交付\n\nEval Harness 围绕 Dataset、Case、Eval Run、Trace Grader 与 Regression Gate 检查 grounding、引用、无依据断言、工具使用、延迟和成本。OpenTelemetry、Prometheus、Grafana、Loki 与 Tempo 关联运行、事件、调用和策略证据。\n\n交付侧使用 Docker Compose、Alembic、迁移与恢复冒烟、OpenAPI、功能清单和 Playwright 检查。项目展示的是我的 Agent 系统设计与实现工作，源码和开发说明可从文末仓库入口查看。",
+        "screenshots": []
+      },
+      "after": {
+        "description": "## 本地界面与运行轨迹\n\n这组截图来自 Forge Harness a9a0193 的实际 React/Vite 控制台，使用仓库自带的浏览器测试样例与 SSE 模拟响应运行。图内已标注本地演示环境；组织、任务、模型名、费用、耗时和环境标签均为样例字段，未调用真实模型，也未使用生产账号。\n\n工作区展示一次目标输入、文本响应、工具调用与产物入口；运行详情展示知识依据、重放与护栏；计划视图展示步骤依赖及对应工具证据。样例批量返回 SSE 时，工作区如实保留了合帧诊断提示。\n\n## 本地复现路径\n\n公开源码的 apps/agent-console 提供开发启动和浏览器 smoke 测试。安装锁文件依赖后，可运行 npm run dev -- --port 5177 --strictPort；演示数据来自 e2e/agent-workspace-success.smoke.spec.ts 与 e2e/run-detail.smoke.spec.ts。\n\n这组展示验证了实际控制台与样例交互链路。完整部署还需配置服务端依赖与模型服务；当前提供公开源码和本地复现路径，未开放独立的公共在线实例。\n\n## 从目标到可追踪的执行计划\n\n我将 Agent Studio 配置、Workspace 目标、Planner 生成的版本化 Plan DAG 和 Executor 执行连接为主链路，并支持 Subagent 与 Multi-Agent 执行。控制台使用 React 和 TypeScript，服务端使用 FastAPI，配合 PostgreSQL、Redis 与后台任务处理。\n\nEvent Store 持久化 Run、Step、ModelCall、ToolCall、Approval 与成本记录。SSE 将运行过程传到界面，暂停、恢复、取消、重试和 Replay 则围绕这些记录工作，让一次任务可以从结果追溯到执行步骤。\n\n## RAG 与检索证据的生命周期\n\n知识模块维护知识源、文档版本、分块、检索与引用快照，同时处理作用域隔离与迁移恢复。中文内容提供 CJK lexical fallback，证据不足时停止给出缺乏依据的结果。\n\n检索证据与 Prompt Manifest、Context Manifest 和 ModelCall 绑定。这样可以回看一次调用实际取得的资料，而不仅是当前知识库里已经更新过的内容。Web Research 接入 Tavily，知识连接器对接 Dify 与 Coze，调用过程保留查询校验、访问策略和尝试记录。\n\n## 记忆和上下文预算\n\n长期记忆区分组织、Agent、用户与 Run 的作用域，保留来源、策略标记与过期删除机制。Context Router 在 token budget 内组织历史消息、固定上下文、压缩摘要、Memory、RAG、Web 和工具证据。\n\n上下文清单会随调用持久化，用于后续核对成本、输入内容与策略。这里关注的不只是能否记住信息，也包括具体运行中取用了哪些信息。\n\n## 工具能力、版本与审批\n\n工具能力从 CapabilityRegistry、AgentCapabilityAttachment、CapabilityVersion 进入 ToolRunner。项目支持能力发现、安装配置与版本快照，接入 MCP HTTP、SSE、stdio，以及 GitHub、Slack 和 Sandbox 适配器。\n\n工具调用统一经过策略、审批、沙箱、幂等与审计检查，未绑定的能力拒绝执行。将这些入口收束到同一条链路后，运行记录能够关联到当时使用的能力版本和审批依据。\n\n## Electron 本地工作区与自动化\n\n桌面端通过 Profile 隔离工作区，使用 SQLite offline-sync 保存 Run、事件、模型调用、工具调用与审批。文件写入需要审批，并处理离线执行、取消、崩溃恢复、Profile 切换与服务端证据导入。\n\nProject Knowledge 提供可信根目录扫描、ignore 规则、扫描预算、文档版本与 project:// 引用。Webhook、定时、文件和 Git Trigger 统一进入持久化 Invocation／Run，结合租约、fencing、重试和 kill switch 管理后台执行。\n\n## 评测、观测与交付\n\nEval Harness 围绕 Dataset、Case、Eval Run、Trace Grader 与 Regression Gate 检查 grounding、引用、无依据断言、工具使用、延迟和成本。OpenTelemetry、Prometheus、Grafana、Loki 与 Tempo 关联运行、事件、调用和策略证据。\n\n交付侧使用 Docker Compose、Alembic、迁移与恢复冒烟、OpenAPI、功能清单和 Playwright 检查。项目展示的是我的 Agent 系统设计与实现工作，源码和开发说明可从文末仓库入口查看。",
+        "screenshots": [
+          "/v1/assets/media/1775fdb3e2924727922cb827073e4244.png",
+          "/v1/assets/media/6ee098dfb30e41f9882ba11bcf687420.png",
+          "/v1/assets/media/fcaa6153e3494cedb20f0bf17bb8974d.png"
+        ]
+      },
+      "updateMask": [
+        "description",
+        "screenshots"
+      ]
+    }
+  ],
+  "preserve": [
+    "name",
+    "summary",
+    "stack",
+    "role",
+    "repo_url",
+    "live_url",
+    "cover_url",
+    "featured",
+    "published",
+    "sort",
+    "all other projects including aigc"
+  ]
+}
