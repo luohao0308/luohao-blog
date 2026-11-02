@@ -194,3 +194,9 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 ### 作品真实展示回归
 
 先在frontend执行 `pnpm build`，仓库根运行 `node scripts/e2e/portfolio_showcase_e2e.cjs`。使用已提交的作品提案与PNG素材构建只读fixture，默认14360/14361，Playwright由既有工具环境提供。验证两个项目在1440/390px的图片实际解码、来源说明、替代文本、原图新标签与无溢出；无生产或CMS写入。证据留在output/portfolio-real/browser。
+
+### 两篇深入案例预览
+
+在仓库根执行 `mkdir -p output/blog-case-studies`，再用 `go -C backend run ./cmd/content-release -case-studies -render-preview -bundle ../content/releases/blog-case-studies-20261102.json > output/blog-case-studies/rendered.json` 生成生产渲染器的HTML；该模式不加载配置、不连接数据库或索引。完成frontend生产构建后运行 `node scripts/e2e/blog_case_studies_e2e.cjs`，用14370/14371的只读fixture验证两篇桌面/手机正文、代码/表格、作品双向链接、草稿过滤和失败重试。原始来源Markdown在docs/content/articles；渲染与截图输出不进Git。
+
+CAS/历史/恢复的真实隔离MySQL验证入口为 `python3 scripts/test_article_revisions.py`；本机Docker门的无Docker负向回归为 `python3 -m unittest discover -s scripts -p test_article_revisions_test.py`，两者已加入Backend CI。拒绝远端daemon，只操作本任务带标签的回环fixture。

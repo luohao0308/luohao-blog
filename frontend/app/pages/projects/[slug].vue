@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { projectImages } from '~/data/editorial'
+import { projectArticleSlugs } from '~/data/projectArticles'
+import { usePublishedArticles } from '~/composables/useArticles'
 const route = useRoute()
 definePageMeta({ key: route => route.path })
 const slug = computed(() => String(route.params.slug))
@@ -20,6 +22,9 @@ const sections = computed(() => {
 const repoURL = computed(() => safePortfolioHref(project.value.repo_url))
 const liveURL = computed(() => safePortfolioHref(project.value.live_url))
 const hasCaseDetails = computed(() => Boolean(project.value.problem || project.value.approach || project.value.outcome))
+const { data: publishedArticles, error: articleError, refresh: refreshArticles } = await usePublishedArticles()
+const hasArticleRelation = computed(() => Boolean(projectArticleSlugs[slug.value]?.length))
+const relatedArticles = computed(() => (publishedArticles.value ?? []).filter(article => article.status === 2 && projectArticleSlugs[slug.value]?.includes(article.slug)))
 
 usePageSeo({
   title: () => `${project.value.name} · 作品集`,
@@ -78,6 +83,21 @@ usePageSeo({
     </section>
 
 
+
+    <section v-if="relatedArticles.length || (hasArticleRelation && articleError)" class="space-y-4" aria-label="项目相关文章">
+      <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">相关文章</h2>
+      <p v-if="articleError" role="alert" class="text-sm text-slate-500 dark:text-slate-400">
+        相关文章暂时无法加载。
+        <button type="button" class="ml-2 underline" @click="refreshArticles()">重新加载</button>
+      </p>
+      <ul v-else class="space-y-3">
+        <li v-for="article in relatedArticles" :key="article.slug">
+          <NuxtLink :to="`/posts/${encodeURIComponent(article.slug)}`" class="inline-flex min-h-11 items-center gap-2 text-sm text-[var(--accent)] underline-offset-4 hover:underline">
+            {{ article.title }} <span aria-hidden="true">↗</span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
 
     <footer class="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] pt-8">
       <NuxtLink to="/projects" class="detail-button">← 返回作品集</NuxtLink>
