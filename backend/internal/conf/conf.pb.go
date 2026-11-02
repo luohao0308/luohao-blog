@@ -998,9 +998,11 @@ type Data_Database struct {
 	Debug bool `protobuf:"varint,3,opt,name=debug,proto3" json:"debug,omitempty"`
 	// Create or update tables from the ent schema on startup. Leave false in
 	// production and apply migrations as a separate, reviewed step.
-	AutoMigrate   bool `protobuf:"varint,4,opt,name=auto_migrate,json=autoMigrate,proto3" json:"auto_migrate,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AutoMigrate bool `protobuf:"varint,4,opt,name=auto_migrate,json=autoMigrate,proto3" json:"auto_migrate,omitempty"`
+	// Independent persistent UTC control directory; never a database/upload restore path.
+	TimeContractStateDir string `protobuf:"bytes,5,opt,name=time_contract_state_dir,json=timeContractStateDir,proto3" json:"time_contract_state_dir,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Data_Database) Reset() {
@@ -1059,6 +1061,13 @@ func (x *Data_Database) GetAutoMigrate() bool {
 		return x.AutoMigrate
 	}
 	return false
+}
+
+func (x *Data_Database) GetTimeContractStateDir() string {
+	if x != nil {
+		return x.TimeContractStateDir
+	}
+	return ""
 }
 
 type Data_Redis struct {
@@ -1456,17 +1465,18 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xd3\x03\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\x8b\x04\n" +
 	"\x04Data\x125\n" +
 	"\bdatabase\x18\x01 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x12,\n" +
 	"\x05redis\x18\x02 \x01(\v2\x16.kratos.api.Data.RedisR\x05redis\x12\x1f\n" +
 	"\vuploads_dir\x18\x03 \x01(\tR\n" +
-	"uploadsDir\x1as\n" +
+	"uploadsDir\x1a\xaa\x01\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
 	"\x05debug\x18\x03 \x01(\bR\x05debug\x12!\n" +
-	"\fauto_migrate\x18\x04 \x01(\bR\vautoMigrate\x1a\xcf\x01\n" +
+	"\fauto_migrate\x18\x04 \x01(\bR\vautoMigrate\x125\n" +
+	"\x17time_contract_state_dir\x18\x05 \x01(\tR\x14timeContractStateDir\x1a\xcf\x01\n" +
 	"\x05Redis\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x12<\n" +

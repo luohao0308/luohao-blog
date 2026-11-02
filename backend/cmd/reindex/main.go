@@ -17,6 +17,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	tc "github.com/luohao0308/luohao-blog/backend/internal/timecontract"
 	"os"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -35,6 +36,7 @@ func init() {
 }
 
 func main() {
+	stateDir := flag.String("state-dir", "", "independent UTC state directory")
 	flag.Parse()
 	c := config.New(
 		config.WithSource(
@@ -53,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	store, cleanup, err := data.NewData(bc.Data)
+	store, cleanup, err := data.NewDataWithStateDir(bc.Data, tc.ResolveStateDir(bc.GetData().GetDatabase().GetTimeContractStateDir(), *stateDir))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "reindex: open data: %v\n", err)
 		os.Exit(1)

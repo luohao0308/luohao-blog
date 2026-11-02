@@ -17,6 +17,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	tc "github.com/luohao0308/luohao-blog/backend/internal/timecontract"
 	"os"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
@@ -49,6 +50,7 @@ func init() {
 }
 
 func main() {
+	stateDir := flag.String("state-dir", "", "independent UTC state directory")
 	flag.Parse()
 	wantAccount := flagEmail != "" || flagPassword != "" || flagName != ""
 	if !wantAccount && !flagDemoArticle {
@@ -85,7 +87,7 @@ func main() {
 	}
 
 	// Redis is deliberately not wired here: seeding only touches MySQL.
-	store, cleanup, err := data.NewData(bc.Data)
+	store, cleanup, err := data.NewDataWithStateDir(bc.Data, tc.ResolveStateDir(bc.GetData().GetDatabase().GetTimeContractStateDir(), *stateDir))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "seed: open data: %v\n", err)
 		os.Exit(1)

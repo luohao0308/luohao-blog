@@ -10,8 +10,9 @@ server:
     timeout: 60s
 data:
   database:
+    time_contract_state_dir: ./data/time-contract
     driver: mysql
-    source: ${DATABASE_SOURCE:root:root123@tcp(127.0.0.1:3307)/blog?timeout=5s&multiStatements=true&parseTime=True&loc=Local&charset=utf8mb4}
+    source: ${DATABASE_SOURCE:root:root123@tcp(127.0.0.1:3307)/blog?timeout=5s&multiStatements=true&parseTime=True&loc=UTC&time_zone=%27%2B00%3A00%27&charset=utf8mb4}
     # Development conveniences. Keep both false in production and apply schema
     # changes as a separate reviewed step.
     debug: true

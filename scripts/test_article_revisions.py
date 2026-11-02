@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run revision/CAS cases only on an owned loopback MySQL fixture, never production."""
-import pathlib,subprocess,sys,os,time,uuid,json,re,socket
+import pathlib,subprocess,sys,os,time,uuid,json,re,socket,tempfile
 root=pathlib.Path(__file__).resolve().parents[1];out=root/'output/article-revision-cases';out.mkdir(parents=True,exist_ok=True)
 sys.path.insert(0,str(root/'scripts'));from test_mysql_migrations import GO_HELPER
 
@@ -55,7 +55,9 @@ try:
  version=run(docker+['exec',name,'mysql','-uroot','-N',db,'-e','SELECT version FROM schema_migrations;']).decode().strip()
  expected=max(int(p.name.split('_')[0]) for p in (root/'backend/migrations').glob('*.up.sql'))
  assert int(version)==expected
- print(json.dumps({'passed':True,'mysql':'8.4','schemaBefore':16,'schemaAfter':int(version),'tests':pattern.split('|'),'silentSkips':0,'productionAccess':False}))
+ with tempfile.TemporaryDirectory(prefix='article-cas-utc-state-') as state:
+  run(['go','run','./internal/timecontract/testdata/bootstrap','-state-dir',state,'-dsn-env','MYSQL_MIGRATION_DSN'],cwd=root/'backend',env=env)
+ print(json.dumps({'passed':True,'mysql':'8.4','schemaBefore':16,'schemaAfter':int(version),'tests':pattern.split('|'),'silentSkips':0,'ownedUTCFixtureBootstrap':True,'productionAccess':False}))
 finally:
  # docker run may create a stopped container before a port/start failure.
  probe=subprocess.run(docker+['inspect','--format','{{index .Config.Labels "codex.task"}}',name],capture_output=True)

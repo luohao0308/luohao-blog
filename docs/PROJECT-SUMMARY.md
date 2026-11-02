@@ -32,7 +32,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 前端 | Node ≥20.19（本机 nvm 默认 24.18）+ pnpm 11.7 + Nuxt 4.5.2 + Tailwind CSS 4 + Naive UI 2.45（admin）+ Milkdown Crepe 7.22（编辑器） | `engines.node>=20.19`；pnpm 设置在 `frontend/pnpm-workspace.yaml`（allowBuilds）；admin 面板 naive-ui 组件为 SFC 显式导入（nuxtjs-naive-ui 仅做 SSR 样式收集） |
 | 数据 | MySQL 8.4 · Redis 7.4 · ES 8.17.4；MinIO 仅开发 compose 提供 | MySQL 为内容真相源，Redis 为会话/限流/去重，ES 已实现 BM25+kNN；生产头像使用磁盘卷 |
 | proto 工具链 | buf 1.73 + buf.gen.yaml（go/go-grpc/go-http/openapi 插件 `go run` 固定版本） | buf 模块根：`api`、`internal`；禁止手改生成物 |
-| 本地运行 | `go run ./cmd/server -conf ./configs`（backend/）；`pnpm dev`（frontend/） | server 默认 conf 路径 `../../configs` 仅适用 cmd/server 目录 cwd |
+| 本地运行 | `go run ./cmd/server -conf ./configs`（backend/）；`pnpm dev`（frontend/） | 先显式初始化UTC契约与独立state目录；server默认conf路径`../../configs`仅适用cmd/server目录cwd |
 
 ## 4. 模块与领域
 
@@ -66,8 +66,9 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 |---|---|---|---|
 | 后端全量验证 | `go build ./... && go vet ./... && go test ./... && golangci-lint run` | backend/ | 运行结果以当前任务与 CI 证据为准 |
 | proto 生成 | `make api`（api/）/ `make config`（conf） | backend/ | buf 插件走 `go run` 固定版本 |
-| 后端启动 | `KRATOS_JWT_SECRET=<密钥> go run ./cmd/server -conf ./configs` | backend/ | 空密钥 fail-fast；conf 默认值 `../../configs` 仅适用 cmd/server cwd |
-| 创建 ADMIN 账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一 ADMIN 建号入口（READER 走前台注册）；先幂等执行迁移 |
+| 空库UTC初始化 | `go run ./cmd/time-contract -conf ./configs -mode fresh-init -operation-id <唯一标识> -writers-paused` | backend/ | 仅迁移前空库；现有数据库先受控核对，禁止当作空库重置 |
+| 后端启动 | `KRATOS_JWT_SECRET=<密钥> go run ./cmd/server -conf ./configs` | backend/ | 空密钥或UTC契约未就绪fail-fast；配置中的`time_contract_state_dir`与所有CLI一致；conf 默认值 `../../configs` 仅适用 cmd/server cwd |
+| 创建 ADMIN 账号 | `go run ./cmd/seed -conf ./configs -email <email> -password <pw> -name <名>` | backend/ | 唯一 ADMIN 建号入口（READER走前台注册）；须先通过UTC契约门 |
 | 演示文章 seed | `go run ./cmd/seed -conf ./configs -demo-articles`（`-reset` 覆写） | backend/ | 内嵌 markdown（`cmd/seed/demoarticles/`）；幂等补缺，默认不覆盖后台编辑 |
 | 认证冒烟 | `./scripts/smoke-auth.sh` / `./scripts/smoke-account.sh` | backend/ | 需 compose 依赖服务 + jq；auth 覆盖 login/me/refresh/logout/负向/限流；account 覆盖 register/profile/avatar/静态资源/穿越/429 |
 | 前端验证 | `pnpm lint && pnpm typecheck && node --test tests/*.test.cjs && pnpm build` | frontend/ | Nuxt SSR 构建，结果见当前任务与 CI |
@@ -81,7 +82,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 
 - 对外契约权威源：`backend/api/**/*.proto`（buf 生成 HTTP + gRPC + openapi.yaml）
 - 生成物与人工指南：`make api` / `make config`；禁止手改 `*.pb.go` 与 `wire_gen.go`
-- Schema/数据变更门禁：版本化 SQL 在 `backend/migrations/`，golang-migrate 启动时幂等执行 up；兼容、备份与回滚需按具体迁移核验。
+- Schema/数据变更门禁：版本化SQL在`backend/migrations/`；启动先校验UTC状态与数据库marker，再允许普通幂等up。历史时间回填只由受控time-contract operator执行，不能借普通启动自动完成。恢复须完整回执，兼容/备份与恢复按具体迁移核验。
 - 发布与运行边界：腾讯云 Ubuntu 24.04 2C4G（193.112.128.245），仓库 `/opt/luohao-blog/app`；生产 `deploy/compose.prod.yml`，Caddy→Nuxt BFF→backend；监控独立 compose。ghcr 拉取受限时走服务器本地构建回退（Runbook）。
 - 敏感信息边界：凭据、Token、私钥永不入库；`.env*` 已被根 .gitignore 忽略；compose 占位口令不得用于任何真实环境
 
