@@ -140,6 +140,8 @@ message Data {
     // Create or update tables from the ent schema on startup. Leave false in
     // production and apply migrations as a separate, reviewed step.
     bool auto_migrate = 4;
+    // Independent persistent UTC control directory; never a database/upload restore path.
+    string time_contract_state_dir = 5;
   }
   message Redis {
     string network = 1;

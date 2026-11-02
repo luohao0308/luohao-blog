@@ -14,19 +14,21 @@ mkdir -p backups
 ts="$(date +%Y%m%d-%H%M%S)"
 file="backups/blog-$ts.sql.gz"
 uploads="backups/uploads-$ts.tar.gz"
+manifest="${file}.manifest.json"
+mtmp="${manifest}.tmp.$$"
 tmp="${file}.tmp.$$"
 utmp="${uploads}.tmp.$$"
 
 cleanup() {
 	local status=$?
 	if (( status != 0 )); then
-		rm -f -- "$tmp" "$utmp"
+		rm -f -- "$tmp" "$utmp" "$mtmp"
 	fi
 	return "$status"
 }
 trap cleanup EXIT
 
-"${COMPOSE[@]}" exec -T mysql sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --default-character-set=utf8mb4 --single-transaction blog' | gzip > "$tmp"
+"${COMPOSE[@]}" exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --default-character-set=utf8mb4 --single-transaction --tz-utc --order-by-primary --skip-extended-insert --complete-insert --hex-blob --skip-comments --no-tablespaces --set-gtid-purged=OFF blog' | gzip > "$tmp"
 
 # gzip -t catches truncation; awk consumes the full stream so pipefail cannot
 # turn a valid dump into a false failure when a downstream matcher exits early.
@@ -35,7 +37,9 @@ if ! gunzip -c -- "$tmp" | awk '/^-- (MySQL|MariaDB) dump|^CREATE TABLE|^INSERT 
 	echo "invalid or empty MySQL dump: $tmp" >&2
 	exit 1
 fi
+python3 deploy/time_backup_manifest.py create "$tmp" "$mtmp" >/dev/null
 mv -- "$tmp" "$file"
+mv -- "$mtmp" "$manifest"
 
 # 用户上传（头像）随库一起备份：从 backend 容器打包 uploads 目录（compose
 # 命名卷 backend-uploads）。空目录产出合法的空包，不会失败。
@@ -54,6 +58,7 @@ rotate() {
 	local i
 	for ((i = 0; i < excess; i++)); do
 		rm -- "${files[i]}"
+		if [[ "${files[i]}" == backups/blog-*.sql.gz ]] && [ -f "${files[i]}.manifest.json" ]; then rm -- "${files[i]}.manifest.json"; fi
 	done
 }
 rotate 'backups/blog-*.sql.gz' "$KEEP"

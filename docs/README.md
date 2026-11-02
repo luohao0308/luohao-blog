@@ -73,3 +73,7 @@ SDD/ATDD、TDD/EDD 是这条路径中的做法，不是每次都要执行的独�
 作者回复的字段、管理写入、公开投影与删除语义见[作者回复契约](contracts/AUTHOR-REPLIES.md)。
 
 作者回复迁移与恢复边界见[作者回复Runbook](operations/runbooks/author-replies.md)。
+
+UTC连接、历史时间兼容与受控恢复见[UTC时间契约修复计划](plans/UTC-TIME-CONTRACT-2026-11.md)。
+
+UTC切换、空库初始化、备份和恢复操作边界见[UTC Runbook](operations/runbooks/utc-time-contract.md)。

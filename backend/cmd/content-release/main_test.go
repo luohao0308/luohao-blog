@@ -82,7 +82,7 @@ func TestManifestAndHash(t *testing.T) {
 }
 func TestSchemaVersionGate(t *testing.T) {
 	want, err := highestMigration()
-	if err != nil || want != 20 {
+	if err != nil || want != 21 {
 		t.Fatalf("migration source: %d %v", want, err)
 	}
 	for _, tc := range []struct {
@@ -237,7 +237,7 @@ func TestMySQLCreateReadPublish(t *testing.T) {
 	if err != nil || parsed.DBName != "creator_content_test" || !strings.HasPrefix(parsed.Addr, "127.0.0.1:") {
 		t.Fatal("only dedicated localhost test database is allowed")
 	}
-	store, cleanup, err := data.NewData(&conf.Data{Database: &conf.Data_Database{Driver: "mysql", Source: dsn}})
+	store, cleanup, err := data.NewDataWithStateDir(&conf.Data{Database: &conf.Data_Database{Driver: "mysql", Source: dsn}}, os.Getenv("BLOG_UTC_STATE_DIR"))
 	if err != nil {
 		t.Fatal(err)
 	}

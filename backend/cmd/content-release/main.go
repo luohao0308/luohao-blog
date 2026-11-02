@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	mysql "github.com/go-sql-driver/mysql"
+	tc "github.com/luohao0308/luohao-blog/backend/internal/timecontract"
 	"io"
 	stdlog "log"
 	"net/http"
@@ -445,6 +446,7 @@ func saveBackup(path string, snapshots []json.RawMessage) error {
 	return f.Close()
 }
 func run() error {
+	stateDir := flag.String("state-dir", "", "independent UTC state directory")
 	confPath := flag.String("conf", "./configs", "Kratos config path")
 	bundlePath := flag.String("bundle", "../content/releases/creator-content-20261028.json", "release bundle")
 	hash := flag.String("bundle-sha256", "", "exact SHA256 of bundle bytes")
@@ -485,20 +487,28 @@ func run() error {
 		return errRelease
 	}
 	bc.Data.GetDatabase().Debug = false
-	db, err := sql.Open("mysql", bc.GetData().GetDatabase().GetSource())
+	*stateDir = tc.ResolveStateDir(bc.GetData().GetDatabase().GetTimeContractStateDir(), *stateDir)
+	guard, ge := tc.ReadState(*stateDir)
+	if ge != nil || guard.Status != "ready" {
+		return tc.ErrContract
+	}
+	db, err := tc.OpenUTC(context.Background(), bc.GetData().GetDatabase().GetSource())
 	if err != nil {
 		return err
 	}
 	defer func() { _ = db.Close() }()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+	if err = tc.RequireReady(ctx, db, *stateDir); err != nil {
+		return err
+	}
 	if err = schemaGate(ctx, db); err != nil {
 		return err
 	}
 	if err = probeES(ctx, &bc); err != nil {
 		return err
 	}
-	store, cleanup, err := data.NewData(bc.Data)
+	store, cleanup, err := data.NewDataWithStateDir(bc.Data, *stateDir)
 	if err != nil {
 		return err
 	}

@@ -151,6 +151,15 @@ def main():
         created_source = True
         (source / "main.go").write_text(GO_HELPER)
         with tempfile.TemporaryDirectory(prefix="wechat-identity-fixture-") as temporary:
+            def bootstrap_utc_fixture(name, fixture_env):
+                # This database was created by this owned UTC fixture; a schema
+                # number alone is never proof that arbitrary data is UTC.
+                state_dir = Path(temporary) / "utc-state" / name
+                run(["go", "run", "./internal/timecontract/testdata/bootstrap",
+                     "-state-dir", str(state_dir), "-dsn-env", "MYSQL_MIGRATION_DSN"],
+                    cwd=ROOT / "backend", env=fixture_env)
+                fixture_env["BLOG_UTC_STATE_DIR"] = str(state_dir)
+
             binary = str(Path(temporary) / "migrate")
             run(["go", "build", "-o", binary, str(source)], cwd=ROOT / "backend", env=env)
             assert run([binary, "15"], env=env).decode().strip() == "15 false"
@@ -237,6 +246,7 @@ def main():
             assert application_schema >= 20
             for _ in range(2):
                 assert run([binary, str(application_schema)], env=env).decode().strip() == f"{application_schema} false"
+            bootstrap_utc_fixture(database, env)
             assert sql("SELECT * FROM users ORDER BY id;", database) == snapshot
             assert sql(legacy_articles, database) == article_snapshot
             assert sql("SELECT * FROM wechat_identities ORDER BY id;", database) == identity_snapshot
@@ -247,6 +257,7 @@ def main():
             assert sql("SELECT COUNT(*) FROM wechat_comment_checks;", database).strip() == "0"
             restored_env = env | {"MYSQL_MIGRATION_DSN": env["MYSQL_MIGRATION_DSN"].replace("/" + database + "?", "/" + restored_replies + "?")}
             assert run([binary, str(application_schema)], env=restored_env).decode().strip() == f"{application_schema} false"
+            bootstrap_utc_fixture(restored_replies, restored_env)
             for name in (database, restored_replies):
                 assert sql(legacy_comments, name) == comments_snapshot
                 assert sql("SELECT parent_id IS NULL,reply_version FROM comments;", name).strip() == "1\t0"
@@ -280,7 +291,7 @@ def main():
             for name in required:
                 assert re.search(r"^--- PASS: " + re.escape(name) + r"(?: \(|$)", output, re.MULTILINE), "required real-driver test missing: " + name
             print(json.dumps({"baseline": 15, "target": 16, "dirty": False,
-                              "application_schema": application_schema,
+                              "application_schema": application_schema, "owned_utc_fixture_bootstrap": True,
                               "legacy_preserved": True, "no_automatic_backfill": True,
                               "cli_dryrun_apply_idempotent": True, "backup_restore": True,
                               "mini_content_safety_mysql_http": "passed",

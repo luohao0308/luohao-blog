@@ -1,8 +1,10 @@
 package data
 
 import (
+	"context"
 	stdsql "database/sql"
 	stderrors "errors"
+	tc "github.com/luohao0308/luohao-blog/backend/internal/timecontract"
 
 	"github.com/luohao0308/luohao-blog/backend/internal/conf"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent"
@@ -52,14 +54,34 @@ type Data struct {
 // NewData opens the database connection, applies versioned migrations, and
 // returns the ent client with a cleanup function.
 func NewData(c *conf.Data) (*Data, func(), error) {
+	return NewDataWithStateDir(c, tc.ResolveStateDir(c.GetDatabase().GetTimeContractStateDir(), ""))
+}
+
+// NewDataWithStateDir permits explicit owned control directories for tools and
+// fixtures; it never skips the same readiness gate used by the server.
+func NewDataWithStateDir(c *conf.Data, stateDir string) (*Data, func(), error) {
+	stateDir = tc.ResolveStateDir(c.GetDatabase().GetTimeContractStateDir(), stateDir)
+	first, e := tc.ReadState(stateDir)
+	if e != nil || first.Status != "ready" {
+		return nil, nil, tc.ErrContract
+	}
 	dc := c.GetDatabase()
-	db, err := stdsql.Open("mysql", dc.GetSource())
+	db, err := tc.OpenUTC(context.Background(), dc.GetSource())
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := tc.RequireReady(context.Background(), db, stateDir); err != nil {
+		_ = db.Close()
 		return nil, nil, err
 	}
 	if err := runMigrations(db); err != nil {
 		_ = db.Close()
 		return nil, nil, err
+	}
+	last, e := tc.ReadState(stateDir)
+	if e != nil || tc.Hash(first) != tc.Hash(last) || tc.RequireReady(context.Background(), db, stateDir) != nil {
+		_ = db.Close()
+		return nil, nil, tc.ErrContract
 	}
 	drv := entsql.OpenDB(dialect.MySQL, db)
 	client := ent.NewClient(ent.Driver(drv))
