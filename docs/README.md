@@ -65,3 +65,5 @@ SDD/ATDD、TDD/EDD 是这条路径中的做法，不是每次都要执行的独�
 - 团队长期维护的架构、契约、Runbook 和部署配置属于项目源文档，应提交并评审；本机记忆、任务上下文和临时工作日志不应提交。
 
 评论自动公开策略、免费能力边界与验收范围见[自动评论计划](plans/AUTOMATIC-COMMENTS-2026-11.md)；小程序检测/重检/幂等边界见[内容安全契约](contracts/WECHAT-CONTENT-SAFETY.md)。
+
+新增两篇深入案例源稿见[文章目录](content/articles/)；受限创建与无配置预览流程见[content-release说明](../backend/cmd/content-release/README.md)，准确发布提案为[两篇案例bundle](../content/releases/blog-case-studies-20261102.json)。

@@ -450,23 +450,23 @@ func run() error {
 	hash := flag.String("bundle-sha256", "", "exact SHA256 of bundle bytes")
 	apply := flag.Bool("apply", false, "apply after full preflight")
 	revision := flag.Bool("revision", false, "use the fixed six-item portfolio revision schema")
+	caseStudies := flag.Bool("case-studies", false, "use the fixed two-article create-only schema")
+	renderPreview := flag.Bool("render-preview", false, "render case-study HTML JSON without configuration or network")
 	backup := flag.String("backup", "", "new snapshot file (required for apply)")
 	flag.Parse()
-	if flag.NArg() != 0 || (*apply && *backup == "") {
+	if flag.NArg() != 0 || (*apply && *backup == "") || (*renderPreview && (!*caseStudies || *apply || *revision || *backup != "")) {
 		return errRelease
 	}
 	raw, err := os.ReadFile(*bundlePath)
 	if err != nil {
 		return err
 	}
-	var b *bundle
-	if *revision {
-		b, err = loadRevision(raw, *hash, *apply)
-	} else {
-		b, err = loadBundle(raw, *hash, *apply)
-	}
+	b, err := loadReleaseBundle(raw, *hash, *apply, *revision, *caseStudies)
 	if err != nil {
 		return err
+	}
+	if *renderPreview {
+		return renderCaseStudies(b, os.Stdout)
 	}
 	// Suppress framework/driver diagnostics: they can contain config or SQL.
 	log.SetDefault(log.NewLogger(log.NewHandler(log.WithWriter(io.Discard))))

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared_not_applied",
+  "target": "https://makerhao.cn",
+  "operations": [
+    {
+      "kind": "create_article",
+      "slug": "article-cas-revisions-case-study",
+      "requires_admin_slug_check": true,
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "fields": {
+        "slug": "article-cas-revisions-case-study",
+        "title": "两个窗口同时改文章：用版本条件保护正文与修订历史",
+        "summary": "从双窗口编辑推演开始，把版本判断放进数据库 UPDATE，再让正文、关联与修订快照一起提交，最后处理冲突保稿和历史恢复。",
+        "content_md": "同一篇文章开了两个编辑窗口，一个改标题，一个补正文。两个窗口都显示“保存成功”时，后一次保存可能已经把前一次修改覆盖了。\n\n本文从[这个博客](/projects/luohao-blog)的实现中抽出一个设计案例。场景中的窗口名、正文和版本号用于说明并发条件；代码、接口与测试入口对应仓库中的实际实现。\n\n## 先固定两个窗口看到的内容\n\n假设文章当前是版本 7，窗口 A、B 都在此时打开。A 将标题改成“请求重试”，B 在旧标题下补了一段正文。两边本地输入都有效，问题出在它们共同依赖了同一份旧数据。\n\n| 时刻 | 窗口 A | 窗口 B | 服务端状态 |\n|---|---|---|---|\n| 打开编辑页 | 读取版本 7 | 读取版本 7 | 版本 7 |\n| 本地修改 | 修改标题 | 补充正文 | 版本 7 |\n| A 保存成功 | 取得版本 8 | 仍持有版本 7 | A 的内容，版本 8 |\n| B 提交旧基准 | 保留已保存结果 | 携带 expected_version=7 | 拒绝冲突写入 |\n\n这里希望保护的是已经提交的结果，同时保留 B 的输入。B 可以对照最新版本重新整理；服务端不能替作者猜测两份正文该怎样合并。\n\n## 保存前再读一次，仍然可能同时通过\n\n一种直观做法是在保存入口查数据库，比较当前版本与请求版本，相同才继续更新。若“查询”和“更新”分成两个步骤，A、B 仍可能同时读到 7，并各自通过比较，随后先后执行无条件更新。\n\n事务也需要配合具体的写入条件。仅仅把几条语句包进事务，不能证明旧窗口的请求会被拒绝。必须确认最终负责认领版本的数据库语句仍带有客户端的基准条件。\n\n本站要求更新请求提交 expected_version。service 会读取当前文章、合并允许修改的字段，但传入业务层的版本依然取自请求。若在这一步把请求版本替换成刚读到的最新值，旧窗口就能悄悄获得新的写入资格，冲突保护也失去意义。\n\n## 用一次标量 UPDATE 认领版本\n\n下面是认领动作的示意 SQL。命名参数用于表达绑定位置，省略了实际驱动绑定与完整保存事务：\n\n```sql\nUPDATE articles\nSET version = version + 1\nWHERE id = :id\n  AND version = :expected_version\n  AND status <> :deleted_status;\n```\n\n判断依据是影响行数：恰好更新一行，才继续写正文；影响零行，返回版本冲突。缺少版本条件的请求则在进入保存链路前被拒绝。\n\n实际代码使用 Ent。这里有一个值得单独检查的细节：带标签、分类等关联的更新可能先选出 ID，再执行后续写入。只看 builder 上出现了 Where，还不足以确认版本条件留在了实际更新语句中。因此实现先执行仅涉及版本的标量条件更新，取得行锁；成功后，再通过同一个事务客户端保存内容与关联。\n\n在正常成功提交路径中，A 先认领版本 7 并推进到 8。B 使用同样的旧版本条件继续写入时，无法再认领这一行。若 A 在后续步骤失败并回滚，版本递增也会一起撤回，不会留下一个已经宣布成功的半成品。\n\n## 修订快照跟随正文一起提交\n\n防覆盖保护当前内容，修订历史则保留成功写入之间的变化。两者需要落在同一个提交边界里，否则可能出现正文已经改变、对应快照却没有保存的情况。\n\n本站的保存事务依次完成版本认领、正文及标签分类更新、修订保存；需要生成公众号同步任务时，outbox 也在这个数据库事务中入队。关联校验、快照写入或入队失败，都不能只提交其中一部分。\n\n对于接入修订功能之前已有的文章，首次变更会先补一份旧版本 baseline，再记录新版本。基线只能表示当时保留下来的那份内容，作者未知时也不补造身份。历史页不能据此声称掌握了功能接入前的每次编辑。\n\nElasticsearch 同步在数据库提交之后尝试执行。搜索失败不会把已保存正文改报成保存失败，避免作者因此重复提交。这个分界可以继续看[正文保存成功后的搜索同步恢复](/posts/article-search-sync-case-study)。\n\n## 409 之后，编辑器先保住输入\n\n版本冲突会返回 HTTP 409。后台显示“文章已有新版本，修改与本地草稿已保留”，保留当前表单和对应本地草稿，不自动刷新页面，也不自动使用新版本号重发。\n\n编辑器除了提示冲突，还要记住草稿基于哪个版本，并区分账号、文章与窗口。否则，恢复旧草稿后若直接套用最新版本号，仍可能覆盖其他窗口的工作。\n\n成功保存也只清理对应提交的原稿。等待响应期间继续输入的新内容，需要继续留在编辑器中。作者整理冲突、阅读最新版本，再基于新版本发起一次明确保存，才是下一次写入。\n\n## 恢复历史，是产生一个新版本\n\n假设当前已到版本 11，作者希望恢复版本 7 的内容。恢复请求同时指定“取哪个历史快照”和“当前基准是 11”。服务端读取自己保存的快照白名单，沿保存事务生成版本 12，旧的 7、11 都继续保留。\n\n恢复复制标题、摘要、Markdown、标签分类、封面和精选等内容字段，保持当前 ID、slug、发布状态、首次发布时间与阅读点赞计数。已发布文章恢复后，公开正文会随新版本更新；保留的是当前发布状态与首次发布时间，不改链接，也不倒退统计。\n\n历史资源也需要重新检查。分类按照原 ID 与 slug 核对，后来同名重建的分类不能被当作原对象；历史封面不可用时返回明确错误。恢复期间又有其他窗口写入，也必须遵守当前版本条件，不能覆盖新提交。\n\n## 怎样验证这条链路\n\n在仓库根目录、具备项目要求的 Go 工具链时，可以先运行不连接数据库的 service 回归：\n\n```sh\ngo -C backend test ./internal/service \\\n  -run '^(TestArticleVersionRequired|TestUpdateUsesSubmittedVersion)$' \\\n  -count=1 -v\n```\n\n这两项检查缺少版本会被拒绝，以及 service 确实传递请求基准版本。它们不能代替真实数据库并发验证。\n\n真实 MySQL 场景由 TestArticleCASMySQL 验证两个并发旧版本请求仅一项成功、一项冲突，并检查失败事务没有留下标签残片；TestArticleHistoryMySQL、TestArticleRestoreMySQL 继续覆盖快照和恢复。它们只在配置 BLOG_REVISION_MYSQL_DSN 后运行，需要任务自有、可销毁的隔离数据库及测试要求的迁移和基线数据。默认跳过不算验证通过，不能将这些测试指向生产或共享数据库。\n\n本文的短 SQL 先用内存 SQLite 检查了一次命中、一次失配。随后在独立 MySQL 8.4 样例中，从迁移 16 和旧文章基线升级到 19，运行上述三项及两项分类并发回归，五项均通过且没有跳过。它验证的是隔离数据库中的锁、事务和恢复边界，不是线上压测。\n\n仓库根目录可以复现这组隔离验证：\n\n```sh\npython3 scripts/test_article_revisions.py\n```\n\n脚本拒绝远端 Docker endpoint，并核对自己创建的容器标签与回环映射；只创建并清理该容器与匿名卷，使用 127.0.0.1:13327，不读取生产配置。运行前需有 Docker、Python 3 和项目要求的 Go 工具链，并确认该端口可用。完整浏览器复现前置条件见仓库的 [E2E 说明](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/scripts/e2e/README.md)。\n\n## 实现入口\n\n- [版本请求与字段合并](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/service/article.go#L180)：保留客户端提交的 expected_version。\n- [数据库标量 CAS 与事务写入](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/article.go#L545)、[修订保存](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/article_revision.go#L36)：核对版本、内容与历史的提交边界。\n- [恢复实现](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/article_restore.go)、[MySQL 回归](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/article_revisions_mysql_test.go)：对照资源失效、并发和回滚分支。\n",
+        "tags": [
+          "Go",
+          "MySQL",
+          "Ent",
+          "并发控制",
+          "个人博客"
+        ],
+        "status": 2
+      }
+    },
+    {
+      "kind": "create_article",
+      "slug": "article-search-sync-case-study",
+      "requires_admin_slug_check": true,
+      "update_mask": [
+        "title",
+        "summary",
+        "content_md",
+        "tags"
+      ],
+      "fields": {
+        "slug": "article-search-sync-case-study",
+        "title": "正文已保存，搜索为什么还没更新？",
+        "summary": "从一次可复现的索引失败出发，拆开正文保存、实时核验与单篇恢复，说明 MySQL 与 Elasticsearch 之间的一致性边界。",
+        "content_md": "后台显示“正文已保存”，搜索却仍返回旧标题。此时再点一次保存，究竟是在修复搜索，还是把正文又写了一遍？\n\n在这个博客里，文章保存在 MySQL，Elasticsearch 承担全文与语义检索。它们有各自的失败路径。我给后台增加了独立的搜索同步状态与单篇重试，把“内容写入成功”和“派生索引就绪”分别反馈给编辑者。\n\n本文用仓库中的隔离测试复现这一情形，记录当前实现与限制，不将它描述为一次真实线上事故。整体项目见 [luohao-blog 作品页](/projects/luohao-blog)，前后台联调的背景见 [从登录到发布的验收路径](/posts/fullstack-smoke-pitfalls)。\n\n## 先固定一个能判断对错的场景\n\n设文章已经发布，索引里还是旧内容。编辑者修改标题和正文，MySQL 写入成功，随后 ES 写入超时。这里有两个独立事实：数据库已经保存新版本，索引同步这次没有完成。\n\n预期行为是：编辑页确认正文保存成功，搜索面板提示索引待更新；ES 恢复后，管理员可以只重试这一篇。检查点也要具体：数据库内容没有因索引错误回滚，重试读取的是当前正文，最后的状态来自实际回读。\n\n仓库的 TestArticleUsecaseSearchIndexIsBestEffort 用失败的索引替身验证前一条；TestSearchSyncStatesAndRetry 验证缺失、失败重试与恢复。这样可以稳定制造错误，不需要关闭生产搜索服务。\n\n## MySQL 是正文的真相源\n\n文章更新完成后，业务层调用 syncIndex。它取得同进程内该 slug 对应的锁，重新读取数据库中的文章，再交给索引实现。写索引失败会记录警告，文章保存仍然成功。\n\n这是一种明确的 best-effort 选择：正文写入不能因为派生索引暂时不可用而被判定失败。它没有建立 MySQL 与 ES 的分布式事务，也没有在这里引入持久化的自动重试队列。失败后的恢复需要状态核验和显式重试承接。\n\n可以把调用关系压缩成下面的流程示意，它不是可直接执行的程序：\n\n```text\n文章事务提交\n  → 取得当前进程的 slug 索引锁\n  → 重新读取 MySQL 当前内容\n  → 已发布：写入 ES；未发布或已删除：清理文档\n  → 索引异常：记录警告，保留正文保存成功的结果\n```\n\n实现可对照 [ArticleUsecase 的 syncIndex 与 dropIndex](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/biz/article.go) 和 [重新读取当前正文的 writeLatestIndex](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/biz/article_search_sync.go)。\n\n## 状态面板检查的是什么\n\n核验接口不会因为上次保存没有报错就显示绿色。它实时读取 ES 文档快照，再与 MySQL 当前文章比较。标题、摘要、Markdown、标签集合和发布时间都参与判断；标签的排列顺序与重复项会先归一，避免无意义的差异。\n\n| 状态 | 实际含义 | 恢复方向 |\n|---|---|---|\n| missing | 索引存在，但当前已发布文章的文档缺失 | 可单篇同步 |\n| stale | 文档存在，参与比较的内容尚未对齐 | 用当前正文重新同步 |\n| partial | 关键词内容已对齐，预期的语义索引未就绪 | 根据向量映射和维度判断是否可重试 |\n| not required | 文章未发布，且没有索引残留 | 无需写入搜索 |\n| unavailable | 未配置、无法核实，或整个索引不存在 | 查看原因与 can_retry，不统一当成可修复 |\n| synced | 当前内容与已核验索引一致 | 仍不承诺每个搜索词都立即命中 |\n\n未发布文章如果还有索引残留，会被判为待清理，而不是“无需索引”。核验失败时也不能声称清理已完成。面板里的 checked_at 表示这次观察的时间，并不是某次历史同步成功的记录。\n\n## 文档缺失与整个索引缺失要分开\n\n这两个情况都可能让读取返回 404，却不能使用同一条修复路径。\n\n单篇文档缺失时，可以依据当前文章重新写入。整个索引不存在时，重试会停止，要求管理员显式初始化或安排重建。原因是索引还承载字段类型、向量维度等配置；让一次单篇写入悄悄创建默认映射，会把内容恢复与基础设施变更混在一起。\n\n数据层在重试前先检查索引是否存在。核验与重试之间索引也可能消失，因此业务层还会处理重试返回的“索引不存在”错误。TestRetryIndexMissingNeverCreatesImplicitMapping 验证这条路径不会继续写文档、删除文档或生成 embedding。\n\n相关处理在 [ES 快照读取和 RetryArticleIndex](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/es.go)。\n\n## 为什么“部分同步”值得单独显示\n\n配置了 embedding 时，索引写入可能因上游故障降级为仅含关键词内容的文档。此时全文检索仍可能工作，语义检索却没有就绪。\n\n状态检查会读取当前映射，核对 dense_vector 的维度与可用性，并检查文档里的向量长度。映射可用、当前文档缺向量时，重试可能有帮助；映射缺失或维度不匹配时，反复点击按钮不能修复结构，应转入显式维护。\n\n因此 partial 既不等同于整个搜索不可用，也不能包装成“关键词与语义全部同步”。这个状态描述的是索引准备情况，不是回答质量或语义命中率的评测结果。\n\n## 重试结束后，还要再次读取\n\n重试先取得同一组 slug 锁，再读取当前文章。ES 手动重试使用 refresh=wait_for，普通保存仍使用 refresh=false，避免每次正文更新都强制刷新整个索引。\n\n重试调用结束后，业务层再次读取文章并核验索引；前端还会校验返回的 slug 和状态字段，再展示结果。HTTP 200 本身不代表已同步：例如整个索引缺失时，接口可以正常返回“不可用、不可重试”的状态。\n\n这条路径也要考虑旧重试与新保存相遇。TestSearchSyncRetryCannotOverwriteLaterSaveOrDelete 会让旧重试阻塞，期间更新或删除数据库文章，再触发对应同步，最后检查索引没有被旧内容占住或把已删除文章复活。\n\n锁只协调一个 ArticleUsecase 所在进程的保存、删除和重试。它不是分布式锁，不能据此声称多实例部署或另一个 CLI 重建任务已经获得同样的互斥；这些维护入口仍需单独协调。\n\n## 在隔离环境复现\n\n使用满足仓库 go.mod 的 Go 工具链，在仓库根目录运行：\n\n```sh\ngo -C backend test ./internal/biz \\\n  -run 'TestSearchSync|TestArticleUsecaseSearchIndexIsBestEffort' -count=1 -v\n\ngo -C backend test ./internal/data ./internal/server \\\n  -run 'TestArticleIndexSnapshot|TestRetryArticleIndex|TestRetryIndexMissingNeverCreatesImplicitMapping|TestSearchSyncHTTPAndGRPCPermissions' \\\n  -count=1 -v\n```\n\n本次写作核对时，两组命令均通过。业务测试使用索引替身，数据层用本地 HTTP 服务模拟 ES 响应，权限测试覆盖匿名拒绝、普通读者拒绝和管理员访问；这些结果不等同于真实 ES 集群、付费 embedding 或模型效果验收。\n\n测试入口见 [业务状态与并发恢复](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/biz/article_search_sync_test.go)、[ES HTTP 边界](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/data/es_search_sync_test.go) 和 [HTTP／gRPC 权限](https://github.com/luohao0308/luohao-blog/blob/400d24244ae607a5a22bf7565166f811c1b558fa/backend/internal/server/search_sync_test.go)。\n\n这项改动给编辑者留下了两个可分别核对的结果：正文是否已经保存，以及搜索准备到了哪一步。出现异常时，恢复入口也有明确边界，不需要靠重复提交正文来猜测系统状态。\n\n如果还想看正文自身的并发保护，可以继续读[两个窗口同时改文章的版本与修订设计](/posts/article-cas-revisions-case-study)。\n",
+        "tags": [
+          "Go",
+          "Elasticsearch",
+          "一致性",
+          "个人博客",
+          "案例推演"
+        ],
+        "status": 2
+      }
+    }
+  ]
+}
