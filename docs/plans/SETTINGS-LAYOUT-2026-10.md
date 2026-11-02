@@ -1,5 +1,7 @@
 # 个人设置 B＋C 布局
 
+> 2026-11-02对账：T-022已由PR #109交付，设置分组布局已在当前生产源码中，不再等待首次push或部署。 统一状态见[本轮对账](TASK-BOARD-RECONCILIATION-2026-11.md)。
+
 - Status: approved，2026-10-19用户确认按融合版实施；仅本地实现。
 - Baseline: main `889917b`；隔离工作树a78d，分支`codex/settings-layout`。
 - 视觉来源：本轮独立原型`settings-layouts/d.html`及桌面/手机截图。

@@ -1,0 +1,23 @@
+CREATE TABLE `wechat_comment_checks` (
+ `id` char(36) NOT NULL,
+ `comment_id` char(36) NOT NULL,
+ `author_id` char(36) NOT NULL,
+ `app_id` varchar(32) NOT NULL,
+ `client_request_id` varchar(64) NULL,
+ `create_request_hash` varchar(64) NOT NULL DEFAULT '',
+ `identity_id` char(36) NULL,
+ `input_hash` varchar(64) NOT NULL DEFAULT '',
+ `state` varchar(32) NOT NULL,
+ `generation` bigint unsigned NOT NULL DEFAULT 1,
+ `lease_until` datetime(6) NULL,
+ `name_trace_id` varchar(256) NOT NULL DEFAULT '',
+ `content_trace_id` varchar(256) NOT NULL DEFAULT '',
+ `checked_at` datetime(6) NULL,
+ `error_kind` varchar(64) NOT NULL DEFAULT '',
+ PRIMARY KEY (`id`),
+ UNIQUE KEY `wechat_comment_app` (`comment_id`,`app_id`),
+ UNIQUE KEY `wechat_comment_request` (`app_id`,`author_id`,`client_request_id`),
+ KEY `wechat_comment_state` (`app_id`,`state`),
+ CONSTRAINT `wechat_comment_checks_users_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+ CONSTRAINT `wechat_comment_checks_wechat_identities_identity` FOREIGN KEY (`identity_id`) REFERENCES `wechat_identities` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

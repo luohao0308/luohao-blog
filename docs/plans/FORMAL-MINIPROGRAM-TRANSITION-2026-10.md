@@ -1,10 +1,12 @@
 # 正式小程序接入与身份隔离
 
+> 2026-11-02当前状态：#100/#101补丁已包含在生产源码78513c7，旧“补丁未交付”是历史时点。当前修复静态正文图地址的本地候选通过逻辑回归、独立复核与正式AppID模拟器SVG/PNG显示和图库预览；手机代码预览及真实设备/平台验收仍待对应版本授权和结果。最新待办统一见[本轮对账](TASK-BOARD-RECONCILIATION-2026-11.md)，不以历史备案/隐私快照作为当前状态。
+
 status: approved
 parent: [后台与小程序收尾](ADMIN-MINIPROGRAM-CLOSEOUT-2026-10.md)，S2 → S3
 formal_app_id: wxf27116cc66cc49a4
 legacy_preview_app_id: wx58089476f518fd3f
-current_slice: F2 (core phone acceptance passed; privacy/UGC and body-image coverage pending)
+current_slice: F2 (current candidate phone acceptance and fresh platform verification pending)
 
 ## 目标与已确认事实
 
@@ -21,6 +23,8 @@ current_slice: F2 (core phone acceptance passed; privacy/UGC and body-image cove
 | F1 身份隔离与本地验证 | 后端新增v16身份表、AppID范围查询/绑定/票据及受控旧身份回填工具；保留旧列；合入已有昵称头像边界修复；项目AppID对齐正式号。无生产变更 | 本计划确认；确认旧身份来源，不能猜测其他环境 | MySQL v15→v16/回填幂等和冲突；Redis真实TTL/GETDEL；跨AppID/禁用/并发绑定和HTTP回归；小程序typecheck/test；独立审查 | 本地提交可回退；不使用真实用户凭据/数据进行单元测试 | completed |
 | F2 正式配置与真机 | 准备并在准确版本授权后配置正式号request域名及必要声明，备份SQL/uploads/私密配置；暂停微信绑定写入窗口，迁移并显式回填旧身份，切正式凭据/后端与同源码正式预览 | F1通过；正式Secret由用户存私密文件；准确源码/配置/迁移/平台/预览操作授权 | 确认生效AppID；正式微信首登经用户在页面输入原账号密码新增身份，再次登录；用户UUID/密码/内容/旧绑定保留；普通真机联网、昵称头像及核心流程；不复用旧预览证据 | **保留支持v16的新后端及数据库**，关闭微信登录/绑定或恢复已核验旧AppID配置；不下迁移、不恢复覆盖数据库，不直接回退v15镜像 | in_progress |
 | F3 开发版本、提审与发布 | 绑定正式AppID、准确源码树、版本及包证据，分别上传、提审、发布；不将预览或上传视为已上线 | F2通过；平台当时允许相应操作；对应准确包和操作授权 | 备案/域名/隐私内容/类目及适用声明核对，审核结果和正式版本记录，发布后真实入口冒烟 | 不通过则保留现有状态；正式发布前必须有有效备案结果；平台版本回退另按实际可用能力及准确授权办理 | pending |
+
+2026-11-02局部顺序调整：用户已针对f0650f3、正式AppID及0.1.0批准提前上传一个开发版本，官方CLI一次调用成功。此项作为F2候选准备的独立前置交付，不将F2剩余检查标为通过；F3的提审和正式发布仍等待F2及平台门禁。
 
 同一时刻仅一个切片in_progress。计划确认不替代远端Git、凭据、生产迁移/回填、平台写入和发布的准确版本操作授权。确认前仅进行只读核查及计划文档准备，不改产品配置或生产数据。
 

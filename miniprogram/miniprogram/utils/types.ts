@@ -105,3 +105,16 @@ export interface ChatReply {
   answer: string
   citations: CitedArticle[]
 }
+
+// The global moderation status alone never grants mini-program visibility.
+export interface MiniCommentRecord {
+  comment: Comment
+  safety_state: number
+  visible: boolean
+  can_recheck: boolean
+  safety_error?: string
+}
+export interface MiniCommentRecords {
+  records: MiniCommentRecord[]
+  next_page_token?: string
+}

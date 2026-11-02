@@ -1,11 +1,11 @@
-import { getArticle, listComments, createComment, likeArticle, reportArticleViewed } from '../../utils/api'
+import { getArticle, listComments, listMyComments, recheckComment, createComment, likeArticle, reportArticleViewed } from '../../utils/api'
 import { toMessage } from '../../utils/request'
 import { formatDate } from '../../utils/format'
 import { articleContentBlocks, decorateArticleHtml, type ArticleContentBlock } from '../../utils/html'
 import { isFavorite, toggleFavorite, isLiked, markLiked, unmarkLiked } from '../../utils/favorites'
 import { currentAccount, hasRefreshSession, isLoggedIn, refreshSession } from '../../utils/auth'
 import { assetUrl } from '../../utils/config'
-import { COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, type Comment } from '../../utils/types'
+import { COMMENT_STATUS_APPROVED, COMMENT_STATUS_PENDING, type Comment, type MiniCommentRecord } from '../../utils/types'
 
 interface CommentItem {
   id: string
@@ -15,6 +15,8 @@ interface CommentItem {
   avatarUrl: string
   initial: string
   pending: boolean
+  safetyLabel?: string
+  canRecheck?: boolean
 }
 
 // toCommentItem 把 wire 评论转成视图模型；无名评论回退「访客」。
@@ -29,6 +31,22 @@ function toCommentItem(c: Comment): CommentItem {
     initial: Array.from(displayName)[0] || '访',
     pending: c.status === COMMENT_STATUS_PENDING,
   }
+}
+
+function privateComment(record: MiniCommentRecord): CommentItem {
+  const item = toCommentItem(record.comment)
+  item.pending = !record.visible
+  item.canRecheck = record.can_recheck
+  item.safetyLabel = record.visible ? '' : ({
+    0: '尚未检测，仅你可见', 1: '安全检测中，仅你可见',
+    2: '安全检测通过，待管理员审核', 3: '待进一步审核，仅你可见',
+    4: '未通过安全检测，仅你可见', 5: '检测暂不可用，仅你可见', 6: '已移除',
+  } as Record<number, string>)[record.safety_state] || '待检测，仅你可见'
+  return item
+}
+
+function pendingKey(accountId: string, slug: string): string {
+  return `mini:comment-intent:${accountId}:${slug}`
 }
 
 function uniqueComments(comments: CommentItem[]): CommentItem[] {
@@ -64,8 +82,15 @@ Page({
     commentCount: 0,
     commentLoading: false,
     commentRevision: 0,
+    lifecycleRevision: 0,
     commentSubmitRevision: 0,
     commentAccountId: '',
+    mineRevision: 0,
+    mineToken: '',
+    mineFinished: false,
+    mineLoading: false,
+    retryingCommentId: '',
+    pendingIntents: {} as Record<string, { content: string, requestId: string }>,
     commentInput: '',
     commentLength: 0,
     commentBusy: false,
@@ -99,6 +124,10 @@ Page({
   onUnload() {
     // Invalidate callbacks without updating the destroyed view.
     this.data.commentAuthRevision += 1
+    this.data.mineRevision += 1
+    this.data.commentSubmitRevision += 1
+    this.data.commentRevision += 1
+    this.data.lifecycleRevision += 1
   },
 
   async refreshComposer() {
@@ -118,6 +147,7 @@ Page({
 
   applyComposerState() {
     const accountId = currentAccount()?.id ?? ''
+    const previousAccountId = this.data.commentAccountId
     const accountChanged = this.data.commentAccountId !== '' && this.data.commentAccountId !== accountId
     if (accountChanged) {
       const comments = uniqueComments(this.data.publicComments)
@@ -126,6 +156,7 @@ Page({
         commentAuthLoading: false,
         commentAccountId: accountId,
         commentSubmitRevision: this.data.commentSubmitRevision + 1,
+        mineRevision: this.data.mineRevision + 1, mineToken: '', mineFinished: false, mineLoading: false, retryingCommentId: '',
         sessionComments: [],
         comments,
         commentCount: comments.length,
@@ -134,9 +165,23 @@ Page({
         commentBusy: false,
         commentError: '',
       })
+      this.restoreCommentIntent(accountId)
+      if (accountId) void this.fetchMyComments(true)
       return
     }
     this.setData({ canComment: isLoggedIn(), commentAccountId: accountId, commentAuthLoading: false })
+    if (accountId !== previousAccountId) this.restoreCommentIntent(accountId)
+    if (accountId && !this.data.mineLoading) void this.fetchMyComments(true)
+  },
+
+  restoreCommentIntent(owner: string) {
+    if (!owner || this.data.commentInput) return
+    try {
+      const intent = wx.getStorageSync(pendingKey(owner, this.data.slug))
+      if (typeof intent?.content === 'string' && typeof intent?.requestId === 'string' && Array.from(intent.content).length <= 1000) {
+        this.setData({ commentInput: intent.content, commentLength: Array.from(intent.content).length })
+      }
+    } catch { /* storage unavailable: keep the current in-page draft */ }
   },
 
   async fetch() {
@@ -217,6 +262,7 @@ Page({
     try {
       const set = await listComments(slug, commentToken)
       if (revision !== this.data.commentRevision) return
+      if (this.data.commentAccountId !== (currentAccount()?.id ?? '')) this.applyComposerState()
       const more = (set.comments ?? [])
         .filter((comment) => comment.status === COMMENT_STATUS_APPROVED)
         .map(toCommentItem)
@@ -231,10 +277,11 @@ Page({
         comments,
         commentToken: nextToken,
         commentsFinished: nextToken === '',
-        commentCount: comments.filter((comment) => !comment.pending).length,
+        commentCount: nextPublic.length,
       })
     } catch (error) {
       if (revision === this.data.commentRevision) {
+        if (this.data.commentAccountId !== (currentAccount()?.id ?? '')) this.applyComposerState()
         wx.showToast({ title: toMessage(error), icon: 'none' })
       }
     } finally {
@@ -244,13 +291,69 @@ Page({
     }
   },
 
+  async fetchMyComments(reset = false) {
+    const owner = currentAccount()?.id ?? ''
+    if (!owner || (!reset && (this.data.mineLoading || this.data.mineFinished))) return
+    const revision = this.data.mineRevision + (reset ? 1 : 0)
+    this.setData({ mineRevision: revision, mineLoading: true })
+    const previous = reset ? [] : this.data.sessionComments
+    try {
+      const result = await listMyComments(this.data.slug, reset ? '' : this.data.mineToken)
+      if (revision !== this.data.mineRevision) return
+      if (owner !== (currentAccount()?.id ?? '')) { this.applyComposerState(); return }
+      const items = (result.records ?? []).filter(r => r.comment?.user_id === owner && r.safety_state !== 6).map(privateComment)
+      const sessionComments = uniqueComments(previous.concat(items))
+      const privateIds = new Set(sessionComments.map(c => c.id))
+      const heldIds = new Set(sessionComments.filter(c => c.pending).map(c => c.id))
+      const publicComments = this.data.publicComments.filter(c => !heldIds.has(c.id))
+      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: uniqueComments(sessionComments.concat(publicComments.filter(c => !privateIds.has(c.id)))), mineToken: result.next_page_token ?? '', mineFinished: !result.next_page_token })
+    } catch {
+      if (revision === this.data.mineRevision && owner !== (currentAccount()?.id ?? '')) this.applyComposerState()
+    }
+    finally {
+      if (revision === this.data.mineRevision && owner === (currentAccount()?.id ?? '')) this.setData({ mineLoading: false })
+    }
+  },
+
+  async retryCommentSafety(event: WechatMiniprogram.TouchEvent) {
+    const id = event.currentTarget.dataset.id
+    const owner = currentAccount()?.id ?? ''
+    if (!owner || typeof id !== 'string' || this.data.retryingCommentId || !this.data.sessionComments.some(c => c.id === id && c.canRecheck)) return
+    const revision = this.data.mineRevision
+    const lifecycle = this.data.lifecycleRevision
+    this.setData({ retryingCommentId: id })
+    try {
+      const result = await recheckComment(id)
+      if (revision !== this.data.mineRevision) return
+      if (owner !== (currentAccount()?.id ?? '')) { this.applyComposerState(); return }
+      if (result.comment?.user_id !== owner) return
+      const item = privateComment(result)
+      const sessionComments = [item].concat(this.data.sessionComments.filter(c => c.id !== id))
+      const publicComments = item.pending ? this.data.publicComments.filter(c => c.id !== id) : this.data.publicComments
+      this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: uniqueComments(sessionComments.concat(publicComments)) })
+      if (result.visible) await this.fetchComments(true)
+    } catch (error) {
+      if (revision === this.data.mineRevision && owner !== (currentAccount()?.id ?? '')) this.applyComposerState()
+      if (owner === (currentAccount()?.id ?? '') && revision === this.data.mineRevision) wx.showToast({ title: toMessage(error), icon: 'none' })
+    } finally {
+      if (lifecycle === this.data.lifecycleRevision && owner === (currentAccount()?.id ?? '') && this.data.retryingCommentId === id) this.setData({ retryingCommentId: '' })
+    }
+  },
+
   loadMoreComments() {
+    void this.fetchMyComments()
     return this.fetchComments()
   },
 
   onCommentInput(event: WechatMiniprogram.Input) {
     const commentInput = event.detail.value
     const commentLength = Array.from(commentInput).length
+    const owner = currentAccount()?.id ?? ''
+    if (owner && commentInput.trim() !== this.data.commentInput.trim()) {
+      const key = pendingKey(owner, this.data.slug)
+      delete this.data.pendingIntents[key]
+      try { wx.removeStorageSync(key) } catch { /* the current new draft stays in memory */ }
+    }
     this.setData({
       commentInput,
       commentLength,
@@ -262,7 +365,7 @@ Page({
     if (this.data.commentBusy) return
     const { slug, commentInput } = this.data
     const content = commentInput.trim()
-    if (!content) return
+    if (!content || !isLoggedIn()) return
     if (Array.from(content).length > 1000) {
       this.setData({ commentError: '评论不能超过 1000 个字' })
       return
@@ -271,33 +374,52 @@ Page({
     const submitRevision = this.data.commentSubmitRevision + 1
     this.setData({ commentBusy: true, commentError: '', commentSubmitRevision: submitRevision })
     try {
-      const createdComment = await createComment(slug, content)
+      const key = pendingKey(submitAccountId, slug)
+      let intent = this.data.pendingIntents[key]
+      try { intent = wx.getStorageSync(key) || intent } catch { /* storage can be unavailable */ }
+      if (!intent || intent.content !== content || typeof intent.requestId !== 'string') {
+        intent = { content, requestId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}` }
+        try { wx.setStorageSync(key, intent) } catch { /* retain in-page below */ }
+      }
+      this.data.pendingIntents[key] = intent
+      const record = await createComment(slug, content, intent.requestId)
+      const createdComment = record.comment
+      if (!createdComment) throw new Error('评论状态暂不可用，请稍后查看我的评论')
       const currentAccountId = currentAccount()?.id ?? ''
-      if (submitRevision !== this.data.commentSubmitRevision || currentAccountId !== submitAccountId) return
-      if (createdComment.user_id && createdComment.user_id !== submitAccountId) {
+      if (submitRevision !== this.data.commentSubmitRevision) return
+      if (currentAccountId !== submitAccountId) { this.applyComposerState(); return }
+      if (!createdComment.id || createdComment.user_id !== submitAccountId) {
         this.setData({ commentBusy: false, commentError: '评论账号信息异常，请重试' })
         return
       }
-      const created = toCommentItem(createdComment)
+      this.setData({ mineRevision: this.data.mineRevision + 1, mineLoading: false })
+      const unchangedDraft = this.data.commentInput.trim() === content
+      const created = privateComment(record)
+      if (this.data.pendingIntents[key]?.requestId === intent.requestId) delete this.data.pendingIntents[key]
+      try {
+        if (wx.getStorageSync(key)?.requestId === intent.requestId) wx.removeStorageSync(key)
+      } catch { /* no credentials are stored here */ }
       const sessionComments = uniqueComments([created].concat(this.data.sessionComments))
       const comments = uniqueComments(sessionComments.concat(this.data.publicComments))
       this.setData({
         sessionComments,
         comments,
-        commentCount: comments.filter((comment) => !comment.pending).length,
-        commentInput: '',
-        commentLength: 0,
+        commentCount: this.data.publicComments.length + (record.visible && !this.data.publicComments.some(c => c.id === created.id) ? 1 : 0),
+        commentInput: unchangedDraft ? '' : this.data.commentInput,
+        commentLength: unchangedDraft ? 0 : Array.from(this.data.commentInput).length,
         commentBusy: false,
       })
       if (created.pending) {
-        wx.showToast({ title: '评论审核中，仅你当前可见', icon: 'none' })
+        wx.showToast({ title: created.safetyLabel || '评论待审核，仅你可见', icon: 'none' })
       } else {
         wx.showToast({ title: '评论已发布', icon: 'success' })
         await this.fetchComments(true)
       }
     } catch (error) {
       const currentAccountId = currentAccount()?.id ?? ''
-      if (submitRevision === this.data.commentSubmitRevision && currentAccountId === submitAccountId) {
+      if (submitRevision !== this.data.commentSubmitRevision) return
+      if (currentAccountId !== submitAccountId) { this.applyComposerState(); return }
+      if (currentAccountId === submitAccountId) {
         this.setData({ commentBusy: false, commentError: toMessage(error) })
       }
     }

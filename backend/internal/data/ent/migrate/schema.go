@@ -360,6 +360,61 @@ var (
 			},
 		},
 	}
+	// WechatCommentChecksColumns holds the columns for the "wechat_comment_checks" table.
+	WechatCommentChecksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "comment_id", Type: field.TypeUUID},
+		{Name: "app_id", Type: field.TypeString, Size: 32},
+		{Name: "client_request_id", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "create_request_hash", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "input_hash", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "state", Type: field.TypeString, Size: 32},
+		{Name: "generation", Type: field.TypeUint64, Default: 1},
+		{Name: "lease_until", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "name_trace_id", Type: field.TypeString, Size: 256, Default: ""},
+		{Name: "content_trace_id", Type: field.TypeString, Size: 256, Default: ""},
+		{Name: "checked_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"mysql": "datetime(6)"}},
+		{Name: "error_kind", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "author_id", Type: field.TypeUUID},
+		{Name: "identity_id", Type: field.TypeUUID, Nullable: true},
+	}
+	// WechatCommentChecksTable holds the schema information for the "wechat_comment_checks" table.
+	WechatCommentChecksTable = &schema.Table{
+		Name:       "wechat_comment_checks",
+		Columns:    WechatCommentChecksColumns,
+		PrimaryKey: []*schema.Column{WechatCommentChecksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "wechat_comment_checks_users_author",
+				Columns:    []*schema.Column{WechatCommentChecksColumns[13]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "wechat_comment_checks_wechat_identities_identity",
+				Columns:    []*schema.Column{WechatCommentChecksColumns[14]},
+				RefColumns: []*schema.Column{WechatIdentitiesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "wechat_comment_app",
+				Unique:  true,
+				Columns: []*schema.Column{WechatCommentChecksColumns[1], WechatCommentChecksColumns[2]},
+			},
+			{
+				Name:    "wechat_comment_request",
+				Unique:  true,
+				Columns: []*schema.Column{WechatCommentChecksColumns[2], WechatCommentChecksColumns[13], WechatCommentChecksColumns[3]},
+			},
+			{
+				Name:    "wechat_comment_state",
+				Unique:  false,
+				Columns: []*schema.Column{WechatCommentChecksColumns[2], WechatCommentChecksColumns[6]},
+			},
+		},
+	}
 	// WechatIdentitiesColumns holds the columns for the "wechat_identities" table.
 	WechatIdentitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -478,6 +533,7 @@ var (
 		SubscribersTable,
 		TagsTable,
 		UsersTable,
+		WechatCommentChecksTable,
 		WechatIdentitiesTable,
 		WechatSyncTasksTable,
 		ArticleTagsTable,
@@ -488,6 +544,11 @@ func init() {
 	ArticlesTable.ForeignKeys[0].RefTable = CategoriesTable
 	CollectionsTable.ForeignKeys[0].RefTable = ArticlesTable
 	CollectionsTable.ForeignKeys[1].RefTable = UsersTable
+	WechatCommentChecksTable.ForeignKeys[0].RefTable = UsersTable
+	WechatCommentChecksTable.ForeignKeys[1].RefTable = WechatIdentitiesTable
+	WechatCommentChecksTable.Annotation = &entsql.Annotation{
+		Collation: "utf8mb4_bin",
+	}
 	WechatIdentitiesTable.ForeignKeys[0].RefTable = UsersTable
 	WechatIdentitiesTable.Annotation = &entsql.Annotation{
 		Collation: "utf8mb4_bin",

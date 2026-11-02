@@ -11,6 +11,7 @@ let respond = () => ({ statusCode: 200, data: {}, header: {} })
 let calls = []
 let page
 let navigation
+let handleMine = false
 let previewedImage
 function loadPage(name) {
   require(path.join(out, 'pages', name, name + '.js'))
@@ -31,7 +32,13 @@ global.wx = {
   login: options => queueMicrotask(() => options.success({ code: 'synthetic-wechat-code' })),
   request: options => {
     calls.push(options)
-    queueMicrotask(() => Promise.resolve(respond(options)).then(options.success, options.fail))
+    queueMicrotask(() => Promise.resolve(options.url.includes('/comments/mine') && !handleMine ? { statusCode: 200, header: {}, data: { records: [] } } : respond(options)).then(reply => {
+      // Legacy fixture comments use the new endpoint's explicit safety envelope.
+      if (options.url.endsWith('/mini/comments') && reply.data?.id) {
+        reply = { ...reply, data: { comment: reply.data, safety_state: reply.data.status === 2 ? 2 : 3, visible: reply.data.status === 2, can_recheck: false } }
+      }
+      options.success(reply)
+    }, options.fail))
   },
   showToast() {}, setNavigationBarTitle() {}, pageScrollTo() {},
   previewImage: options => { previewedImage = options },
@@ -52,6 +59,17 @@ async function main() {
   assert.ok(decorateArticleHtml("<IMG SRC='/api/v1/assets/media/image-fixture.jpg'>").includes(`SRC='${absoluteImage}'`))
   assert.ok(decorateArticleHtml('<img data-src="unchanged" src="/api/v1/assets/media/image-fixture.jpg">').includes('data-src="unchanged"'))
   assert.ok(decorateArticleHtml('<img src="https://images.example.invalid/public.jpg">').includes('src="https://images.example.invalid/public.jpg"'))
+  // Current public CMS articles also reference frontend editorial assets.
+  for (const source of ['/images/editorial/delivery-flow.svg', '/images/editorial/ent-official-relations.png', '/images/editorial/covers/guard.webp']) {
+    const decorated = decorateArticleHtml(`<p><img src="${source}"></p>`)
+    const absolute = 'https://makerhao.cn' + source
+    assert.ok(decorated.includes(`src="${absolute}"`), 'editorial image paths must resolve against the public site')
+    assert.equal(articleContentBlocks(decorated)[0].src, absolute, 'editorial images must enter the native preview gallery')
+    assert.equal(decorateArticleHtml(`<img src="${absolute}">`).match(/src="([^"]+)"/)[1], absolute, 'absolute editorial paths remain stable')
+  }
+  for (const source of ['/images/editorial/../private.png', '/images/editorial/%2e%2e/private.png', '/images/editorial-other/a.png', '//other.example.invalid/a.png']) {
+    assert.ok(decorateArticleHtml(`<img src="${source}">`).includes(`src="${source}"`), 'only registered editorial path shapes may be rebased')
+  }
   const noImageHtml = '<h2>Title</h2><ul><li>First</li><li>Second</li></ul><pre><code>&lt;img&gt;</code></pre>'
   assert.equal(articleContentBlocks(noImageHtml)[0].html, noImageHtml, 'text-only article HTML must remain unchanged')
   const twoImages = articleContentBlocks(decorateArticleHtml(`<p>Before</p><p><img src="${relativeImage}" alt="first > image"></p><p>Between</p><p><a href="https://example.invalid"><img src='https://images.example.invalid/second.jpg?x=1&amp;y=2'></a></p><p>After</p>`))
@@ -156,16 +174,17 @@ async function main() {
     mutations++
     return { statusCode: mutations === 1 ? 401 : 200, header: {}, data: { id: 'comment-fixture' } }
   }
-  const replayedComment = await api.createComment('fixture', 'one comment')
-  assert.equal(replayedComment.id, 'comment-fixture')
+  storage.set('auth:account', { id: 'fixture' })
+  const replayedComment = await api.createComment('fixture', 'one comment', 'request-fixture')
+  assert.equal(replayedComment.comment.id, 'comment-fixture')
   assert.equal(mutations, 2, '401 refresh must replay a POST exactly once')
   assert.equal(calls.filter(x => x.url.endsWith('/auth/refresh')).length, 1)
-  assert.equal(calls.at(-1).url, 'https://makerhao.cn/api/v1/comments')
+  assert.equal(calls.at(-1).url, 'https://makerhao.cn/api/v1/mini/comments')
   assert.equal(calls.at(-1).header.Authorization, 'Bearer fresh-fixture')
   // A second 401 must stop, not enter an unbounded refresh loop.
   calls = []
   respond = options => options.url.endsWith('/auth/refresh')
-    ? { statusCode: 200, header: {}, data: { access_token: 'fresh-fixture', expires_in: '900', user: {} } }
+    ? { statusCode: 200, header: {}, data: { access_token: 'fresh-fixture', expires_in: '900', user: { id: 'fixture' } } }
     : { statusCode: 401, header: {}, data: {} }
   await assert.rejects(api.createComment('fixture', 'denied'), request.UnauthorizedError)
   assert.equal(calls.length, 3)
@@ -320,6 +339,11 @@ async function main() {
   post.data.imageUrls = [absoluteImage, 'https://images.example.invalid/second.jpg']
   post.previewPostImage({ currentTarget: { dataset: { src: post.data.imageUrls[1] } } })
   assert.deepEqual(previewedImage, { current: post.data.imageUrls[1], urls: post.data.imageUrls }, 'the tapped image must open at its correct gallery position')
+  respond = () => ({ statusCode: 200, header: {}, data: { title: '当前正文静态图', content_html: '<p><img src="/images/editorial/delivery-flow.svg"></p><p>说明文字</p><p><img src="/images/editorial/ent-official-relations.png"></p>' } })
+  await post.fetch()
+  assert.deepEqual(post.data.imageUrls, ['https://makerhao.cn/images/editorial/delivery-flow.svg', 'https://makerhao.cn/images/editorial/ent-official-relations.png'])
+  post.previewPostImage({ currentTarget: { dataset: { src: post.data.imageUrls[1] } } })
+  assert.deepEqual(previewedImage, { current: post.data.imageUrls[1], urls: post.data.imageUrls }, 'fetched editorial images must reach the preview handler as absolute URLs')
   const postMarkup = fs.readFileSync(path.join(root, 'miniprogram/pages/post/post.wxml'), 'utf8')
   assert.match(postMarkup, /<image[^>]*data-src="{{item.src}}"[^>]*bindtap="previewPostImage"/)
   assert.match(postMarkup, /wx:elif="{{commentAuthLoading}}"[^>]*class="composer-status"/)
@@ -493,7 +517,7 @@ async function main() {
             { id: 'approved-created', content: 'ordinary comment', status: 2 },
           ] } }))
     : ({ statusCode: 200, header: {}, data: {
-        id: 'approved-created', article_slug: 'fixture', display_name: 'A',
+        id: 'approved-created', article_slug: 'fixture', display_name: 'A', user_id: 'account-a',
         content: 'ordinary comment', status: 2, created_at: '2026-01-01T00:00:00Z',
       } })
   post.data.commentToken = 'stale-token'
@@ -549,6 +573,7 @@ async function main() {
   await post.fetchComments(true)
   assert.equal(post.data.comments.filter(x => x.id === 'pending-created').length, 1)
   assert.equal(post.data.comments.find(x => x.id === 'pending-created').pending, false)
+  post.data.mineFinished = true
   const callsAtFinishedPage = calls.length
   await post.loadMoreComments()
   assert.equal(calls.length, callsAtFinishedPage, 'finished pagination must not restart from page one')
@@ -591,12 +616,135 @@ async function main() {
   assert.equal(post.data.commentInput, 'keep this draft')
   assert.match(post.data.commentError, /unavailable/)
 
+  // Mini safety visibility overrides the website's APPROVED state.
+  storage.set('auth:account', { id: 'account-b', displayName: 'B' })
+  storage.set('auth:expireAt', Date.now() + 60_000)
+  respond = () => ({ statusCode: 200, header: {}, data: { comment: { id: 'unsafe-approved', user_id: 'account-b', content: 'held', status: 2 }, safety_state: 4, visible: false, can_recheck: false } })
+  post.data.commentInput = 'held'
+  await post.submitComment()
+  assert.equal(post.data.comments.find(c => c.id === 'unsafe-approved').pending, true)
+  assert.match(post.data.comments.find(c => c.id === 'unsafe-approved').safetyLabel, /未通过/)
+  assert.equal(post.data.comments.find(c => c.id === 'unsafe-approved').canRecheck, false)
+
+  // A network retry retains the same intent; changed text creates a new one.
+  calls = []
+  respond = () => ({ statusCode: 503, header: {}, data: {} })
+  post.data.commentInput = 'retry intent'
+  await post.submitComment()
+  await post.submitComment()
+  let sends = calls.filter(c => c.url.endsWith('/mini/comments'))
+  assert.equal(sends.length, 2)
+  assert.equal(sends[0].timeout, 25000, 'mini mutation timeout must exceed the bounded backend safety chain')
+  assert.equal(sends[0].data.client_request_id, sends[1].data.client_request_id)
+  assert.ok(sends[0].data.wechat_code)
+  assert.equal(sends[0].data.openid, undefined)
+  post.onCommentInput({ detail: { value: 'changed intent' } })
+  await post.submitComment()
+  sends = calls.filter(c => c.url.endsWith('/mini/comments'))
+  assert.notEqual(sends[1].data.client_request_id, sends[2].data.client_request_id)
+  assert.equal(post.data.commentInput, 'changed intent')
+
+  // A delayed private list cannot leak after the account changes.
+  handleMine = true
+  const privatePage = deferred()
+  let mineReads = 0
+  storage.set('auth:account', { id: 'account-a', displayName: 'A' })
+  respond = options => options.url.includes('/comments/mine') && ++mineReads === 1
+    ? privatePage.promise : ({ statusCode: 200, header: {}, data: { records: [] } })
+  const privateLoad = post.fetchMyComments(true)
+  storage.set('auth:account', { id: 'account-b', displayName: 'B' })
+  post.applyComposerState()
+  privatePage.resolve({ statusCode: 200, header: {}, data: { records: [{ comment: { id: 'private-account-a', user_id: 'account-a', status: 2 }, safety_state: 5, visible: false, can_recheck: true }] } })
+  await privateLoad
+  assert.equal(post.data.comments.some(c => c.id === 'private-account-a'), false)
+  handleMine = false
+
+  handleMine = true
+  respond = () => ({ statusCode: 200, header: {}, data: { records: [{ comment: { id: 'recover-check', user_id: 'account-b', content: 'saved', status: 2 }, safety_state: 5, visible: false, can_recheck: true }] } })
+  await post.fetchMyComments(true)
+  assert.equal(post.data.comments.find(c => c.id === 'recover-check').pending, true)
+  respond = options => {
+    assert.ok(options.url.endsWith('/mini/comments/recover-check/recheck'))
+    assert.ok(options.data.wechat_code)
+    return { statusCode: 200, header: {}, data: { comment: { id: 'recover-check', user_id: 'account-b', content: 'saved', status: 1 }, safety_state: 2, visible: false, can_recheck: false } }
+  }
+  await post.retryCommentSafety({ currentTarget: { dataset: { id: 'recover-check' } } })
+  assert.match(post.data.comments.find(c => c.id === 'recover-check').safetyLabel, /管理员/)
+  assert.equal(post.data.comments.find(c => c.id === 'recover-check').canRecheck, false)
+  assert.equal(post.data.retryingCommentId, '')
+  handleMine = false
+
+  // Each private callback must reconcile auth after request refresh failure.
+  handleMine = true
+  for (const operation of ['mine', 'submit', 'recheck']) {
+    await loginFixture('account-b')
+    storage.set('auth:refresh', 'failed-refresh-fixture')
+    post.data.commentAccountId = 'account-b'
+    post.data.canComment = true
+    post.data.commentBusy = false
+    post.data.retryingCommentId = ''
+    post.data.sessionComments = [{ id: 'refresh-private', pending: true, canRecheck: true }]
+    post.data.comments = post.data.sessionComments.slice()
+    post.data.commentInput = 'private unsent text'
+    respond = () => ({ statusCode: 401, header: {}, data: {} })
+    if (operation === 'mine') await post.fetchMyComments(true)
+    if (operation === 'submit') await post.submitComment()
+    if (operation === 'recheck') await post.retryCommentSafety({ currentTarget: { dataset: { id: 'refresh-private' } } })
+    assert.equal(post.data.sessionComments.length, 0, `${operation}: failed refresh must clear private comments`)
+    assert.equal(post.data.canComment, false)
+    assert.equal(post.data.mineLoading, false)
+    assert.equal(post.data.commentBusy, false)
+    assert.equal(post.data.retryingCommentId, '')
+    assert.equal(post.data.commentInput, '')
+  }
+  handleMine = false
+  async function loginFixture(id) {
+    respond = () => ({ statusCode: 200, header: {}, data: { ...loginReply, user: { ...wireUser, id } } })
+    await auth.bindWechat('synthetic-ticket', 'profile@example.invalid', 'synthetic-password')
+  }
+  await loginFixture('account-b')
+  function copyPost() {
+    const instance = { ...post, data: structuredClone(post.data) }
+    instance.setData = patch => Object.assign(instance.data, patch)
+    return instance
+  }
+  for (const retire of [false, true]) {
+  const retiredPage = copyPost()
+  retiredPage.data.slug = 'unload-fixture'
+  retiredPage.data.commentInput = 'old intent'
+  const retiredReply = deferred()
+  respond = options => options.url.endsWith('/mini/comments') ? retiredReply.promise : ({ statusCode: 200, header: {}, data: {} })
+  const retiredSend = retiredPage.submitComment()
+  await new Promise(resolve => setImmediate(resolve))
+  if (retire) retiredPage.onUnload()
+  storage.set('mini:comment-intent:account-b:unload-fixture', { content: 'new intent', requestId: 'new-page-intent' })
+  retiredReply.resolve({ statusCode: 200, header: {}, data: { comment: { id: 'old-completed', user_id: 'account-b', status: 1 }, visible: false, safety_state: 5, can_recheck: true } })
+  await retiredSend
+  assert.equal(storage.get('mini:comment-intent:account-b:unload-fixture').requestId, 'new-page-intent', 'unloaded response must not clear a newer page intent')
+
+  }
+
+  // A late 401 from A cannot refresh B or replay A's payload using B's token.
+  for (const successor of ['account-c', 'account-b']) {
+    await loginFixture('account-b')
+    const late401 = deferred()
+    respond = options => options.url.endsWith('/mini/comments') ? late401.promise : ({ statusCode: 200, header: {}, data: loginReply })
+    const obsolete = api.createComment('fixture', 'old payload', 'late-401-intent').catch(error => error)
+    await new Promise(resolve => setImmediate(resolve))
+    auth.clearSession()
+    await loginFixture(successor)
+    calls = []
+    late401.resolve({ statusCode: 401, header: {}, data: {} })
+    await obsolete
+    assert.equal(calls.length, 0, 'old session must not refresh or replay after a new login, including same account')
+  }
+  await loginFixture('account-b')
   // Comment length is measured in Unicode code points: 1000 emoji pass, 1001 fail.
   const emoji = '😀'
   post.onCommentInput({ detail: { value: emoji.repeat(1000) } })
   assert.equal(post.data.commentLength, 1000)
   respond = () => ({ statusCode: 200, header: {}, data: {
-    id: 'emoji-ok', article_slug: 'fixture', content: emoji.repeat(1000), status: 2,
+    id: 'emoji-ok', user_id: 'account-b', article_slug: 'fixture', content: emoji.repeat(1000), status: 2,
   } })
   await post.submitComment()
   assert.equal(post.data.commentError, '')

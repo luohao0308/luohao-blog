@@ -58,6 +58,7 @@ func NewHTTPServer(c *conf.Server, issuer biz.TokenIssuer, authz biz.Authorizer,
 	v1.RegisterUserServiceHTTPServer(srv, user)
 	v1.RegisterMediaServiceHTTPServer(srv, media)
 	v1.RegisterCommentServiceHTTPServer(srv, comment)
+	v1.RegisterMiniCommentServiceHTTPServer(srv, comment)
 	v1.RegisterArticleSearchServiceHTTPServer(srv, search)
 	v1.RegisterChatServiceHTTPServer(srv, chat)
 	v1.RegisterOfficialAccountServiceHTTPServer(srv, official)

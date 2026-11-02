@@ -30,6 +30,9 @@ class FixtureEnvironmentTest(unittest.TestCase):
             "KRATOSDATA_DATABASE_SOURCE": "refuse-this-other-synthetic-target",
             "KRATOS_WECHAT_ENABLED": "true",
             "KRATOS_OTHER_OVERRIDE": "fixture",
+            "BLOG_MINI_CONTENT_MYSQL_DSN": "refuse-inherited-mini-target",
+            "BLOG_WECHAT_IDENTITY_MYSQL_DSN": "refuse-inherited-identity-target",
+            "MYSQL_MIGRATION_DSN": "refuse-inherited-migration-target",
         }
         with patch.dict(os.environ, synthetic, clear=True):
             self.assertEqual(fixture_environment(), {"PATH": "/fixture/tools"})

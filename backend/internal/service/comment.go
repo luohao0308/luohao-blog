@@ -16,8 +16,14 @@ import (
 // CommentService is a comment service.
 type CommentService struct {
 	v1.UnimplementedCommentServiceServer
+	v1.UnimplementedMiniCommentServiceServer
 
-	uc *biz.CommentUsecase
+	uc   *biz.CommentUsecase
+	mini *biz.MiniCommentUsecase
+}
+
+func NewCommentServiceWithMini(uc *biz.CommentUsecase, mini *biz.MiniCommentUsecase) *CommentService {
+	return &CommentService{uc: uc, mini: mini}
 }
 
 // NewCommentService new a comment service.

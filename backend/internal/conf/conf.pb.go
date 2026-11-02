@@ -379,9 +379,12 @@ type Wechat struct {
 	// the git-ignored secrets file, never in source control.
 	AppSecret string `protobuf:"bytes,2,opt,name=app_secret,json=appSecret,proto3" json:"app_secret,omitempty"`
 	// Explicitly enables login and binding only when both credentials are set.
-	Enabled       bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Explicit opt-in for server-side mini-program public-comment checks.
+	// Absent/false never sends comment text or profile snapshots to WeChat.
+	ContentSafetyEnabled bool `protobuf:"varint,4,opt,name=content_safety_enabled,json=contentSafetyEnabled,proto3" json:"content_safety_enabled,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Wechat) Reset() {
@@ -431,6 +434,13 @@ func (x *Wechat) GetAppSecret() string {
 func (x *Wechat) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
+	}
+	return false
+}
+
+func (x *Wechat) GetContentSafetyEnabled() bool {
+	if x != nil {
+		return x.ContentSafetyEnabled
 	}
 	return false
 }
@@ -1411,12 +1421,13 @@ const file_conf_conf_proto_rawDesc = "" +
 	"\faccount_name\x18\t \x01(\tR\vaccountName\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\n" +
-	" \x01(\tR\taccountId\"X\n" +
+	" \x01(\tR\taccountId\"\x8e\x01\n" +
 	"\x06Wechat\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x1d\n" +
 	"\n" +
 	"app_secret\x18\x02 \x01(\tR\tappSecret\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabled\"\xaf\x01\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\x124\n" +
+	"\x16content_safety_enabled\x18\x04 \x01(\bR\x14contentSafetyEnabled\"\xaf\x01\n" +
 	"\x03Llm\x12\x19\n" +
 	"\bbase_url\x18\x01 \x01(\tR\abaseUrl\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x14\n" +

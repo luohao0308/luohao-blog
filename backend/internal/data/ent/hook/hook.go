@@ -141,6 +141,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The WechatCommentCheckFunc type is an adapter to allow the use of ordinary
+// function as WechatCommentCheck mutator.
+type WechatCommentCheckFunc func(context.Context, *ent.WechatCommentCheckMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WechatCommentCheckFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WechatCommentCheckMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WechatCommentCheckMutation", m)
+}
+
 // The WechatIdentityFunc type is an adapter to allow the use of ordinary
 // function as WechatIdentity mutator.
 type WechatIdentityFunc func(context.Context, *ent.WechatIdentityMutation) (ent.Value, error)

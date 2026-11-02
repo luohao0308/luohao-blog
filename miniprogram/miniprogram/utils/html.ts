@@ -1,4 +1,12 @@
-import { assetUrl } from './config'
+import { API_BASE, assetUrl } from './config'
+
+function articleImageUrl(src: string): string {
+  if (src.startsWith('/v1/assets/') || src.startsWith('/api/v1/assets/')) return assetUrl(src)
+  if (/^\/images\/editorial\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:svg|png|jpe?g|webp)$/i.test(src)) {
+    return API_BASE.replace(/\/api\/v1$/, '') + src
+  }
+  return src
+}
 
 // rich-text 只认白名单标签与内联 style，不解析 class。后端 content_html
 // 面向 Web 端输出，这里给高频块级元素补内联样式；文字排版颜色等可继承
@@ -7,8 +15,8 @@ export function decorateArticleHtml(html: string): string {
   return html
     .replace(/<img\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi, (tag) => tag
       .replace(/(\s+src\s*=\s*)(["'])(.*?)\2/gi, (attribute, prefix: string, quote: string, src: string) => {
-        if (!src.startsWith('/v1/assets/') && !src.startsWith('/api/v1/assets/')) return attribute
-        return `${prefix}${quote}${assetUrl(src)}${quote}`
+        const resolved = articleImageUrl(src)
+        return resolved === src ? attribute : `${prefix}${quote}${resolved}${quote}`
       })
       .replace(/<img\b/i, '<img style="max-width:100%;border-radius:8px;vertical-align:middle;" '))
     .replace(/<pre\b/gi, '<pre style="background:#f6f8fa;padding:12px;border-radius:8px;overflow-x:auto;white-space:pre;font-size:13px;line-height:1.6;" ')

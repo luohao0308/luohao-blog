@@ -25,6 +25,7 @@ import (
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/subscriber"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/tag"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/user"
+	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatcommentcheck"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatidentity"
 	"github.com/luohao0308/luohao-blog/backend/internal/data/ent/wechatsynctask"
 )
@@ -38,19 +39,20 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAbout             = "About"
-	TypeAccountEmailToken = "AccountEmailToken"
-	TypeArticle           = "Article"
-	TypeArticleRevision   = "ArticleRevision"
-	TypeCategory          = "Category"
-	TypeCollection        = "Collection"
-	TypeComment           = "Comment"
-	TypeProject           = "Project"
-	TypeSubscriber        = "Subscriber"
-	TypeTag               = "Tag"
-	TypeUser              = "User"
-	TypeWechatIdentity    = "WechatIdentity"
-	TypeWechatSyncTask    = "WechatSyncTask"
+	TypeAbout              = "About"
+	TypeAccountEmailToken  = "AccountEmailToken"
+	TypeArticle            = "Article"
+	TypeArticleRevision    = "ArticleRevision"
+	TypeCategory           = "Category"
+	TypeCollection         = "Collection"
+	TypeComment            = "Comment"
+	TypeProject            = "Project"
+	TypeSubscriber         = "Subscriber"
+	TypeTag                = "Tag"
+	TypeUser               = "User"
+	TypeWechatCommentCheck = "WechatCommentCheck"
+	TypeWechatIdentity     = "WechatIdentity"
+	TypeWechatSyncTask     = "WechatSyncTask"
 )
 
 // AboutMutation represents an operation that mutates the About nodes in the graph.
@@ -9541,6 +9543,1255 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// WechatCommentCheckMutation represents an operation that mutates the WechatCommentCheck nodes in the graph.
+type WechatCommentCheckMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *uuid.UUID
+	comment_id          *uuid.UUID
+	app_id              *string
+	client_request_id   *string
+	create_request_hash *string
+	input_hash          *string
+	state               *string
+	generation          *uint64
+	addgeneration       *int64
+	lease_until         *time.Time
+	name_trace_id       *string
+	content_trace_id    *string
+	checked_at          *time.Time
+	error_kind          *string
+	clearedFields       map[string]struct{}
+	author              *uuid.UUID
+	clearedauthor       bool
+	identity            *uuid.UUID
+	clearedidentity     bool
+	done                bool
+	oldValue            func(context.Context) (*WechatCommentCheck, error)
+	predicates          []predicate.WechatCommentCheck
+}
+
+var _ ent.Mutation = (*WechatCommentCheckMutation)(nil)
+
+// wechatcommentcheckOption allows management of the mutation configuration using functional options.
+type wechatcommentcheckOption func(*WechatCommentCheckMutation)
+
+// newWechatCommentCheckMutation creates new mutation for the WechatCommentCheck entity.
+func newWechatCommentCheckMutation(c config, op Op, opts ...wechatcommentcheckOption) *WechatCommentCheckMutation {
+	m := &WechatCommentCheckMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWechatCommentCheck,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWechatCommentCheckID sets the ID field of the mutation.
+func withWechatCommentCheckID(id uuid.UUID) wechatcommentcheckOption {
+	return func(m *WechatCommentCheckMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WechatCommentCheck
+		)
+		m.oldValue = func(ctx context.Context) (*WechatCommentCheck, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WechatCommentCheck.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWechatCommentCheck sets the old WechatCommentCheck of the mutation.
+func withWechatCommentCheck(node *WechatCommentCheck) wechatcommentcheckOption {
+	return func(m *WechatCommentCheckMutation) {
+		m.oldValue = func(context.Context) (*WechatCommentCheck, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WechatCommentCheckMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WechatCommentCheckMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of WechatCommentCheck entities.
+func (m *WechatCommentCheckMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WechatCommentCheckMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WechatCommentCheckMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WechatCommentCheck.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCommentID sets the "comment_id" field.
+func (m *WechatCommentCheckMutation) SetCommentID(u uuid.UUID) {
+	m.comment_id = &u
+}
+
+// CommentID returns the value of the "comment_id" field in the mutation.
+func (m *WechatCommentCheckMutation) CommentID() (r uuid.UUID, exists bool) {
+	v := m.comment_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCommentID returns the old "comment_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldCommentID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCommentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCommentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCommentID: %w", err)
+	}
+	return oldValue.CommentID, nil
+}
+
+// ResetCommentID resets all changes to the "comment_id" field.
+func (m *WechatCommentCheckMutation) ResetCommentID() {
+	m.comment_id = nil
+}
+
+// SetAuthorID sets the "author_id" field.
+func (m *WechatCommentCheckMutation) SetAuthorID(u uuid.UUID) {
+	m.author = &u
+}
+
+// AuthorID returns the value of the "author_id" field in the mutation.
+func (m *WechatCommentCheckMutation) AuthorID() (r uuid.UUID, exists bool) {
+	v := m.author
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorID returns the old "author_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldAuthorID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorID: %w", err)
+	}
+	return oldValue.AuthorID, nil
+}
+
+// ResetAuthorID resets all changes to the "author_id" field.
+func (m *WechatCommentCheckMutation) ResetAuthorID() {
+	m.author = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *WechatCommentCheckMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *WechatCommentCheckMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *WechatCommentCheckMutation) ResetAppID() {
+	m.app_id = nil
+}
+
+// SetClientRequestID sets the "client_request_id" field.
+func (m *WechatCommentCheckMutation) SetClientRequestID(s string) {
+	m.client_request_id = &s
+}
+
+// ClientRequestID returns the value of the "client_request_id" field in the mutation.
+func (m *WechatCommentCheckMutation) ClientRequestID() (r string, exists bool) {
+	v := m.client_request_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClientRequestID returns the old "client_request_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldClientRequestID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClientRequestID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClientRequestID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClientRequestID: %w", err)
+	}
+	return oldValue.ClientRequestID, nil
+}
+
+// ClearClientRequestID clears the value of the "client_request_id" field.
+func (m *WechatCommentCheckMutation) ClearClientRequestID() {
+	m.client_request_id = nil
+	m.clearedFields[wechatcommentcheck.FieldClientRequestID] = struct{}{}
+}
+
+// ClientRequestIDCleared returns if the "client_request_id" field was cleared in this mutation.
+func (m *WechatCommentCheckMutation) ClientRequestIDCleared() bool {
+	_, ok := m.clearedFields[wechatcommentcheck.FieldClientRequestID]
+	return ok
+}
+
+// ResetClientRequestID resets all changes to the "client_request_id" field.
+func (m *WechatCommentCheckMutation) ResetClientRequestID() {
+	m.client_request_id = nil
+	delete(m.clearedFields, wechatcommentcheck.FieldClientRequestID)
+}
+
+// SetCreateRequestHash sets the "create_request_hash" field.
+func (m *WechatCommentCheckMutation) SetCreateRequestHash(s string) {
+	m.create_request_hash = &s
+}
+
+// CreateRequestHash returns the value of the "create_request_hash" field in the mutation.
+func (m *WechatCommentCheckMutation) CreateRequestHash() (r string, exists bool) {
+	v := m.create_request_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateRequestHash returns the old "create_request_hash" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldCreateRequestHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateRequestHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateRequestHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateRequestHash: %w", err)
+	}
+	return oldValue.CreateRequestHash, nil
+}
+
+// ResetCreateRequestHash resets all changes to the "create_request_hash" field.
+func (m *WechatCommentCheckMutation) ResetCreateRequestHash() {
+	m.create_request_hash = nil
+}
+
+// SetIdentityID sets the "identity_id" field.
+func (m *WechatCommentCheckMutation) SetIdentityID(u uuid.UUID) {
+	m.identity = &u
+}
+
+// IdentityID returns the value of the "identity_id" field in the mutation.
+func (m *WechatCommentCheckMutation) IdentityID() (r uuid.UUID, exists bool) {
+	v := m.identity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityID returns the old "identity_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldIdentityID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityID: %w", err)
+	}
+	return oldValue.IdentityID, nil
+}
+
+// ClearIdentityID clears the value of the "identity_id" field.
+func (m *WechatCommentCheckMutation) ClearIdentityID() {
+	m.identity = nil
+	m.clearedFields[wechatcommentcheck.FieldIdentityID] = struct{}{}
+}
+
+// IdentityIDCleared returns if the "identity_id" field was cleared in this mutation.
+func (m *WechatCommentCheckMutation) IdentityIDCleared() bool {
+	_, ok := m.clearedFields[wechatcommentcheck.FieldIdentityID]
+	return ok
+}
+
+// ResetIdentityID resets all changes to the "identity_id" field.
+func (m *WechatCommentCheckMutation) ResetIdentityID() {
+	m.identity = nil
+	delete(m.clearedFields, wechatcommentcheck.FieldIdentityID)
+}
+
+// SetInputHash sets the "input_hash" field.
+func (m *WechatCommentCheckMutation) SetInputHash(s string) {
+	m.input_hash = &s
+}
+
+// InputHash returns the value of the "input_hash" field in the mutation.
+func (m *WechatCommentCheckMutation) InputHash() (r string, exists bool) {
+	v := m.input_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInputHash returns the old "input_hash" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldInputHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInputHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInputHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInputHash: %w", err)
+	}
+	return oldValue.InputHash, nil
+}
+
+// ResetInputHash resets all changes to the "input_hash" field.
+func (m *WechatCommentCheckMutation) ResetInputHash() {
+	m.input_hash = nil
+}
+
+// SetState sets the "state" field.
+func (m *WechatCommentCheckMutation) SetState(s string) {
+	m.state = &s
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *WechatCommentCheckMutation) State() (r string, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *WechatCommentCheckMutation) ResetState() {
+	m.state = nil
+}
+
+// SetGeneration sets the "generation" field.
+func (m *WechatCommentCheckMutation) SetGeneration(u uint64) {
+	m.generation = &u
+	m.addgeneration = nil
+}
+
+// Generation returns the value of the "generation" field in the mutation.
+func (m *WechatCommentCheckMutation) Generation() (r uint64, exists bool) {
+	v := m.generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGeneration returns the old "generation" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldGeneration(ctx context.Context) (v uint64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGeneration: %w", err)
+	}
+	return oldValue.Generation, nil
+}
+
+// AddGeneration adds u to the "generation" field.
+func (m *WechatCommentCheckMutation) AddGeneration(u int64) {
+	if m.addgeneration != nil {
+		*m.addgeneration += u
+	} else {
+		m.addgeneration = &u
+	}
+}
+
+// AddedGeneration returns the value that was added to the "generation" field in this mutation.
+func (m *WechatCommentCheckMutation) AddedGeneration() (r int64, exists bool) {
+	v := m.addgeneration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGeneration resets all changes to the "generation" field.
+func (m *WechatCommentCheckMutation) ResetGeneration() {
+	m.generation = nil
+	m.addgeneration = nil
+}
+
+// SetLeaseUntil sets the "lease_until" field.
+func (m *WechatCommentCheckMutation) SetLeaseUntil(t time.Time) {
+	m.lease_until = &t
+}
+
+// LeaseUntil returns the value of the "lease_until" field in the mutation.
+func (m *WechatCommentCheckMutation) LeaseUntil() (r time.Time, exists bool) {
+	v := m.lease_until
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLeaseUntil returns the old "lease_until" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldLeaseUntil(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLeaseUntil is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLeaseUntil requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLeaseUntil: %w", err)
+	}
+	return oldValue.LeaseUntil, nil
+}
+
+// ClearLeaseUntil clears the value of the "lease_until" field.
+func (m *WechatCommentCheckMutation) ClearLeaseUntil() {
+	m.lease_until = nil
+	m.clearedFields[wechatcommentcheck.FieldLeaseUntil] = struct{}{}
+}
+
+// LeaseUntilCleared returns if the "lease_until" field was cleared in this mutation.
+func (m *WechatCommentCheckMutation) LeaseUntilCleared() bool {
+	_, ok := m.clearedFields[wechatcommentcheck.FieldLeaseUntil]
+	return ok
+}
+
+// ResetLeaseUntil resets all changes to the "lease_until" field.
+func (m *WechatCommentCheckMutation) ResetLeaseUntil() {
+	m.lease_until = nil
+	delete(m.clearedFields, wechatcommentcheck.FieldLeaseUntil)
+}
+
+// SetNameTraceID sets the "name_trace_id" field.
+func (m *WechatCommentCheckMutation) SetNameTraceID(s string) {
+	m.name_trace_id = &s
+}
+
+// NameTraceID returns the value of the "name_trace_id" field in the mutation.
+func (m *WechatCommentCheckMutation) NameTraceID() (r string, exists bool) {
+	v := m.name_trace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNameTraceID returns the old "name_trace_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldNameTraceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNameTraceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNameTraceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNameTraceID: %w", err)
+	}
+	return oldValue.NameTraceID, nil
+}
+
+// ResetNameTraceID resets all changes to the "name_trace_id" field.
+func (m *WechatCommentCheckMutation) ResetNameTraceID() {
+	m.name_trace_id = nil
+}
+
+// SetContentTraceID sets the "content_trace_id" field.
+func (m *WechatCommentCheckMutation) SetContentTraceID(s string) {
+	m.content_trace_id = &s
+}
+
+// ContentTraceID returns the value of the "content_trace_id" field in the mutation.
+func (m *WechatCommentCheckMutation) ContentTraceID() (r string, exists bool) {
+	v := m.content_trace_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentTraceID returns the old "content_trace_id" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldContentTraceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentTraceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentTraceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentTraceID: %w", err)
+	}
+	return oldValue.ContentTraceID, nil
+}
+
+// ResetContentTraceID resets all changes to the "content_trace_id" field.
+func (m *WechatCommentCheckMutation) ResetContentTraceID() {
+	m.content_trace_id = nil
+}
+
+// SetCheckedAt sets the "checked_at" field.
+func (m *WechatCommentCheckMutation) SetCheckedAt(t time.Time) {
+	m.checked_at = &t
+}
+
+// CheckedAt returns the value of the "checked_at" field in the mutation.
+func (m *WechatCommentCheckMutation) CheckedAt() (r time.Time, exists bool) {
+	v := m.checked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCheckedAt returns the old "checked_at" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldCheckedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCheckedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCheckedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCheckedAt: %w", err)
+	}
+	return oldValue.CheckedAt, nil
+}
+
+// ClearCheckedAt clears the value of the "checked_at" field.
+func (m *WechatCommentCheckMutation) ClearCheckedAt() {
+	m.checked_at = nil
+	m.clearedFields[wechatcommentcheck.FieldCheckedAt] = struct{}{}
+}
+
+// CheckedAtCleared returns if the "checked_at" field was cleared in this mutation.
+func (m *WechatCommentCheckMutation) CheckedAtCleared() bool {
+	_, ok := m.clearedFields[wechatcommentcheck.FieldCheckedAt]
+	return ok
+}
+
+// ResetCheckedAt resets all changes to the "checked_at" field.
+func (m *WechatCommentCheckMutation) ResetCheckedAt() {
+	m.checked_at = nil
+	delete(m.clearedFields, wechatcommentcheck.FieldCheckedAt)
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (m *WechatCommentCheckMutation) SetErrorKind(s string) {
+	m.error_kind = &s
+}
+
+// ErrorKind returns the value of the "error_kind" field in the mutation.
+func (m *WechatCommentCheckMutation) ErrorKind() (r string, exists bool) {
+	v := m.error_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldErrorKind returns the old "error_kind" field's value of the WechatCommentCheck entity.
+// If the WechatCommentCheck object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WechatCommentCheckMutation) OldErrorKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldErrorKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldErrorKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldErrorKind: %w", err)
+	}
+	return oldValue.ErrorKind, nil
+}
+
+// ResetErrorKind resets all changes to the "error_kind" field.
+func (m *WechatCommentCheckMutation) ResetErrorKind() {
+	m.error_kind = nil
+}
+
+// ClearAuthor clears the "author" edge to the User entity.
+func (m *WechatCommentCheckMutation) ClearAuthor() {
+	m.clearedauthor = true
+	m.clearedFields[wechatcommentcheck.FieldAuthorID] = struct{}{}
+}
+
+// AuthorCleared reports if the "author" edge to the User entity was cleared.
+func (m *WechatCommentCheckMutation) AuthorCleared() bool {
+	return m.clearedauthor
+}
+
+// AuthorIDs returns the "author" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AuthorID instead. It exists only for internal usage by the builders.
+func (m *WechatCommentCheckMutation) AuthorIDs() (ids []uuid.UUID) {
+	if id := m.author; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAuthor resets all changes to the "author" edge.
+func (m *WechatCommentCheckMutation) ResetAuthor() {
+	m.author = nil
+	m.clearedauthor = false
+}
+
+// ClearIdentity clears the "identity" edge to the WechatIdentity entity.
+func (m *WechatCommentCheckMutation) ClearIdentity() {
+	m.clearedidentity = true
+	m.clearedFields[wechatcommentcheck.FieldIdentityID] = struct{}{}
+}
+
+// IdentityCleared reports if the "identity" edge to the WechatIdentity entity was cleared.
+func (m *WechatCommentCheckMutation) IdentityCleared() bool {
+	return m.IdentityIDCleared() || m.clearedidentity
+}
+
+// IdentityIDs returns the "identity" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// IdentityID instead. It exists only for internal usage by the builders.
+func (m *WechatCommentCheckMutation) IdentityIDs() (ids []uuid.UUID) {
+	if id := m.identity; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetIdentity resets all changes to the "identity" edge.
+func (m *WechatCommentCheckMutation) ResetIdentity() {
+	m.identity = nil
+	m.clearedidentity = false
+}
+
+// Where appends a list predicates to the WechatCommentCheckMutation builder.
+func (m *WechatCommentCheckMutation) Where(ps ...predicate.WechatCommentCheck) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WechatCommentCheckMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WechatCommentCheckMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WechatCommentCheck, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WechatCommentCheckMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WechatCommentCheckMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WechatCommentCheck).
+func (m *WechatCommentCheckMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WechatCommentCheckMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.comment_id != nil {
+		fields = append(fields, wechatcommentcheck.FieldCommentID)
+	}
+	if m.author != nil {
+		fields = append(fields, wechatcommentcheck.FieldAuthorID)
+	}
+	if m.app_id != nil {
+		fields = append(fields, wechatcommentcheck.FieldAppID)
+	}
+	if m.client_request_id != nil {
+		fields = append(fields, wechatcommentcheck.FieldClientRequestID)
+	}
+	if m.create_request_hash != nil {
+		fields = append(fields, wechatcommentcheck.FieldCreateRequestHash)
+	}
+	if m.identity != nil {
+		fields = append(fields, wechatcommentcheck.FieldIdentityID)
+	}
+	if m.input_hash != nil {
+		fields = append(fields, wechatcommentcheck.FieldInputHash)
+	}
+	if m.state != nil {
+		fields = append(fields, wechatcommentcheck.FieldState)
+	}
+	if m.generation != nil {
+		fields = append(fields, wechatcommentcheck.FieldGeneration)
+	}
+	if m.lease_until != nil {
+		fields = append(fields, wechatcommentcheck.FieldLeaseUntil)
+	}
+	if m.name_trace_id != nil {
+		fields = append(fields, wechatcommentcheck.FieldNameTraceID)
+	}
+	if m.content_trace_id != nil {
+		fields = append(fields, wechatcommentcheck.FieldContentTraceID)
+	}
+	if m.checked_at != nil {
+		fields = append(fields, wechatcommentcheck.FieldCheckedAt)
+	}
+	if m.error_kind != nil {
+		fields = append(fields, wechatcommentcheck.FieldErrorKind)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WechatCommentCheckMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case wechatcommentcheck.FieldCommentID:
+		return m.CommentID()
+	case wechatcommentcheck.FieldAuthorID:
+		return m.AuthorID()
+	case wechatcommentcheck.FieldAppID:
+		return m.AppID()
+	case wechatcommentcheck.FieldClientRequestID:
+		return m.ClientRequestID()
+	case wechatcommentcheck.FieldCreateRequestHash:
+		return m.CreateRequestHash()
+	case wechatcommentcheck.FieldIdentityID:
+		return m.IdentityID()
+	case wechatcommentcheck.FieldInputHash:
+		return m.InputHash()
+	case wechatcommentcheck.FieldState:
+		return m.State()
+	case wechatcommentcheck.FieldGeneration:
+		return m.Generation()
+	case wechatcommentcheck.FieldLeaseUntil:
+		return m.LeaseUntil()
+	case wechatcommentcheck.FieldNameTraceID:
+		return m.NameTraceID()
+	case wechatcommentcheck.FieldContentTraceID:
+		return m.ContentTraceID()
+	case wechatcommentcheck.FieldCheckedAt:
+		return m.CheckedAt()
+	case wechatcommentcheck.FieldErrorKind:
+		return m.ErrorKind()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WechatCommentCheckMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case wechatcommentcheck.FieldCommentID:
+		return m.OldCommentID(ctx)
+	case wechatcommentcheck.FieldAuthorID:
+		return m.OldAuthorID(ctx)
+	case wechatcommentcheck.FieldAppID:
+		return m.OldAppID(ctx)
+	case wechatcommentcheck.FieldClientRequestID:
+		return m.OldClientRequestID(ctx)
+	case wechatcommentcheck.FieldCreateRequestHash:
+		return m.OldCreateRequestHash(ctx)
+	case wechatcommentcheck.FieldIdentityID:
+		return m.OldIdentityID(ctx)
+	case wechatcommentcheck.FieldInputHash:
+		return m.OldInputHash(ctx)
+	case wechatcommentcheck.FieldState:
+		return m.OldState(ctx)
+	case wechatcommentcheck.FieldGeneration:
+		return m.OldGeneration(ctx)
+	case wechatcommentcheck.FieldLeaseUntil:
+		return m.OldLeaseUntil(ctx)
+	case wechatcommentcheck.FieldNameTraceID:
+		return m.OldNameTraceID(ctx)
+	case wechatcommentcheck.FieldContentTraceID:
+		return m.OldContentTraceID(ctx)
+	case wechatcommentcheck.FieldCheckedAt:
+		return m.OldCheckedAt(ctx)
+	case wechatcommentcheck.FieldErrorKind:
+		return m.OldErrorKind(ctx)
+	}
+	return nil, fmt.Errorf("unknown WechatCommentCheck field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatCommentCheckMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case wechatcommentcheck.FieldCommentID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCommentID(v)
+		return nil
+	case wechatcommentcheck.FieldAuthorID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorID(v)
+		return nil
+	case wechatcommentcheck.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case wechatcommentcheck.FieldClientRequestID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClientRequestID(v)
+		return nil
+	case wechatcommentcheck.FieldCreateRequestHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateRequestHash(v)
+		return nil
+	case wechatcommentcheck.FieldIdentityID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityID(v)
+		return nil
+	case wechatcommentcheck.FieldInputHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInputHash(v)
+		return nil
+	case wechatcommentcheck.FieldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case wechatcommentcheck.FieldGeneration:
+		v, ok := value.(uint64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGeneration(v)
+		return nil
+	case wechatcommentcheck.FieldLeaseUntil:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLeaseUntil(v)
+		return nil
+	case wechatcommentcheck.FieldNameTraceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNameTraceID(v)
+		return nil
+	case wechatcommentcheck.FieldContentTraceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentTraceID(v)
+		return nil
+	case wechatcommentcheck.FieldCheckedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCheckedAt(v)
+		return nil
+	case wechatcommentcheck.FieldErrorKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetErrorKind(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WechatCommentCheckMutation) AddedFields() []string {
+	var fields []string
+	if m.addgeneration != nil {
+		fields = append(fields, wechatcommentcheck.FieldGeneration)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WechatCommentCheckMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case wechatcommentcheck.FieldGeneration:
+		return m.AddedGeneration()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WechatCommentCheckMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case wechatcommentcheck.FieldGeneration:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGeneration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WechatCommentCheckMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(wechatcommentcheck.FieldClientRequestID) {
+		fields = append(fields, wechatcommentcheck.FieldClientRequestID)
+	}
+	if m.FieldCleared(wechatcommentcheck.FieldIdentityID) {
+		fields = append(fields, wechatcommentcheck.FieldIdentityID)
+	}
+	if m.FieldCleared(wechatcommentcheck.FieldLeaseUntil) {
+		fields = append(fields, wechatcommentcheck.FieldLeaseUntil)
+	}
+	if m.FieldCleared(wechatcommentcheck.FieldCheckedAt) {
+		fields = append(fields, wechatcommentcheck.FieldCheckedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WechatCommentCheckMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WechatCommentCheckMutation) ClearField(name string) error {
+	switch name {
+	case wechatcommentcheck.FieldClientRequestID:
+		m.ClearClientRequestID()
+		return nil
+	case wechatcommentcheck.FieldIdentityID:
+		m.ClearIdentityID()
+		return nil
+	case wechatcommentcheck.FieldLeaseUntil:
+		m.ClearLeaseUntil()
+		return nil
+	case wechatcommentcheck.FieldCheckedAt:
+		m.ClearCheckedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WechatCommentCheckMutation) ResetField(name string) error {
+	switch name {
+	case wechatcommentcheck.FieldCommentID:
+		m.ResetCommentID()
+		return nil
+	case wechatcommentcheck.FieldAuthorID:
+		m.ResetAuthorID()
+		return nil
+	case wechatcommentcheck.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case wechatcommentcheck.FieldClientRequestID:
+		m.ResetClientRequestID()
+		return nil
+	case wechatcommentcheck.FieldCreateRequestHash:
+		m.ResetCreateRequestHash()
+		return nil
+	case wechatcommentcheck.FieldIdentityID:
+		m.ResetIdentityID()
+		return nil
+	case wechatcommentcheck.FieldInputHash:
+		m.ResetInputHash()
+		return nil
+	case wechatcommentcheck.FieldState:
+		m.ResetState()
+		return nil
+	case wechatcommentcheck.FieldGeneration:
+		m.ResetGeneration()
+		return nil
+	case wechatcommentcheck.FieldLeaseUntil:
+		m.ResetLeaseUntil()
+		return nil
+	case wechatcommentcheck.FieldNameTraceID:
+		m.ResetNameTraceID()
+		return nil
+	case wechatcommentcheck.FieldContentTraceID:
+		m.ResetContentTraceID()
+		return nil
+	case wechatcommentcheck.FieldCheckedAt:
+		m.ResetCheckedAt()
+		return nil
+	case wechatcommentcheck.FieldErrorKind:
+		m.ResetErrorKind()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WechatCommentCheckMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.author != nil {
+		edges = append(edges, wechatcommentcheck.EdgeAuthor)
+	}
+	if m.identity != nil {
+		edges = append(edges, wechatcommentcheck.EdgeIdentity)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WechatCommentCheckMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case wechatcommentcheck.EdgeAuthor:
+		if id := m.author; id != nil {
+			return []ent.Value{*id}
+		}
+	case wechatcommentcheck.EdgeIdentity:
+		if id := m.identity; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WechatCommentCheckMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WechatCommentCheckMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WechatCommentCheckMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedauthor {
+		edges = append(edges, wechatcommentcheck.EdgeAuthor)
+	}
+	if m.clearedidentity {
+		edges = append(edges, wechatcommentcheck.EdgeIdentity)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WechatCommentCheckMutation) EdgeCleared(name string) bool {
+	switch name {
+	case wechatcommentcheck.EdgeAuthor:
+		return m.clearedauthor
+	case wechatcommentcheck.EdgeIdentity:
+		return m.clearedidentity
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WechatCommentCheckMutation) ClearEdge(name string) error {
+	switch name {
+	case wechatcommentcheck.EdgeAuthor:
+		m.ClearAuthor()
+		return nil
+	case wechatcommentcheck.EdgeIdentity:
+		m.ClearIdentity()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WechatCommentCheckMutation) ResetEdge(name string) error {
+	switch name {
+	case wechatcommentcheck.EdgeAuthor:
+		m.ResetAuthor()
+		return nil
+	case wechatcommentcheck.EdgeIdentity:
+		m.ResetIdentity()
+		return nil
+	}
+	return fmt.Errorf("unknown WechatCommentCheck edge %s", name)
 }
 
 // WechatIdentityMutation represents an operation that mutates the WechatIdentity nodes in the graph.

@@ -120,6 +120,17 @@ p, public, /blog.v1.CommentService/ListArticleComments, *
 p, authenticated, /v1/comments, POST
 p, authenticated, /blog.v1.CommentService/CreateComment, *
 
+# Mini-program safety projection: anonymous public reads, author-only mutations
+# and private lists. Business ownership/code checks are still mandatory.
+p, public, /v1/mini/articles/{slug}/comments, GET
+p, public, /blog.v1.MiniCommentService/ListMiniArticleComments, *
+p, authenticated, /v1/mini/comments, POST
+p, authenticated, /v1/mini/articles/{slug}/comments/mine, GET
+p, authenticated, /v1/mini/comments/{id}/recheck, POST
+p, authenticated, /blog.v1.MiniCommentService/CreateMiniComment, *
+p, authenticated, /blog.v1.MiniCommentService/ListMyMiniArticleComments, *
+p, authenticated, /blog.v1.MiniCommentService/RecheckMiniComment, *
+
 # --- admin: comment moderation ---
 p, admin, /v1/comments, GET
 p, admin, /v1/comments/{id}/approve, POST
