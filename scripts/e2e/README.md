@@ -180,3 +180,13 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 前端构建后用已有Playwright运行 `article_cas_e2e.cjs`、`article_revisions_e2e.cjs` 与 `draft_protection_e2e.cjs`，支持 `BLOG_E2E_CHROMIUM`。均为本机隔离mock，无生产写入；覆盖两窗口CAS、保留草稿、历史/恢复、纯文本差异、安全与超限、迟到响应。
 
 后端 `article_revisions_mysql_test.go` 是显式opt-in测试：只有 `BLOG_REVISION_MYSQL_DSN` 指向**任务自有可销毁MySQL**时执行。它会执行待升级迁移、创建测试数据和受控触发器；禁止指向生产/共享数据库。测试验证真实SQL CAS、事务故障与分类并发锁；默认不配置则跳过。完整证据见 `output/article-revisions/`，正式发布规则见 [修订契约](../../docs/contracts/ARTICLE-REVISIONS.md)。
+
+### 首页模型城尺寸回归
+
+在仓库根运行 `node scripts/e2e/home_city_size_e2e.cjs`，前置为 `frontend/` 中执行 `pnpm build`，Playwright可从既有测试工具环境通过NODE_PATH提供（不加入应用依赖）。可用 `BLOG_E2E_CHROMIUM` 指定浏览器。脚本仅启动自有本地Nuxt进程和只读API fixture，默认端口14340/14341；`BLOG_E2E_PORT`、`BLOG_E2E_FIXTURE_PORT`可覆盖，`BLOG_E2E_OUTPUT`指定证据目录。`--dev`用于首次失败复现，正式验收使用默认生产构建。
+
+覆盖320–1440px六种视口与明暗主题、城市撑满可用右栏/手机区域、至少320px高度、实际画布内容占比、无横向溢出、太阳键盘交互、跨断点重排及动画。首页840px内容宽度保持。
+
+### 评论自动公开与退回修改
+
+先在frontend执行 `pnpm build`，然后仓库根运行 `node scripts/e2e/automatic_comments_e2e.cjs`。测试工具环境提供Playwright，`BLOG_E2E_CHROMIUM`可指定浏览器。脚本自启本地14350/14351的Nuxt与合成API，不使用真实账号、生产或微信API。覆盖1440/390px普通/含链接评论公开、400/503保稿与修改重发、提交中新输入、legacy pending兼容、退出后迟到私有响应、切换账号后迟到401禁止刷新重放。证据默认在本机output/automatic-comments。

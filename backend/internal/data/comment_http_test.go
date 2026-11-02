@@ -21,6 +21,14 @@ import (
 // This fixture uses the real HTTP middleware, services, usecases, SQLite repos
 // and Redis limiter/session implementations, without production configuration.
 func TestCommentHTTPModerationLifecycle(t *testing.T) {
+	testCommentHTTPModerationLifecycle(t, "smart")
+}
+
+func TestCommentHTTPAutomaticLifecycle(t *testing.T) {
+	testCommentHTTPModerationLifecycle(t, "auto")
+}
+
+func testCommentHTTPModerationLifecycle(t *testing.T, mode string) {
 	ctx := context.Background()
 	comments, db := newTestCommentRepo(t)
 	d := &Data{db: db}
@@ -42,6 +50,7 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	authConfig := jwtTestConfig("comment-fixture-only-signing-key", time.Hour)
+	authConfig.CommentModeration = &conf.Auth_CommentModeration{Mode: mode}
 	issuer, err := NewTokenIssuer(authConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -107,12 +116,21 @@ func TestCommentHTTPModerationLifecycle(t *testing.T) {
 	}
 	body["content"] = "参考 https://example.com"
 	pending := request("POST", "/v1/comments", readerToken.Token, body, http.StatusOK)
-	if pending["status"] != float64(1) {
-		t.Fatalf("pending reply = %v", pending)
+	wantStatus, wantPublic := float64(1), 1
+	if mode == "auto" {
+		wantStatus, wantPublic = float64(2), 2
+		body["content"] = "加微信领取优惠"
+		request("POST", "/v1/comments", readerToken.Token, body, http.StatusBadRequest)
+		if n, err := db.Comment.Query().Count(ctx); err != nil || n != 2 {
+			t.Fatal("automatic rejection created a pending row", err)
+		}
+	}
+	if pending["status"] != wantStatus {
+		t.Fatalf("mode %s reply = %v", mode, pending)
 	}
 	public := request("GET", "/v1/articles/ai-delivery-guard/comments", "", nil, http.StatusOK)
-	if len(public["comments"].([]any)) != 1 {
-		t.Fatalf("pending leaked: %v", public)
+	if len(public["comments"].([]any)) != wantPublic {
+		t.Fatalf("wrong automatic/public result: %v", public)
 	}
 	approvePath := "/v1/comments/" + pending["id"].(string) + "/approve"
 	request("POST", approvePath, readerToken.Token, map[string]any{}, http.StatusForbidden)

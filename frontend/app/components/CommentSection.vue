@@ -23,7 +23,11 @@ const noticeKind = ref<'ok' | 'err'>('ok')
 // Only the current author's creation replies appear here. Public reads never
 // include pending comments; these previews intentionally expire on reload.
 const pending = ref<Comment[]>([])
+let submissionRevision = 0
 watch(() => user.value?.id, () => {
+  submissionRevision++
+  submitting.value = false
+  content.value = ''
   pending.value = []
   notice.value = ''
 })
@@ -76,16 +80,22 @@ async function submit() {
     notice.value = !body ? '请填写评论内容' : `评论最多 ${COMMENT_CONTENT_MAX} 字`
     return
   }
+  const accountId = user.value?.id
+  const revision = ++submissionRevision
   submitting.value = true
   try {
     const created = await authFetch<Comment>('/api/v1/comments', {
+      expectedUserId: accountId,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: { article_slug: props.slug, content: body },
     })
+    if (revision !== submissionRevision || user.value?.id !== accountId)
+      return
     noticeKind.value = 'ok'
-    content.value = ''
     if (created.status === COMMENT_STATUS.APPROVED) {
+      if (content.value.trim() === body)
+        content.value = ''
       notice.value = '评论已发布。'
       comments.value = mergeComments([created, ...comments.value])
       // Reconcile the offset token after an insertion. A failed list reload
@@ -99,6 +109,8 @@ async function submit() {
     }
   }
   catch (err: unknown) {
+    if (revision !== submissionRevision || user.value?.id !== accountId)
+      return
     noticeKind.value = 'err'
     const status = (err as { response?: { status?: number } } | null)?.response?.status
     notice.value = status === 429
@@ -106,11 +118,14 @@ async function submit() {
       : status === 401
         ? '登录状态已失效，请重新登录后再评论。'
         : status === 400
-          ? '评论内容不符合要求，请检查后重试。'
-          : '提交失败，请稍后再试。'
+          ? '评论内容未通过自动检测，请修改后重新发送。'
+          : status === 503
+            ? '自动检测暂不可用，请稍后重试，评论原稿已保留。'
+            : '提交失败，请稍后再试。'
   }
   finally {
-    submitting.value = false
+    if (revision === submissionRevision)
+      submitting.value = false
   }
 }
 

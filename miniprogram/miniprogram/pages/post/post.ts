@@ -39,8 +39,8 @@ function privateComment(record: MiniCommentRecord): CommentItem {
   item.canRecheck = record.can_recheck
   item.safetyLabel = record.visible ? '' : ({
     0: '尚未检测，仅你可见', 1: '安全检测中，仅你可见',
-    2: '安全检测通过，待管理员审核', 3: '待进一步审核，仅你可见',
-    4: '未通过安全检测，仅你可见', 5: '检测暂不可用，仅你可见', 6: '已移除',
+    2: '安全检测通过，评论尚未公开', 3: '暂未通过自动检测，请修改后重新发送',
+    4: '未通过安全检测，请修改后重新发送', 5: '检测暂不可用，请稍后重试或查看我的评论', 6: '已移除',
   } as Record<number, string>)[record.safety_state] || '待检测，仅你可见'
   return item
 }
@@ -90,7 +90,7 @@ Page({
     mineFinished: false,
     mineLoading: false,
     retryingCommentId: '',
-    pendingIntents: {} as Record<string, { content: string, requestId: string }>,
+    pendingIntents: {} as Record<string, { content: string, requestId: string, commentId?: string }>,
     commentInput: '',
     commentLength: 0,
     commentBusy: false,
@@ -321,6 +321,9 @@ Page({
     if (!owner || typeof id !== 'string' || this.data.retryingCommentId || !this.data.sessionComments.some(c => c.id === id && c.canRecheck)) return
     const revision = this.data.mineRevision
     const lifecycle = this.data.lifecycleRevision
+    const key = pendingKey(owner, this.data.slug)
+    let intent = this.data.pendingIntents[key]
+    try { intent = wx.getStorageSync(key) || intent } catch { /* in-page recovery */ }
     this.setData({ retryingCommentId: id })
     try {
       const result = await recheckComment(id)
@@ -331,7 +334,16 @@ Page({
       const sessionComments = [item].concat(this.data.sessionComments.filter(c => c.id !== id))
       const publicComments = item.pending ? this.data.publicComments.filter(c => c.id !== id) : this.data.publicComments
       this.setData({ publicComments, commentCount: publicComments.length, sessionComments, comments: uniqueComments(sessionComments.concat(publicComments)) })
-      if (result.visible) await this.fetchComments(true)
+      if (result.visible) {
+        let currentIntent = this.data.pendingIntents[key]
+        try { currentIntent = wx.getStorageSync(key) || currentIntent } catch { /* in-page recovery */ }
+        if (intent?.commentId === id && currentIntent?.commentId === id && currentIntent.requestId === intent.requestId && this.data.commentInput.trim() === intent.content) {
+          if (this.data.pendingIntents[key]?.requestId === intent.requestId) delete this.data.pendingIntents[key]
+          try { if (wx.getStorageSync(key)?.requestId === intent.requestId) wx.removeStorageSync(key) } catch { /* no credentials stored */ }
+          this.setData({ commentInput: '', commentLength: 0, commentError: '' })
+        }
+        await this.fetchComments(true)
+      }
     } catch (error) {
       if (revision === this.data.mineRevision && owner !== (currentAccount()?.id ?? '')) this.applyComposerState()
       if (owner === (currentAccount()?.id ?? '') && revision === this.data.mineRevision) wx.showToast({ title: toMessage(error), icon: 'none' })
@@ -395,22 +407,33 @@ Page({
       this.setData({ mineRevision: this.data.mineRevision + 1, mineLoading: false })
       const unchangedDraft = this.data.commentInput.trim() === content
       const created = privateComment(record)
-      if (this.data.pendingIntents[key]?.requestId === intent.requestId) delete this.data.pendingIntents[key]
-      try {
-        if (wx.getStorageSync(key)?.requestId === intent.requestId) wx.removeStorageSync(key)
-      } catch { /* no credentials are stored here */ }
+      if (!record.visible) {
+        // Associate only a still-current intent; late responses cannot restore old drafts.
+        if (this.data.pendingIntents[key]?.requestId === intent.requestId) this.data.pendingIntents[key].commentId = createdComment.id
+        try {
+          const saved = wx.getStorageSync(key)
+          if (saved?.requestId === intent.requestId) wx.setStorageSync(key, { ...saved, commentId: createdComment.id })
+        } catch { /* the in-page association remains available */ }
+      }
+      if (record.visible) {
+        if (this.data.pendingIntents[key]?.requestId === intent.requestId) delete this.data.pendingIntents[key]
+        try {
+          if (wx.getStorageSync(key)?.requestId === intent.requestId) wx.removeStorageSync(key)
+        } catch { /* no credentials are stored here */ }
+      }
       const sessionComments = uniqueComments([created].concat(this.data.sessionComments))
       const comments = uniqueComments(sessionComments.concat(this.data.publicComments))
       this.setData({
         sessionComments,
         comments,
         commentCount: this.data.publicComments.length + (record.visible && !this.data.publicComments.some(c => c.id === created.id) ? 1 : 0),
-        commentInput: unchangedDraft ? '' : this.data.commentInput,
-        commentLength: unchangedDraft ? 0 : Array.from(this.data.commentInput).length,
+        commentInput: record.visible && unchangedDraft ? '' : this.data.commentInput,
+        commentLength: record.visible && unchangedDraft ? 0 : Array.from(this.data.commentInput).length,
+        commentError: unchangedDraft && !record.visible ? created.safetyLabel || '评论尚未公开，请稍后查看我的评论' : '',
         commentBusy: false,
       })
       if (created.pending) {
-        wx.showToast({ title: created.safetyLabel || '评论待审核，仅你可见', icon: 'none' })
+        wx.showToast({ title: created.safetyLabel || '评论尚未公开，请稍后查看我的评论', icon: 'none' })
       } else {
         wx.showToast({ title: '评论已发布', icon: 'success' })
         await this.fetchComments(true)

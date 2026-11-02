@@ -1141,10 +1141,11 @@ func (x *Data_Redis) GetPassword() string {
 
 type Auth_CommentModeration struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// auto: publish accepted comments; reject local spam without a manual queue.
 	// Empty or smart: publish ordinary comments, hold local spam signals.
 	// manual (and unknown modes): hold every comment for an admin.
 	Mode string `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
-	// Additional substrings to hold for review (case/width/space normalized).
+	// Additional normalized risk substrings; auto rejects, smart holds for review.
 	ReviewKeywords []string `protobuf:"bytes,2,rep,name=review_keywords,json=reviewKeywords,proto3" json:"review_keywords,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache

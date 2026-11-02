@@ -7,7 +7,8 @@ import (
 )
 
 // CommentModerationPolicy uses local spam signals, not semantic safety scoring.
-// Empty mode defaults to smart. Unknown modes retain manual review.
+// Auto rejects obvious spam without creating a manual queue. Empty mode
+// defaults to legacy smart. Unknown modes retain manual review.
 type CommentModerationPolicy struct {
 	Mode           string
 	ReviewKeywords []string
@@ -16,13 +17,19 @@ type CommentModerationPolicy struct {
 var commentContactPattern = regexp.MustCompile(`(?i)(https?://|www\.|[a-z0-9][a-z0-9._%+\-]*@[a-z0-9.\-]+\.[a-z]{2,}|\b1[3-9][0-9]{9}\b|[a-z0-9][a-z0-9\-]*\.(com|cn|net|org|io|dev|app|xyz|top|info|site|blog|cloud|tech|vip|me|cc|edu|gov)\b)`)
 var commentReviewKeywords = []string{"加微信", "加vx", "加v信", "兼职刷单", "博彩", "裸聊", "代开发票", "贷款秒批"}
 
+func (p CommentModerationPolicy) automatic() bool {
+	return strings.EqualFold(strings.TrimSpace(p.Mode), "auto")
+}
+
 func (p CommentModerationPolicy) status(name, content string) CommentStatus {
 	mode := strings.ToLower(strings.TrimSpace(p.Mode))
-	if mode != "" && mode != "smart" {
+	if mode != "" && mode != "smart" && mode != "auto" {
 		return CommentStatusPending
 	}
 	text := normalizeCommentRiskText(name + "\n" + content)
-	if commentContactPattern.MatchString(text) {
+	// Links and contact examples alone are common in technical discussions.
+	// Keep the stricter contact rule only for the legacy smart policy.
+	if mode != "auto" && commentContactPattern.MatchString(text) {
 		return CommentStatusPending
 	}
 	for _, keywords := range [][]string{commentReviewKeywords, p.ReviewKeywords} {
