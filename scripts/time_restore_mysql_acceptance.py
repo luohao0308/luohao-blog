@@ -20,6 +20,11 @@ SHIM = r'''#!/usr/bin/env python3
 import hashlib,json,os,pathlib,subprocess,sys
 args=sys.argv[1:];cfg=json.loads(pathlib.Path(os.environ['UTC_RESTORE_SHIM_CONFIG']).read_text());root=pathlib.Path(cfg['root'])
 with (root/'calls').open('a') as log:log.write(json.dumps(args)+'\n')
+if 'run' in args and '--help' in args:
+ print('      --pull string policy');raise SystemExit(0)
+if args[:2]==['image','inspect']:
+ print(cfg['image_id']);raise SystemExit(0)
+if 'config' in args and '-q' in args:raise SystemExit(0)
 if args[0]=='inspect':
  if 'running' in args[2]:
   running=(root/'running').exists();print(json.dumps({'id':cfg['backend_id'],'running':running,'status':'running' if running else 'exited'}))

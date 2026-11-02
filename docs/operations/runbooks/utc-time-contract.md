@@ -46,3 +46,5 @@ sidecar是完整性证据，不是SQL沙箱；只恢复来源明确、准确摘�
 - Go build/test/vet/lint、相关race与既有身份/文章修订真实MySQL回归；具体新鲜结果以受控验收输出为准。
 
 所有fixture必须本地context、loopback及自有标签/随机数据库，不读取生产账号/令牌/正文。恢复临时dump与完整SQL诊断保持私密；只对外输出固定错误、摘要和计数。
+
+恢复执行器在pending与停服前，核对实际Compose run支持`--pull`、固定镜像已精确缓存以及完整配置可解析。`run`不使用`up`的`--no-build`参数；不支持的客户端提前退出，不自动更新工具或回退到构建/拉取。

@@ -37,6 +37,7 @@ assert state['Type'] in ('bind','volume')
 source=state['Name'] if state['Type']=='volume' else state['Source']
 assert source and ':' not in source
 (root/'state-source').write_text(source)
+(root/'image-id').write_text(meta['image'])
 (root/'compose.operator.yml').write_text('services:\n  backend:\n    image: '+json.dumps(meta['image'])+'\n')
 args=['docker','compose','--project-name',meta['project'],'--project-directory',meta['directory'],'--env-file',str(pathlib.Path(meta['directory'])/'.env.prod')]
 for path in meta['files'].split(',')+[str(root/'compose.operator.yml')]:args+=['-f',path]
@@ -45,6 +46,23 @@ PYMETA
 COMPOSE=()
 while IFS= read -r -d '' arg; do COMPOSE+=("$arg"); done < "$operation_dir/compose.args"
 state_source=$(cat "$operation_dir/state-source")
+image_id=$(cat "$operation_dir/image-id")
+# Unsupported Compose versions and absent images must fail before pending/stop.
+if ! "${COMPOSE[@]}" run --help > "$operation_dir/run-help.txt" 2>&1; then
+ echo 'Compose run capability check failed; no recovery state changed' >&2; exit 1
+fi
+python3 - "$operation_dir/run-help.txt" <<'PYCAP'
+import pathlib,re,sys
+help_text=pathlib.Path(sys.argv[1]).read_text()
+if not re.search(r'^\s+--pull(?:[ =]|$)', help_text, re.M):
+ raise SystemExit('Compose run must support --pull; no recovery state changed')
+PYCAP
+if ! cached_image=$(docker image inspect --format '{{.Id}}' "$image_id" 2>/dev/null) || [ "$cached_image" != "$image_id" ]; then
+ echo 'immutable operator image is not cached; no recovery state changed' >&2; exit 1
+fi
+if ! "${COMPOSE[@]}" config -q >/dev/null 2>&1; then
+ echo 'Compose configuration validation failed; no recovery state changed' >&2; exit 1
+fi
 operation_id=$(python3 -c 'import uuid;print(uuid.uuid4())')
 backup_sha=$(python3 - "$manifest" <<'PY'
 import json,sys
@@ -57,7 +75,7 @@ print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())
 PY
 )
 operator() {
- "${COMPOSE[@]}" run --rm --no-deps --no-build --pull never -T -v "$state_source:/app/data/time-contract:rw" -v "$operation_dir:/time-operation:rw" backend /app/time-contract -conf /data/conf -state-dir /app/data/time-contract "$@"
+ "${COMPOSE[@]}" run --rm --no-deps --pull never -T -v "$state_source:/app/data/time-contract:rw" -v "$operation_dir:/time-operation:rw" backend /app/time-contract -conf /data/conf -state-dir /app/data/time-contract "$@"
 }
 # This operation state survives DB import and container recreation.
 operator -mode restore-begin -operation-id "$operation_id" -backup-sha256 "$backup_sha" -manifest-sha256 "$manifest_sha" > "$operation_dir/begin.json"
@@ -72,7 +90,7 @@ if after['id']!=before['id'] or after['running'] is not False or after['status']
 PYSTOP
 # No failure branch starts a backend. All other writers must also be paused.
 if [ -n "$uploads" ]; then
- "${COMPOSE[@]}" run --rm --no-deps --no-build --pull never -T backend tar xzf - -C /app/data < "$uploads"
+ "${COMPOSE[@]}" run --rm --no-deps --pull never -T backend tar xzf - -C /app/data < "$uploads"
 fi
 gunzip -c -- "$file" | "${COMPOSE[@]}" exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --default-character-set=utf8mb4 blog'
 "${COMPOSE[@]}" exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --tz-utc --order-by-primary --skip-extended-insert --complete-insert --hex-blob --default-character-set=utf8mb4 --skip-comments --no-tablespaces --set-gtid-purged=OFF blog' | gzip > "$operation_dir/redump.sql.gz"

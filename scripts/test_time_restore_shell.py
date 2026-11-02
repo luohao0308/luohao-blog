@@ -21,6 +21,13 @@ if args[0]=='inspect' and 'running' in args[2]:
  print(json.dumps({'id':'owned-backend','running':os.environ['RESTORE_STUB_MODE']=='still-running','status':'running' if os.environ['RESTORE_STUB_MODE']=='still-running' else 'exited'}));sys.exit(0)
 if args[0]=='inspect':
  print(json.dumps({'id':'owned-backend','image':'sha256:'+'a'*64,'files':'/owned/base.yml,/owned/release.yml','project':'owned-prod','directory':'/owned/deploy','mounts':[{'Destination':'/app/data/time-contract','Type':'volume','Name':'owned-control'}]}));sys.exit(0)
+if args[:2]==['image','inspect']:
+ if os.environ['RESTORE_STUB_MODE']=='image-missing':sys.exit(1)
+ print('sha256:'+'a'*64);sys.exit(0)
+if 'run' in args and '--help' in args:
+ print('Usage: compose run\n      --pull string policy' if os.environ['RESTORE_STUB_MODE']!='unsupported-help' else 'Usage: compose run');sys.exit(0)
+if 'config' in args and '-q' in args:sys.exit(0)
+if 'run' in args:assert '--no-build' not in args and '--build' not in args
 mode=args[args.index('-mode')+1] if '-mode' in args else ''
 if mode=='restore-begin':
  (root/'pending').write_text('pending');print(json.dumps({'attempt_nonce':'b'*64}));sys.exit(0)
@@ -54,6 +61,11 @@ class RestoreShellTests(unittest.TestCase):
             env = os.environ | {'PATH': str(root) + os.pathsep + os.environ['PATH'], 'RESTORE_STUB_ROOT': str(root), 'RESTORE_STUB_MODE': mode, 'BLOG_RESTORE_WRITERS_PAUSED': '1', 'BLOG_RESTORE_EVIDENCE_DIR': str(root / 'evidence')}
             result = subprocess.run(['bash', str(ROOT / 'deploy/restore.sh'), str(backup)], env=env, capture_output=True, timeout=20)
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
+            if mode in ('unsupported-help', 'image-missing'):
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((root / 'pending').exists())
+                self.assertFalse(any('stop' in call or '-mode' in call for call in calls))
+                return
             self.assertTrue((root / 'pending').exists())
             starts = [call for call in calls if 'start' in call]
             if mode == 'success':
@@ -66,11 +78,19 @@ class RestoreShellTests(unittest.TestCase):
             self.assertIn('owned-control:/app/data/time-contract:rw', operator)
             self.assertIn('/owned/release.yml', operator)
             self.assertIn('--pull', operator)
+            self.assertNotIn('--no-build', operator)
+            self.assertNotIn('--build', operator)
             self.assertNotIn('-writers-paused', operator)
             evidence = next((root / 'evidence').glob('restore.*'))
             self.assertIn('sha256:' + 'a'*64, (evidence / 'compose.operator.yml').read_text())
             if mode == 'still-running':
                 self.assertFalse(any(any('exec mysql ' in arg for arg in call) for call in calls))
+
+    def test_unsupported_compose_run_refused_before_pending(self):
+        self.exercise('unsupported-help')
+
+    def test_missing_cached_image_refused_before_pending(self):
+        self.exercise('image-missing')
 
     def test_failed_import_never_restarts(self):
         self.exercise('import-fail')
