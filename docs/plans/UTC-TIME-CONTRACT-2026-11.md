@@ -1,6 +1,6 @@
 # UTC 时间契约与历史兼容修复计划
 
-状态：approved。用户2026-11-03明确批准三步计划，先完成本地验证；生产另准确授权。日期：2026-11-03。风险：HIGH（历史时间回填、过期与调度判断、启动与恢复边界）。这是经App原生Architect与Critic顺序复核通过的批准计划，不是生产权限。
+状态：production_cutover_completed；恢复编排兼容已本地验证，待准确版本交付。用户2026-11-03明确批准三步计划，先完成本地验证；生产另准确授权。日期：2026-11-03。风险：HIGH（历史时间回填、过期与调度判断、启动与恢复边界）。这是经App原生Architect与Critic顺序复核通过的批准计划，不是生产权限。
 
 ## 目标与验收不变量
 
@@ -85,7 +85,7 @@ S1/S2真实MySQL测试必须本地Unix Docker context、loopback、唯一容器/
 
 ## 交接与停止条件
 
-主代理先取得Architect意见，再送Critic；争议解决后记录准确计划版本，再向用户呈现三切片。执行者按S1→S2顺序交付并独立review；主代理拥有最终验收及生产授权。当前S1/S2 completed（本地），S3 pending且未授权；生产保持原状态。
+主代理先取得Architect意见，再送Critic；争议解决后记录准确计划版本，再向用户呈现三切片。执行者按S1→S2顺序交付并独立review；主代理拥有最终验收及生产授权。当前S1/S2 completed（本地），代码已由PR #131交付；S3 completed，生产schema21 clean、外部状态ready、新后端healthy。第一次apply因operator状态卷只读被拒，只读确认not_committed与完整before一致；用户批准准确修正版55ea49bc后，使用原停写备份与manifest461cb9重试一次成功。恢复脚本真实Compose兼容缺口另列TASKS，不将shim恢复验证视为已完成真实部署演练。
 
 成功：生产实际UTC契约与旧API语义保持均有新鲜证据，保护字段/已有检测与外部任务保持，新固定版本和恢复边界已记录。任何未知列、非事务表、触发器、时间越界、writer未停、运行状态/marker不一致、摘要变化或提交结果未知均停止写入并只读对账；不得用强制版本、删除marker、自动反向偏移或修改历史外部证据掩盖失败。
 
@@ -106,4 +106,32 @@ S1/S2真实MySQL测试必须本地Unix Docker context、loopback、唯一容器/
 
 root新鲜Go build/test/vet/lint0/race、前端92tests/lint、11项Python安全/备份/恢复测试及shell语法通过。既有身份/Redis/HTTP与文章CAS五项真实MySQL升级至21回归通过，可信UTC fixture由testdata专用helper显式初始化。独立实现复核APPROVE，对应源码集合5a8d59fb118e9ed8e95e2c7523aad90b6eb3f123309a826cf266f2378010b1d3；证据在本机output/time-contract，不进Git。
 
-本轮无生产访问或数据修改，无远端Git、邮件/微信/公众号、搜索重建或小程序上传。S3仍需新准确源码/CI镜像/转换清单与停写窗口授权，不复用任何旧授权。
+以上为S2本地验收时的范围；当时尚未执行生产与远端交付。后续S3准确授权及上线结果见下文。
+
+
+## S3生产切换验收完成（2026-11-03）
+
+- PR #131 source `2c4dfd0c76accbcf52bd6d7855a85657ea274137`，merge `dddf760a6adeeeff47ff9e46c4fad1a9eb64defe`，required CI与release通过；后端原始OCI固定为 `sha256:459867296c8a83c3795ed061fe598b8bf4e78775138dec66e6a036056fcbed24`。
+- 停写后生成SQL/uploads/config完整性校验备份。第一次apply在schema20/state空时因Compose状态卷只读拒绝；完整before与not_committed只读证明后，用户批准修正版清单 `55ea49bc7978c05e80eac60b4a391186b65bcb5e852d3a31372280e736026fff`，原canonical转换manifest `461cb9eec952d3c666b78f04eaff428efa41aca09f9bdd9e5339d28d3d437f5d` 仅成功提交一次。
+- schema21 clean、marker/独立state ready；13表26列69行142个非空值按清单转换，停写及启动后完整时间与保护摘要通过，上传/配置/其他容器保持。正常backend状态卷RO，转换operator仅stateRW，root/uploads/backupRO，已实际核验。
+- 9篇公开文章/5作品全部原API时间与版本字段保持；文章API epoch等于数据库内部epoch，3个应用数据库会话为UTC。18项GET/匿名权限检查、桌面1440/手机390八项页面检查通过；浏览器写请求全部拦截，无生产测试评论/微信/邮件或小程序上传。
+- 正式证据在获准的生产备份操作目录（仅摘要对外），本机只读摘要在`output/time-contract-release/{production-final-verification.json,public-final-smoke.json,public-browser.json}`，不是受Git跟踪的团队证据源。Issue #130未执行关闭。
+- 生产旧恢复工具仍依赖CLI卷覆盖，真实Compose不采用该覆盖的读写模式；本地修复及真实演练见下方补充切片，待准确版本交付。当前网站UTC运行与本次完成的转换不受影响。
+
+
+## 恢复编排兼容补充切片（已批准范围内继续）
+
+目标：使既有恢复流程在真实Compose下遵守原计划的读写边界，恢复前检查、失败保持pending/停写、验证后启动均不变；只做本地合成数据库演练，生产另准确版本授权。
+
+1. 先用回归固定runtime与operator覆盖链隔离、真实volume读写与失败停写行为；回退点为未执行任何生产操作。
+2. 修正restore.sh：从实际容器元数据建立服务级卷覆盖，operator根只读/状态与回执可写/uploads只读，上传恢复仅uploads可写；原backend启动链保持。pending前实际挂载检查拒绝不符。
+3. 合成本地真实Compose/MySQL完成成功恢复、标记后故障与挂载负例；运行已有CLI/MySQL、shell和Python回归及独立审查。准确提交与交付证据就绪后才申请远端交付与生产脚本更新，不执行生产恢复。
+
+
+### 恢复兼容本地验收完成（2026-11-03）
+
+服务级覆盖基于实际容器mount元数据；所有原挂载默认RO，operator仅state/回执RW，上传恢复仅uploadsRW，runtime继续原链与stateRO。写pending/停服前实际mountinfo检查不符即拒绝；不依赖CLI-v覆盖，literal美元符号转义保持原路径。
+
+10项恢复shell回归、5项备份manifest与2项本地Docker拒绝门通过；9项required真实MySQL零跳过，既有nativeCLI/SQL恢复状态矩阵通过。新增真实Compose/CLI/MySQL测试同时验证named-volume与bind state：数据库和uploads正常恢复，导入marker后故障保留pending及原backend停止，正常启动stateRO。无服务生命周期shim；临时测试副本仅将固定backend容器名换成随机owned名，保留无关本机容器。自有容器/网络/卷/镜像清理完成。
+
+独立代码审查APPROVE，bash/Python静态检查通过；新增真实Compose测试已接CI。开发机默认Compose2.23不支持run --pull，提前拒绝无业务操作；本地验收用临时隔离、官方校验和验证的Compose2.39.4，不修改全局配置。产物仅在本机output/time-contract/compose-restore/{volume,bind}/summary.json与output/restore-compose-fix/verification-summary.json；正式交付证据由PR/CI承载。生产无恢复、停服、数据写入或容器变更；后续代码交付/生产脚本同步按新准确版本单独授权。

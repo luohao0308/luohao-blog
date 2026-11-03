@@ -1,6 +1,6 @@
 # UTC 时间契约切换与恢复
 
-对应[批准计划](../../plans/UTC-TIME-CONTRACT-2026-11.md)与[操作工具](../../../backend/cmd/time-contract/README.md)。当前先完成本地验收；是否已生产切换以TASKS为准。此流程不提供生产权限，不包含凭据或一次性服务器快照。
+对应[批准计划](../../plans/UTC-TIME-CONTRACT-2026-11.md)与[操作工具](../../../backend/cmd/time-contract/README.md)。是否已生产切换及恢复工具缺口以TASKS为准。此流程不提供生产权限，不包含凭据或一次性服务器快照。
 
 ## 时间与保护边界
 
@@ -19,7 +19,7 @@ schema21只建立时间契约元数据结构。普通server、seed、reindex、c
 ## 生产转换的受控顺序
 
 1. 本地测试和独立review全部通过，准备准确源码、CI固定镜像、列清单、转换与维护窗口。取得本次Git交付及生产操作准确授权；所有旧授权不能复用。记录当前后端ID、镜像、完整Compose覆盖链、配置/资产摘要和schema状态。
-2. 核对全写者清单并停止选中的后端及其worker；独立CLI、恢复任务等也不得并发写。核实原容器确实停止。现有watchdog对stopped不自动重启，但执行前须核对现场版本和行为，不以源码替代生产证据。
+2. 停写前以完整Compose覆盖链实际核验operator的mountinfo：根目录、uploads与备份只读，只有转换/恢复状态卷可写；正常backend状态卷保持只读。`compose run -v ...:rw/ro`不能据此覆盖服务级volume的`read_only`，须使用明确的服务级覆盖并核对实际结果；不能只审查命令参数。核对全写者清单并停止选中的后端及其worker；独立CLI、恢复任务等也不得并发写。核实原容器确实停止。现有watchdog对stopped不自动重启，但执行前须核对现场版本和行为，不以源码替代生产证据。
 3. 在停写状态生成准确数据库备份与固定格式sidecar，并校验gzip、准确文件SHA和表清单。后端停止时不能使用`exec backend tar`，应使用获准固定镜像的只读uploads卷提取；独立时间状态目录不装进uploads包。备份表示legacy20内部epoch，不会自动修正时间。
 4. 使用新固定镜像的SQL-only operator、原有正常配置loader和独立state卷生成canonical plan；stdout字节不重新格式化。核对准确manifest SHA。`backup-receipt`检查实际archive/sidecar、目标/op和当前before摘要。禁止只用一个自报SHA字符串代替备份证据。
 5. 明确`apply`及准确manifest/备份文件、sidecar、typed receipt和停写确认。工具先写pending，再执行21元数据DDL，随后单事务完成白名单更新和marker；任何步骤失败保持停写。DDL与业务事务分开，21 clean但无完成marker仍是未完成状态。
@@ -42,9 +42,12 @@ sidecar是完整性证据，不是SQL沙箱；只恢复来源明确、准确摘�
 
 - `python3 scripts/test_time_contract.py`：真实legacy偏移/目标UTC基线、DT微秒/JSON/NULL/期限边界和错误恢复夹具。
 - `python3 scripts/test_time_contract_integration.py`：MySQL状态机/并发/故障、真实Data与内容工具门、native CLI与实际MySQL的受控转换及恢复。仅服务生命周期用测试shim，不能把它说成真实生产Compose演练。
+- `python3 scripts/test_time_restore_compose.py`：真实Compose/CLI/MySQL恢复、上传恢复、导入marker后失败保持pending与停服；默认测试命名卷，附加`--bind-state`测试目录绑定；CI执行两种场景。需要支持`run --pull`的本机Compose，不支持时在创建夹具前拒绝。
 - `python3 -m unittest discover -s scripts -p 'test_time_*test.py'`以及明确的manifest/restore shell测试：本地Docker拒绝门、备份格式和恢复顺序。
 - Go build/test/vet/lint、相关race与既有身份/文章修订真实MySQL回归；具体新鲜结果以受控验收输出为准。
 
 所有fixture必须本地context、loopback及自有标签/随机数据库，不读取生产账号/令牌/正文。恢复临时dump与完整SQL诊断保持私密；只对外输出固定错误、摘要和计数。
 
 恢复执行器在pending与停服前，核对实际Compose run支持`--pull`、固定镜像已精确缓存以及完整配置可解析。`run`不使用`up`的`--no-build`参数；不支持的客户端提前退出，不自动更新工具或回退到构建/拉取。
+
+恢复执行器从原backend的实际bind/volume元数据生成独立operator与uploads覆盖，固定缓存镜像ID；所有原有挂载默认只读，operator仅state和回执目录可写，上传恢复仅uploads可写。正常backend停止/启动保留原Compose链，不混入operator镜像或读写覆盖。pending与停服前用真实oneoff的mountinfo核对权限；不符即退出。`python3 scripts/test_time_restore_compose.py`使用本机独立Compose项目、合成数据库和实际operator验证恢复与故障停写；它不提供生产恢复权限。
