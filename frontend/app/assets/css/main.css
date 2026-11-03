@@ -11,8 +11,6 @@
   --surface-overlay: #ffffff;
   --surface-hover: #e9eeff;
   --surface-accent: #e9eeff;
-  --footer-surface: #11213c;
-  --footer-text: #d5dfef;
   --text-primary: #17243c;
   --text-muted: #58677e;
   --border-default: #dfe5ef;
@@ -46,8 +44,6 @@
   --surface-overlay: #0f172a;
   --surface-hover: #1e293b;
   --surface-accent: #1c2b50;
-  --footer-surface: #081121;
-  --footer-text: #c6d4e9;
   --text-primary: #f1f5f9;
   --text-muted: #94a3b8;
   --border-default: #334155;
@@ -164,8 +160,8 @@ html[data-home-entering] .site-shell { visibility: hidden; }
 .detail-media, .content-figure img { height: auto; max-height: 24rem; object-fit: contain; }
 
 /* Public-page hierarchy approved in Figma; controls keep their existing behavior. */
-.site-footer { background: var(--footer-surface); color: var(--footer-text); border-color: transparent; }
-.site-footer a:hover { color: #fff; }
+.site-footer { background: var(--surface-page); color: var(--text-muted); border-color: var(--border-default); }
+.site-footer a:hover { color: var(--accent); }
 .site-nav-active { background: var(--surface-accent); color: var(--accent); font-weight: 600; }
 .browse-title { color: var(--text-primary); font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 700; line-height: 1.35; }
 .series-reading-prompt { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; font-size: .8125rem; color: var(--text-muted); }
