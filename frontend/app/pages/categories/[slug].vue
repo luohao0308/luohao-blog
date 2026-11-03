@@ -10,7 +10,7 @@ usePageSeo({ title: () => `${category.value?.name ?? slug.value} · 分类`, des
 
 <template>
   <div class="space-y-8">
-    <PageHeader :title="category?.name ?? slug" description="按分类浏览技术记录。">
+    <PageHeader :title="category?.name ?? slug">
       <template #eyebrow>
         <NuxtLink to="/categories" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回全部分类</NuxtLink>
       </template>

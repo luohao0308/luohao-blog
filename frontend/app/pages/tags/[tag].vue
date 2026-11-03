@@ -6,7 +6,7 @@ usePageSeo({ title: () => `${tag.value} · 文章`, description: () => `浏览�
 
 <template>
   <div class="space-y-8">
-    <PageHeader :title="tag" description="按标签浏览技术记录。">
+    <PageHeader :title="tag">
       <template #eyebrow>
         <NuxtLink to="/posts" class="text-xs text-[#3c5d85] hover:underline dark:text-blue-300">返回全部文章</NuxtLink>
       </template>

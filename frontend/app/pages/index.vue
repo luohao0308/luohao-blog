@@ -8,7 +8,7 @@ const homeRoot = ref<HTMLElement | null>(null)
 const { playing, skip } = useHomeEntrance(homeRoot)
 
 
-usePageSeo({ title: '首页', description: '全栈工程师 luohao 的技术博客，记录 Python 后端、全栈开发、AIGC 与 AI Agent 的工程实践。' })
+usePageSeo({ title: '首页', description: '罗浩的个人博客，包含 Python、Go、全栈开发和 AI 应用的文章与项目。' })
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/luohao0308' },
@@ -44,9 +44,8 @@ const otherProjects = computed(() => featuredProjects.value.slice(2))
     <ClientOnly><AboutAircraftOverlay :playing="true" :reset-token="0" :show-controls="false" /></ClientOnly>
     <section class="home-hero" data-home-layer data-home-hero aria-labelledby="home-heading">
       <div class="home-intro">
-        <p class="home-eyebrow"><span aria-hidden="true" />CODE · CREATE · EXPLORE</p>
-        <h1 id="home-heading">把想法写成代码，<br>让探索<span>继续发生。</span></h1>
-        <p class="home-description">你好，我是 luohao。分享做产品、写代码与探索 AI 的过程，<br class="hidden sm:block">记录真实的构建、思考，以及每一次向前。</p>
+        <h1 id="home-heading">你好，<br>我是<span>罗浩。</span></h1>
+        <p class="home-description">我做 Python 后端、全栈开发和 AI 应用。</p>
         <div class="home-actions">
           <NuxtLink to="/posts" class="ui-button home-primary">阅读文章 <span aria-hidden="true">↗</span></NuxtLink>
           <NuxtLink to="/projects" class="home-secondary">看看项目 <span aria-hidden="true">↗</span></NuxtLink>
@@ -78,7 +77,7 @@ const otherProjects = computed(() => featuredProjects.value.slice(2))
         </NuxtLink>
       </div>
       <div v-if="projectsError" role="alert" class="home-empty">精选项目暂时无法加载。<button type="button" class="ml-2 underline" @click="refreshProjects()">重新加载</button></div>
-      <p v-else-if="!homeProjects.length" class="home-empty">项目资料正在整理中。</p>
+      <p v-else-if="!homeProjects.length" class="home-empty">暂无项目。</p>
     </section>
 
     <section class="home-section" data-home-layer aria-label="最新文章">
@@ -91,7 +90,7 @@ const otherProjects = computed(() => featuredProjects.value.slice(2))
       <div v-else-if="homeArticles.length" class="home-articles">
         <div v-for="article in homeArticles" :key="article.id" class="home-card-shell" data-home-card><ArticleCard :article="article" /></div>
       </div>
-      <p v-else class="home-empty">第一篇文章正在路上。</p>
+      <p v-else class="home-empty">暂无文章。</p>
     </section>
 
     <Teleport to="body">
@@ -104,8 +103,6 @@ const otherProjects = computed(() => featuredProjects.value.slice(2))
 .home-page { max-width: 840px; margin-inline: auto; perspective: 1600px; }
 .home-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); align-items: center; gap: 2rem; padding: 1.8rem 0 1.6rem; }
 .home-intro { min-width: 0; transform-style: preserve-3d; }
-.home-eyebrow { display: flex; align-items: center; gap: .6rem; font: 500 .6875rem/1.5 ui-monospace, monospace; letter-spacing: .14em; color: var(--text-muted); }
-.home-eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: var(--mint-text); }
 .home-intro h1 { margin: 1rem 0; font-size: clamp(1.9rem, 3vw, 2.6rem); line-height: 1.4; font-weight: 600; letter-spacing: -.055em; color: var(--text-primary); }
 .home-intro h1 span { color: var(--accent); }
 .home-description { color: var(--text-muted); font-size: .8125rem; line-height: 2; }

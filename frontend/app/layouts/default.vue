@@ -63,7 +63,7 @@ function isActive(to: string) {
             :to="link.to"
             class="rounded-full px-3 py-1.5 transition-colors hover:bg-[var(--surface-hover)]"
             :class="isActive(link.to)
-              ? 'font-medium text-[var(--text-primary)]'
+              ? 'site-nav-active'
               : 'text-[var(--text-muted)]'"
             :aria-current="isActive(link.to) ? 'page' : undefined"
           >
@@ -81,9 +81,9 @@ function isActive(to: string) {
           v-for="link in mobileLinks"
           :key="link.to"
           :to="link.to"
-          class="transition-colors"
+          class="rounded-lg px-2 py-1 transition-colors"
           :class="isActive(link.to)
-            ? 'font-medium text-[var(--text-primary)]'
+            ? 'site-nav-active'
             : 'text-[var(--text-muted)]'"
           :aria-current="isActive(link.to) ? 'page' : undefined"
         >
@@ -96,7 +96,7 @@ function isActive(to: string) {
       <slot />
     </main>
 
-    <footer :data-home-shell-layer="route.path === '/' ? 'footer' : undefined" class="border-t border-[var(--border-default)] py-6 text-center text-sm text-[var(--text-muted)]">
+    <footer :data-home-shell-layer="route.path === '/' ? 'footer' : undefined" class="site-footer border-t py-8 text-center text-sm">
       <nav class="mb-2 flex items-center justify-center gap-5" aria-label="页脚导航">
         <a
           href="https://github.com/luohao0308/luohao-blog"

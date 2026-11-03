@@ -48,7 +48,10 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
           <NuxtLink v-for="tag in article.tags?.slice(0, 2)" :key="tag" :to="`/tags/${encodeURIComponent(tag)}`">{{ tag }}</NuxtLink>
           <span v-if="(article.tags?.length || 0) > 2">+{{ article.tags.length - 2 }}</span>
         </div>
-        <span class="editorial-arrow" aria-hidden="true">↗</span>
+      </div>
+      <div class="editorial-action" aria-hidden="true">
+        <span>查看详情</span>
+        <span class="editorial-arrow">↗</span>
       </div>
     </div>
   </article>

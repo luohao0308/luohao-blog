@@ -11,7 +11,7 @@ const categories = computed(() =>
 
 <template>
   <div class="space-y-8">
-    <PageHeader title="分类" description="按分类浏览技术记录，数字是收录的文章数。" />
+    <PageHeader title="分类" />
     <div v-if="error" role="alert" class="space-y-3 py-12 text-center">
       <p class="text-sm text-slate-600 dark:text-slate-400">分类加载失败，请稍后重试。</p>
       <button type="button" class="text-sm text-[#3c5d85] underline dark:text-blue-300" @click="refresh()">重新加载</button>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { articleSeries, seriesArticles } from '~/data/articleSeries'
 import { searchPublishedArticles, usePublishedArticles, type Article } from '~/composables/useArticles'
 
 const props = defineProps<{ tag?: string, categorySlug?: string, inlineSearch?: boolean }>()
@@ -51,6 +52,7 @@ onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer)
   searchRequest++
 })
+const availableSeries = computed(() => articleSeries.map(series => ({ ...series, count: seriesArticles(series, data.value ?? []).length })).filter(series => series.count))
 const tags = computed(() => [...new Set((data.value ?? []).flatMap(article => article.tags ?? []))].sort())
 const categories = computed(() => {
   const values = new Map<string, string>()
@@ -72,7 +74,7 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
 
 <template>
   <section ref="collectionRoot" class="space-y-6" aria-label="文章列表" :aria-busy="status === 'pending' || searchPending">
-    <InlineSearch v-if="inlineSearch" v-model="query" label="搜索文章">
+    <InlineSearch v-if="inlineSearch" v-model="query" label="搜索文章" class="browse-search">
       <template #heading><slot name="heading" /></template>
       <template v-if="$slots.actions" #actions><slot name="actions" /></template>
       <template v-if="categories.length || tags.length" #filters>
@@ -111,11 +113,12 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
     <template v-else>
       <p v-if="searchPending" role="status" class="text-sm text-[var(--text-muted)]">正在搜索，结果即将更新…</p>
       <p v-if="searchError" class="text-xs text-slate-500 dark:text-slate-400">搜索服务暂不可用，已显示本地匹配结果。</p>
+      <slot name="intro" :series="availableSeries" />
       <p role="status" class="text-xs text-slate-500 dark:text-slate-400">{{ articles.length }} 篇文章</p>
       <div v-if="articles.length" class="media-feed">
         <ArticleCard v-for="article in articles" :key="article.id" :article="article" data-article-reveal />
       </div>
-      <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : activeCategory ? '这个分类下暂无文章。' : activeTag ? '这个标签下暂无文章。' : '第一篇文章正在路上。' }}</p>
+      <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : activeCategory ? '这个分类下暂无文章。' : activeTag ? '这个标签下暂无文章。' : '暂无文章。' }}</p>
     </template>
   </section>
 </template>

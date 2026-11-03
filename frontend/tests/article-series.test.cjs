@@ -33,3 +33,12 @@ test('configured series are unique and all article slugs are explicit', () => {
     assert.equal(new Set(s.articleSlugs).size, s.articleSlugs.length)
   }
 })
+
+test('series keep independent accessible covers and nonempty reading topics', () => {
+  assert.equal(new Set(api.articleSeries.map(s => s.cover)).size, api.articleSeries.length)
+  for (const s of api.articleSeries) {
+    assert.equal(s.cover, `/images/series/${s.slug}.svg`)
+    assert.ok(s.coverAlt.includes(s.title))
+    assert.ok(s.topics.length > 0 && s.topics.every(topic => typeof topic === 'string' && topic.trim()))
+  }
+})

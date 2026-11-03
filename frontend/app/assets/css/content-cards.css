@@ -1,5 +1,5 @@
 /* Cover cards are shared by the site and the development preview. */
-.editorial-card { --card-bg: #e9eef5; --card-ink: #243c5c; --card-muted: #52657d; --card-focus: #315cdd; --card-hover-border: #9aafc7; position: relative; display: flex; min-width: 0; min-height: 212px; overflow: hidden; border-radius: 8px; background: var(--card-bg); color: var(--card-ink); transition: transform .25s ease, box-shadow .25s ease; }
+.editorial-card { --card-bg: #e9eef5; --card-ink: #243c5c; --card-muted: #52657d; --card-focus: #315cdd; --card-hover-border: #9aafc7; position: relative; display: flex; min-width: 0; min-height: 212px; overflow: hidden; border-radius: 16px; background: var(--card-bg); color: var(--card-ink); transition: transform .25s ease, box-shadow .25s ease; }
 .editorial-card.work-card { --card-bg: #e8ede8; --card-ink: #29463c; --card-muted: #5a7066; }
 .editorial-card.tone-sand { --card-bg: #f1ebe3; --card-ink: #544233; --card-muted: #7b6a5d; }
 .editorial-cover { position: absolute; inset: 0; overflow: hidden; }
@@ -14,7 +14,7 @@
 .editorial-link { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .editorial-link::after { content: ''; position: absolute; inset: 0; }
 .editorial-link:focus-visible { outline: none; }
-.editorial-link:focus-visible::after { outline: 2px solid var(--card-focus); outline-offset: -5px; border-radius: 8px; }
+.editorial-link:focus-visible::after { outline: 2px solid var(--card-focus); outline-offset: -5px; border-radius: 16px; }
 .editorial-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 8px; color: var(--card-muted); font-size: 12px; line-height: 1.7; }
 .editorial-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: auto; padding-top: 12px; color: var(--card-muted); font-size: 10px; line-height: 1.6; }
 .editorial-tags { display: flex; min-width: 0; align-items: center; gap: 10px; }
@@ -42,8 +42,6 @@
 .editorial-card.has-cover.poster-card .editorial-heading { font-size: 16px; line-height: 1.5; letter-spacing: -.02em; }
 .editorial-card.has-cover.poster-card .editorial-footer { padding-top: 8px; }
 .dark .editorial-card:not(.has-cover), .dark .editorial-card.has-cover.poster-card { --card-bg: #1d2a3d; --card-ink: #e0e9f7; --card-muted: #adbbd0; --card-focus: #a3b8ee; }
-.dark .editorial-card.work-card:not(.has-cover), .dark .editorial-card.work-card.has-cover.poster-card { --card-bg: #1d3029; --card-ink: #e2eee7; --card-muted: #a9c1b4; }
-.dark .editorial-card.tone-sand:not(.has-cover), .dark .editorial-card.tone-sand.has-cover.poster-card { --card-bg: #30281f; --card-ink: #eee6db; --card-muted: #c9bba7; }
 @media (prefers-reduced-motion: reduce) {
   .editorial-card, .editorial-cover img, .editorial-arrow { transition: none; }
   .editorial-card:hover, .editorial-card:focus-within, .editorial-card:hover .editorial-cover img, .editorial-card:focus-within .editorial-cover img, .editorial-card:hover .editorial-arrow, .editorial-card:focus-within .editorial-arrow { transform: none; }
@@ -51,7 +49,7 @@
 
 /* Keep the live spotlight rim and route expansion while overriding only
    the older bento surface and corner size. The original bento import stays. */
-.site-shell .bento-card.editorial-card { border: 0; border-radius: 8px; background: var(--card-bg); }
+.site-shell .bento-card.editorial-card { border: 0; border-radius: 16px; background: var(--card-bg); }
 .site-shell .bento-card.editorial-card.has-cover::before { z-index: 1; opacity: 1; background: radial-gradient(360px circle at var(--card-light-x) var(--card-light-y), var(--card-spot), transparent 45%), linear-gradient(180deg, rgb(9 15 23 / 65%), rgb(9 15 23 / 10%) 35%, rgb(9 15 23 / 88%)); }
 .editorial-featured { flex-shrink: 0; font-weight: 600; }
 
@@ -59,20 +57,32 @@
 .site-shell .bento-card.editorial-card.has-cover.poster-card::before { content: none; }
 
 /* Dense browsing: complete thumbnails, compact readable labels. */
-.media-feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 14px; }
+.media-feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 @media (min-width: 720px) { .media-feed { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .media-feed { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 359px) { .media-feed { grid-template-columns: minmax(0, 1fr); } }
-.media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 8px 10px; gap: 3px; }
+.media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 18px; gap: 10px; }
 .media-feed .editorial-card.has-cover.poster-card .editorial-copy { order: 0; margin: 0; }
-.media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 14px; line-height: 1.5; font-weight: 500; }
+.media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 17px; line-height: 1.5; font-weight: 600; }
 .media-feed .editorial-meta { order: 1; font-size: 11px; margin-top: 2px; }
-.media-feed .editorial-footer { order: 2; padding-top: 2px; font-size: 10px; }
+.media-feed .editorial-footer { order: 2; padding-top: 8px; font-size: 11px; }
 .media-feed .editorial-reading { display: none; }
 .media-feed .editorial-arrow { font-size: 15px; }
 @media (max-width: 640px) {
  .media-feed { gap: 18px 10px; }
- .media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 13px; }
- .media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 7px 8px; }
+ .media-feed .editorial-card.has-cover.poster-card .editorial-heading { font-size: 14px; }
+ .media-feed .editorial-card.has-cover.poster-card .editorial-body { padding: 12px 10px; }
  .media-feed .editorial-meta > :last-child { font-size: 9px; }
 }
+
+/* Artwork owns project identity; readable information surfaces stay consistent. */
+.site-shell .editorial-card:not(.has-cover),
+.site-shell .editorial-card.has-cover.poster-card { --card-bg: var(--surface-panel); --card-ink: var(--text-primary); --card-muted: var(--text-muted); --card-focus: var(--focus-ring); --card-hover-border: var(--accent); }
+.site-shell .editorial-card.poster-card .editorial-arrow { color: var(--accent); }
+.media-feed > .editorial-card { height: 100%; }
+.media-feed .editorial-card.poster-card .editorial-body { flex: 1; }
+@media (max-width: 640px) { .media-feed .editorial-card.poster-card .editorial-body { gap: 7px; } }
+
+.editorial-action { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; margin-top: auto; color: var(--accent); font-size: 12px; font-weight: 600; }
+.editorial-card.has-cover:not(.poster-card) .editorial-action { color: var(--card-ink); }
+.media-feed .editorial-action { order: 3; }

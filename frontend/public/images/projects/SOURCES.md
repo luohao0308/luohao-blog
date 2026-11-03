@@ -21,3 +21,9 @@
 ### 用户选定 D 后的当前封面
 
 2026-10-31，用户选定 AIGC 的 D 方案。当前站点映射使用 generated/*-editorial-v2.webp 五张原创生成图。AIGC 使用用户选定原图；dev-workflow、Forge Harness、机会工作台围绕真实文件／功能组织画面；博客参考本站真实首页。全部为概念封面，不作为真实源码、运行记录、评测成绩或产品截图证据。示意文字、版本戳、日期和短代码不代表项目当前事实。后台上传封面仍保持更高优先级。原始图清单在本机 output/collection-options/selected-covers.json，图片仅等比例压缩，无裁切或内容修改。
+
+### 当前有效：2026-11-03 Figma 批准稿
+
+用户批准 [设计文件](https://www.figma.com/design/zkDqdpkupLz3DqOrnaJnlA?node-id=10-2) 后，五个映射改为 generated/*-figma.*。dev-workflow（10:33）、Forge Harness（10:51）、AIGC（10:66）为本次 Figma AI 生成的1536×864概念封面PNG；博客（10:86）和机会工作台（10:104）为文件中可编辑图层的描边文字SVG导出，分别采用蓝色内容界面与绿色进度看板，另保留同节点6倍PNG导出用于SEO分享。均从Figma原始资源/单独封面节点直接下载，未裁切、重绘或替换画面，不含整页UI截图。原v2文件仅保留为历史资源，不再作为默认封面。
+
+这些图只表达项目定位，图中终端/文件/流程不作为实际产品截图、源码、运行或性能证据；真实演示截图仍见 demos/SOURCES.md。后台自定义封面依然优先。临时资源URL不进入运行时代码。

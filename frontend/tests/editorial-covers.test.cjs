@@ -11,10 +11,13 @@ test('approved article covers stay independent from generated project covers', (
     'ai-delivery-guard': 'guard', 'fullstack-smoke-pitfalls': 'fullstack',
     'ent-m2m-edge-case-study': 'ent', 'mysql-varchar-191-case-study': 'mysql',
     'dev-workflow-project': 'workflow', 'forge-harness-project': 'harness', 'aigc-backend-delivery': 'aigc',
+    'article-cas-revisions-case-study': 'cas-revisions',
+    'article-search-sync-case-study': 'search-sync',
   }
   for (const [slug, name] of Object.entries(expected)) {
     const cover = exports.articleImages[slug]
-    assert.equal(cover.src, `/images/editorial/covers/${name}.webp`)
+    const extension = name === 'cas-revisions' || name === 'search-sync' ? 'png' : 'webp'
+    assert.equal(cover.src, `/images/editorial/covers/${name}.${extension}`)
     assert.equal(cover.poster, true)
     assert.ok(existsSync('public' + cover.src))
   }

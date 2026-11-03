@@ -187,6 +187,14 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 
 覆盖320–1440px六种视口与明暗主题、城市撑满可用右栏/手机区域、至少320px高度、实际画布内容占比、无横向溢出、太阳键盘交互、跨断点重排及动画。首页840px内容宽度保持。
 
+### Figma 视觉层级与系列阅读
+
+先在 frontend 执行 `node --test tests/*.test.cjs`、`pnpm lint`、`pnpm typecheck`、`pnpm build`，再在仓库根执行 `node scripts/e2e/visual_hierarchy_e2e.cjs`。Playwright 使用已有工具环境（必要时设置 NODE_PATH），`BLOG_E2E_CHROMIUM` 可指定浏览器。脚本自启随机回环端口的只读合成API和生产构建，不连接数据库、微信或线上写接口。
+
+覆盖1440/390/320与明暗的文章/项目/系列/首页/关于42组，以及1440/390的分类/标签8组、文章/项目详情4组，共54组；验证装饰眉题和口号消失、具体作者信息保留、新封面解码与比例、五作品差异、系列编号/公开目录/展开/焦点、修饰键与独立标签、减少动态、CMS封面优先与失败回退、错误重试与空态。证据在 `output/visual-hierarchy/e2e/`，报告 completed/failure 区分完整成功和提前退出，不将部分检查计为通过。
+
+旧 `article_series_e2e.cjs` 仍覆盖sitemap、私有过滤、失败重试、未知系列404及系列前后篇；首页计数定位到专题卡片标题，避免把辅助分区标题误计为系列。
+
 ### 评论自动公开与退回修改
 
 先在frontend执行 `pnpm build`，然后仓库根运行 `node scripts/e2e/automatic_comments_e2e.cjs`。测试工具环境提供Playwright，`BLOG_E2E_CHROMIUM`可指定浏览器。脚本自启本地14350/14351的Nuxt与合成API，不使用真实账号、生产或微信API。覆盖1440/390px普通/含链接评论公开、400/503保稿与修改重发、提交中新输入、legacy pending兼容、退出后迟到私有响应、切换账号后迟到401禁止刷新重放。证据默认在本机output/automatic-comments。
