@@ -40,7 +40,10 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
       </div>
       <div class="editorial-footer">
         <span class="editorial-stack" :title="(project.stack ?? []).join(' · ')">{{ (project.stack ?? []).join(' · ') }}</span>
-        <span class="editorial-arrow" aria-hidden="true">↗</span>
+      </div>
+      <div class="editorial-action" aria-hidden="true">
+        <span>查看项目</span>
+        <span class="editorial-arrow">↗</span>
       </div>
     </div>
   </article>

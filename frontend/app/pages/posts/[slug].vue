@@ -22,7 +22,7 @@ const coverUrl = computed(() => editorialCover.value?.src || assetUrl(article.va
 const coverAlt = computed(() => editorialCover.value?.alt || `${article.value.title}封面`)
 const failedCover = ref('')
 const coverImage = ref<HTMLImageElement | null>(null)
-const showCover = computed(() => article.value.cover_url && coverUrl.value && coverUrl.value !== failedCover.value)
+const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
 onMounted(() => {
   if (coverImage.value?.complete && !coverImage.value.naturalWidth) failedCover.value = coverUrl.value
 })
@@ -124,6 +124,17 @@ useHead(() => ({
   <article data-article-detail class="mx-auto w-full max-w-[860px] space-y-6">
     <header class="space-y-5 border-b border-slate-200 pb-8 dark:border-slate-800">
       <NuxtLink to="/posts" class="detail-button">← 返回全部文章</NuxtLink>
+      <img
+        v-if="showCover"
+        ref="coverImage"
+        :src="coverUrl"
+        :alt="coverAlt"
+        width="1536"
+        height="864"
+        class="detail-cover"
+        decoding="async"
+        @error="failedCover = coverUrl"
+      >
       <h1 tabindex="-1" class="break-words text-3xl font-medium leading-relaxed">{{ article.title }}</h1>
       <p v-if="summary" class="max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
         {{ summary }}
@@ -156,16 +167,6 @@ useHead(() => ({
           {{ tag }}
         </NuxtLink>
       </div>
-      <img
-        v-if="showCover"
-        ref="coverImage"
-        :src="coverUrl"
-        :alt="coverAlt"
-        width="1280"
-        height="720"
-        class="detail-media rounded-xl border border-[var(--border-default)]"
-        @error="failedCover = coverUrl"
-      >
     </header>
 
     <ArticleContent :html="preparedContent.html" :headings="preparedContent.headings" />

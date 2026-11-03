@@ -77,3 +77,7 @@ Ent 官方图片及 Apache-2.0 许可沿用。以下保留上轮素材记录，�
 ## 2026-10-31 阅读修订
 
 保留最新版卡片布局，缩略素材混排目录说明、模块说明、本站代码、Ent 官方关系图与摄影。私有项目没有可公开画面时不使用模板海报。新增 desk.webp 为已审核素材：Lauren Mancke / Unsplash，纸笔与电脑工作台，主题配图（非本人拍摄或产品截图），来源 https://unsplash.com/photos/turned-off-macbook-pro-beside-white-ceramic-mug-filled-with-coffee-aOC7TSLb1o8 ，Unsplash License。其他技术素材沿用前文登记来源。
+
+## 2026-11-03 新案例封面
+
+`covers/search-sync.png`（Figma节点7:38）与 `covers/cas-revisions.png`（7:56）为本次 Figma AI 生成、经用户批准的1536×864概念封面，来自[设计稿](https://www.figma.com/design/zkDqdpkupLz3DqOrnaJnlA?node-id=7-2)。分别表达正文/搜索同步与双窗口版本保护，不是实际故障截图或真实生产数据。直接保存原资源，完整16:9呈现；仅在相应文章未配置后台封面时使用，不覆盖CMS正文或已有上传封面。

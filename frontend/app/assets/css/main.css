@@ -5,17 +5,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --surface-page: #ffffff;
-  --surface-panel: #f8fafc;
+  --surface-page: #f6f7fb;
+  --surface-panel: #ffffff;
   --surface-input: #ffffff;
   --surface-overlay: #ffffff;
-  --surface-hover: #e8eef7;
-  --text-primary: #0f172a;
-  --text-muted: #475569;
-  --border-default: #e2e8f0;
+  --surface-hover: #e9eeff;
+  --surface-accent: #e9eeff;
+  --footer-surface: #11213c;
+  --footer-text: #d5dfef;
+  --text-primary: #17243c;
+  --text-muted: #58677e;
+  --border-default: #dfe5ef;
   --border-strong: #94a3b8;
-  --accent: #3c5d85;
-  --accent-hover: #2d486b;
+  --accent: #315ceb;
+  --accent-hover: #2347c7;
   --on-accent: #ffffff;
   --mint-surface: #e7eee9;
   --mint-text: #365f53;
@@ -23,12 +26,12 @@
   --status-error: #b91c1c;
   --status-warning: #92400e;
   --status-warning-surface: #fef3c7;
-  --focus-ring: #3c5d85;
+  --focus-ring: #315ceb;
   --radius-control: 0.625rem;
   --radius-panel: 0.75rem;
   --space-control: 0.75rem;
   --space-section: 1.5rem;
-  --site-nav-max-width: 68rem;
+  --site-nav-max-width: 72rem;
   --site-content-inset: 2rem;
   --site-content-max-width: calc(var(--site-nav-max-width) - 2 * var(--site-content-inset));
   --site-gutter: 1.5rem;
@@ -42,6 +45,9 @@
   --surface-input: #0f172a;
   --surface-overlay: #0f172a;
   --surface-hover: #1e293b;
+  --surface-accent: #1c2b50;
+  --footer-surface: #081121;
+  --footer-text: #c6d4e9;
   --text-primary: #f1f5f9;
   --text-muted: #94a3b8;
   --border-default: #334155;
@@ -68,7 +74,7 @@
 }
 
 .site-shell { background: var(--surface-page); color: var(--text-primary); }
-.site-header { background: color-mix(in srgb, var(--surface-page) 90%, transparent); border-color: var(--border-default); }
+.site-header { background: color-mix(in srgb, var(--surface-input) 94%, transparent); border-color: var(--border-default); }
 /* Paint the floating surfaces once; only transforms/opacity animate. */
 [data-home-motion-surface='layer'] { transform-origin: 50% 50%; border-radius: 16px; box-shadow: 0 28px 52px rgb(45 65 95 / 18%), 0 0 0 1px rgb(100 116 139 / 18%); }
 [data-home-shell-layer][data-home-motion-surface='layer'] { border-radius: 12px; }
@@ -156,3 +162,23 @@ html[data-home-entering] .site-shell { visibility: hidden; }
 .detail-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .detail-media, .content-figure { display: block; width: 100%; max-width: 34rem; margin-inline: auto; }
 .detail-media, .content-figure img { height: auto; max-height: 24rem; object-fit: contain; }
+
+/* Public-page hierarchy approved in Figma; controls keep their existing behavior. */
+.site-footer { background: var(--footer-surface); color: var(--footer-text); border-color: transparent; }
+.site-footer a:hover { color: #fff; }
+.site-nav-active { background: var(--surface-accent); color: var(--accent); font-weight: 600; }
+.browse-title { color: var(--text-primary); font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 700; line-height: 1.35; }
+.series-reading-prompt { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; font-size: .8125rem; color: var(--text-muted); }
+.series-reading-prompt a:hover { color: var(--accent); text-decoration: underline; }
+.detail-button { background: var(--surface-accent); border-color: transparent; color: var(--accent); border-radius: var(--radius-control); }
+.detail-button:hover { background: color-mix(in srgb, var(--surface-accent) 80%, var(--accent) 20%); }
+.detail-button-primary { background: var(--accent); color: var(--on-accent); }
+.detail-button-primary:hover { background: var(--accent-hover); }
+.browse-search button[aria-pressed='true'] { background: var(--accent); color: var(--on-accent); }
+.detail-cover { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 1rem; }
+
+@media (max-width: 640px) {
+  .browse-search > div:first-child { flex-wrap: wrap; }
+  .browse-search > div:first-child > div { flex-basis: 100%; flex-wrap: wrap; gap: .5rem; }
+  .browse-search > div:first-child > div > div:last-child { flex-wrap: wrap; flex-shrink: 1; gap: .25rem; margin-left: 0; }
+}

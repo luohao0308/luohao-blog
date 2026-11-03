@@ -15,7 +15,7 @@ async function copyAccount() {
   <section class="mx-auto flex max-w-2xl flex-col gap-5 rounded-xl border border-slate-200 bg-slate-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
     <div class="space-y-2">
       <h2 class="font-semibold">在微信里找到我</h2>
-      <p class="text-sm leading-6 text-slate-600 dark:text-slate-400">关注公众号「makerhao」，交流全栈开发与 AI Agent 实践。</p>
+      <p class="text-sm leading-6 text-slate-600 dark:text-slate-400">公众号：makerhao</p>
       <p class="text-xs text-slate-500 dark:text-slate-400">微信搜索：makerhao1</p>
       <p v-if="notice" role="status" class="text-sm text-blue-600 dark:text-blue-300">{{ notice }}</p>
     </div>

@@ -52,14 +52,24 @@ export const articleImages: Record<string, EditorialImage> = {
   'dev-workflow-project': workflow,
   'forge-harness-project': harness,
   'aigc-backend-delivery': aigc,
+  'article-cas-revisions-case-study': {
+    src: '/images/editorial/covers/cas-revisions.png',
+    alt: '两个窗口，谁能保存？版本条件与 CAS 保护新内容。',
+    caption: '', credit: '', poster: true,
+  },
+  'article-search-sync-case-study': {
+    src: '/images/editorial/covers/search-sync.png',
+    alt: '保存成功，搜索没更新？正文与 Elasticsearch 索引同步。',
+    caption: '', credit: '', poster: true,
+  },
 }
 
 export const projectImages: Record<string, EditorialImage> = {
-  'dev-workflow': { src: '/images/projects/generated/dev-workflow-editorial-v2.webp', seoSrc: '/images/projects/generated/dev-workflow-editorial-v2.webp', alt: 'dev-workflow：仓库协作规则、任务记录与交付验证的原创封面', caption: '', credit: '', poster: true },
-  'forge-harness': { src: '/images/projects/generated/forge-harness-editorial-v2.webp', seoSrc: '/images/projects/generated/forge-harness-editorial-v2.webp', alt: 'Forge Harness：任务计划、工具执行、RAG 与评测的原创封面', caption: '', credit: '', poster: true },
-  'aigc': { src: '/images/projects/generated/aigc-editorial-v2.webp', seoSrc: '/images/projects/generated/aigc-editorial-v2.webp', alt: 'AIGC 聚合与调度中台：陶瓷、箱包与工艺品设计生成封面', caption: '', credit: '', poster: true },
-  'luohao-blog': { src: '/images/projects/generated/luohao-blog-editorial-v2.webp', seoSrc: '/images/projects/generated/luohao-blog-editorial-v2.webp', alt: 'luohao.blog：参考本站首页的技术写作与项目作品封面', caption: '', credit: '', poster: true },
-  'job-application-workbench': { src: '/images/projects/generated/job-application-workbench-editorial-v2.webp', seoSrc: '/images/projects/generated/job-application-workbench-editorial-v2.webp', alt: '机会工作台：岗位、个人画像与投递记录的原创封面', caption: '', credit: '', poster: true },
+  'dev-workflow': { src: '/images/projects/generated/dev-workflow-figma.png', seoSrc: '/images/projects/generated/dev-workflow-figma.png', alt: 'dev-workflow：橙色背景与规则档案夹概念封面', caption: '', credit: '', poster: true },
+  'forge-harness': { src: '/images/projects/generated/forge-harness-figma.png', seoSrc: '/images/projects/generated/forge-harness-figma.png', alt: 'Forge Harness：深色背景与运行终端概念封面', caption: '', credit: '', poster: true },
+  'aigc': { src: '/images/projects/generated/aigc-figma.png', seoSrc: '/images/projects/generated/aigc-figma.png', alt: 'AIGC：紫色背景与多种创作流程概念封面', caption: '', credit: '', poster: true },
+  'luohao-blog': { src: '/images/projects/generated/luohao-blog-figma.svg', seoSrc: '/images/projects/generated/luohao-blog-figma.png', alt: 'luohao.blog：蓝色内容界面概念封面', caption: '', credit: '', poster: true },
+  'job-application-workbench': { src: '/images/projects/generated/job-application-workbench-figma.svg', seoSrc: '/images/projects/generated/job-application-workbench-figma.png', alt: '机会工作台：绿色投递进度看板概念封面', caption: '', credit: '', poster: true },
 }
 
 export const projectStories: Record<string, {

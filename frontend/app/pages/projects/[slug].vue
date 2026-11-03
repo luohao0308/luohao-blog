@@ -11,6 +11,14 @@ if (error.value) throw createError({ statusCode: error.value.statusCode === 404 
 if (!data.value) throw createError({ statusCode: 404, message: '项目不存在' })
 const project = computed(() => data.value!)
 const editorialCover = computed(() => project.value.cover_url ? undefined : projectImages[slug.value])
+const coverUrl = computed(() => assetUrl(project.value.cover_url) || editorialCover.value?.src || '')
+const coverAlt = computed(() => editorialCover.value?.alt || `${project.value.name}项目封面`)
+const failedCover = ref('')
+const coverImage = ref<HTMLImageElement | null>(null)
+const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
+onMounted(() => {
+  if (coverImage.value?.complete && !coverImage.value.naturalWidth) failedCover.value = coverUrl.value
+})
 const sections = computed(() => {
   const source = project.value.description
   if (!source.startsWith('## ')) return [{ title: '项目说明', paragraphs: source.split('\n\n') }]
@@ -37,9 +45,19 @@ usePageSeo({
   <article v-if="project" data-project-detail class="mx-auto w-full max-w-[860px] space-y-10">
     <header class="space-y-5 border-b border-slate-200 pb-9 dark:border-slate-800">
       <NuxtLink to="/projects" class="detail-button">← 返回作品集</NuxtLink>
+      <img
+        v-if="showCover"
+        ref="coverImage"
+        :src="coverUrl"
+        :alt="coverAlt"
+        width="1536"
+        height="864"
+        class="detail-cover"
+        decoding="async"
+        @error="failedCover = coverUrl"
+      >
       <div class="flex flex-wrap items-start justify-between gap-5">
         <div class="flex min-w-0 items-start gap-4">
-          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#e8eef7] text-3xl dark:bg-slate-900" aria-hidden="true">{{ project.emoji }}</span>
           <div class="min-w-0">
             <p class="text-xs text-[#3c5d85] dark:text-blue-300">{{ project.role }} · {{ project.year }}</p>
             <h1 tabindex="-1" class="mt-2 break-words text-3xl font-medium text-slate-800 dark:text-slate-100">{{ project.name }}</h1>
@@ -48,6 +66,10 @@ usePageSeo({
 
       </div>
       <p class="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-400">{{ project.summary }}</p>
+      <div v-if="repoURL || liveURL" class="flex flex-wrap gap-3">
+        <a v-if="repoURL" :href="repoURL" target="_blank" rel="noopener" class="detail-button detail-button-primary">查看源码 ↗</a>
+        <a v-if="liveURL" :href="liveURL" target="_blank" rel="noopener" class="detail-button">在线体验 ↗</a>
+      </div>
     </header>
 
     <section v-if="project.screenshots?.length" class="space-y-4">
@@ -78,7 +100,7 @@ usePageSeo({
     <section v-if="hasCaseDetails" class="grid gap-5 sm:grid-cols-3">
       <div v-for="item in [{ title: '问题', text: project.problem }, { title: '方案', text: project.approach }, { title: '结果', text: project.outcome }]" :key="item.title" class="bento-card rounded-xl border border-slate-200 p-5 dark:border-slate-800">
         <h2 class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ item.title }}</h2>
-        <p class="mt-3 max-w-[860px] whitespace-pre-line break-words text-sm leading-7 text-slate-600 dark:text-slate-400">{{ item.text || '资料正在整理中。' }}</p>
+        <p class="mt-3 max-w-[860px] whitespace-pre-line break-words text-sm leading-7 text-slate-600 dark:text-slate-400">{{ item.text || '暂无说明。' }}</p>
       </div>
     </section>
 
@@ -102,7 +124,7 @@ usePageSeo({
     <footer class="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-default)] pt-8">
       <NuxtLink to="/projects" class="detail-button">← 返回作品集</NuxtLink>
       <div v-if="repoURL || liveURL" class="flex flex-wrap gap-3">
-        <a v-if="repoURL" :href="repoURL" target="_blank" rel="noopener" class="detail-button">查看源码 ↗</a>
+        <a v-if="repoURL" :href="repoURL" target="_blank" rel="noopener" class="detail-button detail-button-primary">查看源码 ↗</a>
         <a v-if="liveURL" :href="liveURL" target="_blank" rel="noopener" class="detail-button">在线体验 ↗</a>
       </div>
     </footer>
