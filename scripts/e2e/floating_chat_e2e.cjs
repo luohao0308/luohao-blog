@@ -161,9 +161,24 @@ async function main() {
     await chat(page).locator('details.chat-citations summary').first().click()
     await chat(page).getByRole('link', { name: /中文标题/ }).first().click(); await dialog(page).waitFor({ state: 'hidden' }); assert.equal(decodeURIComponent(new URL(page.url()).hash), '#中文标题'); const beforeHash = requests.length; await open(page); assert.equal(await chat(page).getByTestId('chat-answer').count(), 1, 'same-page citation hash preserves record'); assert.equal(requests.length, beforeHash)
     mode = 'missing-scope'; await ask(page, '范围回显缺失'); await chat(page).getByText('当前服务暂不支持问本文，请稍后重试。', { exact: true }).waitFor()
-    mode = 'delay'; await ask(page, '切模式前请求'); await requestStarted('切模式前请求'); await dialog(page).getByRole('button', { name: '切换提问范围', exact: true }).click(); while (pending.length) pending.shift()(); await page.waitForLoadState('networkidle'); assert.equal(await chat(page).getByTestId('chat-question').count(), 0, 'scope switch clears old request and answer'); assert.equal(await chat(page).getByText('迟到的合成回答', { exact: true }).count(), 0)
-    mode = 'normal'; await ask(page, '文章页问全站'); await chat(page).getByTestId('chat-answer').waitFor(); assert.deepEqual(requests.at(-1), { query: '文章页问全站' })
-    mode = 'delay'; await ask(page, '关闭中继续执行'); await requestStarted('关闭中继续执行'); await dialog(page).getByRole('button', { name: '关闭聊天', exact: true }).click(); while (pending.length) pending.shift()(); await page.waitForLoadState('networkidle'); const beforeReopen = requests.length; await open(page); await chat(page).getByText('迟到的合成回答', { exact: true }).waitFor(); assert.equal(requests.length, beforeReopen, 'reopen does not duplicate pending request')
+    mode = 'delay'
+    await ask(page, '切模式前请求')
+    await requestStarted('切模式前请求')
+    await input.fill('文章页问全站')
+    await dialog(page).getByRole('button', { name: '切换提问范围', exact: true }).click()
+    assert.equal(await input.inputValue(), '文章页问全站', 'scope switch retains the next draft')
+    assert.equal(await chat(page).getByTestId('chat-question').count(), 3, 'scope switch retains the transcript')
+    assert.equal(await chat(page).getByTestId('chat-question').last().locator('.chat-query-scope').textContent(), '本文')
+    while (pending.length) pending.shift()()
+    await chat(page).getByText('迟到的合成回答', { exact: true }).waitFor()
+    assert.match(await chat(page).locator('details.chat-citations summary').last().textContent(), /参考段落/)
+    mode = 'normal'
+    await chat(page).getByRole('button', { name: '发送', exact: true }).click()
+    await chat(page).getByTestId('chat-answer').nth(2).waitFor()
+    assert.deepEqual(requests.at(-1), { query: '文章页问全站' })
+    assert.equal(await chat(page).getByTestId('chat-question').last().locator('.chat-query-scope').textContent(), '全站')
+    assert.match(await chat(page).locator('details.chat-citations summary').last().textContent(), /参考文章/)
+    mode = 'delay'; await ask(page, '关闭中继续执行'); await requestStarted('关闭中继续执行'); await dialog(page).getByRole('button', { name: '关闭聊天', exact: true }).click(); while (pending.length) pending.shift()(); await page.waitForLoadState('networkidle'); const beforeReopen = requests.length; await open(page); await chat(page).getByTestId('chat-answer').nth(3).waitFor(); assert.equal(requests.length, beforeReopen, 'reopen does not duplicate pending request')
     mode = 'delay'; await ask(page, '离开文章的请求'); await requestStarted('离开文章的请求')
     await dialog(page).getByRole('button', { name: '关闭聊天', exact: true }).click()
     await page.locator('nav[aria-label="相邻文章"] a[href="/posts/other"]').click()
@@ -174,7 +189,7 @@ async function main() {
     assert.equal(await chat(page).getByText('迟到的合成回答', { exact: true }).count(), 0, 'old article late result cannot appear after SPA navigation')
     mode = 'normal'; await ask(page, '另一篇问题'); await chat(page).getByTestId('chat-answer').waitFor(); assert.deepEqual(requests.at(-1), { query: '另一篇问题', article_slug: 'other' })
     for (const slug of ['private', 'unknown']) { await page.goto(base + '/posts/' + slug); if (await trigger(page).count()) { await open(page); assert.equal(await dialog(page).getByRole('button', { name: '切换提问范围', exact: true }).count(), 0, '404 never exposes article scope') } }
-    report.checks.push('Explicit global/article bodies, draft/answer/pending close persistence, no-match/error retry, scope guard, stale request isolation, safe citation hash and text escaping')
+    report.checks.push('Explicit global/article bodies, draft/answer/pending close persistence, no-match/error retry, scope switch persistence, scope guard, stale request isolation, safe citation hash and text escaping')
     await context.close(); assert.deepEqual(report.errors, []); report.completed = true
   } catch (error) { report.failure = { message: error.message, stack: error.stack }; throw error }
   finally { while (pending.length) pending.shift()(); await browser?.close(); if (server && server.exitCode === null) { const exited = new Promise(resolve => server.once('exit', resolve)); server.kill('SIGTERM'); await exited } if (api.listening) await new Promise(resolve => api.close(resolve)); await fs.writeFile(path.join(out, 'results.json'), JSON.stringify(report, null, 2)); await fs.writeFile(path.join(out, 'server.log'), logs) }

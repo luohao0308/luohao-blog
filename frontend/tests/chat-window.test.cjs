@@ -52,31 +52,47 @@ test('site-wide mode rejects an accidentally article-scoped answer', async () =>
   } finally { f.close() }
 })
 
-test('changing scope aborts the old request and ignores a late answer', async () => {
+test('switching scope keeps the transcript, draft, and in-flight reply', async () => {
   let resolve
-  const f = fixture('reading', () => new Promise(r => { resolve = r }))
+  const f = fixture('reading', options => options.body.article_slug
+    ? new Promise(r => { resolve = r })
+    : Promise.resolve({ answer: '全站回答', outcome: 1 }))
   try {
-    f.input.value = '旧范围问题'; const pending = f.ask()
-    f.props.articleSlug = undefined; await nextTick()
-    assert.equal(f.requests[0].signal.aborted, true)
-    assert.equal(f.questions.value.length, 0)
-    resolve({ answer: '旧范围迟到回答', outcome: 1, article_slug: 'reading' }); await pending
-    assert.equal(f.questions.value.length, 0)
-    assert.equal(f.busy.value, false)
-    assert.equal(f.statuses.at(-1), 'idle')
+    f.input.value = '本文问题'
+    const pending = f.ask()
+    f.input.value = '准备中的下一条'
+    f.props.articleSlug = undefined
+    await nextTick()
+    assert.equal(f.requests[0].signal.aborted, false)
+    assert.equal(f.questions.value.length, 1)
+    assert.equal(f.input.value, '准备中的下一条')
+    resolve({ answer: '本文回答', outcome: 1, article_slug: 'reading' })
+    await pending
+    assert.equal(f.questions.value[0].reply.answer, '本文回答')
+    await f.ask()
+    assert.deepEqual(body(f.requests[1]), { query: '准备中的下一条' })
+    assert.equal(f.questions.value.length, 2)
+    assert.equal(f.questions.value[1].reply.answer, '全站回答')
   } finally { f.close() }
 })
 
-test('failed questions retain input history and retry only after an explicit action', async () => {
+test('retry uses the failed question’s original scope after a switch', async () => {
   let failed = true
-  const f = fixture(undefined, async () => { if (failed) throw { response: { status: 429 } }; return { answer: '回答', outcome: 1 } })
+  const f = fixture('reading', async () => {
+    if (failed) throw { response: { status: 429 } }
+    return { answer: '回答', outcome: 1, article_slug: 'reading' }
+  })
   try {
-    f.input.value = '保留的问题'; await f.ask()
+    f.input.value = '保留的问题'
+    await f.ask()
     assert.equal(f.questions.value[0].state, 'failed')
     assert.equal(f.questions.value[0].query, '保留的问题')
+    f.props.articleSlug = undefined
+    await nextTick()
     assert.equal(f.requests.length, 1)
-    failed = false; await f.send(f.questions.value[0])
-    assert.equal(f.requests.length, 2)
+    failed = false
+    await f.send(f.questions.value[0])
+    assert.deepEqual(body(f.requests[1]), { query: '保留的问题', article_slug: 'reading' })
     assert.equal(f.questions.value[0].state, 'returned')
   } finally { f.close() }
 })

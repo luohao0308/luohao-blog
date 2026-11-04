@@ -5,14 +5,14 @@ interface Reply { answer?: string, citations?: CitedArticle[], outcome?: number 
 interface Question {
   id: number
   query: string
+  articleSlug?: string
   state: 'pending' | 'returned' | 'failed'
   reply?: Reply
   error?: string
   copyNotice?: string
 }
-const props = defineProps<{ articleSlug?: string, embedded?: boolean, variant?: 'bubble' | 'wechat' }>()
+const props = defineProps<{ articleSlug?: string, showScope?: boolean, embedded?: boolean, variant?: 'bubble' | 'wechat' }>()
 const emit = defineEmits<{ status: [value: ChatRequestStatus] }>()
-let generation = 0
 const questions = ref<Question[]>([])
 const input = ref('')
 const history = ref<HTMLElement | null>(null)
@@ -93,8 +93,7 @@ async function send(question: Question) {
   emit('status', 'working')
   question.state = 'pending'
   question.error = ''
-  const version = generation
-  const requestedArticleSlug = props.articleSlug
+  const requestedArticleSlug = question.articleSlug
   controller = new AbortController()
   try {
     const reply = await $fetch<Reply>('/api/v1/chat', {
@@ -103,7 +102,7 @@ async function send(question: Question) {
       retry: 0,
       timeout: 130_000,
     })
-    if (disposed || version !== generation) return
+    if (disposed) return
     if (requestedArticleSlug && reply.article_slug !== requestedArticleSlug) {
       question.error = '当前服务暂不支持问本文，请稍后重试。'
       question.state = 'failed'
@@ -124,7 +123,7 @@ async function send(question: Question) {
     emit('status', outcome(reply) === 1 ? 'done' : [3, 4].includes(outcome(reply)) ? 'failure' : 'idle')
   }
   catch (err: unknown) {
-    if (disposed || version !== generation) return
+    if (disposed) return
     const status = (err as { response?: { status?: number } })?.response?.status
     question.error = status === 429 ? '提问太频繁了，请稍后再试。'
       : status === 400 ? '问题不符合要求，请编辑后重试（最多 500 字）。'
@@ -135,7 +134,7 @@ async function send(question: Question) {
     emit('status', 'failure')
   }
   finally {
-    if (!disposed && version === generation) {
+    if (!disposed) {
       busy.value = false
       controller = undefined
     }
@@ -143,7 +142,7 @@ async function send(question: Question) {
 }
 async function ask() {
   if (!canAsk.value || composing.value) return
-  const question: Question = reactive({ id: ++sequence, query: input.value.trim(), state: 'pending' })
+  const question: Question = reactive({ id: ++sequence, query: input.value.trim(), articleSlug: props.articleSlug, state: 'pending' })
   questions.value.push(question)
   input.value = ''
   await send(question)
@@ -157,20 +156,12 @@ watch(() => [questions.value.length, busy.value], async () => {
   await nextTick()
   if (history.value) history.value.scrollTop = history.value.scrollHeight
 })
-function citationPath(citation: CitedArticle) {
+function citationPath(citation: CitedArticle, articleSlug?: string) {
   const path = `/posts/${encodeURIComponent(citation.slug)}`
-  const found = citation.anchor && (!props.articleSlug || citation.slug !== props.articleSlug
+  const found = citation.anchor && (citation.slug !== articleSlug
     || (import.meta.client && [...document.querySelectorAll('.markdown-body h2, .markdown-body h3')].some(h => h.id === citation.anchor)))
   return found ? `${path}#${encodeURIComponent(citation.anchor!)}` : path
 }
-watch(() => props.articleSlug, () => {
-  generation++
-  controller?.abort()
-  busy.value = false
-  clear()
-  input.value = ''
-  emit('status', 'idle')
-})
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing || composing.value || event.keyCode === 229) return
   if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -207,7 +198,6 @@ function clear() {
 onBeforeUnmount(() => {
   disposed = true
   finishTyping()
-  generation++
   controller?.abort()
   for (const timer of copyTimers.values()) clearTimeout(timer)
   emit('status', 'idle')
@@ -235,7 +225,7 @@ onBeforeUnmount(() => {
     <div v-if="questions.length" ref="history" class="space-y-4 assistant-history" role="log" aria-label="聊天记录">
       <div v-for="question in questions" :key="question.id" class="min-w-0 space-y-3">
         <div class="message-row user-row">
-          <p data-testid="chat-question" class="chat-query">{{ question.query }}</p>
+          <p data-testid="chat-question" class="chat-query"><span v-if="showScope" class="chat-query-scope">{{ question.articleSlug ? '本文' : '全站' }}</span>{{ question.query }}</p>
           <slot name="user-avatar" />
         </div>
         <div class="message-row">
@@ -246,10 +236,10 @@ onBeforeUnmount(() => {
               <p v-if="!embedded || outcome(question.reply) !== 1" role="status" class="text-xs text-[var(--text-muted)]">{{ resultLabel(question.reply) }}</p>
               <p v-if="question.reply?.answer" data-testid="chat-answer" :aria-hidden="typing?.id === question.id ? true : undefined" class="assistant-reply whitespace-pre-wrap break-words text-sm leading-7">{{ typing?.id === question.id ? typing.text : question.reply.answer }}</p>
               <details v-if="typing?.id !== question.id && question.reply?.citations?.length" class="chat-citations">
-                <summary>{{ articleSlug ? '参考段落' : '参考文章' }} · {{ question.reply.citations.length }}</summary>
+                <summary>{{ question.articleSlug ? '参考段落' : '参考文章' }} · {{ question.reply.citations.length }}</summary>
                 <ul>
                   <li v-for="citation in question.reply.citations" :key="`${citation.slug}:${citation.anchor || citation.section_title || citation.title}`">
-                    <NuxtLink :to="citationPath(citation)" class="ui-link">{{ citation.section_title || citation.title }}</NuxtLink>
+                    <NuxtLink :to="citationPath(citation, question.articleSlug)" class="ui-link">{{ citation.section_title || citation.title }}</NuxtLink>
                   </li>
                 </ul>
               </details>
@@ -287,6 +277,7 @@ onBeforeUnmount(() => {
 .assistant-chat .assistant-history { max-height: var(--assistant-history-height, min(38dvh, 16rem)); overflow-y: auto; overscroll-behavior: contain; padding: .25rem .25rem .25rem 0; }
 .chat-query, .assistant-reply { width: fit-content; max-width: 92%; padding: .5rem .75rem; border-radius: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.65; }
 .chat-query { background: var(--surface-accent); color: var(--text-primary); border-bottom-right-radius: .25rem; }
+.chat-query-scope { display: block; margin-bottom: .125rem; color: var(--text-muted); font-size: .625rem; line-height: 1.35; }
 .assistant-reply { background: var(--surface-hover); border-bottom-left-radius: .25rem; }
 .chat-composer { display: flex; align-items: center; gap: .5rem; padding: .1875rem .25rem .1875rem .625rem; border: 1px solid var(--border-default); border-radius: .625rem; background: var(--surface-page); }
 .chat-composer:focus-within { border-color: var(--text-muted); }

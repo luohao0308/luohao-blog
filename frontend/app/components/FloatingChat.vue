@@ -16,7 +16,6 @@ const failedAvatar = ref('')
 const mountedChat = ref(false)
 const openError = ref('')
 const scope = ref<'article' | 'global'>('global')
-const revision = ref(0)
 const titleId = useId()
 const mascotReady = ref(false)
 const drag = useMascotDrag(trigger, mascotReady)
@@ -74,7 +73,6 @@ const currentArticle = computed(() => {
   const value = article.value
   return value && route.path.replace(/\/$/, '') === `/posts/${encodeURIComponent(value.slug)}` ? value : null
 })
-const chatKey = computed(() => `${revision.value}:${scope.value}:${currentArticle.value?.slug ?? ''}`)
 
 function restoreFocus() {
   if (!disposed && trigger.value?.isConnected) trigger.value.focus({ preventScroll: true })
@@ -127,9 +125,6 @@ watch([dragPosition, variant, expanded], updateClearance, { flush: 'post' })
 function changeScope(value: 'article' | 'global') {
   if (scope.value === value || (value === 'article' && !currentArticle.value)) return
   scope.value = value
-  resetPet()
-  // A new ChatWindow aborts its old request and owns a fresh question history.
-  revision.value++
   void focusComposer()
 }
 function onOutsidePointer(event: PointerEvent) {
@@ -146,13 +141,11 @@ function onAssistantKeydown(event: KeyboardEvent) {
 watch(() => route.path, () => {
   close()
   mountedChat.value = false
-  revision.value++
   scope.value = 'global'
   resetPet()
 })
 watch(() => currentArticle.value?.slug, () => {
   scope.value = 'global'
-  revision.value++
 })
 watch(() => route.hash, () => { if (opened.value) close() })
 onMounted(() => {
@@ -212,7 +205,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div class="floating-chat-content">
-      <ChatWindow v-if="mountedChat" :key="chatKey" :article-slug="scope === 'article' ? currentArticle?.slug : undefined" :variant="variant" embedded @status="onRequestStatus">
+      <ChatWindow v-if="mountedChat" :key="route.path" :show-scope="!!currentArticle" :article-slug="scope === 'article' ? currentArticle?.slug : undefined" :variant="variant" embedded @status="onRequestStatus">
         <template #composer-action>
           <button v-if="currentArticle" type="button" class="floating-chat-scope" aria-label="切换提问范围" :aria-pressed="scope === 'article'" :title="scope === 'article' ? '当前：聊本文。点击切换到全站' : '当前：聊全站。点击切换到本文'" @click="changeScope(scope === 'article' ? 'global' : 'article')">
             <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
