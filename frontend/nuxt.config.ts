@@ -18,6 +18,8 @@ export default defineNuxtConfig({
       // local origin and hides the ICP link when no registration is set.
       siteUrl: '',
       icpNumber: '',
+      // Optional licensed mascot source. Unset keeps the standard chat button.
+      chatMascotSrc: '',
     },
   },
   typescript: {

@@ -187,6 +187,12 @@ NODE_PATH=<已有Playwright包目录> BLOG_E2E_CHROMIUM=<已有Chrome可执行�
 
 覆盖320–1440px六种视口与明暗主题、城市撑满可用右栏/手机区域、至少320px高度、实际画布内容占比、无横向溢出、太阳键盘交互、跨断点重排及动画。首页840px内容宽度保持。
 
+### 全站浮动 AI 问答
+
+frontend完成 `node --test tests/*.test.cjs`、lint/typecheck/build后，仓库根运行 `node scripts/e2e/floating_chat_e2e.cjs` 与 `node scripts/e2e/article_chat_e2e.cjs`，由已有工具环境提供Playwright（可设置NODE_PATH/BLOG_E2E_CHROMIUM）。均为随机回环端口的合成API与生产构建，所有回答为fixture，不调用真实模型或生产。
+
+新专项覆盖1440/1024/390/320明暗及首页/文章/关于24组，另验证390×480短屏、Chrome/CDP真实IME、打开故障恢复、关闭保留、不自动请求、scope请求体/回显防护、原生模态焦点、引用纯文本和真实SPA迟到隔离。旧文章专项通过全局按钮进入，引用锚点关闭后重开继续验证，文末不再有独立问答。证据分别在output/floating-chat与output/article-chat。
+
 ### Figma 视觉层级与系列阅读
 
 先在 frontend 执行 `node --test tests/*.test.cjs`、`pnpm lint`、`pnpm typecheck`、`pnpm build`，再在仓库根执行 `node scripts/e2e/visual_hierarchy_e2e.cjs`。Playwright 使用已有工具环境（必要时设置 NODE_PATH），`BLOG_E2E_CHROMIUM` 可指定浏览器。脚本自启随机回环端口的只读合成API和生产构建，不连接数据库、微信或线上写接口。

@@ -21,7 +21,7 @@ function close() { panel.value?.hidePopover() }
 
 <style scoped>
 .about-wechat-docked { display: none; }
-.about-wechat-toggle { position: fixed; right: 1.5rem; bottom: max(1.5rem, env(safe-area-inset-bottom)); z-index: 30; }
+.about-wechat-toggle { position: fixed; right: 1.5rem; bottom: max(5.5rem, var(--floating-chat-clearance, 5.5rem)); z-index: 30; }
 .about-wechat-popover {
   position: fixed;
   inset: auto 1rem max(5rem, calc(env(safe-area-inset-bottom) + 4rem)) auto;
