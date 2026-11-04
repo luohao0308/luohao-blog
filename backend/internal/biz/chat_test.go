@@ -214,3 +214,33 @@ func TestSearchAvailabilityAndLegacyWrapper(t *testing.T) {
 		t.Fatalf("stale index should remain available: %+v", result)
 	}
 }
+
+func TestChatIntroductionDoesNotRetrieveOrCite(t *testing.T) {
+	ctx := context.Background()
+	index := &chatRecordingIndex{slugs: []string{"pub-a"}}
+	llm := &chatFakeLLM{answer: "文章回答"}
+	uc, _ := newChatTestUsecase(t, index, llm, nil)
+	for _, slug := range []string{"", "pub-a"} {
+		var answer *ChatAnswer
+		var err error
+		if slug == "" {
+			answer, err = uc.Ask(ctx, " 你是谁？ ", 0, "ip")
+		} else {
+			answer, err = uc.AskArticle(ctx, " 你是谁？ ", slug, "ip")
+		}
+		if err != nil || answer == nil || answer.Outcome != ChatOutcomeAnswered || answer.ArticleSlug != slug ||
+			!strings.Contains(answer.Answer, "我是小乌") || len(answer.Citations) != 0 || len(answer.Sections) != 0 {
+			t.Fatalf("scope %q: answer=%+v error=%v", slug, answer, err)
+		}
+	}
+	if index.query != "" || llm.calls != 0 {
+		t.Fatalf("introduction queried the index (%q) or model (%d calls)", index.query, llm.calls)
+	}
+	if _, err := uc.AskArticle(ctx, "你是谁", "draft", "ip"); !kratoserrors.IsNotFound(err) {
+		t.Fatalf("introduction must still validate article visibility: %v", err)
+	}
+	answer, err := uc.Ask(ctx, "文章里提到的作者是谁？", 0, "ip")
+	if err != nil || answer == nil || len(answer.Citations) != 1 || llm.calls != 1 {
+		t.Fatalf("article question should still retrieve sources: answer=%+v error=%v", answer, err)
+	}
+}
