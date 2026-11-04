@@ -64,13 +64,15 @@ async function main() {
       const errors = []
       page.on('pageerror', error => errors.push(error.message))
       await page.goto(base + '/posts/reading')
-      const chat = page.getByRole('region', { name: 'AI 问答' })
+      await page.getByRole('button', { name: '打开小乌', exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: /小乌/ })
+      const chat = dialog.getByRole('region', { name: '对话记录' })
       // section aria-label is a named region.
-      await chat.getByRole('heading', { name: '问本文', exact: true }).waitFor()
-      const input = chat.getByRole('textbox', { name: '你的问题' })
+      await dialog.getByRole('button', { name: '聊本文', exact: true }).click()
+      const input = chat.getByRole('textbox', { name: '输入消息' })
       async function ask(query) {
         await input.fill(query)
-        await chat.getByRole('button', { name: '提问', exact: true }).click()
+        await chat.getByRole('button', { name: '发送', exact: true }).click()
       }
       mode = 'normal'
       await ask('这一节讲什么？')
@@ -81,12 +83,15 @@ async function main() {
       await source.click()
       assert.equal(decodeURIComponent(new URL(page.url()).hash), '#中文标题')
       assert.equal(await page.evaluate(() => window.chatInjected), undefined)
+      await dialog.waitFor({ state: 'hidden' })
+      await page.getByRole('button', { name: '打开小乌', exact: true }).click()
+      await dialog.waitFor()
       await fs.mkdir(out, { recursive: true })
       await page.evaluate(() => window.scrollTo(0, 0))
       await page.screenshot({ path: path.join(out, `article-chat-answer-${width}.png`), fullPage: true })
       mode = 'unknown'
       await ask('未知锚点')
-      await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="AI 问答"] a')].some(a => a.getAttribute('href') === '/posts/reading'))
+      await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="对话记录"] a')].some(a => a.getAttribute('href') === '/posts/reading'))
       mode = 'legacy'
       await ask('旧版引用格式')
       await chat.getByRole('link', { name: '旧版引用', exact: true }).waitFor()
@@ -99,20 +104,20 @@ async function main() {
       for (const status of [400, 404, 429, 503]) {
         mode = String(status)
         await ask('失败问题' + status)
-        await page.waitForFunction(() => ![...document.querySelectorAll('[aria-label="AI 问答"] [role="status"]')].some(el => el.textContent === '正在生成回答…'))
+        await page.waitForFunction(() => ![...document.querySelectorAll('[aria-label="对话记录"] [role="status"]')].some(el => el.textContent === '正在回复…'))
         assert.ok((await chat.innerText()).includes('失败问题' + status))
         const expected = { 400: '问题不符合要求', 404: '这篇文章已不可用', 429: '提问太频繁', 503: '问答服务暂时不可用' }[status]
         await chat.getByText(new RegExp(expected)).waitFor()
       }
       mode = 'normal'
       await chat.getByRole('button', { name: '重试问题', exact: true }).last().click()
-      await page.waitForFunction(() => ![...document.querySelectorAll('[aria-label="AI 问答"] [role="status"]')].some(el => el.textContent === '正在生成回答…'))
+      await page.waitForFunction(() => ![...document.querySelectorAll('[aria-label="对话记录"] [role="status"]')].some(el => el.textContent === '正在回复…'))
       mode = 'delay'
       await ask('等待期间离开')
-      await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="AI 问答"] [role="status"]')].some(el => el.textContent === '正在生成回答…'))
+      await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="对话记录"] [role="status"]')].some(el => el.textContent === '正在回复…'))
       for (let i = 0; i < 50 && requests.at(-1)?.query !== '等待期间离开'; i++) await page.waitForTimeout(20)
       assert.equal(requests.at(-1)?.query, '等待期间离开', 'old response is already in flight')
-      await page.locator('nav[aria-label="相邻文章"] a[href="/posts/other"]').click()
+      await page.goto(base + '/posts/other')
       await page.waitForURL('**/posts/other')
       await page.waitForTimeout(1200)
       assert.equal(await page.getByText('旧文章迟到回答', { exact: true }).count(), 0)

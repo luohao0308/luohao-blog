@@ -17,6 +17,14 @@ if (!data.value || data.value.status !== 2) throw createError({ statusCode: 404,
 
 // Non-null by the 404 guard above; the backend renderer owns the HTML.
 const article = computed(() => data.value!)
+const chatArticle = useChatArticle()
+const chatOwnerSlug = article.value.slug
+watch(article, (value) => {
+  chatArticle.value = value.status === 2 ? { slug: value.slug, title: value.title } : null
+}, { immediate: true })
+onBeforeUnmount(() => {
+  if (chatArticle.value?.slug === chatOwnerSlug) chatArticle.value = null
+})
 const editorialCover = computed(() => article.value.cover_url ? undefined : articleImages[article.value.slug])
 const coverUrl = computed(() => editorialCover.value?.src || assetUrl(article.value.cover_url))
 const coverAlt = computed(() => editorialCover.value?.alt || `${article.value.title}封面`)
@@ -178,7 +186,6 @@ useHead(() => ({
       </NuxtLink>
     </section>
     <ArticleSeriesNavigation :slug="slug" />
-    <ChatWindow :article-slug="slug" />
     <CommentSection :slug="slug" />
     <nav v-if="adjacent.newer || adjacent.older" aria-label="相邻文章" class="grid gap-6 border-t border-slate-200 pt-8 sm:grid-cols-2 dark:border-slate-800">
       <div>

@@ -114,5 +114,8 @@ function isActive(to: string) {
         rel="noopener"
       >{{ publicConfig.icpNumber }}</a>
     </footer>
+    <ClientOnly>
+      <FloatingChat v-if="!route.path.startsWith('/admin')" :mascot-src="publicConfig.chatMascotSrc || undefined" />
+    </ClientOnly>
   </div>
 </template>

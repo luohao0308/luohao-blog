@@ -123,8 +123,5 @@ h2 { margin-bottom: 24px; font-size: clamp(23px, 3vw, 28px); font-weight: 550; l
   .contact-actions { flex-direction: column; }
   .contact-button { min-width: 0; width: 100%; }
 }
-@media (max-width: 640px), (max-height: 760px) {
-  :deep(.about-wechat-toggle) { bottom: 88px; }
-}
 @media (prefers-reduced-motion: reduce) { .contact-button { transition: none; } .contact-button:hover { transform: none; } }
 </style>
