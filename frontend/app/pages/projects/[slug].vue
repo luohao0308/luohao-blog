@@ -14,6 +14,7 @@ const editorialCover = computed(() => project.value.cover_url ? undefined : proj
 const coverUrl = computed(() => assetUrl(project.value.cover_url) || editorialCover.value?.src || '')
 const coverAlt = computed(() => editorialCover.value?.alt || `${project.value.name}项目封面`)
 const failedCover = ref('')
+const preview = ref<{ src: string, alt: string } | null>(null)
 const coverImage = ref<HTMLImageElement | null>(null)
 const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCover.value)
 onMounted(() => {
@@ -74,13 +75,14 @@ usePageSeo({
 
     <section v-if="project.screenshots?.length" class="space-y-4">
       <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100">项目截图</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400">点击截图查看原图。</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">点击截图放大。</p>
       <div class="grid gap-4 sm:grid-cols-2">
-        <a v-for="(image, index) in project.screenshots" :key="image" :href="assetUrl(image)" target="_blank" rel="noopener noreferrer" :aria-label="`查看 ${project.name} 截图 ${index + 1} 原图`" class="block min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]">
+        <button v-for="(image, index) in project.screenshots" :key="image" type="button" :aria-label="`放大 ${project.name} 截图 ${index + 1}`" class="block min-w-0 cursor-zoom-in rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]" @click="preview = { src: assetUrl(image), alt: `${project.name} 截图 ${index + 1}` }">
           <img :src="assetUrl(image)" :alt="`${project.name} 截图 ${index + 1}`" class="detail-media rounded-xl border border-[var(--border-default)]" loading="lazy">
-        </a>
+        </button>
       </div>
     </section>
+    <ArticleLightbox v-if="preview" :src="preview.src" :alt="preview.alt" @close="preview = null" />
 
     <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_220px]">
       <section class="min-w-0 space-y-4">
