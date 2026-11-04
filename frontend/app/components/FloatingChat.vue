@@ -8,6 +8,11 @@ const article = useChatArticle()
 const dialog = ref<HTMLDialogElement | null>(null)
 const trigger = ref<HTMLButtonElement | null>(null)
 const opened = ref(false)
+const expanded = ref(false)
+const { user } = useAuth()
+const userAvatar = computed(() => user.value?.avatar_url ? assetUrl(user.value.avatar_url) : '')
+const userInitial = computed(() => Array.from(user.value?.display_name?.trim() ?? '')[0] ?? '访')
+const failedAvatar = ref('')
 const mountedChat = ref(false)
 const openError = ref('')
 const scope = ref<'article' | 'global'>('global')
@@ -45,7 +50,19 @@ function updateClearance() {
       ? { left: `${center}px`, top: `calc(${placement.style.top} - 6px)` }
       : undefined
   document.documentElement.style.setProperty('--floating-chat-clearance', placement.clearance)
-  dialogPosition.value = { ...placement.style, width: `min(${panelWidth}rem, calc(100vw - 2rem))` }
+  if (!expanded.value) {
+    dialogPosition.value = { ...placement.style, width: `${width}px` }
+    return
+  }
+  // Keep the edge nearest the mascot fixed as the portrait panel grows.
+  const availableHeight = Number.parseFloat(placement.style.maxHeight!)
+  const expandedWidth = Math.max(width, Math.min(22 * unit, window.innerWidth - 2 * unit, availableHeight * 9 / 16))
+  dialogPosition.value = {
+    ...placement.style,
+    left: `${Math.max(unit, left + width - expandedWidth)}px`,
+    width: `${expandedWidth}px`,
+    height: `${Math.min(availableHeight, expandedWidth * 16 / 9)}px`,
+  }
 }
 function onTriggerResize() { drag.clampToViewport(); updateClearance() }
 function updateCompact() { compact.value = !!compactPreference?.matches }
@@ -67,6 +84,7 @@ function close(returnFocus = true) {
   imeActive.value = false
   openError.value = ''
   opened.value = false
+  expanded.value = false
   if (dialog.value?.open) dialog.value.close()
   if (returnFocus) restoreFocus()
 }
@@ -105,7 +123,7 @@ function onTriggerClick(event: MouseEvent) {
   if (opened.value) close()
   else void open()
 }
-watch([dragPosition, variant], updateClearance, { flush: 'post' })
+watch([dragPosition, variant, expanded], updateClearance, { flush: 'post' })
 function changeScope(value: 'article' | 'global') {
   if (scope.value === value || (value === 'article' && !currentArticle.value)) return
   scope.value = value
@@ -175,7 +193,7 @@ onBeforeUnmount(() => {
   <span v-if="mascotReady" :id="`${titleId}-drag-help`" class="sr-only">拖动或用方向键移动，按回车打开问答。</span>
   <p v-if="openError" role="alert" class="floating-chat-error">{{ openError }}</p>
   <span v-if="opened && variant === 'bubble' && tailPosition" class="xiaowu-tail" :style="tailPosition" aria-hidden="true" />
-  <dialog :id="`${titleId}-dialog`" ref="dialog" :aria-labelledby="titleId" class="floating-chat-dialog" :data-variant="variant" :style="dialogPosition" @close="onClosed" @compositionstart.capture="imeActive = true" @compositionend.capture="imeActive = false">
+  <dialog :id="`${titleId}-dialog`" ref="dialog" :aria-labelledby="titleId" class="floating-chat-dialog" :data-variant="variant" :class="{ 'is-expanded': expanded }" :style="dialogPosition" @close="onClosed" @compositionstart.capture="imeActive = true" @compositionend.capture="imeActive = false">
     <div class="floating-chat-heading">
       <div class="xiaowu-identity">
         <span v-if="variant === 'wechat'" class="xiaowu-avatar" aria-hidden="true">
@@ -184,19 +202,44 @@ onBeforeUnmount(() => {
         </span>
         <h2 :id="titleId">小乌</h2>
       </div>
-      <button type="button" class="floating-chat-close" aria-label="关闭聊天" @click="close()">
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
-      </button>
+      <div class="floating-chat-actions">
+        <button type="button" class="floating-chat-control" :aria-label="expanded ? '缩小聊天窗口' : '放大聊天窗口'" :title="expanded ? '缩小' : '放大'" @click="expanded = !expanded">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path :d="expanded ? 'M4 9h5V4m11 11h-5v5M4 15h5v5M20 9h-5V4' : 'M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5'" /></svg>
+        </button>
+        <button type="button" class="floating-chat-control" aria-label="关闭聊天" @click="close()">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
     </div>
     <div class="floating-chat-content">
-      <div v-if="currentArticle" class="floating-chat-context">
-        <p class="floating-chat-article">{{ currentArticle.title }}</p>
-        <div class="floating-chat-scopes" role="group" aria-label="提问范围">
-          <button type="button" :aria-pressed="scope === 'article'" @click="changeScope('article')">聊本文</button>
-          <button type="button" :aria-pressed="scope === 'global'" @click="changeScope('global')">聊全站</button>
-        </div>
-      </div>
-      <ChatWindow v-if="mountedChat" :key="chatKey" :article-slug="scope === 'article' ? currentArticle?.slug : undefined" :variant="variant" embedded @status="onRequestStatus" />
+      <ChatWindow v-if="mountedChat" :key="chatKey" :article-slug="scope === 'article' ? currentArticle?.slug : undefined" :variant="variant" embedded @status="onRequestStatus">
+        <template #composer-action>
+          <button v-if="currentArticle" type="button" class="floating-chat-scope" aria-label="切换提问范围" :aria-pressed="scope === 'article'" :title="scope === 'article' ? '当前：聊本文。点击切换到全站' : '当前：聊全站。点击切换到本文'" @click="changeScope(scope === 'article' ? 'global' : 'article')">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path v-if="scope === 'article'" d="M6 3h8l4 4v14H6z M14 3v5h4 M9 12h6m-6 4h6" />
+              <template v-else>
+                <circle cx="12" cy="12" r="9" />
+                <ellipse cx="12" cy="12" rx="4" ry="9" />
+                <path d="M3 12h18" />
+              </template>
+            </svg>
+            <span>{{ scope === 'article' ? '本文' : '全站' }}</span>
+            <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="m3 4 3-2 3 2m-6 4 3 2 3-2" /></svg>
+          </button>
+        </template>
+        <template #user-avatar>
+          <span class="message-avatar user-avatar" aria-hidden="true">
+            <img v-if="userAvatar && failedAvatar !== userAvatar" :src="userAvatar" alt="" @error="failedAvatar = userAvatar">
+            <span v-else>{{ userInitial }}</span>
+          </span>
+        </template>
+        <template #assistant-avatar>
+          <span class="message-avatar xiaowu-message-avatar" aria-hidden="true">
+            <span v-if="mascotReady && props.mascotSrc" class="xiaowu-portrait" :style="{ backgroundImage: `url(${JSON.stringify(props.mascotSrc)})` }" />
+            <span v-else>乌</span>
+          </span>
+        </template>
+      </ChatWindow>
     </div>
   </dialog>
   </Teleport>
@@ -213,14 +256,23 @@ onBeforeUnmount(() => {
 .floating-chat-dialog { position: fixed; z-index: 46; max-width: calc(100vw - 2rem); margin: 0; padding: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border-default); border-radius: .875rem; background: var(--surface-overlay); color: var(--text-primary); box-shadow: 0 10px 32px rgb(17 33 60 / 16%); }
 .floating-chat-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem .5rem .25rem 1rem; background: var(--surface-overlay); }
 .floating-chat-heading h2 { font-size: .875rem; font-weight: 500; line-height: 1.5; }
-.floating-chat-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: .5rem; color: var(--text-muted); }
-.floating-chat-close:hover { background: var(--surface-hover); color: var(--text-primary); }
+.floating-chat-actions { display: flex; align-items: center; gap: 2px; }
+.floating-chat-control { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: .5rem; color: var(--text-muted); }
+.floating-chat-control:hover { background: var(--surface-hover); color: var(--text-primary); }
 .floating-chat-content { min-width: 0; padding: .25rem .75rem .75rem; }
-.floating-chat-context { display: flex; flex-direction: column; align-items: flex-start; gap: .625rem; margin-bottom: .875rem; }
-.floating-chat-article { overflow-wrap: anywhere; color: var(--text-muted); font-size: .8125rem; line-height: 1.7; }
-.floating-chat-scopes { display: inline-flex; gap: .125rem; padding: .25rem; border-radius: .625rem; background: var(--surface-page); }
-.floating-chat-scopes button { min-height: 36px; padding: .375rem .875rem; border-radius: .4375rem; background: transparent; color: var(--text-muted); font-size: .75rem; }
-.floating-chat-scopes button[aria-pressed='true'] { background: var(--surface-overlay); color: var(--text-primary); box-shadow: 0 1px 4px rgb(17 33 60 / 8%); }
+.floating-chat-dialog.is-expanded[open] { display: flex; flex-direction: column; overflow: hidden; }
+.floating-chat-dialog.is-expanded .floating-chat-heading { flex: none; }
+.floating-chat-dialog.is-expanded .floating-chat-content { flex: 1; min-height: 0; overflow-y: auto; }
+.floating-chat-dialog.is-expanded :deep(.assistant-chat) { height: 100%; }
+.floating-chat-dialog.is-expanded :deep(.assistant-history) { flex: 1; min-height: 0; max-height: none; }
+.floating-chat-dialog.is-expanded :deep(.chat-composer) { margin-top: auto; }
+.floating-chat-scope { display: inline-flex; align-items: center; gap: 3px; flex: none; min-height: 26px; padding: 0 .375rem 0 .125rem; border-right: 1px solid var(--border-default); color: var(--text-muted); font-size: .6875rem; white-space: nowrap; }
+.floating-chat-scope:hover, .floating-chat-scope[aria-pressed='true'] { color: var(--accent); }
+.message-avatar { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; overflow: hidden; border-radius: .375rem; font-size: .6875rem; }
+.user-avatar { background: var(--surface-accent); color: var(--text-primary); }
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.xiaowu-message-avatar { background: #f8e5a9; color: #634f26; }
+.xiaowu-portrait { width: 20px; aspect-ratio: 192 / 208; background-size: 800% 900%; background-repeat: no-repeat; }
 @media (max-width: 640px) { .floating-chat-trigger { right: max(1rem, env(safe-area-inset-right)); } .floating-chat-trigger.mascot-slot { width: 64px; } }
 .xiaowu-identity { display: flex; align-items: center; gap: .5rem; }
 .xiaowu-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #f8e5a9; color: #634f26; font-size: .75rem; }
