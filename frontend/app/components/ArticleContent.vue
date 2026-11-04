@@ -51,16 +51,23 @@ function enhance() {
     cleanups.push(() => { active = false; clearTimeout(timer); toolbar.remove() })
   }
   for (const image of body.value.querySelectorAll('img')) {
-    // Authored linked images retain their navigation behavior.
-    if (image.closest('a, button')) continue
+    if (image.closest('button')) continue
+    const link = image.closest('a')
+    // Keep editorial links to pages, but turn standalone links to image files into previews.
+    if (link && (link.children.length !== 1 || link.firstElementChild !== image || link.textContent?.trim()
+      || !/^https?:$/.test(link.protocol) || !(/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(link.pathname) || link.href === image.src))) continue
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'image-preview-trigger'
     button.setAttribute('aria-label', `放大图片：${image.alt || '正文图片'}`)
-    image.before(button)
+    const original = link ?? image
+    original.replaceWith(button)
     button.append(image)
     button.onclick = () => { preview.value = { src: image.currentSrc || image.src, alt: image.alt } }
-    cleanups.push(() => { button.before(image); button.remove() })
+    cleanups.push(() => {
+      if (link) link.append(image)
+      button.replaceWith(original)
+    })
   }
 }
 onMounted(() => {

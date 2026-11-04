@@ -3,11 +3,11 @@ defineProps<{ src: string, alt: string }>()
 const emit = defineEmits<{ close: [] }>()
 const dialog = ref<HTMLDialogElement | null>(null)
 const failed = ref(false)
-const fallbackLink = ref<HTMLAnchorElement | null>(null)
+const fallbackClose = ref<HTMLButtonElement | null>(null)
 async function showFallback() {
   failed.value = true
   await nextTick()
-  fallbackLink.value?.focus()
+  fallbackClose.value?.focus()
 }
 let previousFocus: HTMLElement | null = null
 let previousOverflow = ''
@@ -30,16 +30,14 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <section v-if="failed" aria-label="图片预览暂不可用" class="image-fallback ui-panel p-4" @keydown.esc="emit('close')">
-      <p role="status">图片预览暂不可用，可以打开原图查看。</p>
-      <div class="mt-3 flex flex-wrap items-center gap-4">
-        <a ref="fallbackLink" :href="src" target="_blank" rel="noopener noreferrer" class="ui-link inline-flex min-h-11 items-center">查看原图</a>
-        <button type="button" class="ui-button" @click="emit('close')">关闭提示</button>
+    <section v-if="failed" aria-label="图片预览" class="image-fallback ui-panel p-4" @keydown.esc="emit('close')">
+      <div class="flex justify-end pb-3">
+        <button ref="fallbackClose" type="button" class="ui-button" @click="emit('close')">关闭预览</button>
       </div>
+      <img :src="src" :alt="alt" class="preview-image">
     </section>
     <dialog v-else ref="dialog" aria-label="图片预览" class="image-dialog" @cancel.prevent="emit('close')" @close="emit('close')" @click="event => { if (event.target === dialog) emit('close') }">
-      <div class="flex items-center justify-between gap-4 p-3">
-        <a :href="src" target="_blank" rel="noopener noreferrer" class="ui-link inline-flex min-h-11 items-center">查看原图</a>
+      <div class="flex items-center justify-end p-3">
         <button type="button" class="ui-button" autofocus @click="emit('close')">关闭预览</button>
       </div>
       <img :src="src" :alt="alt" class="preview-image">

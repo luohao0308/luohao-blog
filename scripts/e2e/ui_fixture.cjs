@@ -26,7 +26,11 @@ async function startFixture(options = {}) {
       const article = articles.find(item => item.slug === decodeURIComponent(pathname.split('/')[3]))
       return article ? json(article) : json({ message: 'Not found' }, 404)
     }
-    if (pathname.includes('/projects')) return json({ projects: [] })
+    if (pathname === '/v1/projects/list') return json({ projects: options.projects ?? [] })
+    if (pathname.startsWith('/v1/projects/')) {
+      const project = options.projects?.find(item => item.slug === decodeURIComponent(pathname.split('/')[3]))
+      return project ? json(project) : json({ message: 'Not found' }, 404)
+    }
     if (pathname.includes('/categories')) return json({ categories: [] })
     return json({ message: `Unknown fixture route: ${pathname}` }, 404)
   })
