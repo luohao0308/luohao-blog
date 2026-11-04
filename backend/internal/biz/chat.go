@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 
@@ -82,7 +83,24 @@ const noResultAnswer = "没有找到与你的问题相关的文章。这个问�
 // retrieval already succeeded, so the citations are still shown.
 const llmFailureAnswer = "AI 生成暂时不可用，先看看这几篇相关文章："
 
-// Ask answers one question. Flow: validate → throttle → retrieve → generate.
+// chatIntroduction answers explicit questions about the assistant itself.
+func chatIntroduction(query, articleSlug string) *ChatAnswer {
+	query = strings.ToLower(strings.TrimFunc(query, func(r rune) bool {
+		return unicode.IsSpace(r) || unicode.IsPunct(r)
+	}))
+	switch query {
+	case "你是谁", "你叫什么", "你叫什么名字", "你是什么", "介绍一下自己", "自我介绍", "who are you", "what is your name":
+		return &ChatAnswer{
+			ArticleSlug: articleSlug,
+			Outcome:     ChatOutcomeAnswered,
+			Answer:      "我是小乌，这个博客的 AI 助手。你可以问我文章里讲了什么，也可以让我推荐相关的文章。",
+		}
+	default:
+		return nil
+	}
+}
+
+// Ask answers one question. Explicit introductions skip retrieval and generation.
 // The answer is plain text; citations list the retrieved articles in
 // best-match order regardless of which ones the answer text mentions.
 func (uc *ChatUsecase) Ask(ctx context.Context, query string, topK int, clientIP string) (*ChatAnswer, error) {
@@ -106,6 +124,9 @@ func (uc *ChatUsecase) Ask(ctx context.Context, query string, topK int, clientIP
 		}
 		// limiter failure fails open: an outage in the counter must not take
 		// the chat down, mirroring the login and comment throttlers.
+	}
+	if introduction := chatIntroduction(query, ""); introduction != nil {
+		return introduction, nil
 	}
 	result := uc.search.SearchArticlesWithOutcome(ctx, query, topK, 0)
 	if !result.Available {

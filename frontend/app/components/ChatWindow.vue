@@ -28,6 +28,37 @@ const copyTimers = new Map<number, ReturnType<typeof setTimeout>>()
 let sequence = 0
 let controller: AbortController | undefined
 let disposed = false
+let typingFrame: number | undefined
+const typing = ref<{ id: number, text: string } | null>(null)
+
+function finishTyping() {
+  if (typingFrame !== undefined) cancelAnimationFrame(typingFrame)
+  typingFrame = undefined
+  typing.value = null
+}
+
+function revealAnswer(id: number, answer: string) {
+  if (!import.meta.client || document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const characters = Array.from(answer)
+  if (characters.length < 2) return
+  const duration = Math.min(1800, characters.length * 22)
+  const start = performance.now()
+  typing.value = { id, text: characters[0]! }
+  function frame(now: number) {
+    const progress = Math.min(1, (now - start) / duration)
+    const count = Math.max(1, Math.ceil(characters.length * progress))
+    const list = history.value
+    const follow = list && list.scrollHeight - list.scrollTop - list.clientHeight < 24
+    if (progress === 1) finishTyping()
+    else {
+      const text = characters.slice(0, count).join('')
+      if (typing.value?.text !== text) typing.value = { id, text }
+      typingFrame = requestAnimationFrame(frame)
+    }
+    if (follow) void nextTick(() => { list.scrollTop = list.scrollHeight })
+  }
+  typingFrame = requestAnimationFrame(frame)
+}
 
 watch(input, async () => {
   await nextTick()
@@ -57,6 +88,7 @@ function retryable(question: Question): boolean {
 }
 async function send(question: Question) {
   if (busy.value) return
+  finishTyping()
   busy.value = true
   emit('status', 'working')
   question.state = 'pending'
@@ -88,6 +120,7 @@ async function send(question: Question) {
       throw new Error('Empty chat result')
     question.reply = reply
     question.state = 'returned'
+    if ([0, 1, -1].includes(outcome(reply)) && reply.answer) revealAnswer(question.id, reply.answer)
     emit('status', outcome(reply) === 1 ? 'done' : [3, 4].includes(outcome(reply)) ? 'failure' : 'idle')
   }
   catch (err: unknown) {
@@ -165,6 +198,7 @@ async function copy(question: Question) {
 }
 function clear() {
   if (busy.value) return
+  finishTyping()
   questions.value = []
   for (const timer of copyTimers.values()) clearTimeout(timer)
   copyTimers.clear()
@@ -172,6 +206,7 @@ function clear() {
 }
 onBeforeUnmount(() => {
   disposed = true
+  finishTyping()
   generation++
   controller?.abort()
   for (const timer of copyTimers.values()) clearTimeout(timer)
@@ -200,8 +235,8 @@ onBeforeUnmount(() => {
         <p v-if="question.state === 'pending'" role="status" class="text-sm text-[var(--text-muted)]">正在回复…</p>
         <div v-else-if="question.state === 'returned'" class="space-y-3">
           <p v-if="!embedded || outcome(question.reply) !== 1" role="status" class="text-xs text-[var(--text-muted)]">{{ resultLabel(question.reply) }}</p>
-          <p v-if="question.reply?.answer" data-testid="chat-answer" class="assistant-reply whitespace-pre-wrap break-words text-sm leading-7">{{ question.reply.answer }}</p>
-          <div v-if="question.reply?.citations?.length" class="space-y-2">
+          <p v-if="question.reply?.answer" data-testid="chat-answer" :aria-hidden="typing?.id === question.id ? true : undefined" class="assistant-reply whitespace-pre-wrap break-words text-sm leading-7">{{ typing?.id === question.id ? typing.text : question.reply.answer }}</p>
+          <div v-if="typing?.id !== question.id && question.reply?.citations?.length" class="space-y-2">
             <h3 class="text-xs font-medium text-[var(--text-muted)]">{{ articleSlug ? '参考段落' : '参考文章' }}</h3>
             <div class="citation-list grid min-w-0 gap-2" :class="{ 'sm:grid-cols-2': !embedded }">
               <NuxtLink v-for="citation in question.reply.citations" :key="`${citation.slug}:${citation.anchor || citation.section_title || citation.title}`" :to="citationPath(citation)" class="ui-panel min-w-0 space-y-1 p-3 hover:border-[var(--accent)]">
@@ -211,7 +246,7 @@ onBeforeUnmount(() => {
               </NuxtLink>
             </div>
           </div>
-          <button v-if="!embedded && question.reply?.answer" type="button" class="ui-link min-h-11 text-xs" @click="copy(question)">复制回答</button>
+          <button v-if="!embedded && typing?.id !== question.id && question.reply?.answer" type="button" class="ui-link min-h-11 text-xs" @click="copy(question)">复制回答</button>
           <p v-if="question.copyNotice" role="status" class="text-xs text-[var(--text-muted)]">{{ question.copyNotice }}</p>
         </div>
         <p v-else role="alert" class="text-sm text-[var(--status-error)]">{{ question.error }}</p>

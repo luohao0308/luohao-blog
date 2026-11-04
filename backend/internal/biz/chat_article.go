@@ -31,6 +31,9 @@ func (uc *ChatUsecase) AskArticle(ctx context.Context, query, slug, clientIP str
 	if err != nil {
 		return nil, err
 	}
+	if introduction := chatIntroduction(query, slug); introduction != nil {
+		return introduction, nil
+	}
 	sections := selectChatSections(query, render.Sections(article.ContentMD))
 	if len(sections) == 0 {
 		return &ChatAnswer{Outcome: ChatOutcomeNoMatch, ArticleSlug: slug, Answer: "本文中没有找到相关段落，请换个说法，或询问“总结本文”。"}, nil
