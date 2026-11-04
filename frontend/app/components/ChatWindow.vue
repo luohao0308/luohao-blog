@@ -223,33 +223,42 @@ onBeforeUnmount(() => {
       </div>
       <button v-if="questions.length" type="button" :disabled="busy" class="ui-link min-h-11 px-2 text-sm disabled:opacity-50" @click="clear">清空记录</button>
     </header>
-    <div v-if="embedded && !questions.length" class="assistant-intro">
-      <p>{{ variant === 'bubble' ? '想聊点什么？' : '你好！想了解这个博客的什么？' }}</p>
-      <div class="assistant-suggestions">
-        <button v-for="suggestion in suggestions.slice(0, variant === 'bubble' ? 2 : 3)" :key="suggestion" type="button" :disabled="!!input.trim() || composing" @click="askSuggestion(suggestion)">{{ suggestion }}</button>
+    <div v-if="embedded && !questions.length" class="message-row intro-row">
+      <slot name="assistant-avatar" />
+      <div class="assistant-intro">
+        <p>{{ variant === 'bubble' ? '想聊点什么？' : '你好！想了解这个博客的什么？' }}</p>
+        <div class="assistant-suggestions">
+          <button v-for="suggestion in suggestions.slice(0, variant === 'bubble' ? 2 : 3)" :key="suggestion" type="button" :disabled="!!input.trim() || composing" @click="askSuggestion(suggestion)">{{ suggestion }}</button>
+        </div>
       </div>
     </div>
     <div v-if="questions.length" ref="history" class="space-y-4 assistant-history" role="log" aria-label="聊天记录">
       <div v-for="question in questions" :key="question.id" class="min-w-0 space-y-3">
-        <p data-testid="chat-question" class="chat-query">{{ question.query }}</p>
-        <p v-if="question.state === 'pending'" role="status" class="text-sm text-[var(--text-muted)]">正在回复…</p>
-        <div v-else-if="question.state === 'returned'" class="space-y-3">
-          <p v-if="!embedded || outcome(question.reply) !== 1" role="status" class="text-xs text-[var(--text-muted)]">{{ resultLabel(question.reply) }}</p>
-          <p v-if="question.reply?.answer" data-testid="chat-answer" :aria-hidden="typing?.id === question.id ? true : undefined" class="assistant-reply whitespace-pre-wrap break-words text-sm leading-7">{{ typing?.id === question.id ? typing.text : question.reply.answer }}</p>
-          <div v-if="typing?.id !== question.id && question.reply?.citations?.length" class="space-y-2">
-            <h3 class="text-xs font-medium text-[var(--text-muted)]">{{ articleSlug ? '参考段落' : '参考文章' }}</h3>
-            <div class="citation-list grid min-w-0 gap-2" :class="{ 'sm:grid-cols-2': !embedded }">
-              <NuxtLink v-for="citation in question.reply.citations" :key="`${citation.slug}:${citation.anchor || citation.section_title || citation.title}`" :to="citationPath(citation)" class="ui-panel min-w-0 space-y-1 p-3 hover:border-[var(--accent)]">
-                <span class="ui-link block break-words text-sm font-medium">{{ citation.section_title || citation.title }}</span>
-                <span v-if="citation.excerpt" class="block whitespace-pre-wrap break-words text-xs leading-6 text-[var(--text-muted)]">{{ citation.excerpt }}</span>
-                <span v-else-if="citation.summary" class="line-clamp-2 block text-xs leading-6 text-[var(--text-muted)]">{{ citation.summary }}</span>
-              </NuxtLink>
-            </div>
-          </div>
-          <button v-if="!embedded && typing?.id !== question.id && question.reply?.answer" type="button" class="ui-link min-h-11 text-xs" @click="copy(question)">复制回答</button>
-          <p v-if="question.copyNotice" role="status" class="text-xs text-[var(--text-muted)]">{{ question.copyNotice }}</p>
+        <div class="message-row user-row">
+          <p data-testid="chat-question" class="chat-query">{{ question.query }}</p>
+          <slot name="user-avatar" />
         </div>
-        <p v-else role="alert" class="text-sm text-[var(--status-error)]">{{ question.error }}</p>
+        <div class="message-row">
+          <slot name="assistant-avatar" />
+          <div class="message-content space-y-2">
+            <p v-if="question.state === 'pending'" role="status" class="assistant-reply text-[var(--text-muted)]">正在回复…</p>
+            <template v-else-if="question.state === 'returned'">
+              <p v-if="!embedded || outcome(question.reply) !== 1" role="status" class="text-xs text-[var(--text-muted)]">{{ resultLabel(question.reply) }}</p>
+              <p v-if="question.reply?.answer" data-testid="chat-answer" :aria-hidden="typing?.id === question.id ? true : undefined" class="assistant-reply whitespace-pre-wrap break-words text-sm leading-7">{{ typing?.id === question.id ? typing.text : question.reply.answer }}</p>
+              <details v-if="typing?.id !== question.id && question.reply?.citations?.length" class="chat-citations">
+                <summary>{{ articleSlug ? '参考段落' : '参考文章' }} · {{ question.reply.citations.length }}</summary>
+                <ul>
+                  <li v-for="citation in question.reply.citations" :key="`${citation.slug}:${citation.anchor || citation.section_title || citation.title}`">
+                    <NuxtLink :to="citationPath(citation)" class="ui-link">{{ citation.section_title || citation.title }}</NuxtLink>
+                  </li>
+                </ul>
+              </details>
+              <button v-if="!embedded && typing?.id !== question.id && question.reply?.answer" type="button" class="ui-link min-h-11 text-xs" @click="copy(question)">复制回答</button>
+              <p v-if="question.copyNotice" role="status" class="text-xs text-[var(--text-muted)]">{{ question.copyNotice }}</p>
+            </template>
+            <p v-else role="alert" class="text-sm text-[var(--status-error)]">{{ question.error }}</p>
+          </div>
+        </div>
         <div v-if="retryable(question)" class="flex flex-wrap gap-3 text-sm">
           <button type="button" :disabled="busy" class="ui-link min-h-11 disabled:opacity-50" @click="send(question)">重试问题</button>
           <button v-if="!embedded" type="button" :disabled="busy || !!input.trim()" :title="input.trim() ? '先发送或清空当前草稿，再编辑这个问题' : undefined" class="ui-link min-h-11 disabled:opacity-50" @click="edit(question)">编辑问题</button>
@@ -257,6 +266,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <form class="chat-composer" @submit.prevent="ask">
+      <slot name="composer-action" />
       <textarea id="blog-question" ref="composer" v-model="input" aria-label="输入消息" aria-describedby="blog-question-help" rows="1" placeholder="输入消息…" class="chat-input" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false" />
       <button type="submit" :disabled="!canAsk || composing" class="chat-send" aria-label="发送" title="发送">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg>
@@ -274,9 +284,9 @@ onBeforeUnmount(() => {
 .assistant-suggestions button { min-height: 32px; padding: .25rem .625rem; border: 1px solid var(--border-default); border-radius: .625rem; background: var(--surface-page); font-size: .75rem; text-align: left; }
 .assistant-suggestions button:hover:not(:disabled) { background: var(--surface-hover); }
 .assistant-suggestions button:disabled { opacity: .55; }
-.assistant-chat .assistant-history { max-height: min(38dvh, 16rem); overflow-y: auto; overscroll-behavior: contain; padding: .25rem .25rem .25rem 0; }
+.assistant-chat .assistant-history { max-height: var(--assistant-history-height, min(38dvh, 16rem)); overflow-y: auto; overscroll-behavior: contain; padding: .25rem .25rem .25rem 0; }
 .chat-query, .assistant-reply { width: fit-content; max-width: 92%; padding: .5rem .75rem; border-radius: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8125rem; line-height: 1.65; }
-.chat-query { margin-left: auto; background: var(--surface-accent); color: var(--text-primary); border-bottom-right-radius: .25rem; }
+.chat-query { background: var(--surface-accent); color: var(--text-primary); border-bottom-right-radius: .25rem; }
 .assistant-reply { background: var(--surface-hover); border-bottom-left-radius: .25rem; }
 .chat-composer { display: flex; align-items: center; gap: .5rem; padding: .1875rem .25rem .1875rem .625rem; border: 1px solid var(--border-default); border-radius: .625rem; background: var(--surface-page); }
 .chat-composer:focus-within { border-color: var(--text-muted); }
@@ -291,13 +301,24 @@ onBeforeUnmount(() => {
 .assistant-chat[data-variant='bubble'] .assistant-suggestions button { background: color-mix(in srgb, var(--surface-overlay) 50%, transparent); border-color: color-mix(in srgb, var(--text-muted) 22%, transparent); }
 .assistant-chat[data-variant='bubble'] .chat-query { background: color-mix(in srgb, #e6b94f 20%, var(--surface-overlay)); }
 .assistant-chat[data-variant='wechat'] { gap: 0; background: var(--surface-hover); }
-.assistant-chat[data-variant='wechat'] .assistant-intro { margin: .75rem; padding: .625rem; border-radius: .75rem .75rem .75rem .25rem; background: var(--surface-overlay); }
+.assistant-chat[data-variant='wechat'] .assistant-intro { padding: .625rem; border-radius: .75rem .75rem .75rem .25rem; background: var(--surface-overlay); }
 .assistant-chat[data-variant='wechat'] .assistant-history { padding: .75rem; }
 .assistant-chat[data-variant='wechat'] .assistant-reply { background: var(--surface-overlay); }
 .assistant-chat[data-variant='wechat'] .chat-query { background: color-mix(in srgb, #83cf72 36%, var(--surface-overlay)); }
 .assistant-chat[data-variant='wechat'] .chat-composer { margin: .375rem .625rem .25rem; padding: 2px 3px 2px .625rem; background: var(--surface-overlay); }
-.assistant-chat[data-variant='wechat'] .chat-input { height: 34px; padding-block: 5px; }
-.assistant-chat[data-variant='wechat'] .chat-send { width: 34px; height: 34px; }
+.assistant-chat[data-variant='wechat'] .chat-input { height: 28px; padding-block: 2px; }
+.assistant-chat[data-variant='wechat'] .chat-send { width: 28px; height: 28px; }
 .assistant-chat[data-variant='wechat'] .chat-send svg { width: 16px; height: 16px; }
 .assistant-chat[data-variant='wechat'] .chat-disclosure { padding: .25rem .625rem .625rem; }
+.message-row { display: flex; align-items: flex-start; gap: .375rem; min-width: 0; }
+.user-row { justify-content: flex-end; }
+.message-content { min-width: 0; }
+.message-content .assistant-reply { max-width: 100%; }
+.user-row .chat-query { max-width: calc(100% - 30px); }
+.assistant-chat .intro-row { margin: .625rem .75rem; }
+.intro-row .assistant-intro { min-width: 0; }
+.chat-citations { color: var(--text-muted); font-size: .6875rem; line-height: 1.5; }
+.chat-citations summary { display: list-item; width: fit-content; min-height: 24px; cursor: pointer; }
+.chat-citations ul { display: grid; gap: 2px; padding: .125rem 0 .25rem .75rem; }
+.chat-citations a { display: inline-flex; align-items: center; min-height: 24px; overflow-wrap: anywhere; }
 </style>

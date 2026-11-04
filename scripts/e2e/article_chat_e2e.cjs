@@ -68,7 +68,7 @@ async function main() {
       const dialog = page.getByRole('dialog', { name: /小乌/ })
       const chat = dialog.getByRole('region', { name: '对话记录' })
       // section aria-label is a named region.
-      await dialog.getByRole('button', { name: '聊本文', exact: true }).click()
+      await dialog.getByRole('button', { name: '切换提问范围', exact: true }).click()
       const input = chat.getByRole('textbox', { name: '输入消息' })
       async function ask(query) {
         await input.fill(query)
@@ -78,10 +78,11 @@ async function main() {
       await ask('这一节讲什么？')
       await chat.getByText('当前文章的回答', { exact: true }).waitFor()
       assert.deepEqual(requests.at(-1), { query: '这一节讲什么？', article_slug: 'reading' })
+      await chat.locator('details.chat-citations summary').first().click()
       const source = chat.getByRole('link', { name: /中文标题/ }).first()
       assert.equal(decodeURIComponent(await source.getAttribute('href')), '/posts/reading#中文标题')
       await source.click()
-      assert.equal(decodeURIComponent(new URL(page.url()).hash), '#中文标题')
+      await page.waitForURL(url => decodeURIComponent(url.hash) === '#中文标题')
       assert.equal(await page.evaluate(() => window.chatInjected), undefined)
       await dialog.waitFor({ state: 'hidden' })
       await page.getByRole('button', { name: '打开小乌', exact: true }).click()
@@ -94,6 +95,7 @@ async function main() {
       await page.waitForFunction(() => [...document.querySelectorAll('[aria-label="对话记录"] a')].some(a => a.getAttribute('href') === '/posts/reading'))
       mode = 'legacy'
       await ask('旧版引用格式')
+      await chat.locator('details.chat-citations summary').nth(2).click()
       await chat.getByRole('link', { name: '旧版引用', exact: true }).waitFor()
       assert.equal(await chat.getByRole('link', { name: '旧版引用', exact: true }).getAttribute('href'), '/posts/reading')
       mode = 'old-backend'
@@ -126,7 +128,7 @@ async function main() {
       assert.deepEqual(errors, [])
       await fs.mkdir(out, { recursive: true })
       await page.screenshot({ path: path.join(out, `article-chat-${width}.png`), fullPage: true })
-      results.push(`${width}: scoped request, real/missing anchor, excerpt escaping, error retry, navigation isolation PASS`)
+      results.push(`${width}: scoped request, real/missing anchor, collapsed sources, error retry, navigation isolation PASS`)
       await page.close()
     }
     await fs.writeFile(path.join(out, 'article-chat-results.txt'), results.join('\n') + '\n')
