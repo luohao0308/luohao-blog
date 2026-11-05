@@ -21,7 +21,7 @@ function paint(ctx: CanvasRenderingContext2D, w: number, h: number, time: number
 </template>
 
 <style scoped>
-.about-flight-surface { position:fixed; inset:0; z-index:30; overflow:hidden; pointer-events:none; }
+.about-flight-surface { position:absolute; inset:0 0 auto; height:100svh; z-index:30; overflow:hidden; pointer-events:none; }
 .about-flight-surface :deep(.lab-hit-control) { pointer-events:auto; cursor:pointer; }
 .flight-pause { position:absolute; left:24px; bottom:24px; width:44px; height:44px; border:1px solid var(--border-default); border-radius:50%; background:var(--surface-page); color:var(--text-muted); pointer-events:auto; font-size:13px; }
 .flight-pause:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }

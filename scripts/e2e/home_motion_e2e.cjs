@@ -212,6 +212,12 @@ async function main() {
       await current.page.keyboard.press('Escape')
       await restored(current.page)
       assert.deepEqual(await flightStyle(current.page), { visibility: 'visible', opacity: 1 })
+      const flightTop = () => current.page.locator(flight).evaluate(element => element.getBoundingClientRect().top)
+      const initialTop = await flightTop()
+      await current.page.evaluate(() => window.scrollTo({ top: 240, behavior: 'instant' }))
+      const scrolled = await current.page.evaluate(() => window.scrollY)
+      assert(scrolled > 0, `home can scroll at ${width}px`)
+      assert(Math.abs(await flightTop() - (initialTop - scrolled)) < 1, `aircraft route scrolls with the page at ${width}px`)
       assert(await current.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no settled overflow ${width}px`)
       await current.ctx.close()
     }
