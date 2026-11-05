@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="490" viewBox="0 0 760 490" role="img" aria-labelledby="title desc">
+  <title id="title">一篇文章在博客中的三条路径</title>
+  <desc id="desc">发布通过 Nuxt 和 Kratos 写入 MySQL。搜索由 Elasticsearch 提供候选，再读取 MySQL。问本文读取已发布正文，选取段落后生成带引用的回答。</desc>
+  <rect width="760" height="490" rx="24" fill="#eef4ff"/>
+  <g font-family="system-ui, PingFang SC, sans-serif">
+    <text x="36" y="57" font-size="32" font-weight="700" fill="#162b50">一篇文章的三条路径</text>
+    <text x="36" y="93" font-size="20" fill="#40567a">MySQL 保存正文，搜索索引和回答从正文派生</text>
+    <g fill="#fff" stroke="#c9d8f1">
+      <rect x="36" y="118" width="688" height="94" rx="15"/>
+      <rect x="36" y="232" width="688" height="94" rx="15"/>
+      <rect x="36" y="346" width="688" height="94" rx="15"/>
+    </g>
+    <g fill="#234eae" font-size="25" font-weight="700">
+      <text x="60" y="156">01  发布</text>
+      <text x="60" y="270">02  搜索</text>
+      <text x="60" y="384">03  问本文</text>
+    </g>
+    <g fill="#233853" font-size="23">
+      <text x="60" y="189">Nuxt 编辑器 → Kratos → MySQL 正文与版本</text>
+      <text x="60" y="303">Elasticsearch 候选 → MySQL 回读 → 公开结果</text>
+      <text x="60" y="417">已发布正文 → 相关段落 → 模型回答与引用</text>
+    </g>
+    <text x="36" y="471" font-size="18" fill="#40567a">luohao.blog · 内容发布与检索架构</text>
+  </g>
+</svg>

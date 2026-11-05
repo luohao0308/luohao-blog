@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="410" viewBox="0 0 760 410" role="img" aria-labelledby="title desc">
+  <title id="title">AIGC 中台的对话与绘图链路</title>
+  <desc id="desc">流式对话经 Django 接入模型网关，由 SSE 缓冲层整理片段后送回页面。绘图由 Django 接收，经 Celery 队列分配给可用的 ComfyUI GPU 节点。</desc>
+  <rect width="760" height="410" rx="24" fill="#f3eeff"/>
+  <g font-family="system-ui, PingFang SC, sans-serif">
+    <text x="36" y="57" font-size="31" font-weight="700" fill="#31215c">流式对话与异步绘图</text>
+    <text x="36" y="93" font-size="20" fill="#564377">同一个业务入口，两种任务节奏</text>
+    <g fill="#fff" stroke="#d9caef">
+      <rect x="36" y="118" width="688" height="106" rx="15"/>
+      <rect x="36" y="244" width="688" height="106" rx="15"/>
+    </g>
+    <g fill="#663bab" font-size="25" font-weight="700">
+      <text x="60" y="158">01  流式对话</text>
+      <text x="60" y="284">02  异步绘图</text>
+    </g>
+    <g fill="#3d3154" font-size="22">
+      <text x="60" y="193">Django → 模型网关 → SSE 片段缓冲 → 页面</text>
+      <text x="60" y="319">Django → Celery 优先级队列 → 可用 ComfyUI 节点</text>
+    </g>
+    <text x="36" y="386" font-size="18" fill="#564377">脱敏架构示意 · 省略部署配置与计费流程</text>
+  </g>
+</svg>
