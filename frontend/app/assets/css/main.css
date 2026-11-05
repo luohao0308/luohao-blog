@@ -144,7 +144,7 @@
 }
 
 /* First-load gate fails open from the head script, including failed hydration. */
-html[data-home-entering] .site-shell { visibility: hidden; }
+html[data-home-entering] :is(.site-shell, [data-home-flight]) { visibility: hidden; }
 [data-home-live-assembly] { overflow-x: clip; }
 [data-home-live-assembly] .home-page,
 [data-home-live-assembly] .home-articles { perspective: none !important; }

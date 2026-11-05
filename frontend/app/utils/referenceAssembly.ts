@@ -31,11 +31,12 @@ export function createReferenceAssembly(root: HTMLElement, viewportWidth: number
   ]
   const cards = [...root.querySelectorAll<HTMLElement>('[data-home-card]')].slice(0, 3)
   const rectangles = cards.map(card => card.getBoundingClientRect())
-  const hero = root.querySelector<HTMLElement>('[data-home-hero]')?.getBoundingClientRect()
+  const hero = root.querySelector<HTMLElement>('[data-home-hero]')
+  const heroRect = hero?.getBoundingClientRect()
   const first = rectangles[0]
   const multiRow = !!first && rectangles.some(rect => Math.abs(rect.top - first.top) > 1)
   const anchorX = first ? (Math.min(...rectangles.map(rect => rect.left)) + Math.max(...rectangles.map(rect => rect.right))) / 2 : 0
-  const anchorY = first ? (hero?.bottom ?? first.top) + first.height * 0.22 : 0
+  const anchorY = first ? (heroRect?.bottom ?? first.top) + first.height * 0.22 : 0
   const previous = shell.dataset.homeLiveAssembly
   shell.dataset.homeLiveAssembly = 'true'
   const cleanup = () => {
@@ -50,6 +51,16 @@ export function createReferenceAssembly(root: HTMLElement, viewportWidth: number
     }))
     return { element, frames, duration: 2900, delay: index * 65, easing: 'cubic-bezier(.25,.55,.25,1)' }
   })
+  const heroStep = steps.find(step => step.element === hero)
+  const flight = heroStep && root.ownerDocument.querySelector<HTMLElement>('[data-home-flight]')
+  if (heroStep && flight) {
+    // The viewport overlay follows the hero's landing without inheriting its 3D transform.
+    steps.push({ ...heroStep, element: flight, frames: [
+      { opacity: 0, visibility: 'hidden' },
+      { opacity: 0, visibility: 'hidden', offset: heroStep.frames.at(-2)?.offset },
+      { opacity: 1, visibility: 'visible' },
+    ] })
+  }
   cards.forEach((element, index) => {
     const rect = rectangles[index]!
     const side = index - (cards.length - 1) / 2

@@ -13,7 +13,7 @@ function paint(ctx: CanvasRenderingContext2D, w: number, h: number, time: number
 
 <template>
   <Teleport to="body">
-    <div class="about-flight-surface" role="region" aria-label="页面上空的巡航飞机">
+    <div class="about-flight-surface" data-home-flight role="region" aria-label="页面上空的巡航飞机">
       <InteractiveStudyCanvas effect="about-airplane" :painter="paint" :playing="playing" :reset-token="resetToken" :transparent="true" :show-labels="false" @motion-preference="reduced = $event" />
       <button v-if="showControls" class="flight-pause" type="button" :disabled="reduced" :aria-label="playing ? '暂停城市与天空动态' : '恢复城市与天空动态'" :aria-pressed="!playing" @click="emit('toggle')">{{ playing ? 'Ⅱ' : '▷' }}</button>
     </div>
