@@ -130,9 +130,15 @@ def main():
                 command += " " + database
             return run(["docker", "exec", "-i", mysql_id, "sh", "-c", command], data=statement.encode(), diagnostic=diagnostic).decode()
 
+        # The image initializes a temporary socket-only server, shuts it
+        # down, then starts the TCP listener used by the integration tests.
         for attempt in range(60):
             try:
-                sql("SELECT 1;", diagnostic=False)
+                run(
+                    ["docker", "exec", mysql_id, "sh", "-c",
+                     'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=TCP -h127.0.0.1 -uroot --connect-timeout=2 -N -e "SELECT 1;"'],
+                    diagnostic=attempt == 59,
+                )
                 break
             except RuntimeError:
                 if attempt == 59:
