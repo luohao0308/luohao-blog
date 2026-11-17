@@ -67,7 +67,8 @@ jobs:
 
   frontend:
     name: Frontend lint & typecheck & build
-    runs-on: ubuntu-latest
+    # Keep the runner on a distribution supported by the pinned Playwright.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
