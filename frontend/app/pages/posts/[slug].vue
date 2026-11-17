@@ -129,8 +129,8 @@ useHead(() => ({
 </script>
 
 <template>
-  <article data-article-detail class="mx-auto w-full max-w-[860px] space-y-6">
-    <header class="space-y-5 border-b border-slate-200 pb-8 dark:border-slate-800">
+  <article data-article-detail class="mx-auto w-full max-w-[860px] space-y-4 sm:space-y-6">
+    <header class="space-y-3 border-b border-slate-200 pb-4 sm:space-y-5 sm:pb-8 dark:border-slate-800">
       <NuxtLink to="/posts" class="detail-button">← 返回全部文章</NuxtLink>
       <img
         v-if="showCover"
@@ -143,8 +143,8 @@ useHead(() => ({
         decoding="async"
         @error="failedCover = coverUrl"
       >
-      <h1 tabindex="-1" class="break-words text-3xl font-medium leading-relaxed">{{ article.title }}</h1>
-      <p v-if="summary" class="max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
+      <h1 tabindex="-1" class="break-words text-2xl font-medium leading-snug sm:text-3xl sm:leading-relaxed">{{ article.title }}</h1>
+      <p v-if="summary" class="max-w-3xl text-base leading-7 text-slate-600 sm:leading-8 dark:text-slate-300">
         {{ summary }}
       </p>
       <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">

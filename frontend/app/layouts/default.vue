@@ -19,10 +19,10 @@ onMounted(() => {
 })
 
 const route = useRoute()
+const articleDetail = computed(() => route.name === 'posts-slug')
 
 // Flat top-level nav; 收藏 lives in the account area.
-// Mobile keeps the taxonomy pages as a
-// flat wrap list so no hamburger menu is needed.
+// Keep taxonomy links directly available in a horizontally scrollable row.
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/posts', label: '文章' },
@@ -31,15 +31,16 @@ const navLinks = [
   { to: '/about', label: '关于' },
 ]
 const mobileLinks = [
-  { to: '/', label: '首页' },
-  { to: '/posts', label: '文章' },
-  { to: '/series', label: '系列' },
+  ...navLinks,
   { to: '/categories', label: '分类' },
   { to: '/tags', label: '标签' },
   { to: '/archives', label: '归档' },
-  { to: '/projects', label: '作品集' },
-  { to: '/about', label: '关于' },
 ]
+
+function keepMobileLinkVisible(event: FocusEvent) {
+  if (event.currentTarget instanceof HTMLElement)
+    event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}
 
 function isActive(to: string) {
   if (to === '/')
@@ -75,24 +76,24 @@ function isActive(to: string) {
           <UserMenu />
         </div>
       </div>
-      <!-- mobile nav: flat destinations, no hamburger -->
-      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-[var(--border-default)] px-6 py-2 text-sm sm:hidden">
+      <nav aria-label="移动端主导航" class="flex items-center gap-1 overflow-x-auto border-t border-[var(--border-default)] px-4 text-sm sm:hidden">
         <NuxtLink
           v-for="link in mobileLinks"
           :key="link.to"
           :to="link.to"
-          class="rounded-lg px-2 py-1 transition-colors"
+          class="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-2 transition-colors"
           :class="isActive(link.to)
             ? 'site-nav-active'
             : 'text-[var(--text-muted)]'"
           :aria-current="isActive(link.to) ? 'page' : undefined"
+          @focus="keepMobileLinkVisible"
         >
           {{ link.label }}
         </NuxtLink>
       </nav>
     </header>
 
-    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main site-content-container flex-1" :class="{ 'py-10': !route.meta.immersiveAbout }">
+    <main id="main-content" ref="cardRoot" tabindex="-1" class="site-main site-content-container flex-1" :class="{ 'py-6 sm:py-10': articleDetail, 'py-10': !route.meta.immersiveAbout && !articleDetail }">
       <slot />
     </main>
 

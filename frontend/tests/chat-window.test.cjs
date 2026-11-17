@@ -5,15 +5,15 @@ const vm = require('node:vm')
 const ts = require('typescript')
 const { computed, ref, reactive, watch, nextTick, effectScope } = require('vue')
 
-function fixture(articleSlug, fetchReply) {
+function fixture(articleSlug, fetchReply, shared = ref([])) {
   const props = reactive({ articleSlug, embedded: true }), requests = [], statuses = [], cleanups = [], effects = effectScope()
   const source = readFileSync('app/components/ChatWindow.vue', 'utf8').match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1].replaceAll('import.meta.client', 'false')
-  const context = { computed, ref, reactive, watch, nextTick, AbortController, setTimeout, clearTimeout, exports: {},
+  const context = { computed, ref, reactive, watch, nextTick, useState: () => shared, AbortController, setTimeout, clearTimeout, exports: {},
     defineProps: () => props, onBeforeUnmount: fn => cleanups.push(fn),
     defineEmits: () => (event, value) => { assert.equal(event, 'status'); statuses.push(value) },
     $fetch: async (url, options) => { requests.push({ url, ...options }); return fetchReply(options) },
   }
-  effects.run(() => vm.runInNewContext(ts.transpileModule(source + '\nglobalThis.api = { input, questions, busy, ask, send };', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, context))
+  effects.run(() => vm.runInNewContext(ts.transpileModule(source + '\nglobalThis.api = { input, questions, busy, ask, send, clear };', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, context))
   return { ...context.api, props, requests, statuses, close() { cleanups.forEach(fn => fn()); effects.stop() } }
 }
 const body = request => JSON.parse(JSON.stringify(request.body))
@@ -102,6 +102,26 @@ test('unmount aborts work and never applies the late response', async () => {
   const f = fixture('reading', () => new Promise(r => { resolve = r }))
   f.input.value = '离开页面'; const pending = f.ask(); f.close()
   assert.equal(f.requests[0].signal.aborted, true)
+  assert.equal(f.questions.value[0].state, 'failed')
   resolve({ answer: '迟到', article_slug: 'reading', outcome: 1 }); await pending
   assert.equal(f.questions.value[0].reply, undefined)
+})
+
+test('route remount preserves scoped answers, gives new questions unique IDs and can clear history', async () => {
+  const shared = ref([])
+  const first = fixture('reading', async () => ({ answer: '本文回答', outcome: 1, article_slug: 'reading' }), shared)
+  first.input.value = '本文提问'
+  await first.ask()
+  first.close()
+
+  const second = fixture(undefined, async () => ({ answer: '站内回答', outcome: 1 }), shared)
+  try {
+    assert.equal(second.questions.value[0]?.reply.answer, '本文回答')
+    assert.equal(second.questions.value[0].articleSlug, 'reading')
+    second.input.value = '全站提问'
+    await second.ask()
+    assert.notEqual(second.questions.value[0].id, second.questions.value[1].id)
+    second.clear()
+    assert.equal(shared.value.length, 0)
+  } finally { second.close() }
 })

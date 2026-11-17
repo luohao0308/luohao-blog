@@ -2,12 +2,17 @@ package service
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	v1 "github.com/luohao0308/luohao-blog/backend/api/blog/v1"
 	"github.com/luohao0308/luohao-blog/backend/internal/biz"
 
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
+	khttp "github.com/go-kratos/kratos/v3/transport/http"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -36,9 +41,10 @@ func TestConvertArticleCarriesStatus(t *testing.T) {
 // stubArticleRepo only records list options; the other repo methods are out
 // of scope for the service-level list tests and fail loudly if reached.
 type stubArticleRepo struct {
-	listOpts []biz.ListOption
-	current  *biz.Article
-	updated  *biz.Article
+	listOpts  []biz.ListOption
+	listItems []*biz.Article
+	current   *biz.Article
+	updated   *biz.Article
 }
 
 func (s *stubArticleRepo) FindBySlug(context.Context, string) (*biz.Article, error) {
@@ -50,7 +56,7 @@ func (s *stubArticleRepo) FindBySlug(context.Context, string) (*biz.Article, err
 }
 func (s *stubArticleRepo) ListArticles(_ context.Context, opts ...biz.ListOption) ([]*biz.Article, error) {
 	s.listOpts = opts
-	return nil, nil
+	return s.listItems, nil
 }
 func (s *stubArticleRepo) CreateArticle(context.Context, *biz.Article) (*biz.Article, error) {
 	return nil, biz.ErrArticleInvalidArgument
@@ -251,5 +257,45 @@ func TestUpdateUsesSubmittedVersion(t *testing.T) {
 	_, err := svc.UpdateArticle(context.Background(), &v1.UpdateArticleRequest{Article: &v1.Article{Slug: "test", Title: "edited"}, UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"title"}}, ExpectedVersion: 3})
 	if err != nil || repo.updated.Version != 3 {
 		t.Fatalf("submitted version replaced: %+v %v", repo.updated, err)
+	}
+}
+
+func TestListArticlesSummaryView(t *testing.T) {
+	repo := &stubArticleRepo{listItems: []*biz.Article{{Slug: "test", ContentMD: "# 中文正文", ContentHTML: "<h1>中文正文</h1>", Status: biz.ArticleStatusPublished}}}
+	svc := NewArticleService(biz.NewArticleUsecase(repo, nil))
+	srv := khttp.NewServer(khttp.ResponseEncoder(func(w http.ResponseWriter, _ *http.Request, value any) error {
+		data, err := (protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}).Marshal(value.(proto.Message))
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(data)
+		return err
+	}))
+	v1.RegisterArticleServiceHTTPServer(srv, svc)
+	for _, compact := range []bool{false, true} {
+		path := "/v1/articles/list?page_size=1"
+		if compact {
+			path += "&summary_only=true"
+		}
+		recorder := httptest.NewRecorder()
+		srv.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("status %d: %s", recorder.Code, recorder.Body)
+		}
+		var response v1.ArticleSet
+		if err := protojson.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		if len(response.Articles) != 1 || response.NextPageToken == "" {
+			t.Fatalf("pagination or result missing: %v", &response)
+		}
+		a := response.Articles[0]
+		if compact {
+			if a.ContentMd != "" || a.ContentHtml != "" || a.Summary != "中文正文" || a.GetReadingMinutes() != 1 {
+				t.Fatalf("invalid compact reply: %v", a)
+			}
+		} else if a.ContentMd != "# 中文正文" || a.ContentHtml == "" || a.Summary != "" {
+			t.Fatalf("legacy reply changed: %v", a)
+		}
 	}
 }

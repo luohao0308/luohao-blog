@@ -13,7 +13,7 @@ interface Question {
 }
 const props = defineProps<{ articleSlug?: string, showScope?: boolean, embedded?: boolean, variant?: 'bubble' | 'wechat' }>()
 const emit = defineEmits<{ status: [value: ChatRequestStatus] }>()
-const questions = ref<Question[]>([])
+const questions = props.embedded ? useState<Question[]>('floating-chat-history', () => []) : ref<Question[]>([])
 const input = ref('')
 const history = ref<HTMLElement | null>(null)
 const suggestions = computed(() => props.articleSlug
@@ -25,7 +25,8 @@ const composing = ref(false)
 const inputSize = computed(() => Array.from(input.value.trim()).length)
 const canAsk = computed(() => !busy.value && inputSize.value > 0 && inputSize.value <= 500)
 const copyTimers = new Map<number, ReturnType<typeof setTimeout>>()
-let sequence = 0
+let sequence = questions.value.at(-1)?.id ?? 0
+let activeQuestion: Question | undefined
 let controller: AbortController | undefined
 let disposed = false
 let typingFrame: number | undefined
@@ -90,6 +91,7 @@ async function send(question: Question) {
   if (busy.value) return
   finishTyping()
   busy.value = true
+  activeQuestion = question
   emit('status', 'working')
   question.state = 'pending'
   question.error = ''
@@ -137,6 +139,7 @@ async function send(question: Question) {
     if (!disposed) {
       busy.value = false
       controller = undefined
+      activeQuestion = undefined
     }
   }
 }
@@ -144,6 +147,7 @@ async function ask() {
   if (!canAsk.value || composing.value) return
   const question: Question = reactive({ id: ++sequence, query: input.value.trim(), articleSlug: props.articleSlug, state: 'pending' })
   questions.value.push(question)
+  if (questions.value.length > 30) questions.value.shift()
   input.value = ''
   await send(question)
 }
@@ -155,7 +159,7 @@ function askSuggestion(query: string) {
 watch(() => [questions.value.length, busy.value], async () => {
   await nextTick()
   if (history.value) history.value.scrollTop = history.value.scrollHeight
-})
+}, { immediate: true })
 function citationPath(citation: CitedArticle, articleSlug?: string) {
   const path = `/posts/${encodeURIComponent(citation.slug)}`
   const found = citation.anchor && (citation.slug !== articleSlug
@@ -199,7 +203,12 @@ onBeforeUnmount(() => {
   disposed = true
   finishTyping()
   controller?.abort()
+  if (activeQuestion?.state === 'pending') {
+    activeQuestion.state = 'failed'
+    activeQuestion.error = '页面切换已中断请求，可重新提问。'
+  }
   for (const timer of copyTimers.values()) clearTimeout(timer)
+  for (const question of questions.value) delete question.copyNotice
   emit('status', 'idle')
 })
 </script>
@@ -213,6 +222,9 @@ onBeforeUnmount(() => {
       </div>
       <button v-if="questions.length" type="button" :disabled="busy" class="ui-link min-h-11 px-2 text-sm disabled:opacity-50" @click="clear">清空记录</button>
     </header>
+    <div v-if="embedded && questions.length" class="flex justify-end">
+      <button type="button" :disabled="busy" class="ui-link px-2 py-2 text-xs disabled:opacity-50" @click="clear">清空记录</button>
+    </div>
     <div v-if="embedded && !questions.length" class="message-row intro-row">
       <slot name="assistant-avatar" />
       <div class="assistant-intro">
@@ -225,7 +237,7 @@ onBeforeUnmount(() => {
     <div v-if="questions.length" ref="history" class="space-y-4 assistant-history" role="log" aria-label="聊天记录">
       <div v-for="question in questions" :key="question.id" class="min-w-0 space-y-3">
         <div class="message-row user-row">
-          <p data-testid="chat-question" class="chat-query"><span v-if="showScope" class="chat-query-scope">{{ question.articleSlug ? '本文' : '全站' }}</span>{{ question.query }}</p>
+          <p data-testid="chat-question" class="chat-query"><span v-if="showScope || question.articleSlug" class="chat-query-scope" :title="question.articleSlug">{{ question.articleSlug ? '本文' : '全站' }}</span>{{ question.query }}</p>
           <slot name="user-avatar" />
         </div>
         <div class="message-row">

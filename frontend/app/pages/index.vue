@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AboutAircraftOverlay from '~/components/AboutAircraftOverlay.vue'
-import { formatDate, usePublishedArticles } from '~/composables/useArticles'
+import { formatDate, useHomepageArticles } from '~/composables/useArticles'
 
 
 const homeRoot = ref<HTMLElement | null>(null)
@@ -15,20 +15,16 @@ const socials = [
   { label: 'Email', href: 'mailto:2429260713@qq.com' },
 ]
 
-const { data: allArticles, status: articleStatus, error: articlesError, refresh: refreshArticles } = await usePublishedArticles()
-const homeArticles = computed(() => (allArticles.value ?? []).slice(0, 3))
+const { data: homepageArticles, status: articleStatus, error: articlesError, refresh: refreshArticles } = await useHomepageArticles()
+const homeArticles = computed(() => homepageArticles.value?.latest ?? [])
 const { data: allProjects, error: projectsError, refresh: refreshProjects } = await usePublicProjects()
 
-const stats = computed(() => {
-  const articles = allArticles.value ?? []
-  const tags = new Set(articles.flatMap(a => a.tags ?? []))
-  return {
-    articleCount: articles.length,
-    projectCount: (allProjects.value ?? []).length,
-    tagCount: tags.size,
-    latestUpdated: articles[0]?.updated_at,
-  }
-})
+const stats = computed(() => ({
+  articleCount: homepageArticles.value?.articleCount ?? 0,
+  projectCount: (allProjects.value ?? []).length,
+  tagCount: homepageArticles.value?.tagCount ?? 0,
+  latestUpdated: homepageArticles.value?.latestUpdated,
+}))
 
 const featuredProjects = computed(() => {
   const projects = allProjects.value ?? []

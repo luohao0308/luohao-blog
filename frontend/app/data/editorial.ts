@@ -4,9 +4,15 @@ export interface EditorialImage {
   caption: string
   credit: string
   seoSrc?: string
+  coverSrcset?: string
   sourceUrl?: string
   diagram?: boolean
   poster?: boolean
+}
+
+// Card derivatives accompany the original PNGs used for detail pages and sharing.
+function coverVariants(base: string): string {
+  return [320, 640, 960, 1280].map(width => `${base}-${width}.webp ${width}w`).join(', ')
 }
 
 const workflow: EditorialImage = {
@@ -54,20 +60,22 @@ export const articleImages: Record<string, EditorialImage> = {
   'aigc-backend-delivery': aigc,
   'article-cas-revisions-case-study': {
     src: '/images/editorial/covers/cas-revisions.png',
+    coverSrcset: coverVariants('/images/editorial/covers/cas-revisions'),
     alt: '两个窗口，谁能保存？版本条件与 CAS 保护新内容。',
     caption: '', credit: '', poster: true,
   },
   'article-search-sync-case-study': {
     src: '/images/editorial/covers/search-sync.png',
+    coverSrcset: coverVariants('/images/editorial/covers/search-sync'),
     alt: '保存成功，搜索没更新？正文与 Elasticsearch 索引同步。',
     caption: '', credit: '', poster: true,
   },
 }
 
 export const projectImages: Record<string, EditorialImage> = {
-  'dev-workflow': { src: '/images/projects/generated/dev-workflow-figma.png', seoSrc: '/images/projects/generated/dev-workflow-figma.png', alt: 'dev-workflow：橙色背景与规则档案夹概念封面', caption: '', credit: '', poster: true },
-  'forge-harness': { src: '/images/projects/generated/forge-harness-figma.png', seoSrc: '/images/projects/generated/forge-harness-figma.png', alt: 'Forge Harness：深色背景与运行终端概念封面', caption: '', credit: '', poster: true },
-  'aigc': { src: '/images/projects/generated/aigc-figma.png', seoSrc: '/images/projects/generated/aigc-figma.png', alt: 'AIGC：紫色背景与多种创作流程概念封面', caption: '', credit: '', poster: true },
+  'dev-workflow': { src: '/images/projects/generated/dev-workflow-figma.png', coverSrcset: coverVariants('/images/projects/generated/dev-workflow-figma'), seoSrc: '/images/projects/generated/dev-workflow-figma.png', alt: 'dev-workflow：橙色背景与规则档案夹概念封面', caption: '', credit: '', poster: true },
+  'forge-harness': { src: '/images/projects/generated/forge-harness-figma.png', coverSrcset: coverVariants('/images/projects/generated/forge-harness-figma'), seoSrc: '/images/projects/generated/forge-harness-figma.png', alt: 'Forge Harness：深色背景与运行终端概念封面', caption: '', credit: '', poster: true },
+  'aigc': { src: '/images/projects/generated/aigc-figma.png', coverSrcset: coverVariants('/images/projects/generated/aigc-figma'), seoSrc: '/images/projects/generated/aigc-figma.png', alt: 'AIGC：紫色背景与多种创作流程概念封面', caption: '', credit: '', poster: true },
   'luohao-blog': { src: '/images/projects/generated/luohao-blog-figma.svg', seoSrc: '/images/projects/generated/luohao-blog-figma.png', alt: 'luohao.blog：蓝色内容界面概念封面', caption: '', credit: '', poster: true },
   'job-application-workbench': { src: '/images/projects/generated/job-application-workbench-figma.svg', seoSrc: '/images/projects/generated/job-application-workbench-figma.png', alt: '机会工作台：绿色投递进度看板概念封面', caption: '', credit: '', poster: true },
 }

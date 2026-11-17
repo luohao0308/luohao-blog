@@ -68,10 +68,39 @@ type ChatUsecase struct {
 	limiter ChatRateLimiter
 }
 
-// NewChatUsecase builds the chat usecase. llm nil disables generation; the
-// limiter is optional and fails open on infrastructure errors.
+// NewChatUsecase builds the chat usecase. A nil LLM disables chat. The server
+// supplies a limiter; when its counter is unavailable, paid work is skipped.
 func NewChatUsecase(search *ArticleUsecase, llm ChatLLM, limiter ChatRateLimiter) *ChatUsecase {
 	return &ChatUsecase{search: search, llm: llm, limiter: limiter}
+}
+
+// Share the non-queuing limit across article and site-wide requests in this
+// process. Site-wide requests also reserve a slot during paid query embedding.
+var chatProviderSlots = make(chan struct{}, 4)
+
+func tryChatProviderSlot() bool {
+	select {
+	case chatProviderSlots <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
+
+// chatBudget allows free responses during limiter outages while preserving
+// the existing 429 response when a healthy limiter denies the request.
+func (uc *ChatUsecase) chatBudget(ctx context.Context, clientIP string) (bool, error) {
+	if uc.limiter == nil {
+		return true, nil
+	}
+	ok, err := uc.limiter.Allow(ctx, "chat:"+clientIP)
+	if err != nil {
+		return false, nil
+	}
+	if !ok {
+		return false, ErrChatTooManyAttempts
+	}
+	return true, nil
 }
 
 // noResultAnswer is returned without an LLM call when retrieval finds
@@ -82,6 +111,8 @@ const noResultAnswer = "没有找到与你的问题相关的文章。这个问�
 // llmFailureAnswer keeps the chat window useful when generation fails: the
 // retrieval already succeeded, so the citations are still shown.
 const llmFailureAnswer = "AI 生成暂时不可用，先看看这几篇相关文章："
+
+const chatBusyAnswer = "AI 生成暂时不可用，请稍后重试，也可以先浏览文章列表。"
 
 // chatIntroduction answers explicit questions about the assistant itself.
 func chatIntroduction(query, articleSlug string) *ChatAnswer {
@@ -117,17 +148,17 @@ func (uc *ChatUsecase) Ask(ctx context.Context, query string, topK int, clientIP
 	if topK > 8 {
 		topK = 8
 	}
-	if uc.limiter != nil {
-		ok, err := uc.limiter.Allow(ctx, "chat:"+clientIP)
-		if err == nil && !ok {
-			return nil, ErrChatTooManyAttempts
-		}
-		// limiter failure fails open: an outage in the counter must not take
-		// the chat down, mirroring the login and comment throttlers.
+	paidAllowed, err := uc.chatBudget(ctx, clientIP)
+	if err != nil {
+		return nil, err
 	}
 	if introduction := chatIntroduction(query, ""); introduction != nil {
 		return introduction, nil
 	}
+	if !paidAllowed || !tryChatProviderSlot() {
+		return &ChatAnswer{Answer: chatBusyAnswer, Outcome: ChatOutcomeGenerationUnavailable}, nil
+	}
+	defer func() { <-chatProviderSlots }()
 	result := uc.search.SearchArticlesWithOutcome(ctx, query, topK, 0)
 	if !result.Available {
 		return &ChatAnswer{Answer: "文章检索暂时不可用，请稍后重试。", Outcome: ChatOutcomeRetrievalUnavailable}, nil

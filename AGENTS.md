@@ -197,11 +197,7 @@ AI 执行 push、PR 创建/更新和远端 PR merge 必须先通过 Core 自带�
 
 ### 项目定位
 
-个人技术博客（全栈开发 & AI Agent 方向）。仓库 `github.com/luohao0308/luohao-blog`，Public，默认分支 `main`。当前为空仓库阶段，仅 README + dev-workflow 流程文件；技术选型已定（Go + Kratos 后端、Vue 3 + Nuxt 4 前端、MySQL/Redis/ES/MinIO、Eino RAG），详见 `docs/PROJECT-SUMMARY.md`。规划目录：`backend/`、`frontend/`、`deploy/`。
-
-### 里程碑边界
-
-M0 脚手架 → M1 内容核心 → M2 账号后台 → M3 互动统计 → M4 Agent 管道 → M5 上线。第一版范围 = M0–M2；不要在未确认的情况下跨越里程碑引入范围内功能（例如提前实现 Agent 聊天）。
+个人技术博客，面向后端、全栈与 AI 应用。仓库 `github.com/luohao0308/luohao-blog`，默认分支 `main`。Go/Kratos 后端位于 `backend/`，Vue/Nuxt Web 位于 `frontend/`，微信小程序位于 `miniprogram/`，容器编排与运维入口位于 `deploy/`。M0–M5 已交付，新增功能按任务板范围执行。网站及小程序的交付状态以当次平台证据和任务板为准。
 
 ### 协作与语言
 
@@ -210,8 +206,8 @@ M0 脚手架 → M1 内容核心 → M2 账号后台 → M3 互动统计 → M4 
 
 ### 权限与交付边界
 
-- `gitPolicy` 为 `manual + user`：push、PR 创建/更新、远端 PR merge 均需用户逐次确认后执行，执行前运行 `python3 scripts/delivery_guard.py check`。
+- push、PR 创建/更新、远端合并以本机 manifest 各操作的 mode 和 actor 为准。按上方交付规则执行精确授权与 guard 检查，缺少 manifest 时执行默认拒绝边界。
 - `main` 分支质量门：PR + required CI；是否要求独立 Review 以 manifest 和远端 branch protection 为准。
-- 空仓库阶段禁止虚构或运行不存在的构建/测试命令；M0 脚手架落地后本区回填真实命令矩阵。
+- 后端执行 `go test ./...`、`go vet ./...`、`go build ./...`；Web 执行 `pnpm lint`、`pnpm typecheck`、`node --test tests/*.test.cjs`、`pnpm build`；小程序执行 `npm run typecheck`、`npm test`。分别在各模块目录运行。完整入口见 [项目摘要](docs/PROJECT-SUMMARY.md)。
 
 <!-- AI-WORKFLOW:PROJECT:END -->

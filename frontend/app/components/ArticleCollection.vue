@@ -11,6 +11,8 @@ const selectedTag = ref('')
 const activeCategory = computed(() => props.categorySlug || selectedCategory.value)
 const activeTag = computed(() => props.tag || selectedTag.value)
 const { data, status, error, refresh } = await usePublishedArticles()
+const visibleCount = ref(12)
+watch([query, activeCategory, activeTag], () => { visibleCount.value = 12 })
 const searchResults = ref<Article[] | null>(null)
 const searchPending = ref(false)
 const searchError = ref(false)
@@ -116,9 +118,10 @@ const articles = computed(() => (searchResults.value ?? data.value ?? []).filter
       <slot name="intro" :series="availableSeries" />
       <p role="status" class="text-xs text-slate-500 dark:text-slate-400">{{ articles.length }} 篇文章</p>
       <div v-if="articles.length" class="media-feed">
-        <ArticleCard v-for="article in articles" :key="article.id" :article="article" data-article-reveal />
+        <ArticleCard v-for="article in articles.slice(0, visibleCount)" :key="article.id" :article="article" data-article-reveal />
       </div>
-      <p v-else class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : activeCategory ? '这个分类下暂无文章。' : activeTag ? '这个标签下暂无文章。' : '暂无文章。' }}</p>
+      <button v-if="articles.length > visibleCount" type="button" class="ui-button" @click="visibleCount += 12">加载更多文章</button>
+      <p v-if="!articles.length" class="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{{ query ? '没有找到匹配的文章。' : activeCategory ? '这个分类下暂无文章。' : activeTag ? '这个标签下暂无文章。' : '暂无文章。' }}</p>
     </template>
   </section>
 </template>

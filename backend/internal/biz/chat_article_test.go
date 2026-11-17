@@ -2,9 +2,10 @@ package biz
 
 import (
 	"context"
-	kratoserrors "github.com/go-kratos/kratos/v3/errors"
 	"strings"
 	"testing"
+
+	kratoserrors "github.com/go-kratos/kratos/v3/errors"
 )
 
 func TestAskArticleGrounding(t *testing.T) {
@@ -75,5 +76,15 @@ func TestAskArticleBoundsAndValidation(t *testing.T) {
 	limiter.allow = false
 	if _, err = uc.AskArticle(context.Background(), "recovery", "pub-b", "ip"); !kratoserrors.IsTooManyRequests(err) {
 		t.Fatal(err)
+	}
+}
+
+func TestAskArticleLimiterFailureKeepsReferences(t *testing.T) {
+	llm := &chatFakeLLM{answer: "答案"}
+	uc, _ := newChatTestUsecase(t, nil, llm, &chatFakeLimiter{err: context.DeadlineExceeded})
+	answer, err := uc.AskArticle(context.Background(), "总结本文", "pub-a", "ip")
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeGenerationUnavailable ||
+		answer.ArticleSlug != "pub-a" || len(answer.Sections) == 0 || llm.calls != 0 {
+		t.Fatalf("limiter failure = (%+v, %v), model calls=%d", answer, err, llm.calls)
 	}
 }

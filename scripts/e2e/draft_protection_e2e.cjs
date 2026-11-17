@@ -6,6 +6,10 @@ const { spawn } = require('node:child_process')
 const { chromium } = require('playwright')
 const root = path.resolve(__dirname, '../..')
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+// SSR inputs can be visible before the client attaches their v-model listeners.
+const waitForHydration = page => page.waitForFunction(() =>
+  document.querySelector('#__nuxt')?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false,
+)
 const article = { id: '1', version: '1', slug: 'draft-test', title: '服务器标题', summary: '', content_md: '服务器正文', content_html: '<p>服务器正文</p>', tags: [], status: 1 }
 let failSave = true
 let saveDelay = 0
@@ -48,6 +52,7 @@ async function main() {
     page.on('pageerror', error => errors.push(error.message))
     page.on('dialog', dialog => dialog.type() === 'beforeunload' ? dialog.accept() : dialog.dismiss())
     await page.goto(base + '/admin/posts/draft-test/edit')
+    await waitForHydration(page)
     const title = page.getByPlaceholder('文章标题')
     await title.fill('本地新标题')
     await page.getByRole('status').filter({ hasText: '已暂存到此浏览器' }).waitFor()
@@ -56,6 +61,7 @@ async function main() {
     await page.getByRole('link', { name: '返回列表', exact: true }).click()
     assert.ok(page.url().endsWith('/edit'), 'cancel route leave retains editor')
     await page.reload()
+    await waitForHydration(page)
     await page.getByRole('button', { name: '恢复草稿' }).waitFor()
     assert.equal(await title.inputValue(), '服务器标题', 'recovery never overwrites server automatically')
     await page.getByRole('button', { name: '恢复草稿' }).click()
@@ -81,11 +87,13 @@ async function main() {
     await title.fill('账号 A 私有草稿')
     account = 'other-author'
     await page.reload()
+    await waitForHydration(page)
     await title.waitFor()
     assert.equal(await page.getByRole('button', { name: '恢复草稿' }).count(), 0, 'other account cannot restore this draft')
     assert.equal(await title.inputValue(), '提交时标题')
     await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('quota') } })
     await page.reload()
+    await waitForHydration(page)
     await title.fill('存储失败也可手动保存')
     await page.getByText('本地暂存失败，请及时手动保存；离开可能丢失修改。', { exact: true }).waitFor()
     await page.getByRole('button', { name: '保存', exact: true }).click()
@@ -94,6 +102,7 @@ async function main() {
     newPage.on('pageerror', error => errors.push(error.message))
     newPage.on('dialog', dialog => dialog.type() === 'beforeunload' ? dialog.accept() : dialog.dismiss())
     await newPage.goto(base + '/admin/posts/new')
+    await waitForHydration(newPage)
     await newPage.getByPlaceholder('文章标题').fill('新建草稿标题')
     await newPage.getByPlaceholder('url-safe-slug').fill('draft-test')
     const editor = newPage.locator('.milkdown .ProseMirror[contenteditable]')
@@ -102,6 +111,7 @@ async function main() {
     await newPage.waitForFunction(k => JSON.parse(localStorage.getItem(k) || '{}').content_md?.includes('新建草稿的真实正文'), newKey)
     assert.equal(await newPage.evaluate(k => JSON.parse(localStorage.getItem(k)).title, newKey), '新建草稿标题', 'persisted draft includes title before reload')
     await newPage.reload()
+    await waitForHydration(newPage)
     await newPage.getByRole('button', { name: '恢复草稿' }).waitFor()
     assert.equal(await newPage.getByPlaceholder('文章标题').inputValue(), '')
     assert.equal(await editor.evaluate(el => !!el.closest('[inert]')), true, 'pending recovery editor is inert')

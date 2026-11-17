@@ -170,7 +170,11 @@ func (s *ArticleService) ListArticles(ctx context.Context, req *v1.ListArticlesR
 		set.NextPageToken = pageToken.Next(req).String()
 	}
 	for _, article := range articles {
-		set.Articles = append(set.Articles, convertArticleReply(article))
+		reply := convertArticleReply(article)
+		if req.GetSummaryOnly() {
+			applyArticleSummary(reply)
+		}
+		set.Articles = append(set.Articles, reply)
 	}
 	return set, nil
 }

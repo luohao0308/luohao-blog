@@ -11,3 +11,7 @@
 - 扩展迁移 `000012_article_media` 为已有文章提供空封面/非精选默认值。回退保留数据和图片，勿在生产直接运行down丢弃字段。
 
 可执行检查：`python3 scripts/test_mysql_migrations.py --baseline 11 --target 12` 验证实际嵌入迁移、旧数据保留、默认值、mysqldump+gzip恢复与恢复后重升级（仅本任务隔离MySQL）。媒体权限/格式/字节回读及旧客户端更新语义由backend相应tests证明；前端阅读/上传browser回归另见scripts/e2e目录。本地验收不代表已上线。
+
+## 公开文章目录
+
+`GET /v1/articles/list?summary_only=true` 保留分页和权限规则，正文 `content_md`、`content_html` 在 JSON 中为空字符串。响应保留显式摘要，缺省时从 Markdown 生成最多 160 个字符的摘录，并在有正文时返回 `reading_minutes`。未传 `summary_only` 的列表、详情、后台及小程序沿用默认行为。Web 在旧后端上仍可用，并在生成 Nuxt 页面数据前剔除目录中的正文。

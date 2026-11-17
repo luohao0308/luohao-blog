@@ -41,6 +41,7 @@ export interface Article {
   // assetUrl(). Missing fields keep older articles wire-compatible.
   cover_url?: string
   featured?: boolean
+  reading_minutes?: number
 }
 
 export interface ArticleSet {
@@ -63,23 +64,52 @@ export function useArticleBySlug(slug: string) {
   return useFetch<Article>(`/api/v1/articles/${encodeURIComponent(slug)}`, { key: `article:${slug}` })
 }
 
-// Tags and adjacent articles need the full collection, not just its first page.
-export function usePublishedArticles() {
+// The directory preserves ordering and facets without sending Markdown or HTML.
+function usePublishedArticleDirectory() {
   const requestFetch = useRequestFetch()
-  return useAsyncData('published-articles', async () => {
+  return async () => {
     const articles: Article[] = []
     const seenTokens = new Set<string>()
     let pageToken = ''
     do {
       const page = await requestFetch<ArticleSet>('/api/v1/articles/list', {
-        query: { page_size: 100, page_token: pageToken, order_by: 'published_at desc,slug' },
+        query: { page_size: 100, page_token: pageToken, order_by: 'published_at desc,slug', summary_only: true },
       })
-      articles.push(...(page.articles ?? []))
+      for (const article of page.articles ?? []) {
+        if (article.status !== ARTICLE_STATUS.PUBLISHED) continue
+        // Older backends may return full bodies during a rolling update.
+        const { content_md, ...summary } = article
+        articles.push({
+          ...summary,
+          summary: articleSummary(summary.summary, content_md),
+          reading_minutes: summary.reading_minutes ?? readingMinutes(content_md),
+          content_md: '',
+          content_html: '',
+        })
+      }
       pageToken = page.next_page_token ?? ''
       if (pageToken && seenTokens.has(pageToken)) throw new Error('文章分页异常')
       seenTokens.add(pageToken)
     } while (pageToken)
-    return articles.filter(article => article.status === ARTICLE_STATUS.PUBLISHED)
+    return articles
+  }
+}
+
+export function usePublishedArticles() {
+  return useAsyncData('published-articles', usePublishedArticleDirectory())
+}
+
+export function useHomepageArticles() {
+  const fetchDirectory = usePublishedArticleDirectory()
+  return useAsyncData('homepage-articles', async () => {
+    const articles = await fetchDirectory()
+    return {
+      latest: articles.slice(0, 3),
+      articleCount: articles.length,
+      tagCount: new Set(articles.flatMap(article => article.tags ?? [])).size,
+      latestUpdated: articles.reduce<ArticleTimestamp | undefined>((latest, article) =>
+        articleDate(article.updated_at) > articleDate(latest) ? article.updated_at : latest, undefined),
+    }
   })
 }
 

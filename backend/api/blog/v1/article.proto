@@ -177,6 +177,8 @@ message Article {
   optional string cover_url = 15;
   // Whether editors have selected the article for featured placements.
   optional bool featured = 16;
+  // Estimated reading time in summary-only list responses.
+  optional uint32 reading_minutes = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CategoryBrief is the category summary attached to an article response.
@@ -249,6 +251,8 @@ message ListArticlesRequest {
   // Append ` desc` to a field for descending order, e.g. `published_at desc`.
   // Defaults to ascending order when no direction is supplied.
   string order_by = 4;
+  // Omit both body fields and include a synopsis and reading time.
+  bool summary_only = 5;
 }
 
 // UpdateArticleRequest is the input for ArticleService.UpdateArticle.
