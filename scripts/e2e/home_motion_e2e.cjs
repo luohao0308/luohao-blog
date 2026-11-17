@@ -8,6 +8,7 @@ const base = process.env.BLOG_E2E_BASE_URL || 'http://127.0.0.1:13000'
 if (!['127.0.0.1', 'localhost', '[::1]'].includes(new URL(base).hostname)) throw new Error('Local frontend only')
 const output = path.resolve(process.env.BLOG_E2E_OUTPUT || 'output/visual-redesign/reference-assembly')
 const scene = '[data-home-live-assembly]'
+const flight = '[data-home-flight]'
 const forbidden = '.home-assembly-overlay, .ad-piece, .ad-tag, .assembly-fan-card, .screen-wrap'
 async function main() {
   fs.mkdirSync(output, { recursive: true })
@@ -41,11 +42,23 @@ async function main() {
       for (const animation of document.getAnimations()) if (animation.effect?.target?.closest(selector)) {
         animation.pause(); animation.currentTime = time
       }
-    }, { selector: scene, time })
+    }, { selector: `${scene}, ${flight}`, time })
+  }
+  async function flightStyle(page) {
+    return page.locator(flight).evaluate(element => {
+      const { visibility, opacity } = getComputedStyle(element)
+      return { visibility, opacity: Number(opacity) }
+    })
   }
   try {
     const first = await session()
     await enter(first.page)
+    await freeze(first.page, 1100)
+    assert.deepEqual(await flightStyle(first.page), { visibility: 'hidden', opacity: 0 }, 'aircraft stays hidden while the hero is tilted')
+    await freeze(first.page, 2840)
+    const landing = await flightStyle(first.page)
+    assert.equal(landing.visibility, 'visible')
+    assert(landing.opacity > 0 && landing.opacity < 1, 'aircraft fades in as the hero settles')
     await freeze(first.page, 1100)
     assert.equal(await first.page.locator(scene).count(), 1)
     assert.equal(await first.page.locator(forbidden).count(), 0, 'no framed reference, clone or overlay')
@@ -86,14 +99,18 @@ async function main() {
     await first.page.screenshot({ path: path.join(output, 'home-1440-reference-peak.png'), fullPage: false })
     await first.page.getByRole('button', { name: '跳过开场', exact: true }).click()
     await restored(first.page)
+    assert.deepEqual(await flightStyle(first.page), { visibility: 'visible', opacity: 1 }, 'skip restores aircraft immediately')
     assert(await first.page.evaluate(() => window.__motionOriginalNodes.every(node => node.isConnected)), 'animated real elements are never replaced')
     await first.page.reload({ waitUntil: 'networkidle' })
     assert.equal(await first.page.locator(scene).count(), 0, 'same session reload does not replay')
+    assert.deepEqual(await flightStyle(first.page), { visibility: 'visible', opacity: 1 }, 'reload shows normal cruise')
     await first.page.getByRole('link', { name: '阅读文章', exact: true }).click()
     await first.page.waitForURL('**/posts')
+    await first.page.locator(flight).waitFor({ state: 'detached' })
     await first.page.getByRole('link', { name: '首页', exact: true }).first().click()
     await first.page.waitForURL(base + '/')
     assert.equal(await first.page.locator(scene).count(), 0, 'same session route return does not replay')
+    assert.deepEqual(await flightStyle(first.page), { visibility: 'visible', opacity: 1 })
     await first.page.locator('[data-home-card] a[href="/posts/fixture-article"]').first().click()
     await first.page.waitForURL('**/posts/fixture-article')
     assert.equal(await first.page.locator(scene).count(), 0)
@@ -106,6 +123,7 @@ async function main() {
     assert.equal(await natural.page.locator(scene).count(), 1, 'skip focus does not dismiss the scene')
     const started = Date.now()
     await restored(natural.page)
+    assert.deepEqual(await flightStyle(natural.page), { visibility: 'visible', opacity: 1 }, 'aircraft remains visible after natural completion')
     assert.equal(await natural.page.evaluate(() => document.activeElement.id), 'main-content', 'focused skip returns to real content on completion')
     const elapsed = Date.now() - started
     assert(elapsed > 2300 && elapsed < 4000, `natural completion about 3.2s: ${elapsed}ms`)
@@ -152,6 +170,7 @@ async function main() {
     assert.equal(await delayed.page.locator('html[data-home-entering]').count(), 0)
     assert.equal(await delayed.page.locator('[data-home-root]').evaluate(el => getComputedStyle(el).visibility), 'visible')
     assert.equal(await delayed.page.getByRole('button', { name: '跳过开场', exact: true }).count(), 0)
+    assert.deepEqual(await flightStyle(delayed.page), { visibility: 'visible', opacity: 1 }, 'late hydration shows normal cruise')
     await delayed.ctx.close()
     checks.push('1800ms delayed client JS stays visible and skips animation after boot fail-open')
 
@@ -188,9 +207,11 @@ async function main() {
         assert(await current.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no document overflow ${width}px at ${time}ms`)
       }
       await freeze(current.page, 1100)
+      assert.equal((await flightStyle(current.page)).visibility, 'hidden', `aircraft stays hidden during the opening at ${width}px`)
       if (width === 390) await current.page.screenshot({ path: path.join(output, 'home-390-reference-peak.png'), fullPage: false })
       await current.page.keyboard.press('Escape')
       await restored(current.page)
+      assert.deepEqual(await flightStyle(current.page), { visibility: 'visible', opacity: 1 })
       assert(await current.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no settled overflow ${width}px`)
       await current.ctx.close()
     }
@@ -220,6 +241,10 @@ async function main() {
         assert.equal(await current.page.locator('[data-home-root] [inert]').count(), 0)
         assert(await current.page.locator('[data-home-root] h1').textContent())
         assert.equal(await current.page.locator('[data-home-card]').count(), 3)
+        if (variant === 'reduce') {
+          assert.deepEqual(await flightStyle(current.page), { visibility: 'visible', opacity: 1 })
+          assert.equal(await current.page.locator(`${flight} canvas`).getAttribute('data-render-state'), 'reduced')
+        }
       }
       await current.ctx.close()
       checks.push(`${variant} fallback`)
