@@ -1,6 +1,6 @@
 # 文章与作品集内容更新
 
-状态：本地验收完成，待发布（2026-11-05 用户确认）
+状态：已交付，2026-11-17 完成公开数据复核。
 基线：博客 origin/main df0d04e，公开内容以本轮只读 CMS 快照为准。
 
 | 顺序 | 结果 | 验收与回退 |
@@ -22,4 +22,6 @@
 - `pnpm lint`、`pnpm typecheck`、`pnpm build` 通过。两张 SVG 补齐固有尺寸后重新构建。
 - `go test ./internal/biz/article/render ./cmd/seed` 通过，三份正文另用真实 Go 渲染器生成 HTML，核对插图、目录标题及 AIGC 表格。
 - 隔离 CMS 数据与本地 Nuxt 生产构建完成 16 组 Chromium 页面验收，覆盖五个作品、三份文章及 1440px / 390px 两种宽度，核对互链、图片可见与可解码、放大后关闭、页面横向溢出。证据位于本机 `output/portfolio-content-refresh/browser-check.log`。
-- [内容包与导入顺序](../content/PORTFOLIO-REFRESH-2026-11.md) 已准备。生产前需重新核对 CMS 基线和交付授权。
+- [内容包与导入顺序](../content/PORTFOLIO-REFRESH-2026-11.md) 作为交付和回退参考。
+
+- 2026-11-17 从公开 API 重新核对 5 个作品、3 篇文章的目标字段及要求保留的字段，均与已交付数据包匹配。4 张 CMS 上传截图的公开字节 SHA-256 与随包记录匹配。

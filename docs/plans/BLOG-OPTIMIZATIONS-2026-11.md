@@ -1,6 +1,6 @@
 # 博客优化
 
-状态：本地验收完成（2026-11-17），待交付。基线为 main `33a20e7`。
+状态：已合并并发布镜像（2026-11-17），待生产切换。基线为 main `33a20e7`。
 
 | 顺序 | 切片 | 验收与回退 |
 |---|---|---|
@@ -18,3 +18,16 @@
 - Go 故障、共享并发及供应商请求回归通过。并发上限按进程计算，生产供应商行为待上线验证。Web 回归验证跨路由记录、原范围重试和显式清空。
 - GitHub Actions 的前端任务配置了本地 fixture 浏览器冒烟。手机布局缩短了导航和标题区高度，390×844 本地测试正文从 y=513px 开始。浏览器走通引用跳转、问答保留、清空记录和编辑草稿恢复。GitHub 托管运行尚待交付。验证入口见 [E2E 说明](../../scripts/e2e/README.md)。
 - 重写项目扩展区的现状和命令。本机 dev-workflow v0.14.0 登记六个由代码确认的能力，执行权限字段核对一致。
+
+- [PR #142](https://github.com/luohao0308/luohao-blog/pull/142) 的三项 CI 通过后合入主分支 `089edc80305369bfe41caab0e98d1e926e4c8669`，同提交前后端镜像均随 [release](https://github.com/luohao0308/luohao-blog/actions/runs/44019869569) 发布。公开 API 的 `summary_only=true` 探测仍返回正文。该版本无数据库迁移，前后端以同一提交配对部署，切换和健康验收另行记录。
+
+## 生产候选
+
+| 服务 | 已发布的镜像摘要 |
+|---|---|
+| backend | `ghcr.io/luohao0308/luohao-blog-backend@sha256:3da74b1c4b9734fecb1ac4b5d0c6e035ae38553aeff6e42da990b437e5056c8f` |
+| frontend | `ghcr.io/luohao0308/luohao-blog-frontend@sha256:5aecbbbcb466aa58cfb14da000d17bb9e87d3c910ccf7db31b9c67fa7a2d7537` |
+
+只有这两个服务属于候选切换范围。执行前应重新核验目标平台、运行中应用与完整 Compose 配置链，并验证旧镜像可用性和备份完整性。上线后检查健康状态、摘要与旧列表契约、文章详情、手机 WebP 和静态资源。真实模型测试若需付费，按生产验收范围另行办理。应用回退使用预检固定的旧镜像与配置链。参照 [应用部署与回退](../operations/runbooks/first-deploy.md)。
+
+独立的 [main CI](https://github.com/luohao0308/luohao-blog/actions/runs/44019869425) 在 WeChat 夹具启动时收到 MySQL 2002。[release CI gate](https://github.com/luohao0308/luohao-blog/actions/runs/44019869569) 在同提交通过。已确认 MySQL 容器初始化期间先启动临时 socket-only 服务，后启动正式 TCP 监听。夹具改为以带认证的 TCP 查询判断就绪。隔离容器探测、6 项夹具单测和完整 MySQL/Redis 集成回归均通过，报告无静默跳过。

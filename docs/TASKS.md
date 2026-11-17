@@ -12,7 +12,7 @@ _last-updated: 2026-11-17_
 
 ## 进行中 (In Progress)
 
-- [~] 作品与内容更新源码已随 [PR #140](https://github.com/luohao0308/luohao-blog/pull/140) 合并，两篇新增文章均已在公开站点检出。其余 CMS 字段与发布记录待对账。见[更新计划](plans/PORTFOLIO-CONTENT-REFRESH-2026-11.md)。
+- [~] 博客优化 1–6 已合入 main，前后端镜像发布成功。公开摘要接口仍返回正文，生产切换待单独授权。见[实施计划](plans/BLOG-OPTIMIZATIONS-2026-11.md)。
 
 - [~] 2026-11-02 博客内容与体验完善：S1城市/自动评论、S2两个开源作品真实展示、S3两篇案例均已上线验收；S4 系列目录与作者回复源码已随 [PR #129](https://github.com/luohao0308/luohao-blog/pull/129) 合并，公开系列页已验证，作者回复线上写入验收待授权。AIGC按用户说明保留现有职责/流程。见[批准计划](plans/BLOG-CONTENT-EXPERIENCE-2026-11.md)。
 
@@ -38,7 +38,8 @@ _last-updated: 2026-11-17_
 
 ## 已完成 (Done)
 
-- [x] 2026-11-17 博客优化 1–6 已本地验收，覆盖文章摘要、响应式封面、问答生成限额、跨页聊天记录、浏览器 CI 与手机布局、项目治理。待远端交付。验收与回退入口见 [实施计划](plans/BLOG-OPTIMIZATIONS-2026-11.md)。
+- [x] 2026-11-17 源码交付：博客优化 [PR #142](https://github.com/luohao0308/luohao-blog/pull/142) 三项 CI 通过后合入 main `089edc8`， [镜像发布](https://github.com/luohao0308/luohao-blog/actions/runs/44019869569) 完成。
+- [x] 2026-11-17 作品内容对账：公开 API 中 5 个作品、3 篇文章与既有交付包目标字段一致，4 张上传图 SHA-256 一致。两篇新增文章已公开，AIGC 修订已公开。见[更新计划](plans/PORTFOLIO-CONTENT-REFRESH-2026-11.md)。
 
 - [x] 同镜像前端发布命令迁移已通过 [PR #141](https://github.com/luohao0308/luohao-blog/pull/141) 合入 main。本轮对账验证提交存在。见[迁移计划](plans/RETAINED-FRONTEND-RELEASE-2026-11.md)。
 
