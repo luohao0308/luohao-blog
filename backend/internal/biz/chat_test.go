@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	kratoserrors "github.com/go-kratos/kratos/v3/errors"
 )
@@ -96,11 +97,71 @@ func TestChatAskRateLimited(t *testing.T) {
 		t.Fatalf("limiter key = %q, want chat-namespaced ip", limiter.key)
 	}
 
-	// A limiter infrastructure error fails open: the question goes through.
-	uc, _ = newChatTestUsecase(t, &chatRecordingIndex{slugs: []string{"pub-a"}}, &chatFakeLLM{answer: "a"}, &chatFakeLimiter{err: context.DeadlineExceeded})
+	// Hybrid retrieval can call a paid embedding endpoint. Skip retrieval and
+	// generation when the limiter cannot verify the budget.
+	index := &chatRecordingIndex{slugs: []string{"pub-a"}}
+	llm := &chatFakeLLM{answer: "a"}
+	uc, _ = newChatTestUsecase(t, index, llm, &chatFakeLimiter{err: context.DeadlineExceeded})
 	answer, err := uc.Ask(context.Background(), "问题", 0, "ip")
-	if err != nil || answer.Answer != "a" {
-		t.Fatalf("limiter failure Ask() = (%q, %v), want fail-open answer", answer.Answer, err)
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeGenerationUnavailable || index.query != "" || llm.calls != 0 {
+		t.Fatalf("limiter failure Ask() = (%+v, %v), search=%q model calls=%d", answer, err, index.query, llm.calls)
+	}
+	answer, err = uc.Ask(context.Background(), "你是谁", 0, "ip")
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeAnswered || index.query != "" || llm.calls != 0 {
+		t.Fatalf("free introduction unavailable during limiter failure: (%+v, %v)", answer, err)
+	}
+}
+
+type blockingChatLLM struct {
+	started chan struct{}
+}
+
+func (llm blockingChatLLM) Generate(ctx context.Context, _, _ string) (string, error) {
+	llm.started <- struct{}{}
+	<-ctx.Done()
+	return "", ctx.Err()
+}
+
+func TestChatProviderLimitSharedAcrossScopes(t *testing.T) {
+	const slots = 4
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	blocking := blockingChatLLM{started: make(chan struct{}, slots)}
+	articleChat, _ := newChatTestUsecase(t, nil, blocking, nil)
+	index := &chatRecordingIndex{slugs: []string{"pub-a"}}
+	llm := &chatFakeLLM{answer: "答案"}
+	siteChat, _ := newChatTestUsecase(t, index, llm, nil)
+	finished := make(chan error, slots)
+	for range slots {
+		go func() {
+			_, err := articleChat.AskArticle(ctx, "总结本文", "pub-a", "ip")
+			finished <- err
+		}()
+	}
+	for range slots {
+		select {
+		case <-blocking.started:
+		case <-ctx.Done():
+			t.Fatal("four requests did not reach generation")
+		}
+	}
+	answer, err := siteChat.Ask(ctx, "问题", 0, "ip")
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeGenerationUnavailable || index.query != "" || llm.calls != 0 {
+		t.Errorf("site-wide saturation = (%+v, %v), search=%q model calls=%d", answer, err, index.query, llm.calls)
+	}
+	answer, err = siteChat.AskArticle(ctx, "总结本文", "pub-a", "ip")
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeGenerationUnavailable || len(answer.Sections) == 0 || llm.calls != 0 {
+		t.Errorf("article saturation = (%+v, %v), model calls=%d", answer, err, llm.calls)
+	}
+	cancel()
+	for range slots {
+		if err := <-finished; err != nil {
+			t.Errorf("in-flight article chat: %v", err)
+		}
+	}
+	answer, err = siteChat.Ask(context.Background(), "问题", 0, "ip")
+	if err != nil || answer == nil || answer.Outcome != ChatOutcomeAnswered || llm.calls != 1 {
+		t.Errorf("generation slot was not released after cancellation: (%+v, %v)", answer, err)
 	}
 }
 

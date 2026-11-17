@@ -17,11 +17,11 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | `frontend/` | Nuxt 应用 | Vue 3 + Nuxt 4，SSR/SSG，pnpm 11 | 否 | 前端目录内自洽 |
 | `deploy/` | 基础设施 | 本地依赖编排（compose）+ 生产反代模板（Caddy，M5 启用） | 否 | 端口/卷变更需同步文档 |
 | `.github/` | CI | backend lint+build+test / frontend lint+typecheck+unit+build | 否 | 质量门，慎重修改 |
-| `AGENTS.md` / `docs/` | 流程文件 | dev-workflow 0.5.0（9 包，本机排除，不进 Git） | 否 | 规则变更需说明理由 |
+| `AGENTS.md` / `docs/` | 流程文件 | 项目协作规则与开发文档，安装版本以本机 manifest 为准 | 否 | 规则变更需说明理由 |
 | `.dev-workflow/` | 本机元数据 | manifest 与授权记录（Git exclude） | 否 | 仅本机 |
 
 - 远端：`github.com/luohao0308/luohao-blog`（Public），默认分支 `main`；已配置 required CI、conversation resolution、管理员遵守规则、禁止 force push/删除分支；required approving review 数为 0（TASKS.md T-002）。
-- 本机 gh CLI 已登录 `luohao0308`；dev-workflow 流程文件被 `.git/info/exclude` 受管排除，新 clone 需重新安装接入。
+- 本机 gh CLI 已登录 `luohao0308`；新 clone 需接入 dev-workflow。本机元数据与安装器新建文件遵守 `.git/info/exclude`，仓库跟踪的规则与文档跟随 Git。
 
 ## 3. 技术与运行时画像
 
@@ -44,7 +44,7 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 数据访问 | `backend/internal/data/` | repo 实现、存储客户端、ent | data→biz | `auth.go`：JWT 签发/校验、Redis 会话、限流器 |
 | 配置 | `backend/internal/conf/` `backend/configs/` | 配置 proto 与 yaml | 无凭据入库 | `make config` 生成 |
 | API 契约 | `backend/api/<domain>/<version>/` | proto 源 + 生成物 | 唯一对外契约 | M1 起按领域新增 |
-| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 桌面4项扁平导航+主题/登录/头像菜单，移动另有分类/标签/归档；白底首页融合动效，文章列表轻展开，搜索/标签/相邻文章及项目技术栈筛选保留 |
+| 页面 | `frontend/app/pages/` | 首页/归档/关于、文章详情/列表/标签、作品集列表/详情、login/register/settings | 布局 `app/layouts/` | 桌面导航含首页、文章、系列、作品集与关于+主题/登录/头像菜单，移动另有分类/标签/归档；白底首页融合动效，文章列表轻展开，搜索/标签/相邻文章及项目技术栈筛选保留 |
 | 公众号同步（默认关闭） | biz/official_account.go、data/official_account_client/repo、admin/wechat-sync.vue | 文章发布原子入队、版本/账号幂等，草稿/公开发表/群发三模式，状态查询与持久退避 | 独立official_account配置，MySQL任务表v11，admin-only状态/重试/显式同步；真实启用见Runbook | 与小程序wechat登录配置独立；不存凭据、不盲重试未知写操作 |
 | 管理后台 | `frontend/app/pages/admin/` + `layouts/admin.vue` | 登录、文章管理表格（状态流转）、Milkdown 编辑器 new/edit | `composables/useAuth.ts` + `middleware/admin-auth.ts` | access token 内存态 + refresh cookie（BFF `cookiePathRewrite` 适配）；admin 带 token 列表可见草稿 |
 | 前台账号 | `pages/{login,register,settings}.vue` + `components/UserMenu.vue` | 开放注册（邮箱+密码+昵称→READER）、登录、头像上传（canvas 压缩→base64）、昵称/密码修改；settings为精简账号概览+个人资料/邮箱验证/账号安全标签，保持各组输入与后台#password入口 | `useAuth`（客户端会话恢复 + authFetch）+ `utils/assets.ts`（assetUrl） | 头像存后端本地磁盘卷（`data.uploads_dir`，魔数校验 jpg/png/webp ≤2MB）；评论区需登录，身份取自 token |
@@ -75,8 +75,8 @@ _状态：M0–M5 已交付上线（域名 HTTPS 已启用）；具体部署与�
 | 小程序验证 | `npm run typecheck && npm test` | miniprogram/ | mocked wx 逻辑回归；不替代 DevTools/真机验收 |
 | 看门狗验证 | `python3 scripts/test_watchdog.py` | 仓库根 | fake Docker 正负场景；探针使用容器健康状态 |
 | 前端启动 | `pnpm dev` | frontend/ | :3000 |
-| 依赖服务 | `docker compose -f deploy/docker-compose.yml up -d` | 仓库根 | `config -q` 已校验；启动冒烟 M1 做 |
-| CI | `.github/workflows/ci.yml` | 仓库根 | backend / frontend / miniprogram 三个 job |
+| 依赖服务 | `docker compose -f deploy/docker-compose.yml up -d` | 仓库根 | `config -q` 可验证编排结构 |
+| CI | `.github/workflows/ci.yml` | 仓库根 | backend / frontend / miniprogram 三个 job，前端包含本地 fixture 浏览器冒烟 |
 
 ## 6. 契约、数据和运行边界
 

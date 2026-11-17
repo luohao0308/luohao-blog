@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -73,8 +74,36 @@ func TestChatLLMGenerate(t *testing.T) {
 		gotBody.Messages[1].Content != "用户问题" {
 		t.Fatalf("request body = %+v", gotBody)
 	}
+	if gotBody.MaxTokens != 2048 || gotBody.MaxCompletionTokens != 0 {
+		t.Fatalf("compatible provider output budget = %+v", gotBody)
+	}
 	if answer != "生成的回答" {
 		t.Fatalf("answer = %q", answer)
+	}
+}
+
+type chatTestTransport func(*http.Request) (*http.Response, error)
+
+func (f chatTestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestChatLLMNativeOpenAIOutputBudget(t *testing.T) {
+	client := NewChatLLM(chatTestBootstrap("https://api.openai.com/v1")).(*chatLLM)
+	client.http.Transport = chatTestTransport(func(r *http.Request) (*http.Response, error) {
+		defer func() { _ = r.Body.Close() }()
+		var body map[string]json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			return nil, err
+		}
+		if string(body["max_completion_tokens"]) != "2048" || body["max_tokens"] != nil {
+			t.Errorf("wrong output budget on OpenAI request: %v", body)
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"choices":[{"message":{"content":"ok"}}]}`)),
+		}, nil
+	})
+	if answer, err := client.Generate(context.Background(), "s", "u"); err != nil || answer != "ok" {
+		t.Fatalf("Generate() = (%q, %v)", answer, err)
 	}
 }
 

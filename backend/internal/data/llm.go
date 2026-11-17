@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -24,8 +25,9 @@ type chatLLM struct {
 	model   string
 	// reasoningEffort is sent as the optional reasoning_effort field, only
 	// when configured (empty = field omitted, provider default applies).
-	reasoningEffort string
-	http            *http.Client
+	reasoningEffort     string
+	useCompletionTokens bool
+	http                *http.Client
 }
 
 // NewChatLLM builds the client from the bootstrap config. It returns nil when
@@ -45,12 +47,15 @@ func newChatLLM(c *conf.Llm) biz.ChatLLM {
 		// models can think for a long time before the first token.
 		timeout = 120 * time.Second
 	}
+	baseURL := strings.TrimRight(c.GetBaseUrl(), "/")
+	endpoint, _ := url.Parse(baseURL)
 	return &chatLLM{
-		baseURL:         strings.TrimRight(c.GetBaseUrl(), "/"),
-		apiKey:          c.GetApiKey(),
-		model:           c.GetModel(),
-		reasoningEffort: c.GetReasoningEffort(),
-		http:            &http.Client{Timeout: timeout},
+		baseURL:             baseURL,
+		apiKey:              c.GetApiKey(),
+		model:               c.GetModel(),
+		reasoningEffort:     c.GetReasoningEffort(),
+		useCompletionTokens: endpoint != nil && strings.EqualFold(endpoint.Hostname(), "api.openai.com"),
+		http:                &http.Client{Timeout: timeout},
 	}
 }
 
@@ -60,8 +65,10 @@ type chatMessage struct {
 }
 
 type chatCompletionsRequest struct {
-	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Model               string        `json:"model"`
+	Messages            []chatMessage `json:"messages"`
+	MaxTokens           int           `json:"max_tokens,omitempty"`
+	MaxCompletionTokens int           `json:"max_completion_tokens,omitempty"`
 	// ReasoningEffort is omitted when empty (omitempty) so providers without
 	// the concept, or deployments wanting the provider default, are unaffected.
 	ReasoningEffort string `json:"reasoning_effort,omitempty"`
@@ -75,17 +82,26 @@ type chatCompletionsResponse struct {
 
 // Bound the complete provider response, including ignored fields and padding.
 const maxChatResponseBytes = 1 << 20
+const maxChatOutputTokens = 2048
 
 // Generate returns the assistant reply for one system/user exchange.
 func (c *chatLLM) Generate(ctx context.Context, system, user string) (string, error) {
-	body, err := json.Marshal(chatCompletionsRequest{
+	payload := chatCompletionsRequest{
 		Model: c.model,
 		Messages: []chatMessage{
 			{Role: "system", Content: system},
 			{Role: "user", Content: user},
 		},
 		ReasoningEffort: c.reasoningEffort,
-	})
+	}
+	// DeepSeek and other compatible endpoints use max_tokens. Native OpenAI
+	// uses max_completion_tokens, including for models that reject max_tokens.
+	if c.useCompletionTokens {
+		payload.MaxCompletionTokens = maxChatOutputTokens
+	} else {
+		payload.MaxTokens = maxChatOutputTokens
+	}
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}

@@ -214,3 +214,12 @@ frontend完成 `node --test tests/*.test.cjs`、lint/typecheck/build后，仓库
 在仓库根执行 `mkdir -p output/blog-case-studies`，再用 `go -C backend run ./cmd/content-release -case-studies -render-preview -bundle ../content/releases/blog-case-studies-20261102.json > output/blog-case-studies/rendered.json` 生成生产渲染器的HTML；该模式不加载配置、不连接数据库或索引。完成frontend生产构建后运行 `node scripts/e2e/blog_case_studies_e2e.cjs`，用14370/14371的只读fixture验证两篇桌面/手机正文、代码/表格、作品双向链接、草稿过滤和失败重试。原始来源Markdown在docs/content/articles；渲染与截图输出不进Git。
 
 CAS/历史/恢复的真实隔离MySQL验证入口为 `python3 scripts/test_article_revisions.py`；本机Docker门的无Docker负向回归为 `python3 -m unittest discover -s scripts -p test_article_revisions_test.py`，两者已加入Backend CI。拒绝远端daemon，只操作本任务带标签的回环fixture。
+
+## PR 浏览器冒烟
+
+前端 CI 构建后，使用 Playwright Chromium 运行 `browser_ci.cjs` 与 `draft_protection_e2e.cjs`。两者启动回环地址上的独立 fixture 和生产构建。检查首页摘要、文章搜索、手机阅读、小乌以及保存失败后的草稿恢复。可复用本机已安装的 Playwright 与浏览器。
+
+```bash
+NODE_PATH=/path/to/playwright/node_modules node scripts/e2e/browser_ci.cjs
+NODE_PATH=/path/to/playwright/node_modules node scripts/e2e/draft_protection_e2e.cjs
+```

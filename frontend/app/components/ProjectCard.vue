@@ -12,6 +12,7 @@ const openProject = useArticleExpansion('[data-project-detail]')
 const editorialCover = computed(() => projectImages[props.project.slug])
 const coverUrl = computed(() => props.coverSrc || assetUrl(props.project.cover_url) || editorialCover.value?.src || '')
 const isPoster = computed(() => !props.coverSrc && !props.project.cover_url && editorialCover.value?.poster)
+const coverSrcset = computed(() => isPoster.value ? editorialCover.value?.coverSrcset : undefined)
 const alt = computed(() => props.coverAlt || (!props.project.cover_url && editorialCover.value?.alt) || `${props.project.name} 项目封面`)
 const failedCover = ref('')
 const coverImage = ref<HTMLImageElement | null>(null)
@@ -25,7 +26,7 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
 <template>
   <article data-project-card class="editorial-card bento-card work-card" :class="{ 'has-cover': showCover, 'poster-card': showCover && isPoster, 'tone-sand': !project.featured }" @click.capture="openProject($event, projectTo)">
     <div v-if="showCover" class="editorial-cover">
-      <img ref="coverImage" :src="coverUrl" :alt="alt" :width="isPoster ? 1280 : 800" :height="isPoster ? 720 : 600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
+      <img ref="coverImage" :src="coverUrl" :srcset="coverSrcset" :sizes="coverSrcset ? 'auto, (max-width: 639px) calc(100vw - 48px), 420px' : undefined" :alt="alt" :width="isPoster ? 1280 : 800" :height="isPoster ? 720 : 600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
     </div>
     <div class="editorial-body">
       <div class="editorial-meta">

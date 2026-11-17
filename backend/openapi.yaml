@@ -285,6 +285,11 @@ paths:
                      Defaults to ascending order when no direction is supplied.
                   schema:
                     type: string
+                - name: summaryOnly
+                  in: query
+                  description: Omit both body fields and include a synopsis and reading time.
+                  schema:
+                    type: boolean
             responses:
                 "200":
                     description: OK
@@ -1723,6 +1728,11 @@ components:
                 featured:
                     type: boolean
                     description: Whether editors have selected the article for featured placements.
+                readingMinutes:
+                    readOnly: true
+                    type: integer
+                    description: Estimated reading time in summary-only list responses.
+                    format: uint32
             description: Article is the canonical representation of a blog article.
         blog.v1.ArticleRevision:
             type: object

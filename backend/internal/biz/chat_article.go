@@ -3,10 +3,11 @@ package biz
 import (
 	"context"
 	"encoding/json"
-	"github.com/luohao0308/luohao-blog/backend/internal/biz/article/render"
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/luohao0308/luohao-blog/backend/internal/biz/article/render"
 )
 
 const articleLLMFailureAnswer = "AI 生成暂时不可用，先看看本文这些参考段落。"
@@ -21,11 +22,9 @@ func (uc *ChatUsecase) AskArticle(ctx context.Context, query, slug, clientIP str
 	if uc.llm == nil {
 		return nil, ErrChatUnavailable
 	}
-	if uc.limiter != nil {
-		ok, err := uc.limiter.Allow(ctx, "chat:"+clientIP)
-		if err == nil && !ok {
-			return nil, ErrChatTooManyAttempts
-		}
+	paidAllowed, err := uc.chatBudget(ctx, clientIP)
+	if err != nil {
+		return nil, err
 	}
 	article, err := uc.search.GetPublicArticle(ctx, slug)
 	if err != nil {
@@ -42,6 +41,10 @@ func (uc *ChatUsecase) AskArticle(ctx context.Context, query, slug, clientIP str
 	for _, s := range sections {
 		refs = append(refs, ChatSectionCitation{Slug: article.Slug, Title: chatClip(article.Title, 200), Summary: chatClip(article.Summary, 200), SectionTitle: s.Title, Anchor: s.Anchor, Excerpt: chatClip(s.Content, 300)})
 	}
+	if !paidAllowed || !tryChatProviderSlot() {
+		return &ChatAnswer{Outcome: ChatOutcomeGenerationUnavailable, ArticleSlug: slug, Answer: articleLLMFailureAnswer, Sections: refs}, nil
+	}
+	defer func() { <-chatProviderSlots }()
 	data, _ := json.Marshal(struct {
 		Question string
 		Title    string

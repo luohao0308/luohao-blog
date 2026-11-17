@@ -14,6 +14,7 @@ const openArticle = useArticleExpansion()
 const editorialCover = computed(() => articleImages[props.article.slug])
 const coverUrl = computed(() => props.coverSrc || assetUrl(props.article.cover_url) || editorialCover.value?.src || '')
 const isPoster = computed(() => !props.coverSrc && !props.article.cover_url && editorialCover.value?.poster)
+const coverSrcset = computed(() => isPoster.value ? editorialCover.value?.coverSrcset : undefined)
 const alt = computed(() => props.coverAlt || (!props.article.cover_url && editorialCover.value?.alt) || `${props.article.title}封面`)
 const summary = computed(() => articleSummary(props.article.summary, props.article.content_md))
 const failedCover = ref('')
@@ -28,7 +29,7 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
 <template>
   <article data-article-card class="editorial-card bento-card reading-card" :class="{ 'has-cover': showCover, 'poster-card': showCover && isPoster }" @click.capture="openArticle($event, destination)">
     <div v-if="showCover" class="editorial-cover">
-      <img ref="coverImage" :src="coverUrl" :alt="alt" :width="isPoster ? 1280 : 800" :height="isPoster ? 720 : 600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
+      <img ref="coverImage" :src="coverUrl" :srcset="coverSrcset" :sizes="coverSrcset ? 'auto, (max-width: 639px) calc(100vw - 48px), 420px' : undefined" :alt="alt" :width="isPoster ? 1280 : 800" :height="isPoster ? 720 : 600" loading="lazy" decoding="async" @error="failedCover = coverUrl">
     </div>
     <div class="editorial-body">
       <div class="editorial-meta">
@@ -44,7 +45,7 @@ const showCover = computed(() => coverUrl.value && coverUrl.value !== failedCove
       </div>
       <div class="editorial-footer">
         <div class="editorial-tags">
-          <span class="editorial-reading">{{ readingMinutes(article.content_md) }} 分钟阅读</span>
+          <span class="editorial-reading">{{ article.reading_minutes ?? readingMinutes(article.content_md) }} 分钟阅读</span>
           <NuxtLink v-for="tag in article.tags?.slice(0, 2)" :key="tag" :to="`/tags/${encodeURIComponent(tag)}`">{{ tag }}</NuxtLink>
           <span v-if="(article.tags?.length || 0) > 2">+{{ article.tags.length - 2 }}</span>
         </div>
